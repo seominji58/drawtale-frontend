@@ -20,9 +20,8 @@ S-01~S-11 이 끝까지 돈다. **카카오·구글 소셜 로그인**을 프론
 | 저장소 | 브랜치 | 상태 | 합치기 |
 |---|---|---|---|
 | drawtale-frontend | `feat/backend-contract` | push 됨 | main 에 합치기 전. PR 없음 |
-| drawtale-backend | `feat/social-login` (dev 에서 분기) | push 됨. **새 dev(GPT·TTS) merge 완료**, 테스트 20개 통과 | **백엔드 담당이 검토 후 dev 에**. PR 없음 |
-| drawtale-ai | `feat/gentle-motions` (dev 에서 분기) | push 됨. 순화 동작 2개 | **AI 담당 검토 후 dev 에. 백엔드 `feat/motion-mapping` 보다 먼저** |
-| drawtale-backend | `feat/motion-mapping` (dev 에서 분기) | push 됨. **새 dev(GPT·TTS) merge 완료**, 테스트 20개 통과 | AI `feat/gentle-motions` 합친 **다음에** dev 에 |
+| drawtale-ai | `feat/gentle-motions` (dev 에서 분기) | push 됨. 순화 동작 2개 | AI 담당 검토 후 dev 에. 합치기 전에는 백엔드가 원래 동작으로 렌더한다 |
+| drawtale-backend | **`dev` 하나에서 작업** (팀 합의, 2026-09-29) | 소셜 로그인·동작 매핑을 **dev 에 합침**. 순화 동작을 모르는 AI 면 원래 동작으로 다시 렌더. ElevenLabs 선택 추가. 테스트 35개 | 합침 (`1b5a2f6`) |
 
 로컬 `main`(프론트)에는 처음 코드를 가져온 커밋 3개가 push 되지 않은 채 있다.
 
@@ -107,6 +106,12 @@ S-01~S-11 이 끝까지 돈다. **카카오·구글 소셜 로그인**을 프론
 그 말이 들어간 문장을 읽어 준다. 음성 인식은 브라우저 내장, **어른 설정에서 켜야 한다**(기본 꺼짐).
 백엔드 dev 에 GPT 문장 생성·검열·TTS 가 들어와서 아이 말도 「~어요」로 다듬어지고 검열된다. 검열에 걸리면
 E-01 「이 이야기는 만들 수 없어요」 → 다시 고르기. 자세한 것은 `docs/open-decisions.md` 0-5.
+
+### 이야기 음성 — OpenAI 또는 ElevenLabs
+
+백엔드 `TTS_PROVIDER` 로 고른다 (기본 openai). ElevenLabs 는 `ELEVENLABS_API_KEY`·`ELEVENLABS_VOICE_ID`·
+`ELEVENLABS_MODEL_ID` 를 백엔드 `.env` 에 넣으면 된다. 키는 `.env` 에만 — 채팅·문서에 붙이지 않는다.
+두 목소리를 들어 보고 고르는 것이 `open-decisions.md` 6번(TTS 청취 투표)이다.
 
 ### 알려진 문제
 

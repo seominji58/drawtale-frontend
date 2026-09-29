@@ -31,6 +31,18 @@
 
 ## 2026-09-29
 
+### 백엔드를 dev 하나로 통합 · ElevenLabs TTS 선택 추가
+
+**왜**: 사용자 「팀원이 dev 하나에서 같이 작업하자고 해서 브랜치 안 나누고 dev 에서 통합」, 「ElevenLabs 키가 있는데 줘?」.
+**한 것** (drawtale-backend `dev`):
+- `feat/social-login`·`feat/motion-mapping` 을 dev 에 merge. 동작 매핑이 AI 순화 동작 이름을 보내는데 AI 쪽
+  `feat/gentle-motions` 는 아직 AI dev 에 없다 → `render_with_fallback`: AI 가 `UNKNOWN_MOTION` 이면 `_gentle` 을 뗀
+  원래 동작으로 한 번 더 렌더 (`1881655`, 테스트 3개)
+- `TTS_PROVIDER=openai|elevenlabs` (기본 openai). ElevenLabs 는 키·목소리 id·모델 id, 같은 속도 0.9 (`1b5a2f6`, 테스트 3개).
+  키는 채팅으로 받지 않았다 — 사용자가 `.env` 에 넣는다
+- 테스트 35개·ruff 통과. 원격의 `feat/social-login`·`feat/motion-mapping` 브랜치는 지우지 않았다
+**확인 못 한 것**: 실제 ElevenLabs 호출(키 없음), 목소리 고르기.
+
 ### 팀 공유 문서 · 백엔드 새 dev 반영 · CONTENT_BLOCKED 처리
 
 **왜**: 사용자 「팀원한테 공유할 수 있게 문서 정리」, 「백엔드는 브랜치 분리해 놨으니 필요한 것들 진행해도 돼」.
