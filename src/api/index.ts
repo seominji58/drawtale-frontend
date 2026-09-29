@@ -1,7 +1,7 @@
 import { JOINT_ORDER } from "@/types/character";
 import type { Character, ErrorCode, JobStatus, JointName, Keypoints } from "@/types/character";
 import type { StepChoice, StepKind, Story } from "@/types/story";
-import { CHOICES, labelOf } from "@/features/story/choices";
+import { CHOICES, MAX_SAID, labelOf } from "@/features/story/choices";
 import { mockAnalyze, mockGenerate } from "./mock/engine";
 
 /* 백엔드 계약: drawtale-backend `docs/api-contract.md` (초안 v0.1, 2026-09-28).
@@ -161,18 +161,21 @@ export async function fetchSteps(kind: StepKind, count: number): Promise<StepCho
   return CHOICES[kind].slice(0, count);
 }
 
-/** S-08 이야기 생성 (계약 2-5 → 2-2 → 2-6). 서버가 MP4 까지 만든 뒤에 돌아온다 */
+/** S-08 이야기 생성 (계약 2-5 → 2-2 → 2-6). 서버가 MP4 까지 만든 뒤에 돌아온다.
+ *  아이가 말로 덧붙인 단계는 카드 글자 대신 아이 말을 보낸다 (계약이 자유 문자열 50자) */
 export async function generateStory(
   characterId: string,
   picks: Record<StepKind, string>,
+  said: Partial<Record<StepKind, string>>,
   onStatus: (s: JobStatus) => void,
   signal?: AbortSignal
 ): Promise<Story> {
+  const text = (k: StepKind) => said[k]?.slice(0, MAX_SAID) || labelOf(k, picks[k]);
   const labels = {
-    place: labelOf("place", picks.place),
-    problem: labelOf("problem", picks.problem),
-    action: labelOf("action", picks.action),
-    result: labelOf("result", picks.result),
+    place: text("place"),
+    problem: text("problem"),
+    action: text("action"),
+    result: text("result"),
   };
   if (useMock) return mockGenerate(characterId, labels, onStatus, signal);
 

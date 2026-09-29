@@ -17,7 +17,7 @@ const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, 
 
 export default function S08Generating() {
   const nav = useNavigate();
-  const { character, picks, setStory, setError } = useSession();
+  const { character, picks, said, setStory, setError } = useSession();
   const add = useLibrary((s) => s.add);
   const mode = useAuth((a) => a.mode);
   const diagnostics = useSettings((s) => s.diagnostics);
@@ -33,7 +33,7 @@ export default function S08Generating() {
     const ctrl = new AbortController();
     abort.current = ctrl;
     const started = performance.now();
-    generateStory(character.id, picks as Record<StepKind, string>, (s) => {
+    generateStory(character.id, picks as Record<StepKind, string>, said, (s) => {
       setStep(STEP[s]);
       setDiag(`${s} · ${Math.round((performance.now() - started) / 1000)}s · ${ENGINE}`);
     }, ctrl.signal)
@@ -47,7 +47,7 @@ export default function S08Generating() {
         setError(e instanceof ApiError ? e.code : "ENGINE_ERROR"); nav("/error");
       });
     return () => { clearTimeout(t); ctrl.abort(); };
-  }, [character, picks, setStory, add, setError, nav, mode]);
+  }, [character, picks, said, setStory, add, setError, nav, mode]);
 
   const stop = () => { abort.current?.abort(); nav("/steps"); };
 

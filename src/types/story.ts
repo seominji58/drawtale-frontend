@@ -40,4 +40,6 @@ export interface Settings {
   muteAll: boolean;
   keepOriginal: boolean;
   diagnostics: boolean;
+  /** S-07 말로 덧붙이기(STT). 아이 목소리가 브라우저 인식 서버로 가므로 어른이 켠다. 기본 꺼짐 */
+  voiceInput: boolean;
 }

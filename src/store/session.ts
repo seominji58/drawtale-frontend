@@ -12,6 +12,8 @@ interface SessionState {
   keypoints: Keypoints | null;
   /** S-07 단계별 선택 */
   picks: Partial<Record<StepKind, string>>;
+  /** S-07 말로 덧붙인 아이 말 (단계별). 카드 글자 대신 이야기에 들어간다 */
+  said: Partial<Record<StepKind, string>>;
   /** S-08 결과 */
   story: Story | null;
   /** E-01 로 넘길 오류 코드 */
@@ -21,6 +23,7 @@ interface SessionState {
   setCharacter: (c: Character | null) => void;
   setKeypoints: (k: Keypoints | null) => void;
   pick: (kind: StepKind, id: string) => void;
+  say: (kind: StepKind, text: string | null) => void;
   setStory: (s: Story | null) => void;
   setError: (code: string | null) => void;
   resetStory: () => void;
@@ -33,6 +36,7 @@ export const useSession = create<SessionState>((set, get) => ({
   character: null,
   keypoints: null,
   picks: {},
+  said: {},
   story: null,
   errorCode: null,
 
@@ -49,17 +53,27 @@ export const useSession = create<SessionState>((set, get) => ({
     const order: StepKind[] = ["place", "problem", "action", "result"];
     const at = order.indexOf(kind);
     const next: Partial<Record<StepKind, string>> = {};
-    order.slice(0, at).forEach((k) => { const v = get().picks[k]; if (v) next[k] = v; });
+    const said: Partial<Record<StepKind, string>> = {};
+    order.slice(0, at).forEach((k) => {
+      const v = get().picks[k]; if (v) next[k] = v;
+      const w = get().said[k]; if (w) said[k] = w;
+    });
     next[kind] = id;
-    set({ picks: next });
+    // 카드를 바꾸면 그 단계에 덧붙인 말도 지운다 (다른 카드에 대한 말이었으니까)
+    set({ picks: next, said });
+  },
+  say: (kind, text) => {
+    const said = { ...get().said };
+    if (text) said[kind] = text; else delete said[kind];
+    set({ said });
   },
   setStory: (s) => set({ story: s }),
   setError: (code) => set({ errorCode: code }),
-  resetStory: () => set({ picks: {}, story: null }),
+  resetStory: () => set({ picks: {}, said: {}, story: null }),
   resetAll: () => {
     const prev = get().imageUrl;
     if (prev) URL.revokeObjectURL(prev);
     set({ file: null, imageUrl: null, character: null, keypoints: null,
-          picks: {}, story: null, errorCode: null });
+          picks: {}, said: {}, story: null, errorCode: null });
   },
 }));

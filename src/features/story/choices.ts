@@ -71,3 +71,21 @@ export const CHOICES = Object.fromEntries(
 /** 고른 id 를 서버에 보낼 라벨로 바꾼다 */
 export const labelOf = (kind: StepKind, id: string | undefined) =>
   CHOICES[kind].find((c) => c.id === id)?.label ?? "";
+
+/** 단계 하나가 이야기에서 되는 문장. 백엔드 목 AI 의 문장 틀과 같게 둔다
+ *  (drawtale-backend `services/jobs.py` `_mock_story_text`) — 아이가 미리 듣는 문장과 결과가 같도록.
+ *  백엔드가 AI 로 문장을 다듬게 되면 여기는 미리 듣기용 초안이 된다. */
+export function sentenceFor(kind: StepKind, text: string): string {
+  switch (kind) {
+    case "place": return `오늘 나는 ${text}에 갔어요.`;
+    case "problem": return `그런데 ${text}.`;
+    case "action": return `그래서 나는 ${text}.`;
+    case "result": return `그랬더니 ${text}.`;
+  }
+}
+
+/** 말로 덧붙이기를 받는 단계. 장소는 「○○에 갔어요」 틀에 문장이 들어가면 깨져서 받지 않는다 */
+export const VOICE_STEPS: StepKind[] = ["problem", "action", "result"];
+
+/** 백엔드 계약 2-5: 단계마다 자유 문자열 50자 */
+export const MAX_SAID = 50;

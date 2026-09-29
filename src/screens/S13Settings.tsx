@@ -6,6 +6,7 @@ import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
 import type { SupportLevel } from "@/types/story";
+import { voiceSupported } from "@/features/story/voice";
 
 function Row({ name, desc, children }: { name: string; desc: string; children: ReactNode }) {
   return (
@@ -47,6 +48,15 @@ export default function S13Settings() {
         <Row name="소리 전체 끄기" desc="모든 음성과 효과음을 끕니다. 교실에서 쓸 때 켜세요">
           <input type="checkbox" checked={s.muteAll}
             onChange={(e) => s.set("muteAll", e.target.checked)}
+            className="tog" />
+        </Row>
+        {/* 아이 목소리는 개인정보다. 어디로 가는지 켜는 사람이 알고 켠다 */}
+        <Row name="목소리로 덧붙이기"
+          desc={voiceSupported()
+            ? "이야기를 만들 때 아이가 마이크로 한마디 덧붙일 수 있습니다. 목소리는 이 브라우저의 음성 인식 서버(브라우저 회사)로 보내져 글자로 바뀌며, 녹음 파일은 저장하지 않습니다"
+            : "이 브라우저는 음성 인식을 지원하지 않습니다. 크롬이나 사파리에서 켤 수 있습니다"}>
+          <input type="checkbox" checked={s.voiceInput} disabled={!voiceSupported()}
+            onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>
         <Row name="원본 그림 보관" desc="분석 후에도 원본 이미지를 보관합니다">
