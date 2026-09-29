@@ -108,68 +108,72 @@ E-01 문구는 여전히 프론트가 코드로 고른다 (`src/lib.ts` `ERROR_T
 
 ---
 
-## 4. 로그인 — 프론트 제안 (백엔드에 아직 없다)
+## 4. 로그인 — 소셜 로그인 (카카오 · 네이버 · 구글)
 
-백엔드 계약은 「로그인 없음(비회원)」이다. 사용자 지시로 프론트에 카카오 로그인을
-먼저 만들었고(2026-09-29), 백엔드가 맞춰 줘야 실서버에서 돈다. 목 모드에서는 끝까지 돈다.
+**원본은 백엔드 `feat/social-login` 브랜치** (github.com/seominji58/drawtale-backend,
+2026-09-29 push, dev 에 합쳐지기 전)의 계약서 2-7·2-8 이다. 여기에는 프론트 쪽 동작만 적는다.
+백엔드 계약 4절 9번은 이 브랜치에서 「소셜 로그인 추가, 선택 사항」으로 바뀐다.
 
-### 4-1. 카카오 로그인 — 인가 코드 방식
+### 4-1. 흐름 — 인가 코드 방식
 
 ```text
-S-15/S-16 [카카오 로그인]
-  → https://kauth.kakao.com/oauth/authorize?client_id=…&redirect_uri=…&response_type=code&state=…
-  → (카카오 동의 화면)
-  → {origin}/auth/kakao/callback?code=…&state=…      ← S15Callback.tsx
-  → POST /api/v1/auth/kakao                            ← 백엔드가 카카오와 토큰 교환
-  → 우리 토큰으로 로그인
+S-15/S-16 [○○ 로그인]
+  → 제공자 인가 화면 (client_id, redirect_uri, response_type=code, state)
+  → {origin}/auth/{provider}/callback?code=…&state=…     ← S15Callback.tsx
+  → POST /api/v1/auth/{provider} { code, redirect_uri, state, agreed }
+  → { token, account } 로 로그인
 ```
 
-- **`scope`를 요청하지 않는다.** 받는 것은 카카오 회원번호뿐이다. 카카오 콘솔의 동의 항목도
-  전부 꺼 둔다 (닉네임·이메일·프로필 사진 받지 않음)
-- `state`는 떠날 때 sessionStorage에 두고 돌아와서 맞춰 본다 (CSRF)
-- **클라이언트 시크릿은 백엔드에만 둔다.** 프론트에는 REST API 키(`VITE_KAKAO_CLIENT_ID`,
-  공개돼도 되는 값)만 있다. 키가 비어 있으면 실서버 모드에서 버튼을 숨긴다
-- 개발 모드 StrictMode에서 콜백 effect가 두 번 돌아도 인가 코드는 한 번만 쓴다
+| 제공자 | 인가 주소 | scope |
+|---|---|---|
+| kakao | `https://kauth.kakao.com/oauth/authorize` | 없음 |
+| naver | `https://nid.naver.com/oauth2.0/authorize` | 없음 (콘솔 동의 항목 최소) |
+| google | `https://accounts.google.com/o/oauth2/v2/auth` | `openid` (필수 최소값) |
 
-**요청** `POST /api/v1/auth/kakao`
+- **받는 것은 제공자 회원번호뿐이다.** 이름·이메일·프로필 사진은 받지 않는다
+- `state`는 떠날 때 sessionStorage에 두고 돌아와서 맞춰 본다 (CSRF). 네이버는 토큰 교환에도
+  필요해서 백엔드에 함께 보낸다
+- **시크릿은 백엔드에만 있다.** 프론트에는 client id(`VITE_{KAKAO|NAVER|GOOGLE}_CLIENT_ID`)만.
+  비어 있는 제공자는 실서버 모드에서 버튼을 숨긴다
+- 개발 모드 StrictMode 에서 콜백 effect 가 두 번 돌아도 인가 코드는 한 번만 쓴다
 
-```json
-{ "code": "…", "redirect_uri": "http://localhost:5173/auth/kakao/callback", "agreed": false }
-```
+### 4-2. 처음 온 사람 — `SIGNUP_REQUIRED`
 
-- `redirect_uri`는 인가 요청 때와 **같은 값**을 토큰 교환에 넘겨야 한다 (카카오 규칙)
-- `agreed`: S-16에서 약관·개인정보 처리방침에 동의하고 눌렀으면 `true`
+`agreed: false`로 처음 보는 회원번호가 오면 백엔드가 `409 SIGNUP_REQUIRED`를 준다.
+프론트는 S-16으로 보내 「처음 오셨네요. 약관에 동의하고 ○○ 계정으로 가입해 주세요」를 띄우고,
+동의 체크 전에는 소셜 버튼을 잠근다. **제공자 동의 화면은 우리 약관 동의를 대신하지 않는다.**
 
-**응답** `200`
-
-```json
-{ "token": "…", "account": "카카오 계정" }
-```
-
-`account`는 설정 화면(S-13)에 보일 이름이다. 이름을 받지 않으므로 제공자 이름이면 된다.
-
-**처음 온 사람** — `agreed: false`인데 가입한 적 없는 회원번호면
-`409 { "error": { "code": "SIGNUP_REQUIRED", … } }`. 프론트는 S-16으로 보내 동의를 받고
-`agreed: true`로 다시 시작한다. **카카오 동의 화면은 우리 약관 동의를 대신하지 않는다.**
-
-| 오류 코드 | 프론트 처리 |
+| 경우 | 프론트 처리 |
 |---|---|
-| `SIGNUP_REQUIRED` | S-16으로, 「처음 오셨네요」 안내 |
-| 카카오에서 `error=access_denied` (사용자가 취소) | 조용히 S-15로 |
-| 그 밖 (`state` 불일치, 토큰 교환 실패 …) | 콜백 화면에 오류, 「로그인으로 돌아가기」 |
+| `SIGNUP_REQUIRED` | S-16으로 |
+| 제공자에서 `error=access_denied` (사용자가 취소) | 조용히 S-15로 |
+| 그 밖 (`state` 불일치, `OAUTH_FAILED`, `PROVIDER_NOT_CONFIGURED` …) | 콜백 화면에 오류, 「로그인으로 돌아가기」 |
 
-### 4-2. 이메일 로그인 (예전부터 있던 것)
+토큰은 `localStorage`의 `storyblanks.token`에 둔다. **아직 다른 API 호출에 싣지 않는다** —
+백엔드도 아직 로그인을 요구하는 API가 없다 (`GET /api/v1/auth/me` 뿐).
 
-`POST /api/v1/auth/login` · `POST /api/v1/auth/signup` — `{ email, password }` →
-`{ token, account }`. 경로만 `/api/v1`로 맞췄다.
+### 4-3. 이메일 로그인
 
-### 4-3. 카카오 개발자 콘솔에서 할 일 (사람이 해야 한다)
+`POST /api/v1/auth/login` · `/auth/signup` — **백엔드에 없다.** 예전 화면이 남아 있을 뿐이다.
+둘지 뺄지는 `open-decisions.md` 0-3.
 
-1. developers.kakao.com → 애플리케이션 추가 → **REST API 키**를 프론트 `.env`의
-   `VITE_KAKAO_CLIENT_ID`에
-2. 카카오 로그인 활성화, **Redirect URI**에 `http://localhost:5173/auth/kakao/callback`
-   (배포 주소도 따로)
-3. **동의 항목은 아무것도 켜지 않는다**
-4. 보안 → **Client Secret** 발급 → **백엔드** 환경변수에만
+### 4-4. 개발자 콘솔에서 할 일 (사람이 해야 한다)
 
-버튼 그림은 카카오 공식 리소스를 고치지 않고 쓴다 (`public/brand/kakao/`).
+| | 카카오 | 네이버 | 구글 |
+|---|---|---|---|
+| 콘솔 | developers.kakao.com | developers.naver.com | console.cloud.google.com |
+| 프론트 `.env` | REST API 키 → `VITE_KAKAO_CLIENT_ID` | Client ID → `VITE_NAVER_CLIENT_ID` | OAuth 클라이언트 ID(웹) → `VITE_GOOGLE_CLIENT_ID` |
+| 백엔드 `.env` | `KAKAO_CLIENT_ID`·`KAKAO_CLIENT_SECRET` | `NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET` | `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET` |
+| Redirect URI | `http://localhost:5173/auth/kakao/callback` | `…/auth/naver/callback` | `…/auth/google/callback` |
+| 동의 항목 | 아무것도 켜지 않는다 | 필수 항목을 최소로 | scope `openid`만 |
+
+### 4-5. 버튼 그림 — 세 곳 모두 공식 리소스, 고치지 않는다
+
+| 제공자 | 파일 | 출처 |
+|---|---|---|
+| 카카오 | `public/brand/kakao/kakao_login_kr_medium.svg` | developers.kakao.com 리소스 「전체 다운로드」 |
+| 네이버 | `public/brand/naver/NAVER_login_Light_KR_green_narrow_H56.png` | developers.naver.com 로그인 BI `NAVER_login_KR.zip` |
+| 구글 | `public/brand/google/signin_light_square.svg` | Google 브랜딩 가이드 `signin-assets.zip` |
+
+구글 공식 파일은 영어(「Sign in with Google」)뿐이다. 가이드는 한국어 현지화를 허용하지만
+로고만 따로 있는 파일이 없어 원본 그대로 쓴다. 자세한 것은 각 폴더의 `README.txt`.

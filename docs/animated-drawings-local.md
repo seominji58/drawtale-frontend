@@ -16,7 +16,7 @@
 | **프론트를 백엔드 계약에 맞춤** | **끝** — `docs/api-contract.md`. 화면까지 백엔드 흐름으로 (S-09 MP4, S-10 문장 카드) |
 | 실제 모델로 S-01~S-11 전 구간 | **끝** — 브라우저로 확인. 목 모드도 끝까지 돈다 |
 | 커밋 | **끝** — `feat/backend-contract` 브랜치에 로컬 커밋. **push 안 함** (사용자 확인 후) |
-| 카카오 로그인 (프론트) | **끝** — 목 모드로 확인. 백엔드 API·카카오 앱 등록은 남음 (`api-contract.md` 4절) |
+| 소셜 로그인 (카카오·네이버·구글) | **프론트 끝** — 목 모드로 확인. **백엔드는 `drawtale-backend` `feat/social-login` 브랜치에 push** (테스트 21개 통과, migration 양방향 확인). 개발자 콘솔 등록과 dev 합치기는 남음 (`api-contract.md` 4절) |
 
 **다음 할 일**: `docs/open-decisions.md` 0절의 팀 요청 사항을 팀원에게 전달
 (관절 score·confidence, 모션 매핑, 설계서 S-09·S-10 갱신).
@@ -31,6 +31,7 @@ Desktop/hankan-story/
 ├─ drawtale-ai/           ← 팀원 AI 저장소 dev 브랜치 zip (git 아님, 읽기 전용으로 쓴다)
 ├─ drawtale-backend/      ← 팀원 백엔드 main 브랜치 zip (뼈대뿐)
 ├─ drawtale-backend-dev/  ← 팀원 백엔드 dev 브랜치 zip — 이것을 띄운다
+├─ drawtale-backend-git/  ← 팀원 백엔드 저장소 clone (git). feat/social-login 브랜치 작업용
 └─ AnimatedDrawings/      ← Meta 원본 저장소 (수정하지 않는다)
 ```
 

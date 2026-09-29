@@ -4,7 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth, trialLeft } from "@/store/auth";
 import { login } from "@/api/auth";
-import SocialButton from "@/components/SocialButton";
+import SocialButtons from "@/components/SocialButton";
 
 export default function S15Login() {
   const nav = useNavigate();
@@ -31,9 +31,9 @@ export default function S15Login() {
       acts={<BigButton go disabled={!email || !pw || busy} onClick={submit}>
         {busy ? "확인하는 중" : "로그인"}
       </BigButton>}>
-      <SocialButton provider="kakao" intent="login" />
+      <SocialButtons intent="login" />
       <p className="hint" style={{ fontSize: "var(--t-label)" }}>
-        카카오에서는 회원번호만 받습니다. 이름·이메일·사진은 받지 않아요.
+        카카오·네이버·구글에서는 회원번호만 받습니다. 이름·이메일·사진은 받지 않아요.
         처음이시면 회원가입 화면에서 약관에 동의한 뒤 시작합니다.
       </p>
       <p className="hint" style={{ textAlign: "center" }}>또는 이메일로</p>

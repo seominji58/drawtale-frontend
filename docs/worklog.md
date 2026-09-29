@@ -20,6 +20,23 @@
 
 ## 2026-09-29
 
+### 소셜 로그인을 카카오·네이버·구글로 넓히고 백엔드 API 를 만들어 push
+
+**왜**: 사용자 질문 「구글이랑 네이버 인증도 가능한가?」와 지시 「백엔드 영역은 브랜치 새로 만들어서
+푸쉬」. 셋 다 인가 코드 방식이라 제공자만 바꿔 끼우는 구조로 한 번에 붙였다.
+**백엔드** (`drawtale-backend` `feat/social-login`, dev 에서 분기, 커밋 `8b93ad3`):
+`POST /api/v1/auth/{kakao|naver|google}`, `GET /api/v1/auth/me`, users·social_accounts·auth_tokens
+migration(autogenerate 후 로컬 Postgres 에서 upgrade → downgrade → upgrade, `alembic check` 차이 없음),
+토큰은 SHA-256 만 저장, 처음 온 사람은 `409 SIGNUP_REQUIRED`, 키 없는 제공자는 503. 테스트 8개 추가
+(제공자 HTTP 는 MockTransport) — 기존 13개와 함께 21개 통과, `ruff check` 통과. 계약서 2-7·2-8, README.
+**프론트**: 제공자 셋, 인가 주소(구글만 scope `openid`), 백엔드에 `state` 도 보냄(네이버 필요),
+`SocialButtons` 로 세 버튼을 같은 폭 260px 로. 버튼은 세 곳 모두 공식 리소스를 고치지 않고 넣었다 —
+카카오는 폭을 맞추려고 large → medium, 네이버 KR narrow H56, 구글 Light Square(영어뿐).
+**확인**: 목 모드 브라우저 — 네이버 처음 로그인 → S-16(「네이버 계정으로」 안내, 버튼 잠김) → 동의 →
+가입 → S-01, 구글 가입 화면에서 바로 가입 → S-01. `typecheck` 통과.
+**확인 못 한 것**: 실제 제공자 키로 돌려 보지 못했다(콘솔 등록 전). 프론트 ↔ 백엔드 브랜치를 붙여서도
+돌리지 않았다 — 모양은 백엔드 테스트와 계약서로만 맞췄다.
+
 ### 카카오 로그인 — 프론트 먼저, 공식 버튼 리소스
 
 **왜**: 사용자 지시 「소셜 로그인 구현, 프론트 영역부터」, 버튼은 「전부 공식 리소스로」.

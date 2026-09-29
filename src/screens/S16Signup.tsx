@@ -4,13 +4,15 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
 import { signup } from "@/api/auth";
-import SocialButton from "@/components/SocialButton";
+import SocialButtons from "@/components/SocialButton";
+import { PROVIDER_NAME } from "@/api/auth";
+import type { SocialProvider } from "@/api/auth";
 
 export default function S16Signup() {
   const nav = useNavigate();
   const auth = useAuth();
   // 카카오로 로그인하려다 처음이라 넘어온 경우 (S15Callback 의 SIGNUP_REQUIRED)
-  const fromSocial = !!(useLocation().state as { social?: string } | null)?.social;
+  const fromSocial = (useLocation().state as { social?: SocialProvider } | null)?.social;
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
@@ -36,7 +38,9 @@ export default function S16Signup() {
         {busy ? "만드는 중" : "가입하기"}
       </BigButton>}>
       {fromSocial && (
-        <div className="box warn">처음 오셨네요. 약관에 동의하고 카카오 계정으로 가입해 주세요</div>
+        <div className="box warn">
+          처음 오셨네요. 약관에 동의하고 {PROVIDER_NAME[fromSocial] ?? fromSocial} 계정으로 가입해 주세요
+        </div>
       )}
       {/* 동의는 가입 방법과 상관없이 먼저 받는다. 카카오 동의 화면은 카카오가 넘겨주는
           항목에 대한 것이고, 우리 서비스 약관 동의를 대신하지 않는다 */}
@@ -44,7 +48,7 @@ export default function S16Signup() {
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
         이용약관과 개인정보 처리방침에 동의합니다
       </label>
-      <SocialButton provider="kakao" intent="signup" disabled={!agree} />
+      <SocialButtons intent="signup" disabled={!agree} />
       <p className="hint" style={{ textAlign: "center" }}>또는 이메일로</p>
       <label className="field">
         <span>이메일</span>
@@ -69,7 +73,7 @@ export default function S16Signup() {
         <button className="btn link" onClick={() => nav("/login")}>로그인</button>
       </div>
       <p className="hint" style={{ fontSize: "var(--t-label)" }}>
-        아이의 이름과 나이, 사진은 계정에 저장하지 않습니다. 카카오에서는 회원번호만 받습니다
+        아이의 이름과 나이, 사진은 계정에 저장하지 않습니다. 카카오·네이버·구글에서는 회원번호만 받습니다
       </p>
     </Screen>
   );
