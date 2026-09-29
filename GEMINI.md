@@ -1,6 +1,38 @@
-# 한칸이야기 · 프론트엔드
+# 한칸이야기 · 프론트엔드 — Antigravity 안내
 
-작업 규칙은 **`AGENTS.md`** 에 있다. 먼저 그 파일을 읽는다.
+이 저장소는 Claude Code 와 Antigravity 를 번갈아 쓴다. **어느 도구든 같은 문서를 읽고 같은 문서에 남긴다.**
 
-지금 진행 중인 작업(AnimatedDrawings 로컬 실행)은 `docs/animated-drawings-local.md`의
-「지금 상태」부터 이어서 한다.
+## 먼저 읽을 것 (이 순서로)
+
+1. **`AGENTS.md`** — 작업 규칙 전부. 화면에 쓰면 안 되는 말, 디자인 원칙, 라우팅, 작업 순서
+2. **`docs/team-status.md`** — 지금 상태 한 장 요약. 브랜치, 바뀐 것, 팀원에게 부탁할 것
+3. **`docs/animated-drawings-local.md`** 「지금 상태」 — 로컬에서 백엔드·AI 까지 띄우는 법과 진행 표
+4. 서버와 주고받는 것을 건드리면 `docs/api-contract.md` (원본 계약은 백엔드 저장소 `docs/api-contract.md`)
+
+## 지금 상태 (2026-09-29)
+
+- 작업 브랜치: **`feat/backend-contract`** (push 됨, main 에 합치기 전)
+- 프론트는 **백엔드 계약(drawtale-backend dev) 기준**이다. 변환은 `src/api/index.ts` 한 곳
+- 실제 모델로 S-01~S-11 이 돈다. S-09 는 서버 렌더 MP4 를 튼다
+- 소셜 로그인: 카카오·구글. 백엔드 쪽은 `drawtale-backend` 의 `feat/social-login` 브랜치
+  (`hankan-story/drawtale-backend-git/` 에 clone 돼 있다). 네이버는 보류로 뺐다
+- 개발자 콘솔 키가 없어 실서버 모드(5173)에서는 소셜 버튼이 숨겨진다. 로그인 화면은 목 모드(5174)로 본다
+
+## 작업을 끝낼 때마다 (빠뜨리지 않는다)
+
+`AGENTS.md` 7절과 같다.
+
+1. `docs/worklog.md` 맨 위에 항목 추가 — 무엇을, 왜, 무엇을 확인했고 무엇을 못 했는지
+2. `docs/team-status.md` 갱신 — 팀원이 이것만 보고 알 수 있게
+3. `docs/animated-drawings-local.md` 「지금 상태」 표 갱신
+4. 이 파일(`GEMINI.md`)의 「지금 상태」 갱신
+5. 새 할 일은 `docs/backlog.md`, 팀 판단이 필요한 것은 `docs/open-decisions.md`
+
+## 이 PC 에서 알아 둘 것
+
+- 확인: `npm run typecheck` 필수. 목 모드와 실서버 모드 둘 다 브라우저로 S-01~S-11 을 돌린다
+- **push 는 사용자에게 묻고 한다.** main 에 바로 커밋하지 않고 브랜치에서 한다
+- GitHub 로그인은 에이전트 셸에서 안 된다(대화형 창을 못 띄움). 필요하면 사용자가 자기 터미널에서
+  `git push` 로 한 번 로그인하게 한다. 그 뒤로는 저장된 자격 증명으로 된다
+- `drawtale-ai/`, `drawtale-backend-dev/` 는 zip 으로 받은 폴더라 git 이 아니다. 갱신하려면 다시 받는다
+- `AnimatedDrawings/` (Meta 원본) 는 수정하지 않는다
