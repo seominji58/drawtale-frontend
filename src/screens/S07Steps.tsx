@@ -134,7 +134,7 @@ export default function S07Steps() {
 
           {/* 이야기에 들어갈 문장. 누르면 다시 읽어 준다 */}
           <button className="said now" onClick={() => speak(sentence, muteAll)}
-            style={{ border: 0, font: "inherit", cursor: "pointer" }}>
+            style={{ border: 0, fontFamily: "inherit", fontSize: "var(--t-question)", padding: "14px 28px", cursor: "pointer" }}>
             {sentence}
           </button>
           {mine && (
