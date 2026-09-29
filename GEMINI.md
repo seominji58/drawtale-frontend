@@ -17,6 +17,8 @@
 - 소셜 로그인: 카카오·구글. 백엔드 쪽은 `drawtale-backend` 의 `feat/social-login` 브랜치
   (`hankan-story/drawtale-backend-git/` 에 clone 돼 있다). 네이버는 보류로 뺐다
 - 개발자 콘솔 키가 없어 실서버 모드(5173)에서는 소셜 버튼이 숨겨진다. 로그인 화면은 목 모드(5174)로 본다
+- MP4 에서 팔이 뭉개지는 문제: S-02 권장 카드(프론트), 순화 동작(AI `feat/gentle-motions`,
+  `hankan-story/drawtale-ai-git/`), 동작 매핑(백엔드 `feat/motion-mapping`). **AI 를 먼저 합쳐야 한다**
 
 ## 작업을 끝낼 때마다 (빠뜨리지 않는다)
 
