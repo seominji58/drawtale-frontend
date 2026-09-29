@@ -33,7 +33,7 @@ export default function S15Login() {
       </BigButton>}>
       <SocialButtons intent="login" />
       <p className="hint" style={{ fontSize: "var(--t-label)" }}>
-        카카오·네이버·구글에서는 회원번호만 받습니다. 이름·이메일·사진은 받지 않아요.
+        카카오·구글에서는 회원번호만 받습니다. 이름·이메일·사진은 받지 않아요.
         처음이시면 회원가입 화면에서 약관에 동의한 뒤 시작합니다.
       </p>
       <p className="hint" style={{ textAlign: "center" }}>또는 이메일로</p>

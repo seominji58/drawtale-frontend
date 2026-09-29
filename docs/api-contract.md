@@ -108,7 +108,9 @@ E-01 문구는 여전히 프론트가 코드로 고른다 (`src/lib.ts` `ERROR_T
 
 ---
 
-## 4. 로그인 — 소셜 로그인 (카카오 · 네이버 · 구글)
+## 4. 로그인 — 소셜 로그인 (카카오 · 구글)
+
+네이버는 2026-09-29에 만들었다가 쓸지 정하지 않아 뺐다 (프론트·백엔드 각각 커밋 하나. 되돌리면 된다).
 
 **원본은 백엔드 `feat/social-login` 브랜치** (github.com/seominji58/drawtale-backend,
 2026-09-29 push, dev 에 합쳐지기 전)의 계약서 2-7·2-8 이다. 여기에는 프론트 쪽 동작만 적는다.
@@ -120,20 +122,18 @@ E-01 문구는 여전히 프론트가 코드로 고른다 (`src/lib.ts` `ERROR_T
 S-15/S-16 [○○ 로그인]
   → 제공자 인가 화면 (client_id, redirect_uri, response_type=code, state)
   → {origin}/auth/{provider}/callback?code=…&state=…     ← S15Callback.tsx
-  → POST /api/v1/auth/{provider} { code, redirect_uri, state, agreed }
+  → POST /api/v1/auth/{provider} { code, redirect_uri, agreed }
   → { token, account } 로 로그인
 ```
 
 | 제공자 | 인가 주소 | scope |
 |---|---|---|
 | kakao | `https://kauth.kakao.com/oauth/authorize` | 없음 |
-| naver | `https://nid.naver.com/oauth2.0/authorize` | 없음 (콘솔 동의 항목 최소) |
 | google | `https://accounts.google.com/o/oauth2/v2/auth` | `openid` (필수 최소값) |
 
 - **받는 것은 제공자 회원번호뿐이다.** 이름·이메일·프로필 사진은 받지 않는다
-- `state`는 떠날 때 sessionStorage에 두고 돌아와서 맞춰 본다 (CSRF). 네이버는 토큰 교환에도
-  필요해서 백엔드에 함께 보낸다
-- **시크릿은 백엔드에만 있다.** 프론트에는 client id(`VITE_{KAKAO|NAVER|GOOGLE}_CLIENT_ID`)만.
+- `state`는 떠날 때 sessionStorage에 두고 돌아와서 맞춰 본다 (CSRF). 백엔드에는 보내지 않는다
+- **시크릿은 백엔드에만 있다.** 프론트에는 client id(`VITE_{KAKAO|GOOGLE}_CLIENT_ID`)만.
   비어 있는 제공자는 실서버 모드에서 버튼을 숨긴다
 - 개발 모드 StrictMode 에서 콜백 effect 가 두 번 돌아도 인가 코드는 한 번만 쓴다
 
@@ -159,20 +159,19 @@ S-15/S-16 [○○ 로그인]
 
 ### 4-4. 개발자 콘솔에서 할 일 (사람이 해야 한다)
 
-| | 카카오 | 네이버 | 구글 |
-|---|---|---|---|
-| 콘솔 | developers.kakao.com | developers.naver.com | console.cloud.google.com |
-| 프론트 `.env` | REST API 키 → `VITE_KAKAO_CLIENT_ID` | Client ID → `VITE_NAVER_CLIENT_ID` | OAuth 클라이언트 ID(웹) → `VITE_GOOGLE_CLIENT_ID` |
-| 백엔드 `.env` | `KAKAO_CLIENT_ID`·`KAKAO_CLIENT_SECRET` | `NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET` | `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET` |
-| Redirect URI | `http://localhost:5173/auth/kakao/callback` | `…/auth/naver/callback` | `…/auth/google/callback` |
-| 동의 항목 | 아무것도 켜지 않는다 | 필수 항목을 최소로 | scope `openid`만 |
+| | 카카오 | 구글 |
+|---|---|---|
+| 콘솔 | developers.kakao.com | console.cloud.google.com |
+| 프론트 `.env` | REST API 키 → `VITE_KAKAO_CLIENT_ID` | OAuth 클라이언트 ID(웹) → `VITE_GOOGLE_CLIENT_ID` |
+| 백엔드 `.env` | `KAKAO_CLIENT_ID`·`KAKAO_CLIENT_SECRET` | `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET` |
+| Redirect URI | `http://localhost:5173/auth/kakao/callback` | `…/auth/google/callback` |
+| 동의 항목 | 아무것도 켜지 않는다 | scope `openid`만 |
 
-### 4-5. 버튼 그림 — 세 곳 모두 공식 리소스, 고치지 않는다
+### 4-5. 버튼 그림 — 모두 공식 리소스, 고치지 않는다
 
 | 제공자 | 파일 | 출처 |
 |---|---|---|
 | 카카오 | `public/brand/kakao/kakao_login_kr_medium.svg` | developers.kakao.com 리소스 「전체 다운로드」 |
-| 네이버 | `public/brand/naver/NAVER_login_Light_KR_green_narrow_H56.png` | developers.naver.com 로그인 BI `NAVER_login_KR.zip` |
 | 구글 | `public/brand/google/signin_light_square.svg` | Google 브랜딩 가이드 `signin-assets.zip` |
 
 구글 공식 파일은 영어(「Sign in with Google」)뿐이다. 가이드는 한국어 현지화를 허용하지만

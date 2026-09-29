@@ -46,13 +46,13 @@ export async function signup(email: string, password: string): Promise<AuthResul
 // 토큰 교환(클라이언트 시크릿)은 백엔드가 한다 — AGENTS.md 3.2 「API 키를 프론트에 두지 않는다」.
 // SDK 를 쓰지 않는다. 주소 하나로 충분하다.
 
-export type SocialProvider = "kakao" | "naver" | "google";
+export type SocialProvider = "kakao" | "google";
 
 /** 화면에 보이는 순서이기도 하다 */
-export const PROVIDERS: SocialProvider[] = ["kakao", "naver", "google"];
+export const PROVIDERS: SocialProvider[] = ["kakao", "google"];
 
 export const PROVIDER_NAME: Record<SocialProvider, string> = {
-  kakao: "카카오", naver: "네이버", google: "Google",
+  kakao: "카카오", google: "Google",
 };
 
 /** 로그인할 때(login)와 약관에 동의하고 가입할 때(signup)를 가른다.
@@ -64,14 +64,12 @@ const PENDING_KEY = "storyblanks.oauth";
 /** client id 는 공개돼도 되는 값이다. 시크릿은 백엔드에만 있다 */
 const CLIENT_ID: Record<SocialProvider, string | undefined> = {
   kakao: import.meta.env.VITE_KAKAO_CLIENT_ID,
-  naver: import.meta.env.VITE_NAVER_CLIENT_ID,
   google: import.meta.env.VITE_GOOGLE_CLIENT_ID,
 };
 
 /** 동의 항목을 요청하지 않는다 → 회원번호만 받는다. 구글은 scope 가 필수라 최소값 openid 만 */
 const AUTHORIZE: Record<SocialProvider, { url: string; extra?: Record<string, string> }> = {
   kakao: { url: "https://kauth.kakao.com/oauth/authorize" },
-  naver: { url: "https://nid.naver.com/oauth2.0/authorize" },
   google: { url: "https://accounts.google.com/o/oauth2/v2/auth", extra: { scope: "openid" } },
 };
 
@@ -139,8 +137,6 @@ async function exchange(p: SocialProvider, params: URLSearchParams, code: string
     localStorage.setItem(KNOWN, "1");
     return { token: "mock-kakao-token", account: `${PROVIDER_NAME[p]} 계정` };
   }
-  // 네이버는 토큰 교환에도 state 가 필요해서 함께 보낸다 (백엔드 계약 2-7)
-  return post<AuthResult>(`/auth/${p}`, {
-    code, redirect_uri: redirectUri(p), state: pending.state, agreed,
-  });
+  // state 는 여기서 확인을 끝냈다. 백엔드에는 보내지 않는다 (백엔드 계약 2-7)
+  return post<AuthResult>(`/auth/${p}`, { code, redirect_uri: redirectUri(p), agreed });
 }

@@ -73,7 +73,7 @@ export default function S16Signup() {
         <button className="btn link" onClick={() => nav("/login")}>로그인</button>
       </div>
       <p className="hint" style={{ fontSize: "var(--t-label)" }}>
-        아이의 이름과 나이, 사진은 계정에 저장하지 않습니다. 카카오·네이버·구글에서는 회원번호만 받습니다
+        아이의 이름과 나이, 사진은 계정에 저장하지 않습니다. 카카오·구글에서는 회원번호만 받습니다
       </p>
     </Screen>
   );
