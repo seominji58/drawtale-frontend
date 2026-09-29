@@ -17,6 +17,7 @@
 | 실제 모델로 S-01~S-11 전 구간 | **끝** — 브라우저로 확인. 목 모드도 끝까지 돈다 |
 | 커밋 · push | **끝** — 프론트 `feat/backend-contract`, 백엔드 `feat/social-login` · `feat/motion-mapping`, AI `feat/gentle-motions` 전부 push. main/dev 합치기와 PR 은 아직 |
 | 팔이 뭉개지는 문제 | **고침** — S-02 권장 카드, AI 순화 동작, 백엔드 동작 매핑. 합치는 순서: AI → 백엔드 매핑 |
+| S-03D 화면에 그리기 | **1단계 끝** — 부위별 안내, 손 그리기·도장, 연결 확인. 실서버로 인식 확인. 실제 터치 기기 확인은 남음 |
 | 소셜 로그인 (카카오·구글. 네이버는 보류로 뺌) | **프론트 끝** — 목 모드로 확인. **백엔드는 `drawtale-backend` `feat/social-login` 브랜치에 push** (테스트 20개 통과, migration 양방향 확인). 개발자 콘솔 등록과 dev 합치기는 남음 (`api-contract.md` 4절) |
 
 **팀원용 한 장 요약은 `docs/team-status.md`**, Antigravity 는 `GEMINI.md` 부터 읽는다.

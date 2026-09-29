@@ -35,6 +35,8 @@ export default function S03Upload() {
       ) : (
         <>
           <BigButton go onClick={() => camera.current?.click()}>그림 찍기</BigButton>
+          {/* S-03D. 종이 그림과 나란히 둔다 (open-decisions 0-4) */}
+          <BigButton onClick={() => nav("/draw")}>화면에 그리기</BigButton>
           <BigButton onClick={() => album.current?.click()}>앨범에서 고르기</BigButton>
         </>
       )}>
@@ -45,7 +47,7 @@ export default function S03Upload() {
       </div>
       {!imageUrl && (
         <>
-          <p className="hint">종이에 그린 그림을 찍어 주세요</p>
+          <p className="hint">종이에 그린 그림을 찍거나, 화면에 그려 주세요</p>
           {ENGINE === "mock" && (
             <div className="aside-links">
               <span>확인용</span>

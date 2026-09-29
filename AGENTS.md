@@ -141,6 +141,7 @@ AI 없이도 돈다. 실제 모델까지 띄우는 법은 `docs/animated-drawing
 | S-01 시작 | `/` | `screens/S01Start.tsx` | 아동 |
 | S-02 그림 그리기 안내 | `/guide` | `screens/S02Guide.tsx` | 아동·어른 |
 | S-03 그림 올리기 | `/upload` | `screens/S03Upload.tsx` | 아동·어른 |
+| S-03D 화면에 그리기 | `/draw` | `screens/S03Draw.tsx` | 아동 (설계서에 없음, open-decisions 0-4) |
 | S-04 캐릭터 만드는 중 | `/analyzing` | `screens/S04Analyzing.tsx` | 아동 |
 | S-05 캐릭터 확인 | `/confirm` | `screens/S05Confirm.tsx` | 아동 |
 | S-06 관절 맞추기 | `/joints` | `screens/S06Joints.tsx` | **어른** |

@@ -7,6 +7,7 @@ import { useSettings } from "@/store/settings";
 import S01Start from "@/screens/S01Start";
 import S02Guide from "@/screens/S02Guide";
 import S03Upload from "@/screens/S03Upload";
+import S03Draw from "@/screens/S03Draw";
 import S04Analyzing from "@/screens/S04Analyzing";
 import S05Confirm from "@/screens/S05Confirm";
 import S06Joints from "@/screens/S06Joints";
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/" element={<S01Start />} />
             <Route path="/guide" element={<S02Guide />} />
             <Route path="/upload" element={<S03Upload />} />
+            <Route path="/draw" element={<S03Draw />} />
             <Route path="/analyzing" element={<S04Analyzing />} />
             <Route path="/confirm" element={<S05Confirm />} />
             <Route path="/joints" element={<S06Joints />} />
