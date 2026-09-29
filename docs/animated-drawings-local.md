@@ -12,18 +12,20 @@
 | WSL2 · Docker Desktop 설치 | **끝** |
 | Meta AnimatedDrawings TorchServe 이미지 | **끝** — 직접 빌드했다가 팀원 `drawtale-ai` 것으로 갈아탔다 (아래) |
 | 팀원 AI 서버(`drawtale-ai` dev) 띄우기 | **끝** — `docker compose up -d`, 8001·8080 |
-| 팀원 백엔드(`drawtale-backend` dev) 띄우기 | **끝** — 로컬 Postgres, `AI_USE_MOCK=false`, 8000 |
+| 팀원 백엔드(`drawtale-backend` dev) 띄우기 | **끝** — 이제 git clone `drawtale-backend-git/`(dev)에서 띄운다. 로컬 Postgres, `AI_USE_MOCK=false`, 8000 |
 | **프론트를 백엔드 계약에 맞춤** | **끝** — `docs/api-contract.md`. 화면까지 백엔드 흐름으로 (S-09 MP4, S-10 문장 카드) |
 | 실제 모델로 S-01~S-11 전 구간 | **끝** — 브라우저로 확인. 목 모드도 끝까지 돈다 |
-| 커밋 · push | **끝** — 프론트 `feat/backend-contract`, 백엔드 `feat/social-login` · `feat/motion-mapping`, AI `feat/gentle-motions` 전부 push. main/dev 합치기와 PR 은 아직 |
-| 팔이 뭉개지는 문제 | **고침** — S-02 권장 카드, AI 순화 동작, 백엔드 동작 매핑. 합치는 순서: AI → 백엔드 매핑 |
+| 커밋 · push | **끝** — 프론트 `feat/backend-contract`(+ 로컬 `main` 처음 커밋 3개), 백엔드 **`dev` 에 합침**(팀 합의로 dev 하나에서 작업), AI `feat/gentle-motions` push. 프론트 main 합치기와 PR 은 아직 |
+| 팔이 뭉개지는 문제 | **고침** — S-02 권장 카드, AI 순화 동작, 백엔드 동작 매핑. 백엔드 매핑은 dev 에 있고, AI 가 순화 동작을 모르면 원래 동작으로 다시 렌더한다 |
 | S-03D 화면에 그리기 | **1단계 끝** — 부위별 안내, 손 그리기·도장, 연결 확인. 실서버로 인식 확인. 실제 터치 기기 확인은 남음 |
-| 소셜 로그인 (카카오·구글. 네이버는 보류로 뺌) | **프론트 끝** — 목 모드로 확인. **백엔드는 `drawtale-backend` `feat/social-login` 브랜치에 push** (테스트 20개 통과, migration 양방향 확인). 개발자 콘솔 등록과 dev 합치기는 남음 (`api-contract.md` 4절) |
+| 소셜 로그인 (카카오·구글. 네이버는 보류로 뺌) | **프론트 끝** — 목 모드로 확인. **백엔드는 dev 에 합침** (migration 양방향 확인). 개발자 콘솔 등록은 남음 (`api-contract.md` 4절) |
+| 이야기 음성 | **백엔드 끝** — OpenAI TTS(팀원) + ElevenLabs 선택(`TTS_PROVIDER`). 실제 키로는 아직 안 돌려 봄 |
+| 영역별 진행 표 | **끝** — 공유 문서 「진행 상황」, 사본은 `docs/team-status.md` · 백엔드/AI `docs/진행상황.md` |
 
 **팀원용 한 장 요약은 `docs/team-status.md`**, Antigravity 는 `GEMINI.md` 부터 읽는다.
 
-**다음 할 일**: `docs/team-status.md` 「팀원에게 부탁할 것」을 팀원에게 전달
-(관절 score·confidence, 모션 매핑, 설계서 S-09·S-10 갱신).
+**다음 할 일**: 백엔드 `.env` 에 OpenAI 키(팀 드라이브)·ElevenLabs 목소리 id 를 넣고 컨테이너를 다시 띄운 뒤
+실제 GPT·TTS 로 S-07~S-09 확인. 팀원 할 일은 `docs/team-status.md` 「영역별 진행 상황」.
 
 ---
 
@@ -34,8 +36,8 @@ Desktop/hankan-story/
 ├─ drawtale-frontend/     ← 이 저장소 (github.com/seominji58/drawtale-frontend)
 ├─ drawtale-ai/           ← 팀원 AI 저장소 dev 브랜치 zip (git 아님, 읽기 전용으로 쓴다)
 ├─ drawtale-backend/      ← 팀원 백엔드 main 브랜치 zip (뼈대뿐)
-├─ drawtale-backend-dev/  ← 팀원 백엔드 dev 브랜치 zip — 이것을 띄운다
-├─ drawtale-backend-git/  ← 팀원 백엔드 저장소 clone (git). feat/social-login · feat/motion-mapping
+├─ drawtale-backend-dev/  ← 팀원 백엔드 dev 브랜치 옛 zip (더 쓰지 않는다)
+├─ drawtale-backend-git/  ← 팀원 백엔드 저장소 clone (git). dev — 이것을 띄운다
 ├─ drawtale-ai-git/       ← 팀원 AI 저장소 clone (git). feat/gentle-motions
 └─ AnimatedDrawings/      ← Meta 원본 저장소 (수정하지 않는다)
 ```
@@ -57,9 +59,12 @@ docker compose ps             # torchserve 가 healthy 가 되면 ai 가 뜬다
 curl http://127.0.0.1:8001/internal/v1/health   # model_loaded: true
 ```
 
-### 2. 백엔드 (`drawtale-backend-dev`)
+### 2. 백엔드 (`drawtale-backend-git`, dev)
 
-`.env`는 `.env.example`을 복사해 **세 줄을 바꾼 것**이다 (이미 만들어 둠).
+`.env`는 `.env.example`을 복사해 **세 줄을 바꾼 것**이다 (이미 만들어 둠, git 에 올리지 않는다).
+경로: `C:\Users\Omnyumyum\Desktop\hankan-story\drawtale-backend-git\.env`.
+이야기·음성까지 보려면 `OPENAI_API_KEY`(팀 드라이브), `TTS_PROVIDER`, ElevenLabs 키·목소리 id 도 채운다.
+**키 값은 채팅·문서·커밋에 붙이지 않는다.** `.env` 를 바꾸면 컨테이너를 다시 띄워야 읽는다.
 
 ```bash
 DATABASE_URL=postgresql+psycopg://drawtale:drawtale@db:5432/drawtale   # 컨테이너 안에서 db 를 본다
@@ -68,7 +73,7 @@ AI_USE_MOCK=false
 ```
 
 ```bash
-cd ../drawtale-backend-dev
+cd ../drawtale-backend-git
 docker compose --profile app up -d --build    # db + backend. migration 은 시작할 때 자동
 curl http://127.0.0.1:8000/health
 ```

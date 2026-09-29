@@ -3,13 +3,14 @@
 이 파일은 이 저장소에서 작업하는 모든 코딩 에이전트가 먼저 읽는 규칙이다.
 
 > **진행 중인 작업 (2026-09-29)** — 프론트를 팀원 백엔드(`drawtale-backend` dev) 계약에
-> 맞췄고, 실제 모델(팀원 `drawtale-ai`)로 S-01~S-11이 돈다. 카카오·구글 소셜 로그인을 프론트와
-> 백엔드(`drawtale-backend` `feat/social-login`)에 만들었다. 둘 다 브랜치에 push, 합치기 전.
+> 맞췄고, 실제 모델(팀원 `drawtale-ai`)로 S-01~S-11이 돈다. 카카오·구글 소셜 로그인, S-03D 화면에 그리기,
+> S-07 말로 덧붙이기를 만들었다. 백엔드는 `dev` 하나에 합쳤고, 프론트는 `feat/backend-contract`, AI 는 `feat/gentle-motions`.
+> 영역별 진행 표는 팀 공유 문서 「진행 상황」(사본은 `docs/team-status.md`).
 > **이어서 작업하기 전에 `docs/team-status.md`와 `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
 
 | 문서 | 무엇이 있나 | 언제 보나 |
 |---|---|---|
-| `docs/team-status.md` | **팀원용 한 장 요약** — 브랜치, 바뀐 것, 팀원에게 부탁할 것 | **처음 볼 때, 작업을 끝낼 때마다 갱신** |
+| `docs/team-status.md` | **팀원용 한 장 요약** — 영역별 진행 표, 브랜치, 바뀐 것 | **처음 볼 때, 작업을 끝낼 때마다 갱신** |
 | `docs/animated-drawings-local.md` | 실제 모델·백엔드를 로컬에 띄우는 법, 진행 상황 | **지금 진행 중인 작업** |
 | `docs/source/화면설계서_v0.2.md` | 화면별 요소표, 동작과 예외 | **화면을 고칠 때마다** |
 | `docs/api-contract.md` | 백엔드 계약을 프론트가 어떻게 받아 쓰나 (원본은 백엔드 저장소) | 서버와 주고받는 것을 다룰 때 |

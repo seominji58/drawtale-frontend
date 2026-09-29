@@ -68,8 +68,8 @@
 | 해법 | 어디 | 상태 |
 |---|---|---|
 | S-02 「팔과 다리를 몸에서 조금 떨어지게」 **권장** 카드 | 프론트 | **끝** (`feat/backend-contract`). 설계서 S-02 갱신 필요 |
-| 순화 동작 `wave_hello_gentle` · `jumping_gentle` | AI | **push** `feat/gentle-motions` — **먼저 합쳐야 함** |
-| 행동 → 순화 동작 매핑 | 백엔드 | **push** `feat/motion-mapping` — AI 다음에 합친다 |
+| 순화 동작 `wave_hello_gentle` · `jumping_gentle` | AI | **push** `feat/gentle-motions` — AI 담당 검토 대기 |
+| 행동 → 순화 동작 매핑 | 백엔드 | **dev 에 합침**. AI 가 순화 동작을 모르면 원래 동작으로 다시 렌더 |
 | 손그림 전용 포즈 모델 (A2) | AI | 이번 문제의 주원인은 아니다 |
 
 남은 것: jumping_jacks·dab 같은 팔을 크게 쓰는 동작의 순화판(cmu1 뼈대는 다른 방법 필요),

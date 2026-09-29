@@ -5,7 +5,8 @@
 ## 먼저 읽을 것 (이 순서로)
 
 1. **`AGENTS.md`** — 작업 규칙 전부. 화면에 쓰면 안 되는 말, 디자인 원칙, 라우팅, 작업 순서
-2. **`docs/team-status.md`** — 지금 상태 한 장 요약. 브랜치, 바뀐 것, 팀원에게 부탁할 것
+2. **`docs/team-status.md`** — 지금 상태 한 장 요약. 영역별 진행 표, 브랜치, 바뀐 것
+   (진행 표의 원본은 팀 공유 문서 https://claude.ai/code/artifact/ab310e00-4b6d-4c7a-87a5-11047d955e21 「진행 상황」)
 3. **`docs/animated-drawings-local.md`** 「지금 상태」 — 로컬에서 백엔드·AI 까지 띄우는 법과 진행 표
 4. 서버와 주고받는 것을 건드리면 `docs/api-contract.md` (원본 계약은 백엔드 저장소 `docs/api-contract.md`)
 
@@ -14,11 +15,12 @@
 - 작업 브랜치: **`feat/backend-contract`** (push 됨, main 에 합치기 전)
 - 프론트는 **백엔드 계약(drawtale-backend dev) 기준**이다. 변환은 `src/api/index.ts` 한 곳
 - 실제 모델로 S-01~S-11 이 돈다. S-09 는 서버 렌더 MP4 를 튼다
-- 소셜 로그인: 카카오·구글. 백엔드 쪽은 `drawtale-backend` 의 `feat/social-login` 브랜치
-  (`hankan-story/drawtale-backend-git/` 에 clone 돼 있다). 네이버는 보류로 뺐다
+- 백엔드는 팀 합의로 **`dev` 하나에서 작업**한다 (`hankan-story/drawtale-backend-git/`, 로컬 백엔드도 여기서 띄운다)
+- 소셜 로그인: 카카오·구글. 백엔드 쪽도 dev 에 있다. 네이버는 보류로 뺐다
 - 개발자 콘솔 키가 없어 실서버 모드(5173)에서는 소셜 버튼이 숨겨진다. 로그인 화면은 목 모드(5174)로 본다
 - MP4 에서 팔이 뭉개지는 문제: S-02 권장 카드(프론트), 순화 동작(AI `feat/gentle-motions`,
-  `hankan-story/drawtale-ai-git/`), 동작 매핑(백엔드 `feat/motion-mapping`). **AI 를 먼저 합쳐야 한다**
+  `hankan-story/drawtale-ai-git/`, 검토 대기), 동작 매핑(백엔드 dev). AI 를 합치기 전에는 백엔드가 원래 동작으로 렌더한다
+- S-07 카드 + 말로 덧붙이기(STT, 어른 설정에서 켬) + 안내 나레이션. 이야기 음성은 백엔드 `TTS_PROVIDER` (openai / elevenlabs)
 - **S-03D 화면에 그리기** (`/draw`, 설계서에 없음): 부위별 안내 + 손 그리기·도장. `features/draw/drawing.ts`.
   요소표 초안은 `docs/open-decisions.md` 0-4
 
@@ -38,6 +40,7 @@
 - **push 는 사용자에게 묻고 한다.** main 에 바로 커밋하지 않고 브랜치에서 한다
 - GitHub 로그인은 에이전트 셸에서 안 된다(대화형 창을 못 띄움). 필요하면 사용자가 자기 터미널에서
   `git push` 로 한 번 로그인하게 한다. 그 뒤로는 저장된 자격 증명으로 된다
-- `drawtale-ai/`, `drawtale-backend-dev/` 는 zip 으로 받은 폴더라 git 이 아니다. 갱신하려면 다시 받는다
+- `drawtale-ai/`, `drawtale-backend-dev/` 는 zip 으로 받은 폴더라 git 이 아니다. `drawtale-backend-dev/` 는 더 쓰지 않는다
+- API 키는 백엔드 `.env` 에만 둔다. 채팅·문서·커밋에 붙이지 않는다
 - `AnimatedDrawings/` (Meta 원본) 는 수정하지 않는다
 
