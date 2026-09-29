@@ -5,14 +5,15 @@ import BigButton from "@/components/BigButton";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import {
-  H, PARTS, W, countPieces, drawGuide, drawItems, emptyDrawing, stampFor, toPngFile,
+  H, PARTS, W, detachedParts, drawGuide, drawItems, emptyDrawing, stampFor, toPngFile,
 } from "@/features/draw/drawing";
 import type { Drawing, Part, Pt } from "@/features/draw/drawing";
 
 /** S-03D 화면에 그리기. 설계서에 없는 화면이다 (open-decisions 0-4, 2026-09-29 사용자 결정).
  *  S-03 의 「그림 찍기」와 나란히 있다. 머리 → 몸 → 팔 → 다리를 한 단계씩, 점선 안내 위에
  *  손으로 그리거나 도장을 찍는다. 다 그리면 S-03 으로 돌아가 「이 그림으로」를 누른다.
- *  한 화면 한 질문, 자동 전환 없음 — 「다음」은 아이가 누른다. */
+ *  한 화면 한 질문, 자동 전환 없음 — 「다음」은 아이가 누른다.
+ *  단계 칸(머리·몸·팔·다리)은 언제든 눌러서 돌아가 고칠 수 있다. */
 
 const QUESTION: Record<Part, string> = {
   head: "머리를 그려 볼까요?",
@@ -21,6 +22,9 @@ const QUESTION: Record<Part, string> = {
   legs: "다리를 그려 볼까요?",
 };
 const LABEL: Record<Part, string> = { head: "머리", body: "몸", arms: "팔", legs: "다리" };
+
+/** 「○○가 떨어져 있어요」의 조사까지 맞춘 이름 */
+const SUBJECT: Record<Part, string> = { head: "머리가", body: "몸이", arms: "팔이", legs: "다리가" };
 
 /** 팔·다리는 몸에 붙여야 한다 — 떨어진 조각은 캐릭터에서 빠진다 */
 const TIP: Record<Part, string> = {
@@ -40,7 +44,8 @@ export default function S03Draw() {
   const [tool, setTool] = useState<Tool>(level === 1 ? "stamp" : "pen");
   const [at, setAt] = useState(0);
   const [drawing, setDrawing] = useState<Drawing>(emptyDrawing);
-  const [apart, setApart] = useState(false);
+  /** 몸에서 떨어진 부위. 「다 그렸어요」를 누를 때 확인한다 */
+  const [apart, setApart] = useState<Part[]>([]);
   const [busy, setBusy] = useState(false);
 
   const wrap = useRef<HTMLDivElement>(null);
@@ -89,7 +94,7 @@ export default function S03Draw() {
   };
 
   const add = (item: Drawing[Part][number]) => {
-    setApart(false);
+    setApart([]);
     setDrawing((d) => ({ ...d, [part]: [...d[part], item] }));
   };
 
@@ -118,14 +123,15 @@ export default function S03Draw() {
   };
 
   const undo = () => {
-    setApart(false);
+    setApart([]);
     setDrawing((d) => ({ ...d, [part]: d[part].slice(0, -1) }));
   };
 
   const next = async () => {
     if (!last) { setAt(at + 1); return; }
     // 떨어진 조각은 캐릭터에서 빠진다 (AI 는 가장 큰 덩어리 하나만 쓴다)
-    if (countPieces(drawing) > 1) { setApart(true); return; }
+    const loose = detachedParts(drawing);
+    if (loose.length) { setApart(loose); return; }
     setBusy(true);
     try {
       setFile(await toPngFile(drawing));
@@ -139,7 +145,7 @@ export default function S03Draw() {
     .filter(Boolean).join(" · ");
 
   return (
-    <Screen back={at === 0 ? "/upload" : () => { setApart(false); setAt(at - 1); }}
+    <Screen back={at === 0 ? "/upload" : () => setAt(at - 1)}
       speech={QUESTION[part]} segment={1}
       acts={
         <>
@@ -165,18 +171,38 @@ export default function S03Draw() {
               {tool === t ? "✓ " : ""}{t === "pen" ? "손으로 그리기" : "도장 찍기"}
             </button>
           ))}
+          {/* 단계 칸. 누르면 그 부위로 간다. 아이 화면 터치 타깃 88px (AGENTS.md 3.1) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
+            {PARTS.map((p, i) => {
+              const loose = apart.includes(p);
+              const done = drawing[p].length > 0;
+              return (
+                <button key={p} className="btn" aria-current={i === at ? "step" : undefined}
+                  aria-label={`${LABEL[p]}${loose ? ", 떨어져 있어요" : done ? ", 그렸어요" : ""}`}
+                  onClick={() => setAt(i)}
+                  style={{
+                    minHeight: 88, padding: 0, flexDirection: "column", gap: 2,
+                    background: i === at ? "var(--butter)" : undefined,
+                    outline: loose ? "4px solid var(--berry)" : undefined,
+                  }}>
+                  <span>{loose ? "! " : done ? "✓ " : ""}{LABEL[p]}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {apart && <div className="box warn">떨어진 곳이 있어요. 몸에 붙게 그려 볼까요?</div>}
-
-      <div className="steps">
-        {PARTS.map((p, i) => (
-          <span key={p} className={`step ${i === at ? "on" : ""} ${i < at ? "done" : ""}`}>
-            <i /> {LABEL[p]}
+      {apart.length > 0 && (
+        <div className="box warn inline">
+          <span>
+            {apart[0] === "body" ? "몸이 머리나 팔다리와" : `${SUBJECT[apart[0]]} 몸에서`} 떨어져 있어요. 붙게 그려 볼까요?
           </span>
-        ))}
-      </div>
+          <button className="btn link" onClick={() => setAt(PARTS.indexOf(apart[0]))}>
+            {LABEL[apart[0]]} 고치러 가기
+          </button>
+        </div>
+      )}
     </Screen>
   );
 }

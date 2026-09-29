@@ -4,7 +4,7 @@
  *
  * 모양과 자리는 실측으로 정했다 (docs/open-decisions.md 0-4, 2026-09-29).
  * - 선만 있는 도형도 **조각끼리 닿아 있으면** 검출·관절·마스크가 모두 된다. 틈이 있으면 머리·팔이 빠진다
- *   → 도장은 항상 몸에 겹치는 자리에 찍고, 올리기 전에 `countPieces` 로 이어졌는지 확인한다
+ *   → 도장은 항상 몸에 겹치는 자리에 찍고, 올리기 전에 `detachedParts` 로 이어졌는지 확인한다
  * - 팔을 몸통에 붙여 그리면 움직일 때 팔이 몸통에 눌려 뭉개진다 → 팔 자리를 옆으로 벌려 둔다
  * - 다리가 길면 검출 상자가 발끝을 자른다 → 아이 그림 비율로 짧게 둔다
  */
@@ -143,22 +143,27 @@ export function drawGuide(ctx: CanvasRenderingContext2D, part: Part, drawing: Dr
   ctx.restore();
 }
 
-/** 떨어진 조각이 몇 개인지 센다. 1 이면 모두 이어졌다.
- *
- * AI 서버는 가장 큰 덩어리 하나만 캐릭터로 쓴다. 그래서 둘 이상이면 작은 쪽이 통째로 빠진다.
- * 1/4 크기로 그려서 선이 없는 바깥을 가장자리부터 채우고, 채워지지 않은 곳(선 + 선 안쪽)을
- * 덩어리로 나눈다. 눈·입처럼 머리 안에 든 것은 머리 덩어리에 포함된다.
- * 8px(원래 크기) 이하의 틈은 이어진 것으로 본다 — AI 쪽 마스크도 그 정도 틈은 메운다. */
-export function countPieces(drawing: Drawing): number {
-  const s = 0.25, w = W * s, h = H * s;
-  const c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  const ctx = c.getContext("2d", { willReadFrequently: true })!;
-  ctx.scale(s, s);
-  drawItems(ctx, drawing);
-  const alpha = ctx.getImageData(0, 0, w, h).data;
+const SCALE = 0.25;
+const SW = W * SCALE, SH = H * SCALE;
 
-  // 선 한 겹 부풀리기 (3×3)
+/** 1/4 크기로 그린 알파 채널. 부위 하나만 그리고 싶으면 only 에 넘긴다 */
+function alphaOf(drawing: Drawing, only?: Item): Uint8ClampedArray {
+  const c = document.createElement("canvas");
+  c.width = SW; c.height = SH;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.scale(SCALE, SCALE);
+  if (only) drawItems(ctx, { ...emptyDrawing(), head: [only] });
+  else drawItems(ctx, drawing);
+  return ctx.getImageData(0, 0, SW, SH).data;
+}
+
+/** 덩어리 번호. 0 은 바깥, 1 부터 덩어리.
+ *  선이 없는 바깥을 가장자리부터 채우고, 채워지지 않은 곳(선 + 선 안쪽)을 덩어리로 나눈다.
+ *  눈·입처럼 머리 안에 든 것은 머리 덩어리에 들어간다. 선을 한 겹 부풀려 8px(원래 크기) 이하의 틈은
+ *  이어진 것으로 본다 — AI 쪽 마스크도 그 정도 틈은 메운다. */
+function label(drawing: Drawing): { labels: Int32Array; sizes: number[] } {
+  const w = SW, h = SH;
+  const alpha = alphaOf(drawing);
   const ink = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     if (alpha[(y * w + x) * 4 + 3] < 40) continue;
@@ -167,8 +172,6 @@ export function countPieces(drawing: Drawing): number {
       if (xx >= 0 && yy >= 0 && xx < w && yy < h) ink[yy * w + xx] = 1;
     }
   }
-
-  // 바깥 채우기
   const outside = new Uint8Array(w * h);
   const stack: number[] = [];
   const push = (i: number) => { if (!ink[i] && !outside[i]) { outside[i] = 1; stack.push(i); } };
@@ -181,25 +184,48 @@ export function countPieces(drawing: Drawing): number {
     if (y > 0) push(i - w);
     if (y < h - 1) push(i + w);
   }
-
-  // 남은 곳을 덩어리로
-  const seen = new Uint8Array(w * h);
-  const sizes: number[] = [];
+  const labels = new Int32Array(w * h);
+  const sizes = [0];
   for (let start = 0; start < w * h; start++) {
-    if (outside[start] || seen[start]) continue;
+    if (outside[start] || labels[start]) continue;
+    const id = sizes.length;
     let size = 0;
-    seen[start] = 1; stack.push(start);
+    labels[start] = id; stack.push(start);
     while (stack.length) {
       const i = stack.pop()!, x = i % w, y = (i / w) | 0;
       size++;
       const next = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
-      for (const n of next) if (n >= 0 && !outside[n] && !seen[n]) { seen[n] = 1; stack.push(n); }
+      for (const n of next) if (n >= 0 && !outside[n] && !labels[n]) { labels[n] = id; stack.push(n); }
     }
     sizes.push(size);
   }
+  return { labels, sizes };
+}
+
+/** 몸에서 떨어진 부위. 비어 있으면 모두 이어졌다.
+ *
+ * AI 서버는 가장 큰 덩어리 하나만 캐릭터로 쓴다. 그래서 거기 닿지 않은 조각은 통째로 빠진다.
+ * 그린 것(획·도장) 하나하나가 가장 큰 덩어리에 닿는지 본다. 닿지 않은 것이 전체의 2% 도 안 되는
+ * 작은 점뿐이면 넘어간다 (실수로 찍은 점 — AI 가 조용히 버려도 티가 안 난다). */
+export function detachedParts(drawing: Drawing): Part[] {
+  const { labels, sizes } = label(drawing);
+  if (sizes.length < 2) return [];   // 아무것도 안 그렸다
   const total = sizes.reduce((a, b) => a + b, 0);
-  // 전체의 2% 도 안 되는 점은 세지 않는다 (실수로 찍은 점)
-  return sizes.filter((n) => n >= total * 0.02).length;
+  let main = 1;
+  for (let i = 2; i < sizes.length; i++) if (sizes[i] > sizes[main]) main = i;
+
+  const out: Part[] = [];
+  for (const part of PARTS) {
+    const loose = drawing[part].some((it) => {
+      const a = alphaOf(drawing, it);
+      const seen = new Set<number>();
+      for (let i = 0; i < labels.length; i++) if (a[i * 4 + 3] >= 40 && labels[i]) seen.add(labels[i]);
+      if (seen.has(main)) return false;
+      return [...seen].some((id) => sizes[id] >= total * 0.02);
+    });
+    if (loose) out.push(part);
+  }
+  return out;
 }
 
 /** 흰 바탕 PNG 로 만든다. 백엔드는 PNG·JPG 만 받는다 (계약 1-4) */
