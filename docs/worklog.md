@@ -20,6 +20,31 @@
 
 ## 2026-09-29
 
+### AnimatedDrawings 로컬 실행 준비 — WSL2 설치, Docker 설치 중
+
+**왜**: 프론트 테스트를 스텁이 아닌 실제 관절 추정 모델(facebookresearch/AnimatedDrawings)로
+하기 위해서다. 나중에 서버로 옮기지만 프론트 테스트는 로컬에서 한다.
+**결정**: Docker로 공식 TorchServe 이미지를 띄운다(A안). Windows에 직접 `mmcv-full`을
+설치하는 B안은 빌드 실패가 잦아 버렸다. 프론트가 브라우저에서 캐릭터를 그리므로
+렌더 쪽(파이썬 3.8, OpenGL)은 로컬에 필요 없고 관절 추정만 돌린다.
+이 PC에는 GPU·Docker·conda가 없었다 → CPU로 돌린다.
+**바꾼 것**: 코드 변경 없음. `hankan-story/AnimatedDrawings/`에 원본 저장소를 받았다.
+WSL2 설치 끝, Docker Desktop은 사용자가 설치 후 재시작 중.
+**남은 것**: 이미지 빌드, 분석 부분만 실제 모델로 바꾼 어댑터 서버, 실제 모델로 전 구간.
+순서와 어댑터 설계는 `docs/animated-drawings-local.md`에 있다.
+
+### 코드를 git 저장소 `drawtale-frontend`로 옮김
+
+**왜**: 지금까지 `Desktop/hankan-story/`에 git 없이 있었다. 사용자 저장소
+`github.com/seominji58/drawtale-frontend`(README만 있던 빈 저장소)를 작업 폴더로 쓴다.
+**바꾼 것**: `hankan-story/` 아래 코드·문서·`node_modules`·`.env`를 전부
+`hankan-story/drawtale-frontend/`로 옮겼다. `hankan-story/.claude/`만 남겼다.
+`.gitignore`에 `*.tsbuildinfo` 추가. 옮긴 뒤 `npm run typecheck` 통과.
+커밋 시 git이 PDF를 텍스트로 보고 줄바꿈 경고를 냈다. 저장된 blob은 원본과 해시가
+같았지만 다른 PC에서 체크아웃할 때 깨질 수 있어 `.gitattributes`로 pdf·docx·png 등을
+`binary`로 지정했다.
+**남은 것**: push 안 함 — 사용자 확인 후. 커밋 작성자는 전역 git 설정 이메일로 찍혔다.
+
 ### 스텁에 붙여 S-01~S-11 전 구간을 실서버 모드로 돌렸다
 
 **왜**: 스텁을 만들었으니 `VITE_ENGINE=finetuned` 로 실제 화면을 끝까지 돌려서

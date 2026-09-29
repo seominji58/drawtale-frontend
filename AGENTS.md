@@ -2,8 +2,13 @@
 
 이 파일은 이 저장소에서 작업하는 모든 코딩 에이전트가 먼저 읽는 규칙이다.
 
+> **진행 중인 작업 (2026-09-29)** — AnimatedDrawings(Meta)로 실제 관절 추정을 로컬에
+> 붙이는 중이다. Docker 설치 직후에서 멈춰 있다. **이어서 작업하기 전에
+> `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
+
 | 문서 | 무엇이 있나 | 언제 보나 |
 |---|---|---|
+| `docs/animated-drawings-local.md` | AnimatedDrawings 로컬 실행 진행 상황, 다음 단계 | **지금 진행 중인 작업** |
 | `docs/source/화면설계서_v0.2.md` | 화면별 요소표, 동작과 예외 | **화면을 고칠 때마다** |
 | `docs/api-contract.md` | 엔드포인트, 응답 모양, 오류 코드 | 서버와 주고받는 것을 다룰 때 |
 | `docs/id-conventions.md` | 식별자 이름 규칙 | id·키·파일 이름을 다룰 때 |
