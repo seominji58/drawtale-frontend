@@ -47,7 +47,7 @@ export function makeSampleDrawing(): Promise<File> {
   const rs = P("right_shoulder"), ls = P("left_shoulder"), hip = P("hip");
   ctx.beginPath();
   ctx.moveTo(rs.x - 10, rs.y - 14);
-  ctx.quadraticCurveTo(W / 2, P("neck").y + 6, ls.x + 10, ls.y - 14);
+  ctx.quadraticCurveTo(W / 2, P("torso").y - 47, ls.x + 10, ls.y - 14);
   ctx.quadraticCurveTo(ls.x + 28, hip.y - 40, P("left_hip").x + 18, hip.y + 26);
   ctx.quadraticCurveTo(W / 2, hip.y + 46, P("right_hip").x - 18, hip.y + 26);
   ctx.quadraticCurveTo(rs.x - 28, hip.y - 40, rs.x - 10, rs.y - 14);
@@ -61,9 +61,9 @@ export function makeSampleDrawing(): Promise<File> {
   blob(P("right_hand"), 20, 20, "#F6C9A4");
   blob(P("left_hand"), 20, 20, "#F6C9A4");
 
-  // 목과 머리
-  const head = P("head");
-  limb([P("neck"), { x: head.x, y: head.y + 40 }], "#F6C9A4", 30);
+  // 목과 머리. Meta 모델처럼 neck 이 얼굴 가운데라서 머리를 neck 자리에 그린다
+  const head = P("neck");
+  limb([{ x: head.x, y: P("torso").y }, { x: head.x, y: head.y + 40 }], "#F6C9A4", 30);
   blob(head, 66, 70, "#F6C9A4");
 
   ctx.beginPath();

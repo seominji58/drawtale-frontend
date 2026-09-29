@@ -6,14 +6,15 @@ import Waiting from "@/components/Waiting";
 import { Friend } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
-import { analyzeCharacter, ENGINE } from "@/api";
-import { isOk } from "@/types/character";
+import { analyzeCharacter, ApiError, ENGINE } from "@/api";
+import type { JobStatus } from "@/types/character";
 
-const STAGES = ["uploaded", "segmenting", "estimating_pose", "building_skeleton"];
+/** 백엔드 job 상태(계약 1-3)를 대기 점 세 개로 보여준다 */
+const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, failed: 0 };
 
 export default function S04Analyzing() {
   const nav = useNavigate();
-  const { file, setAnalysis, setError } = useSession();
+  const { file, setCharacter, setError } = useSession();
   const diagnostics = useSettings((s) => s.diagnostics);
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
@@ -29,29 +30,29 @@ export default function S04Analyzing() {
     const ctrl = new AbortController();
     abort.current = ctrl;
 
-    analyzeCharacter(file, (p) => {
-      setStep(STAGES.indexOf(p.stage) + 1);
-      setDiag(`${p.stage} · ${Math.round(p.progress * 100)}% · ${ENGINE}`);
+    const started = performance.now();
+    analyzeCharacter(file, (s) => {
+      setStep(STEP[s]);
+      setDiag(`${s} · ${Math.round(performance.now() - started)}ms · ${ENGINE}`);
     }, ctrl.signal)
-      .then((res) => {
-        if (!isOk(res)) { setError(res.error.code); nav("/error"); return; }
-        setAnalysis(res);
+      .then((c) => {
+        setCharacter(c);
         nav("/confirm", { replace: true });
       })
       .catch((e) => {
         if ((e as Error).name === "AbortError") return;
-        setError("ENGINE_ERROR"); nav("/error");
+        setError(e instanceof ApiError ? e.code : "ENGINE_ERROR"); nav("/error");
       });
 
     return () => { clearTimeout(t); clearTimeout(timeout); ctrl.abort(); };
-  }, [file, nav, setAnalysis, setError]);
+  }, [file, nav, setCharacter, setError]);
 
   const stop = () => { abort.current?.abort(); nav("/upload"); };
 
   return (
     <Screen back={stop} speech="친구를 만들고 있어요" segment={2}
       acts={showStop ? <BigButton onClick={stop}>그만하기</BigButton> : undefined}>
-      <Waiting message="친구를 만들고 있어요" steps={4} current={step}
+      <Waiting message="친구를 만들고 있어요" steps={3} current={step}
                diagnostics={diagnostics ? diag : null} art={<Friend wave />} />
     </Screen>
   );

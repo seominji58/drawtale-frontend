@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
@@ -10,15 +10,9 @@ import type { MotionId } from "@/types/story";
 
 export default function S05Confirm() {
   const nav = useNavigate();
-  const { imageUrl, analysis, keypoints } = useSession();
+  const { imageUrl, keypoints } = useSession();
   const level = useSettings((s) => s.level);
   const [i, setI] = useState(3);
-
-  const needHelp = useMemo(() => {
-    if (!analysis || !keypoints) return false;
-    if (analysis.character.confidence < 0.6) return true;
-    return Object.values(keypoints).some((k) => k.score < 0.4);
-  }, [analysis, keypoints]);
 
   if (!imageUrl || !keypoints) { nav("/upload", { replace: true }); return null; }
   const motion = (level === 1 ? "wave" : MOTIONS[i % MOTIONS.length].id) as MotionId;
@@ -35,12 +29,11 @@ export default function S05Confirm() {
       <div className="stage" onClick={() => setI((v) => v + 1)}>
         <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={motion} />
       </div>
-      {needHelp && (
-        <div className="box warn inline">
-          <span>캐릭터가 잘 움직이지 않나요?</span>
-          <button className="btn link" onClick={() => nav("/joints")}>어른에게 도움 받기</button>
-        </div>
-      )}
+      {/* S-05-05. 백엔드가 관절 신뢰도를 주지 않아(계약 1-1) 조건 없이 늘 둔다 */}
+      <div className="aside-links">
+        <span>잘 움직이지 않나요?</span>
+        <button className="btn link" onClick={() => nav("/joints")}>어른에게 도움 받기</button>
+      </div>
     </Screen>
   );
 }

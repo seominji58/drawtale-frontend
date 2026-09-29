@@ -1,14 +1,14 @@
 import { create } from "zustand";
-import type { CharacterOk, Keypoints } from "@/types/character";
+import type { Character, Keypoints } from "@/types/character";
 import type { StepKind, Story } from "@/types/story";
 
 interface SessionState {
   /** S-03 에서 고른 원본 파일과 표시용 URL */
   file: File | null;
   imageUrl: string | null;
-  /** S-04 결과 */
-  analysis: CharacterOk | null;
-  /** S-06 보정 결과. 없으면 analysis 값을 그대로 쓴다 */
+  /** S-04 결과. S-06 에서 보정을 저장하면 서버가 돌려준 값으로 바뀐다 */
+  character: Character | null;
+  /** 화면에 펴는 관절. S-06 에서 끄는 동안은 저장 전 값이다 */
   keypoints: Keypoints | null;
   /** S-07 단계별 선택 */
   picks: Partial<Record<StepKind, string>>;
@@ -18,7 +18,7 @@ interface SessionState {
   errorCode: string | null;
 
   setFile: (f: File | null) => void;
-  setAnalysis: (a: CharacterOk | null) => void;
+  setCharacter: (c: Character | null) => void;
   setKeypoints: (k: Keypoints | null) => void;
   pick: (kind: StepKind, id: string) => void;
   setStory: (s: Story | null) => void;
@@ -30,7 +30,7 @@ interface SessionState {
 export const useSession = create<SessionState>((set, get) => ({
   file: null,
   imageUrl: null,
-  analysis: null,
+  character: null,
   keypoints: null,
   picks: {},
   story: null,
@@ -41,7 +41,7 @@ export const useSession = create<SessionState>((set, get) => ({
     if (prev) URL.revokeObjectURL(prev);
     set({ file: f, imageUrl: f ? URL.createObjectURL(f) : null });
   },
-  setAnalysis: (a) => set({ analysis: a, keypoints: a ? a.character.keypoints : null }),
+  setCharacter: (c) => set({ character: c, keypoints: c ? c.keypoints : null }),
   setKeypoints: (k) => set({ keypoints: k }),
   /** 앞 단계를 바꾸면 이후 단계 선택은 초기화한다 (설계서 S-07 되돌리기) */
   pick: (kind, id) => {
@@ -59,7 +59,7 @@ export const useSession = create<SessionState>((set, get) => ({
   resetAll: () => {
     const prev = get().imageUrl;
     if (prev) URL.revokeObjectURL(prev);
-    set({ file: null, imageUrl: null, analysis: null, keypoints: null,
+    set({ file: null, imageUrl: null, character: null, keypoints: null,
           picks: {}, story: null, errorCode: null });
   },
 }));

@@ -12,7 +12,7 @@ import type { StepChoice } from "@/types/story";
 export default function S07Steps() {
   const nav = useNavigate();
   const { picks, pick, setError } = useSession();
-  const { level } = useSettings();
+  const level = useSettings((s) => s.level);
   const cfg = LEVEL_CONFIG[level];
 
   const initialAt = STEP_ORDER.findIndex((k) => !picks[k]);
@@ -25,11 +25,11 @@ export default function S07Steps() {
   useEffect(() => {
     if (viewAt === STEP_ORDER.length) { nav("/generating", { replace: true }); return; }
     if (kind) {
-      fetchSteps(kind, level, cfg.choiceCount)
+      fetchSteps(kind, cfg.choiceCount)
         .then(setChoices)
         .catch(() => { setError("ENGINE_ERROR"); nav("/error"); });
     }
-  }, [kind, level, cfg.choiceCount, nav, setError, viewAt]);
+  }, [kind, cfg.choiceCount, nav, setError, viewAt]);
 
   if (!kind) return null;
 

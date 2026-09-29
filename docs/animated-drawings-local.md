@@ -1,4 +1,4 @@
-# AnimatedDrawings 로컬 실행 — 진행 상황과 다음 단계
+# 실제 모델로 로컬 실행 — 진행 상황과 다음 단계
 
 **이어서 작업하는 에이전트는 이 파일의 「지금 상태」부터 읽는다.**
 기준일 2026-09-29.
@@ -9,17 +9,16 @@
 
 | 단계 | 상태 |
 |---|---|
-| 프론트 코드를 git 저장소(`drawtale-frontend`)로 옮김 | **끝** — 로컬 커밋만, push 안 함 |
-| AnimatedDrawings 저장소 받기 | **끝** — `hankan-story/AnimatedDrawings/` (커밋 `b859684`) |
-| ① WSL2 설치 (`wsl --install`) | **끝** — Ubuntu 첫 실행까지 함 |
-| ② Docker Desktop 설치 (`winget install -e --id Docker.DockerDesktop`) | **사용자가 진행 중** → 설치 후 재시작 |
-| ③ `docker run --rm hello-world` 확인 | 남음 |
-| ④ TorchServe 이미지 빌드·실행 | 남음 (에이전트가 할 일) |
-| ⑤ 어댑터 서버 만들기 | 남음 (에이전트가 할 일) |
-| ⑥ 실제 모델로 S-01~S-11 전 구간 | 남음 |
+| WSL2 · Docker Desktop 설치 | **끝** |
+| Meta AnimatedDrawings TorchServe 이미지 | **끝** — 직접 빌드했다가 팀원 `drawtale-ai` 것으로 갈아탔다 (아래) |
+| 팀원 AI 서버(`drawtale-ai` dev) 띄우기 | **끝** — `docker compose up -d`, 8001·8080 |
+| 팀원 백엔드(`drawtale-backend` dev) 띄우기 | **끝** — 로컬 Postgres, `AI_USE_MOCK=false`, 8000 |
+| **프론트를 백엔드 계약에 맞춤** | **끝** — `docs/api-contract.md`. 화면까지 백엔드 흐름으로 (S-09 MP4, S-10 문장 카드) |
+| 실제 모델로 S-01~S-11 전 구간 | **끝** — 브라우저로 확인. 목 모드도 끝까지 돈다 |
+| 커밋 | **안 함** — 사용자 확인 대기. push도 안 함 |
 
-**재시작 후 첫 할 일**: 사용자가 Docker Desktop을 띄워 「Engine running」을 확인했는지
-묻고, `docker run --rm hello-world`로 확인한 다음 ④로 간다.
+**다음 할 일**: `docs/open-decisions.md` 0절의 팀 요청 사항을 팀원에게 전달
+(관절 score·confidence, 모션 매핑, 설계서 S-09·S-10 갱신).
 
 ---
 
@@ -27,100 +26,80 @@
 
 ```
 Desktop/hankan-story/
-├─ .claude/            Claude Code 설정 (git 밖, 건드리지 않는다)
-├─ drawtale-frontend/  ← 이 저장소. github.com/seominji58/drawtale-frontend
-└─ AnimatedDrawings/   ← github.com/facebookresearch/AnimatedDrawings (수정하지 않는 원본)
+├─ drawtale-frontend/     ← 이 저장소 (github.com/seominji58/drawtale-frontend)
+├─ drawtale-ai/           ← 팀원 AI 저장소 dev 브랜치 zip (git 아님, 읽기 전용으로 쓴다)
+├─ drawtale-backend/      ← 팀원 백엔드 main 브랜치 zip (뼈대뿐)
+├─ drawtale-backend-dev/  ← 팀원 백엔드 dev 브랜치 zip — 이것을 띄운다
+└─ AnimatedDrawings/      ← Meta 원본 저장소 (수정하지 않는다)
 ```
 
-AnimatedDrawings는 프론트 저장소에 넣지 않는다. 나중에 서버로 옮기므로 옆 폴더에 둔다.
+두 팀원 저장소는 비공개라 이 PC의 git 자격 증명으로 clone 되지 않아서, 사용자가
+GitHub에서 zip으로 받아 풀었다. **git 저장소가 아니므로 pull 로 갱신되지 않는다.**
+새 코드가 필요하면 zip을 다시 받는다.
 
 ---
 
-## 왜 이렇게 돌리나
+## 띄우는 순서
 
-- **이 PC 환경**: Windows 11, Intel Core Ultra 7 355, RAM 31.5GB, **NVIDIA GPU 없음**,
-  conda 없음. Python은 3.14·3.10·3.9가 있다.
-- **프론트는 캐릭터를 브라우저에서 그린다** (`CharacterCanvas`). 그래서 로컬 테스트에
-  필요한 것은 **관절 추정(TorchServe)뿐**이다. AnimatedDrawings의 렌더 쪽
-  (파이썬 3.8, OpenGL, `USE_MESA`)은 필요 없다. 서버 렌더 여부는
-  `open-decisions.md` 5번에서 따로 정한다.
-- **Docker(A안)를 고른 이유**: 공식 `torchserve/Dockerfile`이 그대로 돌고,
-  나중에 서버로 옮길 때도 같은 이미지를 쓴다. Windows에 직접 `mmcv-full`을
-  설치하는 B안은 빌드 실패가 잦아 버렸다.
-- GPU가 없어도 CPU로 돈다. 그림 한 장에 수 초 수준으로 예상한다 (**아직 실측 안 함**).
-
----
-
-## ④ TorchServe 이미지 빌드·실행
+### 1. AI 서버 (`drawtale-ai`)
 
 ```bash
-cd ../AnimatedDrawings/torchserve
-docker build -t docker_torchserve .      # 처음엔 20~40분 (torch, mmcv 다운로드)
-docker run -d --name docker_torchserve -p 8080:8080 -p 8081:8081 docker_torchserve
-curl http://127.0.0.1:8080/ping          # {"status": "Healthy"} 가 나오면 됨
+cd ../drawtale-ai
+docker compose up -d          # 첫 빌드 20~30분 (mmcv 컴파일)
+docker compose ps             # torchserve 가 healthy 가 되면 ai 가 뜬다
+curl http://127.0.0.1:8001/internal/v1/health   # model_loaded: true
 ```
 
-모델 두 개가 올라오는 데 시작 후 1~2분 걸린다. 그 전에는 ping이 `Unhealthy`일 수 있다.
+### 2. 백엔드 (`drawtale-backend-dev`)
 
-**미리 알고 있는 위험**
+`.env`는 `.env.example`을 복사해 **세 줄을 바꾼 것**이다 (이미 만들어 둠).
 
-- Dockerfile이 `xtcocoapi`를 **버전 고정 없이** `git clone` 한다. 빌드가 여기서 깨지면
-  특정 커밋으로 고정해서 해결한다. 원본 저장소를 고치지 말고, 고친 Dockerfile은
-  이 저장소 쪽(예: `tools/animated-drawings/`)에 둔다.
-- Windows git이 `core.autocrlf=true`라 Dockerfile·`config.properties`가 CRLF로
-  받아졌다. 빌드에서 문제가 나면 줄바꿈부터 의심한다.
-- Docker Desktop이 WSL2 메모리를 부족하게 잡으면 모델 로딩이 실패한다.
-  공식 README는 16GB를 권한다. 필요하면 `%UserProfile%\.wslconfig`에 `memory=16GB`.
+```bash
+DATABASE_URL=postgresql+psycopg://drawtale:drawtale@db:5432/drawtale   # 컨테이너 안에서 db 를 본다
+AI_SERVICE_URL=http://host.docker.internal:8001                        # 호스트의 AI 서버
+AI_USE_MOCK=false
+```
 
----
+```bash
+cd ../drawtale-backend-dev
+docker compose --profile app up -d --build    # db + backend. migration 은 시작할 때 자동
+curl http://127.0.0.1:8000/health
+```
 
-## ⑤ 어댑터 서버 — 할 일
+백엔드 가이드는 Azure 공유 DB를 쓰라고 하지만 접속 주소와 IP 등록이 필요해서
+로컬 Postgres(`db` 서비스)로 띄웠다. `.env.example`의 기본값 `127.0.0.1:5433`은
+백엔드를 venv로 돌릴 때용이라 컨테이너 안에서는 닿지 않는다.
 
-`tools/stub-server/stub.py`는 계약서대로 가짜 응답을 준다. **분석(`POST /api/characters`)
-부분만 실제 TorchServe 호출로 바꾼 어댑터**를 만든다. 나머지(이야기·steps·activity)는
-스텁 그대로 둔다. 그러면 프론트는 거의 건드리지 않고 실제 모델로 테스트할 수 있다.
+### 3. 프론트
 
-TorchServe 호출 방식은 `AnimatedDrawings/examples/image_to_annotations.py`를 따른다.
-
-1. 긴 변이 1000px을 넘으면 1000px로 줄인다
-2. `POST http://127.0.0.1:8080/predictions/drawn_humanoid_detector` (`files={"data": jpg}`)
-   → `bbox` 목록. 점수 가장 높은 것 하나를 쓴다
-3. `bbox`로 잘라낸 그림을
-   `POST http://127.0.0.1:8080/predictions/drawn_humanoid_pose_estimator`로 보낸다
-   → COCO 17점 `keypoints` (잘라낸 영역 기준 픽셀)
-4. COCO 17점 → 우리 관절 이름으로 매핑 (위 파일 122~137행과 같은 방식.
-   `neck`=코(0), `torso`=어깨 중점, `hip`=골반 중점)
-
-어댑터에서 **반드시 정해야 하는 것** (근거는 `open-decisions.md`):
-
-| 항목 | 문제 | 어댑터에서 임시로 할 일 |
-|---|---|---|
-| 관절 수 (1번) | 모델은 `head`를 내지 않는다. 프론트 `skeleton.ts`는 `head`가 필요하다 | **B안**: `torso → neck` 방향으로 연장해 `head`를 합성하고 16개로 보낸다 |
-| 좌표 기준 (2번, backlog b) | 모델 좌표는 **잘라낸 영역 기준**인데 프론트는 **원본 그림** 위에 편다 | **나안**: 어댑터가 crop → 원본 기준 0~1로 되돌려 보낸다 (프론트 무수정). 가안(`croppedImageUrl`)은 팀 합의 후 |
-| 신뢰도 | `confidence`와 관절별 `score` | 포즈 모델의 관절 점수를 `score`로, 검출 점수를 `confidence`로 |
-| 실패 | 사람 0명·2명 이상 검출 | 계약서 오류 코드로 매핑 (`api-contract.md` 오류 절) |
-
-임시로 정한 것은 `open-decisions.md` 1·2번에 「로컬 어댑터는 이렇게 했다」고 적는다.
-팀 합의가 나면 어댑터를 거기 맞춘다.
+```bash
+npm run dev      # .env 의 VITE_ENGINE 이 mock 이 아니면 /api/v1 이 8000 으로 간다
+```
 
 ---
 
-## 코드에 남아 있는 알려진 문제
+## 경위 — 왜 팀원 것으로 갈아탔나
 
-`backlog.md` P0-0 표가 원본이다. 실제 모델을 붙이면 직접 드러나는 것은 **b**다.
+처음 계획은 Meta 원본 `torchserve/Dockerfile`을 직접 빌드하고, 스텁 서버의 분석
+부분만 TorchServe를 부르는 어댑터로 바꾸는 것이었다. 둘 다 만들어 돌렸다.
 
-| # | 내용 | 급한가 |
-|---|---|---|
-| b | 잘라낸 그림을 줄 자리가 계약에 없다 | 그렇다 |
-| g | `patchKeypoints`를 부르는 곳이 없다 (`S06Joints.tsx` 40행) | 그렇다 |
-| h | `audioUrl`을 읽는 코드가 없다 (팀 결정 필요, `open-decisions.md` 14번) | 그렇다 |
-| i | 개발 모드에서 POST가 두 번 나간다 (StrictMode) | 보통 |
-| j | `shrink()`가 작은 그림은 원본 그대로 보낸다 | 보통 |
-| c·d·e·f | 인증 계약 누락, S-08 진행 멈춤, SSE 재연결 없음, 토큰 미전송 | 보통~낮음 |
+- 원본 Dockerfile은 **그대로는 빌드되지 않는다.** 베이스 이미지가 Debian 11(bullseye)인데
+  지원 종료 뒤 `deb.debian.org`의 bullseye-security 패키지가 404 난다.
+  `archive.debian.org`로 돌려 빌드했다 (이미지 32.9GB, CUDA 포함).
+- 어댑터로 실제 모델을 돌려 보니 CPU로 장당 2.5~3초, crop → 원본 좌표 변환이 정확했다.
 
-## 주의
+그 뒤 사용자가 팀원의 `drawtale-ai`를 받아 왔다. 같은 문제를 이미 풀었고(snapshot 저장소),
+**CPU 전용 PyTorch로 이미지가 5.85GB**, 작업자 1개로 메모리 1.4GB다. 같은 Meta 가중치라
+관절 좌표는 내 어댑터와 이미지 크기의 1% 안에서 같았다. 그리고 `drawtale-backend` dev가
+이미 AI 서버를 부르고 있어서, 프론트는 **백엔드 계약에 맞추는 것이 맞다**고 판단했다
+(사용자 지시: 「기준은 백엔드 기준으로」). 직접 만든 이미지·어댑터·스텁은 지웠다.
 
-- `.env`가 **`VITE_ENGINE=finetuned`** 로 되어 있다 (git에 안 올라감).
-  8000번 서버 없이 `npm run dev` 하면 S-04에서 멈춘다. 목으로 보려면 `mock`으로.
-- 로컬 커밋만 있고 **push는 하지 않았다.** push 전에 사용자에게 묻는다.
-  커밋 작성자는 전역 git 설정의 이메일로 찍혔다.
+## 알려진 것
+
+- **분석 시간**: 오전 단독 실측은 검출 2.1~2.6초. 오후 브라우저 실측은 17초였는데
+  게임 클라이언트가 CPU 40%를 쓰던 때였다. S-04 제한이 30초라 다른 무거운 프로그램이
+  돌면 넘을 수 있다
+- **이야기 + MP4**: 54초. 백엔드 가이드는 30~40초라고 했다
+- 모델은 여전히 Meta 사전학습 그대로다. 손그림 전용 모델(팀원 A2)은 아직 없다
+- 팀원 AI 서버 실험 기록: `../drawtale-ai/docs/관절인식-실험-기록.md`
+  (4등신 그림에서 관절이 안쪽으로 몰림, 후처리로는 효과 작음)

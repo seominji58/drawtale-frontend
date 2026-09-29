@@ -2,28 +2,27 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import { Scene } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
-import { postActivity } from "@/api";
-import { speak } from "@/lib";
+import { sentences, speak } from "@/lib";
 
 /** 기본 조작은 탭 두 번이다. 카드를 고르고 자리를 고른다.
- *  드래그만 지원하면 소근육 조작이 어려운 아이가 배제된다. */
+ *  드래그만 지원하면 소근육 조작이 어려운 아이가 배제된다.
+ *  카드는 이야기 문장이다 — 백엔드가 장면이 아니라 `text` 한 덩어리를 주기 때문이다 (계약 2-6). */
 export default function S10Order() {
   const nav = useNavigate();
   const { story } = useSession();
   const { level, muteAll } = useSettings();
-  const count = level === 1 ? 2 : 4;
+  const lines = useMemo(() => sentences(story?.text ?? ""), [story]);
+  const count = Math.min(level === 1 ? 2 : 4, lines.length);
 
   const cards = useMemo(() => {
-    const src = (story?.scenes ?? []).slice(0, count);
+    const src = lines.slice(0, count).map((text, index) => ({ index, text }));
     return [...src].sort(() => Math.random() - 0.5);
-  }, [story, count]);
+  }, [lines, count]);
 
   const [slots, setSlots] = useState<(number | null)[]>(Array(count).fill(null));
   const [picked, setPicked] = useState<number | null>(null);
-  const [tries, setTries] = useState(0);
 
   if (!story) { nav("/", { replace: true }); return null; }
   const used = new Set(slots.filter((v) => v !== null));
@@ -31,8 +30,7 @@ export default function S10Order() {
 
   const done = () => {
     const ok = slots.every((v, n) => v === n);
-    setTries((t) => t + 1);
-    postActivity(story.storyId, tries + 1, ok);
+    // 시도 횟수를 보낼 곳이 백엔드에 없어 기록하지 않는다 (계약에 activity 없음)
     if (ok) nav("/done");
     else { setSlots(Array(count).fill(null)); setPicked(null); }
   };
@@ -53,8 +51,8 @@ export default function S10Order() {
         {cards.map((s) => (
           <button key={s.index} disabled={used.has(s.index)}
             className={`stage ${used.has(s.index) ? "card-used" : ""} ${picked === s.index ? "card-picked" : ""}`}
-            onClick={() => { setPicked(s.index); speak(s.sentence, muteAll); }}>
-            <div className="illust-wrap"><Scene n={s.index} /></div>
+            onClick={() => { setPicked(s.index); speak(s.text, muteAll); }}>
+            <span className="said">{s.text}</span>
           </button>
         ))}
       </div>

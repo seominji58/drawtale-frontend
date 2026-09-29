@@ -1,3 +1,5 @@
+/** 브라우저 캔버스가 계산하는 모션. S-05·S-06 미리보기에만 쓴다.
+ *  S-09 애니메이션은 서버가 렌더한 MP4 다 (백엔드 계약 2-6) */
 export type MotionId = "idle" | "walk" | "jump" | "wave" | "look";
 
 /** S-07 선택 단계. 인물은 S-05에서 확정되므로 선택 단계에 없다. */
@@ -15,22 +17,19 @@ export const STEP_LABEL: Record<StepKind, string> = {
 
 export interface StepChoice { id: string; iconUrl: string; label: string }
 
-export interface StoryScene {
-  index: number;
-  sentence: string;
-  audioUrl: string | null;
-  motion: MotionId;
-  backgroundUrl: string | null;
-}
+/** 백엔드 계약 2-6 의 이야기. 문장은 `text` 한 덩어리로 오고,
+ *  S-09·S-10 이 `sentences()` (src/lib.ts) 로 문장 단위로 나눠 쓴다 */
 export interface Story {
   storyId: string;
+  characterId: string;
+  /** 서버에는 없다. 목록(S-12·S-13)에 띄우려고 장소로 만든다 */
   title: string;
   createdAt: string;
-  scenes: StoryScene[];
+  text: string;
+  audioUrl: string | null;
+  /** 서버가 렌더한 MP4. 목 AI 에서는 원본 그림 URL 이 오고, 목 엔진에서는 null 이다 */
+  animationUrl: string | null;
 }
-
-export type GenerateStage = "generating_text" | "synthesizing_voice" | "done";
-export interface GenerateProgress { stage: GenerateStage; progress: number; label: string }
 
 /** C-03 전체 진행 표시 구간. 그림 → 친구 → 이야기 → 놀이 */
 export type Segment = 1 | 2 | 3 | 4 | null;
