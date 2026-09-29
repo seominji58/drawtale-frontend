@@ -19,7 +19,7 @@ const icon = (label: string) =>
   )}`;
 
 /** public/icons/{kind}/{id}.png 를 넣은 뒤 true 로 바꾼다 (docs/art-direction.md) */
-const USE_REAL_ICONS = false;
+const USE_REAL_ICONS = true;
 
 /** [id, 라벨, 임시 이모지] — id 는 kind 안에서만 유일하다 (docs/id-conventions.md 1절) */
 const RAW: Record<StepKind, [string, string, string][]> = {

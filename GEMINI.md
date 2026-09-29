@@ -1,4 +1,4 @@
-# 한칸이야기 · 프론트엔드 — Antigravity 안내
+﻿# 한칸이야기 · 프론트엔드 — Antigravity 안내
 
 이 저장소는 Claude Code 와 Antigravity 를 번갈아 쓴다. **어느 도구든 같은 문서를 읽고 같은 문서에 남긴다.**
 
@@ -40,3 +40,4 @@
   `git push` 로 한 번 로그인하게 한다. 그 뒤로는 저장된 자격 증명으로 된다
 - `drawtale-ai/`, `drawtale-backend-dev/` 는 zip 으로 받은 폴더라 git 이 아니다. 갱신하려면 다시 받는다
 - `AnimatedDrawings/` (Meta 원본) 는 수정하지 않는다
+

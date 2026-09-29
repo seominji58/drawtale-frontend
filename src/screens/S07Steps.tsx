@@ -7,6 +7,7 @@ import { useSession } from "@/store/session";
 import { useSettings, LEVEL_CONFIG } from "@/store/settings";
 import { fetchSteps } from "@/api";
 import { STEP_LABEL, STEP_ORDER, STEP_QUESTION } from "@/types/story";
+import { labelOf } from "@/features/story/choices";
 import type { StepChoice } from "@/types/story";
 
 export default function S07Steps() {
@@ -45,6 +46,11 @@ export default function S07Steps() {
   return (
     <Screen back={viewAt === 0 ? "/confirm" : () => setViewAt((v) => v - 1)}
       speech={STEP_QUESTION[kind]} segment={3}>
+      {kind === "result" && (
+        <p className="hint" style={{ marginBottom: "-10px", marginTop: "10px" }}>
+          {labelOf("place", picks.place)} · {labelOf("problem", picks.problem)} · {labelOf("action", picks.action)}
+        </p>
+      )}
       <h2 className="question">{STEP_QUESTION[kind]}</h2>
 
       <div className="choices" data-count={choices.length}>
