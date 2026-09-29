@@ -5,6 +5,7 @@ export type AuthMode = "guest" | "member" | "unset";
 const TOKEN_KEY = "storyblanks.token";
 const MODE_KEY = "storyblanks.mode";
 const TRIAL_KEY = "storyblanks.trial";
+const ACCOUNT_KEY = "storyblanks.account";
 
 /** 비회원 체험 한도. 설계서 11.2
  *  정수 하나만 localStorage 에 센다. 이야기 내용과 그림은 남기지 않으므로
@@ -24,38 +25,39 @@ function loadMode(): AuthMode {
 
 interface AuthState {
   mode: AuthMode;
-  email: string | null;
+  /** 설정 화면에 보일 계정 이름 (이메일, 또는 「카카오 계정」) */
+  account: string | null;
   /** 비회원 안내를 이미 한 번 띄웠는지. 반복해서 띄우지 않는다 */
   guestNoticeShown: boolean;
   startGuest: () => void;
-  login: (email: string, token: string) => void;
+  login: (account: string, token: string) => void;
   logout: () => void;
   markGuestNotice: () => void;
 }
 
 export const useAuth = create<AuthState>((set) => ({
   mode: loadMode(),
-  email: localStorage.getItem("storyblanks.email"),
+  account: localStorage.getItem(ACCOUNT_KEY),
   guestNoticeShown: false,
 
   startGuest: () => {
     sessionStorage.setItem(MODE_KEY, "guest");
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem("storyblanks.email");
-    set({ mode: "guest", email: null });
+    localStorage.removeItem(ACCOUNT_KEY);
+    set({ mode: "guest", account: null });
   },
-  login: (email, token) => {
+  login: (account, token) => {
     localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem("storyblanks.email", email);
+    localStorage.setItem(ACCOUNT_KEY, account);
     sessionStorage.removeItem(MODE_KEY);
-    set({ mode: "member", email });
+    set({ mode: "member", account });
   },
   logout: () => {
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem("storyblanks.email");
+    localStorage.removeItem(ACCOUNT_KEY);
     sessionStorage.clear();
     localStorage.removeItem(TRIAL_KEY);
-    set({ mode: "unset", email: null, guestNoticeShown: false });
+    set({ mode: "unset", account: null, guestNoticeShown: false });
   },
   markGuestNotice: () => set({ guestNoticeShown: true }),
 }));

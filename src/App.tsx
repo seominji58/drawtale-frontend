@@ -21,6 +21,7 @@ import E01Error from "@/screens/E01Error";
 import S14Welcome from "@/screens/S14Welcome";
 import S15Login from "@/screens/S15Login";
 import S16Signup from "@/screens/S16Signup";
+import S15Callback from "@/screens/S15Callback";
 
 export default function App() {
   const mode = useAuth((s) => s.mode);
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/welcome" element={<S14Welcome />} />
         <Route path="/login" element={<S15Login />} />
         <Route path="/signup" element={<S16Signup />} />
+        <Route path="/auth/:provider/callback" element={<S15Callback />} />
         {mode === "unset" ? (
           <Route path="*" element={<Navigate to="/welcome" replace />} />
         ) : (

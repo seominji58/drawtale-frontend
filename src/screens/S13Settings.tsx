@@ -22,14 +22,14 @@ function Row({ name, desc, children }: { name: string; desc: string; children: R
 export default function S13Settings() {
   const nav = useNavigate();
   const s = useSettings();
-  const { mode, email, logout } = useAuth();
+  const { mode, account, logout } = useAuth();
   const { stories, remove } = useLibrary();
 
   return (
     <Screen back="/" speech={null} title="어른 설정" audience="adult" autoSpeak={false}
       acts={<BigButton onClick={() => nav("/")}>닫기</BigButton>}>
       <div className="list scroll">
-        <Row name="계정" desc={mode === "member" ? (email ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
+        <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
           <button className="btn link" onClick={mode === "member" ? logout : () => nav("/login")}>
             {mode === "member" ? "로그아웃" : "로그인"}
           </button>

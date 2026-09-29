@@ -4,6 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth, trialLeft } from "@/store/auth";
 import { login } from "@/api/auth";
+import SocialButton from "@/components/SocialButton";
 
 export default function S15Login() {
   const nav = useNavigate();
@@ -18,7 +19,7 @@ export default function S15Login() {
     setBusy(true); setErr(false);
     try {
       const r = await login(email, pw);
-      auth.login(r.email, r.token);
+      auth.login(r.account, r.token);
       nav("/");
     } catch {
       setErr(true);   // 어느 칸이 틀렸는지 구분해 알려주지 않는다
@@ -30,6 +31,12 @@ export default function S15Login() {
       acts={<BigButton go disabled={!email || !pw || busy} onClick={submit}>
         {busy ? "확인하는 중" : "로그인"}
       </BigButton>}>
+      <SocialButton provider="kakao" intent="login" />
+      <p className="hint" style={{ fontSize: "var(--t-label)" }}>
+        카카오에서는 회원번호만 받습니다. 이름·이메일·사진은 받지 않아요.
+        처음이시면 회원가입 화면에서 약관에 동의한 뒤 시작합니다.
+      </p>
+      <p className="hint" style={{ textAlign: "center" }}>또는 이메일로</p>
       <label className="field">
         <span>이메일</span>
         <input type="email" value={email} autoComplete="username"

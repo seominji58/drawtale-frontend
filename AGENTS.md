@@ -2,15 +2,15 @@
 
 이 파일은 이 저장소에서 작업하는 모든 코딩 에이전트가 먼저 읽는 규칙이다.
 
-> **진행 중인 작업 (2026-09-29)** — AnimatedDrawings(Meta)로 실제 관절 추정을 로컬에
-> 붙이는 중이다. Docker 설치 직후에서 멈춰 있다. **이어서 작업하기 전에
-> `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
+> **진행 중인 작업 (2026-09-29)** — 프론트를 팀원 백엔드(`drawtale-backend` dev) 계약에
+> 맞췄고, 실제 모델(팀원 `drawtale-ai`)로 S-01~S-11이 돈다. 커밋 전이다.
+> **이어서 작업하기 전에 `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
 
 | 문서 | 무엇이 있나 | 언제 보나 |
 |---|---|---|
-| `docs/animated-drawings-local.md` | AnimatedDrawings 로컬 실행 진행 상황, 다음 단계 | **지금 진행 중인 작업** |
+| `docs/animated-drawings-local.md` | 실제 모델·백엔드를 로컬에 띄우는 법, 진행 상황 | **지금 진행 중인 작업** |
 | `docs/source/화면설계서_v0.2.md` | 화면별 요소표, 동작과 예외 | **화면을 고칠 때마다** |
-| `docs/api-contract.md` | 엔드포인트, 응답 모양, 오류 코드 | 서버와 주고받는 것을 다룰 때 |
+| `docs/api-contract.md` | 백엔드 계약을 프론트가 어떻게 받아 쓰나 (원본은 백엔드 저장소) | 서버와 주고받는 것을 다룰 때 |
 | `docs/id-conventions.md` | 식별자 이름 규칙 | id·키·파일 이름을 다룰 때 |
 | `docs/art-direction.md` | 그림 화풍과 제약 | 아이콘·배경·삽화를 다룰 때 |
 | `docs/image-prompts.md` | 붙여넣을 프롬프트 54개 | 그림을 실제로 뽑을 때 |
@@ -66,19 +66,15 @@ cp .env.example .env
 # VITE_ENGINE=mock | agent | finetuned
 ```
 
-`mock`이면 백엔드 없이 전체 흐름이 끝까지 돈다. 백엔드는 8000번에 올리면
-`/api` 요청이 프록시된다. 엔진이 파인튜닝이든 에이전트든 응답 계약이 같으므로
+`mock`이면 백엔드 없이 전체 흐름이 끝까지 돈다. `mock`이 아니면 `/api/v1` 요청이
+8000번의 팀원 백엔드(`drawtale-backend` dev)로 프록시된다. 계약의 원본은 백엔드
+저장소의 `docs/api-contract.md`이고, 프론트 쪽 변환은 `src/api/index.ts` 한 곳에 있다.
 **화면 코드는 `VITE_ENGINE` 값을 알 필요가 없다.**
 
-```bash
-python tools/stub-server/stub.py   # 8000번. 계약서대로 응답하는 임시 서버
-```
-
 목 엔진은 `src/api/index.ts`의 함수 첫 줄에서 리턴하므로 **실서버 분기를 덮지 못한다.**
-프록시·multipart·SSE·오류 매핑을 확인할 때는 스텁을 띄우고 `VITE_ENGINE`을
-`mock`이 아닌 값으로 둔다. 조작판 `http://localhost:8000/`에서 오류 6종과
-타임아웃·연결 끊김을 주입한다. 자세한 것은 `tools/stub-server/README.md`.
-**팀원의 진짜 서버가 오면 이 폴더는 지운다.**
+polling·multipart·오류 매핑을 확인할 때는 백엔드를 띄운다. 백엔드는 `AI_USE_MOCK=true`면
+AI 없이도 돈다. 실제 모델까지 띄우는 법은 `docs/animated-drawings-local.md`.
+(스텁 서버 `tools/stub-server/`는 백엔드가 생겨 2026-09-29에 지웠다. git 이력에 있다.)
 
 ---
 
@@ -156,6 +152,7 @@ python tools/stub-server/stub.py   # 8000번. 계약서대로 응답하는 임�
 | S-14 처음 실행 | `/welcome` | `screens/S14Welcome.tsx` | **어른** |
 | S-15 로그인 | `/login` | `screens/S15Login.tsx` | **어른** |
 | S-16 회원가입 | `/signup` | `screens/S16Signup.tsx` | **어른** |
+| (S-15) 소셜 로그인 콜백 | `/auth/:provider/callback` | `screens/S15Callback.tsx` | **어른** |
 | E-01 오류 공통 | `/error` | `screens/E01Error.tsx` | 아동 |
 
 화면 흐름:
@@ -169,7 +166,7 @@ S-01 ─┬─► S-12 ──► S-09
             S-04 ──실패──► E-01 ──► S-03
               │
               ▼
-            S-05 ──신뢰도 낮음──► S-06 ──► S-05
+            S-05 ──어른 도움──► S-06 ──► S-05
               │
               ▼
             S-07 (장소 → 문제 → 행동 → 결과)
@@ -300,6 +297,5 @@ S-07 안의 장소·문제·행동·결과 네 점은 **별도 요소**이고 �
 | 자리 | 파일 | 실제 것이 오면 |
 |---|---|---|
 | 삽화 6종 (캐릭터·종이·연필·갸웃·축하·배경) | `components/illust.tsx` | 이 파일만 갈아끼운다 |
-| 선택지 아이콘 | `api/mock/fixtures.ts`의 `icon()` | 설계서 9장 미결정 항목 |
-| 장면 배경 | `StoryScene.backgroundUrl` | 자리만 있고 비어 있다 |
-| TTS | 음성 파일이 없을 때 브라우저 TTS로 대신 읽는다 | |
+| 선택지 목록·아이콘 | `features/story/choices.ts` | 백엔드에 선택지 엔드포인트가 생기면 그리로 (계약 2-5 ⚠) |
+| TTS | `audioUrl`이 없으면 브라우저 TTS로 한 문장씩 읽는다 | 백엔드 TTS 연동 후 |

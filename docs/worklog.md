@@ -20,6 +20,69 @@
 
 ## 2026-09-29
 
+### 카카오 로그인 — 프론트 먼저, 공식 버튼 리소스
+
+**왜**: 사용자 지시 「소셜 로그인 구현, 프론트 영역부터」, 버튼은 「전부 공식 리소스로」.
+백엔드 계약은 로그인이 없어서 서버 쪽은 제안으로 남긴다 (`docs/api-contract.md` 4절).
+보호자·교사 대상이라 카카오 하나로 시작했다. 제공자는 `SocialProvider` 로 더할 수 있다.
+**바꾼 것**:
+- `src/api/auth.ts` — 인가 코드 방식. SDK 없이 주소로 보낸다. `scope` 없음(회원번호만),
+  `state` 확인, 인가 코드를 두 번 쓰지 않게 막음(StrictMode). 처음 온 사람은
+  `SIGNUP_REQUIRED` → S-16 에서 약관 동의 후 `agreed: true` 로 가입. 이메일 로그인 경로도 `/api/v1` 로
+- `screens/S15Callback.tsx`(`/auth/:provider/callback`), `components/SocialButton.tsx`,
+  S-15·S-16 에 버튼과 「회원번호만 받습니다」 안내. S-16 은 동의 체크 전에 버튼이 잠긴다
+- `store/auth.ts` — `email` 을 `account` 로 (소셜 로그인은 이메일이 없다). 저장 키도 `storyblanks.account`
+- `.env.example`·`vite-env.d.ts` — `VITE_KAKAO_CLIENT_ID`. 비어 있으면 실서버 모드에서 버튼을 숨긴다
+- 버튼 그림: 처음엔 가이드 색으로 직접 그리고 말풍선을 흉내 냈는데, 가이드가 「심볼의 형태·비율·색
+  변경 불가」이고 문구도 「카카오 로그인」·「로그인」 둘뿐이라(가입 화면에 쓴 「카카오 계정으로 가입」은
+  위반) 공식 리소스로 바꿨다. developers.kakao.com/tool/resource/login 의 「전체 다운로드」
+  (`/tool/download/Kakao Login.zip`, 2026-08-20 판)에서 `kakao_login_kr_large.svg` 를
+  고치지 않고 `public/brand/kakao/` 에 넣었다
+**확인**: 목 모드 브라우저 — 처음 온 사람 로그인 → S-16(버튼 잠김) → 동의 → 가입 → S-01,
+취소(`access_denied`) → S-15, `state` 위조 → 오류·로그인 안 됨, 재로그인 → S-01. `typecheck` 통과.
+**남은 것**: 백엔드 `/api/v1/auth/kakao`, 카카오 앱 등록(키·Redirect URI·동의 항목 끔·시크릿),
+이용약관·처리방침 문서, 로그인 자체를 둘지 팀 결정 (`open-decisions.md` 0-3).
+
+### 프론트를 팀원 백엔드 계약에 맞춤 — 화면까지, 실제 모델로 S-01~S-11 통과
+
+**왜**: 팀원 `drawtale-backend` dev 에 계약서(초안 v0.1)와 실제 구현이 생겼고, 그것이
+팀원 `drawtale-ai`(Meta 모델 서빙)를 부른다. 프론트 계약(v1.0)과는 구조부터 달랐다 —
+SSE 대신 job polling, 0~1 대신 원본 픽셀, 관절 16개 대신 15개, 장면 4개 대신 `text` +
+MP4. 사용자 지시: 「기준은 백엔드 기준으로」, 범위는 「화면까지 백엔드 흐름으로」.
+**바꾼 것**:
+- `src/api/index.ts` 새로 씀. `/api/v1`, job 1.5초 polling, 픽셀 ↔ 0~1 변환, 오류 코드를
+  E-01 코드로 옮김. `saveJoints`(PATCH), `generateStory`(라벨 전송). activity·stories 목록 호출 삭제
+- `src/types/` — `Character`(id·크기·관절 15개), `Story`(text·audioUrl·animationUrl). 관절 `score` 없음
+- `skeleton.ts` — `head` 를 `torso → neck` 0.5 연장으로 만든다(open-decisions 1번 A안).
+  Meta 의 neck 이 얼굴 가운데라 머리 조각 아래 여유를 6 → 60 으로. 두께 보정 기준값도 새 자세로
+- S-04·S-08 job 상태 3단계 대기. S-05 도움 링크 늘 노출. S-06 15개·「얼굴」「손목」「발목」,
+  저장 실패 표시, 되돌리기는 미저장 보정을 버림. S-09 MP4 + 문장 짚어 읽기(음성 파일 우선).
+  S-10 문장 카드. 선택지를 `features/story/choices.ts` 로 옮김
+- **S-06 점 위치 버그 고침(원래 있던 것)**: 그림은 `object-fit: contain` 으로 여백을 두는데
+  점은 무대 전체 기준 % 였다. 팔 끝 점이 팔 바깥에 찍혔고, 이제 저장까지 하므로 틀린
+  좌표가 서버에 들어갈 뻔했다. 그림이 실제로 그려진 칸 기준으로 계산한다
+- `shrink()` — PNG·JPEG 가 아니면 크기와 상관없이 JPEG 로 (백엔드가 PNG·JPG 만 받는다)
+- 목 엔진을 같은 모양으로. 샘플 그림은 머리를 neck 자리에 그린다
+- `tools/stub-server/` 삭제 (AGENTS.md 「팀원의 진짜 서버가 오면 지운다」)
+**확인**: `npm run typecheck` 통과. 실서버 모드(백엔드 → AI → TorchServe)로 S-03 → S-04(17초)
+→ S-05 → S-06(관절 하나 끌어 저장, 원본 픽셀로 정확히 환산됨) → S-07(Level 1 확인 단계)
+→ S-08(MP4 까지 약 1분) → S-09(MP4 재생, 문장 4개) → S-10 → S-11. 목 모드(5174 포트,
+`.env` 무수정)로 S-14 → S-01 → S-02 → … → S-11, S-10 틀린 순서 → 칸 비움 확인.
+**남은 것**: 팀원 요청(score·confidence, 모션 매핑, 선택지 주인), 설계서 S-09·S-10 갱신,
+S-07 선택지가 한 번 늦게 바뀐 것(재현 안 됨). `backlog.md` P0, `open-decisions.md` 0절.
+
+### 실제 모델 붙이기 — 직접 빌드에서 팀원 `drawtale-ai` 로 갈아탐
+
+**왜**: `docs/animated-drawings-local.md` ④⑤ 단계.
+**한 것**: Meta 원본 TorchServe Dockerfile 이 bullseye 저장소 404 로 빌드되지 않아
+`archive.debian.org` 로 돌린 사본을 만들어 빌드(32.9GB)하고, 스텁의 분석 부분만 TorchServe
+를 부르는 어댑터를 만들었다. CPU 로 장당 2.5~3초, crop → 원본 좌표 변환이 그림 위에 정확히
+겹쳤다. 합성한 `head` 는 연장 1.0 이 너무 높았고, garlic 그림처럼 코가 어깨보다 낮게 잡히면
+머리가 몸통 안으로 들어갔다(그때 neck 점수 0.28).
+**되돌린 것**: 팀원 `drawtale-ai` 가 같은 문제를 풀어 두었고(snapshot 저장소, CPU 전용
+PyTorch 로 5.85GB, 작업자 1개) 백엔드가 그것을 부르므로 갈아탔다. 같은 Meta 가중치라
+좌표 차이는 이미지 크기의 1% 미만. 내 Dockerfile·어댑터·32.9GB 이미지는 지웠다.
+
 ### AnimatedDrawings 로컬 실행 준비 — WSL2 설치, Docker 설치 중
 
 **왜**: 프론트 테스트를 스텁이 아닌 실제 관절 추정 모델(facebookresearch/AnimatedDrawings)로
