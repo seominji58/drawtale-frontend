@@ -7,6 +7,8 @@
 
 ---
 
+> 팀 공유 문서(Claude Docs): https://claude.ai/code/artifact/ab310e00-4b6d-4c7a-87a5-11047d955e21
+
 ## 한 줄 요약
 
 프론트를 **백엔드 계약(drawtale-backend dev) 기준으로 화면까지** 맞췄고, 실제 모델(drawtale-ai)로
@@ -18,9 +20,9 @@ S-01~S-11 이 끝까지 돈다. **카카오·구글 소셜 로그인**을 프론
 | 저장소 | 브랜치 | 상태 | 합치기 |
 |---|---|---|---|
 | drawtale-frontend | `feat/backend-contract` | push 됨 | main 에 합치기 전. PR 없음 |
-| drawtale-backend | `feat/social-login` (dev 에서 분기) | push 됨. 테스트 20개 통과 | **백엔드 담당이 검토 후 dev 에**. PR 없음 |
+| drawtale-backend | `feat/social-login` (dev 에서 분기) | push 됨. **새 dev(GPT·TTS) merge 완료**, 테스트 20개 통과 | **백엔드 담당이 검토 후 dev 에**. PR 없음 |
 | drawtale-ai | `feat/gentle-motions` (dev 에서 분기) | push 됨. 순화 동작 2개 | **AI 담당 검토 후 dev 에. 백엔드 `feat/motion-mapping` 보다 먼저** |
-| drawtale-backend | `feat/motion-mapping` (dev 에서 분기) | push 됨. 테스트 20개 통과 | AI `feat/gentle-motions` 합친 **다음에** dev 에 |
+| drawtale-backend | `feat/motion-mapping` (dev 에서 분기) | push 됨. **새 dev(GPT·TTS) merge 완료**, 테스트 20개 통과 | AI `feat/gentle-motions` 합친 **다음에** dev 에 |
 
 로컬 `main`(프론트)에는 처음 코드를 가져온 커밋 3개가 push 되지 않은 채 있다.
 
@@ -103,8 +105,8 @@ S-01~S-11 이 끝까지 돈다. **카카오·구글 소셜 로그인**을 프론
 네 방식을 목업으로 비교했고(https://claude.ai/artifact/PZBhaLXfEK65sDkuXwhv6w, 비공개 — 공유받아야 열림)
 **카드 + 말로 덧붙이기 + 안내 나레이션**으로 정했다. 카드를 고른 뒤 원하면 마이크로 한마디 덧붙이고,
 그 말이 들어간 문장을 읽어 준다. 음성 인식은 브라우저 내장, **어른 설정에서 켜야 한다**(기본 꺼짐).
-**백엔드에 부탁**: 문장을 AI 로 다듬게 되면 카드와 아이 말을 둘 다 받는 필드(`*_said`)와 아이 말 검열.
-자세한 것은 `docs/open-decisions.md` 0-5.
+백엔드 dev 에 GPT 문장 생성·검열·TTS 가 들어와서 아이 말도 「~어요」로 다듬어지고 검열된다. 검열에 걸리면
+E-01 「이 이야기는 만들 수 없어요」 → 다시 고르기. 자세한 것은 `docs/open-decisions.md` 0-5.
 
 ### 알려진 문제
 

@@ -75,11 +75,16 @@ E-01 문구는 여전히 프론트가 코드로 고른다 (`src/lib.ts` `ERROR_T
 | `NO_CHARACTER_DETECTED` | `NO_CHARACTER` |
 | `INVALID_IMAGE`, `FILE_TOO_LARGE` | `UNSUPPORTED_IMAGE` |
 | `AI_TIMEOUT`, 프론트 polling 제한 초과 | `ENGINE_TIMEOUT` |
+| `CONTENT_BLOCKED` (이야기 job — 입력이나 만든 문장이 moderation 에 걸림) | `CONTENT_BLOCKED` → E-01 「이 이야기는 만들 수 없어요 / 다른 카드를 골라 볼까요?」 → 덧붙인 말을 지우고 S-07 로 |
 | 그 밖 전부 (`AI_UNAVAILABLE`, `AI_ERROR`, `INTERNAL_ERROR` …) | `ENGINE_ERROR` |
 
 `MULTIPLE_CHARACTERS`·`LOW_CONFIDENCE`는 백엔드가 내지 않는다. 문구표에는 남겨 둔다.
 
-### 이야기 — `text` 한 덩어리 + MP4
+### 이야기 — `text` 한 덩어리 + 음성 + MP4
+
+백엔드 dev(2026-09-29 `51816e4`·`d67fb16`)부터 `OPENAI_API_KEY` 가 있으면 GPT 가 네 단계를 「~어요」 말투의
+쉬운 네 문장으로 쓰고, 입력과 결과를 moderation 에 거치며, TTS 로 `audio_url`(mp3)을 준다. 키가 없으면 예전
+틀 문장이고 음성은 없다.
 
 서버는 문장을 `text` 하나로, 애니메이션을 **서버가 렌더한 MP4** 하나로 준다 (계약 2-6).
 

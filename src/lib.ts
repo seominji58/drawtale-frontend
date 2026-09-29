@@ -45,4 +45,6 @@ export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: 
   UNSUPPORTED_IMAGE:   { title: "이 그림은 열 수 없어요", hint: "다른 그림을 골라 볼까요?", primary: "앨범에서 고르기" },
   ENGINE_TIMEOUT:      { title: "시간이 오래 걸리고 있어요", hint: "잠시 뒤에 다시 해 볼까요?", primary: "다시 하기" },
   ENGINE_ERROR:        { title: "잠깐 문제가 생겼어요", hint: "처음부터 다시 해 볼까요?", primary: "처음으로" },
+  // 설계서 E-01 표에 없다. 검열에 걸린 말을 아이 탓으로 들리지 않게 쓴다 (open-decisions 0-5)
+  CONTENT_BLOCKED:     { title: "이 이야기는 만들 수 없어요", hint: "다른 카드를 골라 볼까요?", primary: "다시 고르기" },
 };

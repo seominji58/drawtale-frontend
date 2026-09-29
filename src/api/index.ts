@@ -35,6 +35,8 @@ const ERROR_MAP: Record<string, ErrorCode> = {
   INVALID_IMAGE: "UNSUPPORTED_IMAGE",
   FILE_TOO_LARGE: "UNSUPPORTED_IMAGE",
   AI_TIMEOUT: "ENGINE_TIMEOUT",
+  // 이야기 생성 job 오류 (백엔드 dev 51816e4, OpenAI moderation)
+  CONTENT_BLOCKED: "CONTENT_BLOCKED",
 };
 const toErrorCode = (serverCode?: string): ErrorCode =>
   (serverCode && ERROR_MAP[serverCode]) || "ENGINE_ERROR";

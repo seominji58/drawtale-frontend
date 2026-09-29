@@ -36,4 +36,6 @@ export type JobStatus = "pending" | "running" | "succeeded" | "failed";
 /** E-01 이 문구를 고르는 코드. 백엔드 코드는 `src/api/index.ts` 가 이리로 옮긴다 */
 export type ErrorCode =
   | "NO_CHARACTER" | "MULTIPLE_CHARACTERS" | "LOW_CONFIDENCE"
-  | "UNSUPPORTED_IMAGE" | "ENGINE_TIMEOUT" | "ENGINE_ERROR";
+  | "UNSUPPORTED_IMAGE" | "ENGINE_TIMEOUT" | "ENGINE_ERROR"
+  /** 이야기 입력(카드·아이 말)이나 만든 문장이 검열에 걸렸다 (백엔드 moderation) */
+  | "CONTENT_BLOCKED";
