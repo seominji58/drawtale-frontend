@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한칸이야기 — 그림 검수</title>
+<style>
+  :root {
+    --milk: #E6EEFB; --cloud: #FFFFFF; --ink: #39405C; --ink-soft: #8990AE;
+    --edge: #DCE3F6; --edge-soft: #ECF0FB;
+    --grape: #7386F5; --butter: #FFEA99;
+    --c-place: #7FB2F0; --c-problem: #F4909F; --c-action: #74CDAE; --c-result: #F5C46B;
+    --icon: 128px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 32px 80px; background: var(--milk); color: var(--ink);
+    font: 15px/1.6 'Pretendard Variable', Pretendard, -apple-system, 'Noto Sans KR', sans-serif;
+  }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .lede { color: var(--ink-soft); margin: 0 0 24px; max-width: 70ch; }
+  h2 { font-size: 17px; margin: 40px 0 6px; display: flex; align-items: baseline; gap: 10px; }
+  h2 .dot { width: 11px; height: 11px; border-radius: 50%; }
+  h2 small { font-weight: 400; color: var(--ink-soft); font-size: 13px; }
+
+  /* 조작 막대 */
+  .bar {
+    position: sticky; top: 0; z-index: 10; margin: 0 -32px 8px; padding: 12px 32px;
+    background: rgba(230,238,251,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--edge); display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
+  }
+  .bar label { display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
+  .bar .seg { display: flex; border: 1px solid var(--edge); border-radius: 999px; overflow: hidden; background: #fff; }
+  .bar .seg button {
+    border: 0; background: none; padding: 6px 15px; cursor: pointer; font: inherit; font-size: 14px; color: var(--ink-soft);
+  }
+  .bar .seg button[aria-pressed="true"] { background: var(--grape); color: #fff; }
+  .count { margin-left: auto; color: var(--ink-soft); font-size: 13px; }
+
+  /* 실제 카드 모양 — src/styles/ui.css 의 .choice 를 옮겨 온 것 */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px; }
+  .card {
+    position: relative; display: flex; flex-direction: column; align-items: center;
+    justify-content: var(--align, flex-end);
+    gap: 16px; padding: 24px; border-radius: 36px; aspect-ratio: 3 / 4;
+    background: var(--cloud); border: 2px solid var(--edge-soft); overflow: hidden;
+    box-shadow: 0 7px 0 var(--edge), 0 6px 16px rgba(107,127,232,.11);
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 0 0 40% 0; background: var(--milk);
+    border-bottom-left-radius: 50% 20%; border-bottom-right-radius: 50% 20%;
+  }
+  .card img {
+    position: relative; z-index: 1; width: var(--icon); height: var(--icon);
+    object-fit: contain; transform: scale(1.1); margin-top: -10px;
+  }
+  .card span {
+    position: relative; z-index: 1; font-size: 23px; font-weight: 700;
+    font-family: Jua, inherit;
+  }
+  body.no-label .card span { display: none; }
+  .card.missing { background: repeating-linear-gradient(45deg, #fff, #fff 8px, #F4F7FE 8px, #F4F7FE 16px); }
+  .card.missing::before { opacity: .35; }
+  .card.missing .ph { position: relative; z-index: 1; color: var(--ink-soft); font-size: 13px; text-align: center; }
+  .path { font-size: 11px; color: var(--ink-soft); text-align: center; margin-top: 7px; font-family: ui-monospace, monospace; }
+
+  /* 104px 나란히 보기 — 최소 크기 판독성 */
+  .strip { display: flex; flex-wrap: wrap; gap: 14px; padding: 18px; background: #fff; border-radius: 20px; border: 1px solid var(--edge); }
+  .strip figure { margin: 0; text-align: center; width: 104px; }
+  .strip img { width: 104px; height: 104px; object-fit: contain; display: block; }
+  .strip figcaption { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
+  .strip .miss { width: 104px; height: 104px; border-radius: 14px; background: repeating-linear-gradient(45deg, #fff, #fff 6px, #F0F4FD 6px, #F0F4FD 12px); border: 1px dashed var(--edge); }
+
+  /* 배경 + 아이 그림 얹어보기 */
+  .bgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+  .scene {
+    position: relative; aspect-ratio: 3 / 2; border-radius: 20px; overflow: hidden;
+    background: #fff center/cover no-repeat; border: 1px solid var(--edge);
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .scene.missing { background: repeating-linear-gradient(45deg, #fff, #fff 8px, #F4F7FE 8px, #F4F7FE 16px); }
+  .scene .who {
+    width: 26%; margin-bottom: 4%; opacity: 0; transition: opacity .15s;
+  }
+  body.show-kid .scene .who { opacity: 1; }
+  .scene .cap { position: absolute; top: 8px; left: 10px; font-size: 11px; font-family: ui-monospace, monospace;
+    background: rgba(255,255,255,.85); padding: 2px 7px; border-radius: 999px; color: var(--ink-soft); }
+
+  .note { background: #fff; border-left: 4px solid var(--butter); padding: 14px 18px; border-radius: 0 14px 14px 0; margin: 28px 0; }
+  .note ul { margin: 8px 0 0; padding-left: 20px; }
+  .note li { margin: 3px 0; }
+</style>
+</head>
+<body>
+
+<h1>그림 검수</h1>
+<p class="lede">
+  아직 없는 그림은 빗금 자리로 남습니다. 한 장씩 보면 다 괜찮은데 모아 놓으면 따로 노는
+  경우가 흔하니, <strong>단계별로 묶어서 한 화면에 놓고</strong> 보세요.
+  파일 규칙은 <code>docs/id-conventions.md</code>, 화풍은 <code>docs/art-direction.md</code>입니다.
+</p>
+
+<div class="bar">
+  <div class="seg" id="lv">
+    <button data-lv="1">Level 1 · 160px</button>
+    <button data-lv="2" aria-pressed="true">Level 2 · 128px</button>
+    <button data-lv="3">Level 3 · 104px</button>
+  </div>
+  <label><input type="checkbox" id="kid"> 배경에 아이 그림 얹기</label>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="note">
+  <strong>볼 것</strong>
+  <ul>
+    <li>104px로 줄였을 때 옆 아이콘과 구분되는가 — 아래 띠에서 확인</li>
+    <li>라벨을 가려도(Level 1) 무엇인지 알 수 있는가</li>
+    <li>흰 사각형이 남아 있지 않은가 — 카드 위쪽 milk 색 영역에서 바로 보입니다</li>
+    <li>실루엣에 얼굴이 생기지 않았는가, 글자가 끼어들지 않았는가</li>
+    <li>문제 단계 6장이 무섭거나 슬프지 않은가</li>
+    <li>배경 위에 아이 그림을 얹었을 때 <strong>아이 그림이 앞에 서는가</strong></li>
+  </ul>
+</div>
+
+<div id="out"></div>
+
+<script>
+const KINDS = [
+  { key: "place",   name: "장소",  color: "var(--c-place)",
+    items: [["space","우주"],["forest","숲"],["sea","바다"],["school","학교"],["town","마을"],["cave","동굴"]] },
+  { key: "problem", name: "문제",  color: "var(--c-problem)",
+    items: [["lost","길을 잃었어요"],["rain","비가 내렸어요"],["hungry","배가 고팠어요"],["dark","어두워졌어요"],["fall","넘어졌어요"],["alone","혼자가 됐어요"]] },
+  { key: "action",  name: "행동",  color: "var(--c-action)",
+    items: [["ask","물어봤어요"],["run","달려갔어요"],["hide","숨었어요"],["help","도와줬어요"],["wait","기다렸어요"],["shout","크게 불렀어요"]] },
+  { key: "result",  name: "결과",  color: "var(--c-result)",
+    items: [["home","집에 갔어요"],["friend","친구를 만났어요"],["gift","선물을 받았어요"],["sun","해가 떴어요"],["sleep","잠이 들었어요"],["party","모두 기뻐했어요"]] },
+];
+const PLACES = [["space","우주"],["forest","숲"],["sea","바다"],["school","학교"],["town","마을"],["cave","동굴"]];
+const MOODS = ["맑음", "흐림", "빛이 돌아옴", "노을"];
+
+// 아이가 그린 그림 대역. 배경 위에서 주인공이 앞에 서는지만 보면 되므로 단순한 실루엣이면 충분하다
+const KID = "data:image/svg+xml;utf8," + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 100">
+     <g fill="none" stroke="#2b2b2b" stroke-width="3.5" stroke-linecap="round">
+       <circle cx="30" cy="16" r="12" fill="#ffd9c0"/>
+       <path d="M30 28v34M30 36l-16 12M30 36l16 12M30 62l-11 26M30 62l11 26"/>
+     </g>
+     <path d="M18 38h24v26H18z" fill="#e4614f"/>
+   </svg>`);
+
+/* 파일을 더블클릭해 열면 public/ 이 옆 폴더고,
+   dev 서버(localhost:5173/tools/icon-review.html)로 열면 public/ 이 루트다 */
+const BASE = location.protocol === "file:" ? "../public" : "";
+
+let found = 0, total = 0;
+
+function iconCard(kind, id, label) {
+  total++;
+  const src = `${BASE}/icons/${kind}/${id}.png`;
+  return `<div>
+    <div class="card" data-src="${src}">
+      <img src="${src}" alt="" onerror="this.closest('.card').classList.add('missing');this.remove();this.closest?.('.card')">
+      <span>${label}</span>
+    </div>
+    <div class="path">${kind}/${id}.png</div>
+  </div>`;
+}
+
+function strip(kind, items) {
+  return `<div class="strip">` + items.map(([id, label]) =>
+    `<figure><img src="${BASE}/icons/${kind}/${id}.png" alt=""
+        onerror="const d=document.createElement('div');d.className='miss';this.replaceWith(d)">
+     <figcaption>${label}</figcaption></figure>`).join("") + `</div>`;
+}
+
+let html = "";
+for (const k of KINDS) {
+  html += `<h2><span class="dot" style="background:${k.color}"></span>${k.name}
+    <small>public/icons/${k.key}/ · 6장</small></h2>`;
+  html += `<div class="grid">` + k.items.map(([id, l]) => iconCard(k.key, id, l)).join("") + `</div>`;
+  html += `<h2 style="font-size:14px;margin-top:18px"><small>104px로 줄여서 — 가장 작은 Level 3 기준</small></h2>`;
+  html += strip(k.key, k.items);
+}
+
+html += `<h2><span class="dot" style="background:var(--grape)"></span>장면 배경
+  <small>public/bg/ · 장소 6 × 분위기 4 = 24장</small></h2>`;
+for (const [pid, pname] of PLACES) {
+  html += `<h2 style="font-size:14px"><small>${pname} — ${pid}</small></h2><div class="bgrid">`;
+  for (let s = 0; s < 4; s++) {
+    const src = `${BASE}/bg/bg-${pid}-${s}.png`;
+    html += `<div class="scene" data-bg="${src}">
+      <span class="cap">${s} ${MOODS[s]}</span>
+      <img class="who" src="${KID}" alt="">
+    </div>`;
+  }
+  html += `</div>`;
+}
+
+document.getElementById("out").innerHTML = html;
+
+// 배경은 CSS background 라 onerror 가 안 걸린다. 따로 확인한다
+document.querySelectorAll(".scene").forEach(el => {
+  const src = el.dataset.bg;
+  const probe = new Image();
+  probe.onload = () => { el.style.backgroundImage = `url(${src})`; found++; tick(); };
+  probe.onerror = () => { el.classList.add("missing"); tick(); };
+  probe.src = src;
+});
+document.querySelectorAll(".card img").forEach(img => {
+  if (img.complete && img.naturalWidth) found++;
+  else img.addEventListener("load", () => { found++; tick(); });
+});
+
+function tick() {
+  document.getElementById("count").textContent = `${found} / ${total + 24}장 들어옴`;
+}
+setTimeout(tick, 300);
+
+// 레벨 전환 — 아이콘 크기와 라벨 노출이 함께 바뀐다 (설계서 2.1)
+const LV = { 1: ["160px", true, "center"], 2: ["128px", false, "flex-end"], 3: ["104px", false, "flex-end"] };
+document.getElementById("lv").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#lv button").forEach(x => x.removeAttribute("aria-pressed"));
+  b.setAttribute("aria-pressed", "true");
+  const [size, hide, align] = LV[b.dataset.lv];
+  document.documentElement.style.setProperty("--icon", size);
+  document.documentElement.style.setProperty("--align", align);
+  document.body.classList.toggle("no-label", hide);
+});
+document.getElementById("kid").addEventListener("change", e => {
+  document.body.classList.toggle("show-kid", e.target.checked);
+});
+</script>
+</body>
+</html>

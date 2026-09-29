@@ -1,0 +1,253 @@
+/* ───────── 틀 ───────── */
+.screen { display: flex; flex-direction: column; height: 100%; padding: var(--pad); gap: var(--gap); }
+
+.rail { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; min-height: var(--tap); }
+.rail-side { flex: 0 0 var(--tap); }
+.rail-side.end { display: flex; justify-content: flex-end; }
+.rail-mid { flex: 1; display: flex; justify-content: center; align-items: center; }
+.rail-title { font-size: var(--t-title); }
+
+.round {
+  width: var(--tap); height: var(--tap); border-radius: 50%;
+  background: var(--cloud); box-shadow: var(--soft-sm);
+  font-size: var(--t-label); color: var(--ink-soft);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.round:active { transform: translateY(3px) scale(.95); box-shadow: none; }
+
+.dots { display: flex; gap: 10px; }
+.dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--edge); }
+.dots i.on { background: var(--grape); transform: scale(1.25); }
+
+.main { flex: 1; display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
+.acts { flex: 0 0 auto; display: flex; gap: var(--gap); align-items: stretch; }
+.acts > * { flex: 1; }
+
+/* ───────── 무대 ─────────
+   구름처럼 부드럽게 떠 있는 흰 덩어리. 아이 그림이 여기 산다. */
+.stage {
+  flex: 1; min-height: 0; border-radius: var(--r-stage);
+  background: var(--cloud); box-shadow: var(--soft), inset 0 6px 12px rgba(255, 255, 255, 1);
+  border: 4px solid var(--cloud);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+}
+.stage.empty { box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.02); background: var(--edge-soft); border-color: var(--edge-soft); }
+
+.slot {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; width: 100%; height: 100%; padding: 20px; text-align: center;
+}
+.slot .mark {
+  width: 76px; height: 76px; border-radius: 50%;
+  background: var(--grape-lt); margin-bottom: 2px;
+}
+.slot b { font-size: var(--t-button); color: var(--ink-soft); }
+.slot span { font-size: var(--t-label); color: var(--ink-soft); opacity: .7; }
+
+/* ───────── 글 ───────── */
+.question { font-size: var(--t-question); text-align: center; line-height: 1.32; }
+.said {
+  font-size: calc(var(--t-question) - 9px); text-align: center; line-height: 1.5;
+  padding: 12px 26px; border-radius: 999px; align-self: center;
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.said.now { background: var(--butter); transform: scale(1.03); }
+.hint { font-size: var(--t-body); color: var(--ink-soft); text-align: center; line-height: 1.65; }
+
+/* ───────── 버튼 ─────────
+   알약 모양. 아래 턱이 있어서 누르면 폭 내려앉는다. */
+.btn {
+  width: 100%; min-height: var(--tap); padding: 12px 20px;
+  border-radius: var(--r-btn); background: var(--cloud); color: var(--ink);
+  font-size: var(--t-button); font-weight: 700;
+  box-shadow: 0 var(--lip) 0 var(--edge), var(--soft-sm), inset 0 3px 6px rgba(255, 255, 255, 0.9);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+              opacity var(--dur) var(--ease);
+}
+.btn:active { transform: translateY(var(--lip)); box-shadow: 0 0 0 var(--edge), inset 0 3px 6px rgba(255, 255, 255, 0.9); }
+.btn.go {
+  background: linear-gradient(180deg, #8C9FF2 0%, var(--grape) 100%);
+  color: #fff;
+  box-shadow: 0 var(--lip) 0 var(--grape-dk), 0 12px 24px rgba(107, 127, 232, .32), inset 0 4px 8px rgba(255, 255, 255, .3);
+}
+.btn.go:active { box-shadow: 0 0 0 var(--grape-dk), inset 0 4px 8px rgba(255, 255, 255, .3); }
+.btn.off { opacity: .4; }
+.btn.off:active { transform: none; box-shadow: 0 var(--lip) 0 var(--edge), var(--soft-sm), inset 0 3px 6px rgba(255, 255, 255, 0.9); }
+.btn.link {
+  min-height: 0; width: auto; padding: 6px 4px; background: none; box-shadow: none;
+  font-family: var(--font-text); font-weight: 700;
+  font-size: var(--t-body); color: var(--grape);
+}
+.btn.link:active { transform: none; box-shadow: none; opacity: .6; }
+
+.aside-links {
+  display: flex; justify-content: center; align-items: center;
+  gap: 8px; flex-wrap: wrap;
+  font-size: var(--t-body); color: var(--ink-soft);
+}
+.aside-links .sep { color: var(--edge); }
+
+/* ───────── 선택지 ───────── */
+/* 행은 남은 높이를 나눠 갖고(minmax), 열은 카드 폭에 맞춘다(auto).
+   행이 1fr 이 아니면 .choice 의 aspect-ratio 가 폭 기준으로 높이를 정해 2행일 때
+   화면 밖으로 넘치고, 열이 1fr 이면 카드보다 셀이 넓어 카드 사이가 벌어진다.
+   카드 폭은 높이에서 나오므로(aspect-ratio) 열이 카드를 따라가야 맞는다. */
+.choices { flex: 1; min-height: 0; display: grid; gap: var(--gap); align-content: center; justify-content: center; grid-template-columns: repeat(2, auto); grid-auto-rows: minmax(0, 1fr); }
+.choices[data-count="6"] { grid-template-columns: repeat(3, auto); }
+@media (max-width: 1023px) { .choices, .choices[data-count] { grid-template-columns: repeat(2, auto); } }
+@media (max-width: 767px) { .choices, .choices[data-count] { grid-template-columns: auto; } }
+
+.choice {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: var(--choice-align);
+  gap: 16px; padding: 24px; border-radius: 36px;
+  /* 높이를 기준으로 폭을 잡는다. 폭 기준이면 2행에서 카드가 화면을 넘긴다 */
+  aspect-ratio: 3 / 4; height: 100%; width: auto; max-width: 100%;
+  background: var(--cloud); box-shadow: 0 var(--lip) 0 var(--edge), var(--soft-sm), inset 0 3px 6px rgba(255, 255, 255, 1);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
+  border: 2px solid var(--edge-soft); overflow: hidden;
+}
+.choice::before {
+  content: ""; position: absolute; inset: 0 0 40% 0;
+  background: var(--milk); border-bottom-left-radius: 50% 20%; border-bottom-right-radius: 50% 20%;
+  z-index: 0; transition: background var(--dur) var(--ease);
+}
+.choice img { position: relative; z-index: 1; width: var(--icon); height: var(--icon); object-fit: contain; transform: scale(1.1); margin-top: -10px; }
+.choice span { position: relative; z-index: 1; font-size: var(--t-button); color: var(--ink); font-weight: 700; display: var(--show-label); }
+.choice:active { transform: translateY(var(--lip)); box-shadow: 0 0 0 var(--edge), inset 0 3px 6px rgba(255, 255, 255, 1); }
+.choice.on {
+  background: linear-gradient(180deg, #FFF4D1 0%, var(--butter) 100%);
+  animation: pop 280ms var(--ease) forwards; border-color: #F3D788;
+  box-shadow: 0 var(--lip) 0 #E5BE5E, 0 12px 24px rgba(229, 190, 94, .25), inset 0 4px 8px rgba(255, 255, 255, .7);
+}
+.choice.on::before { background: rgba(255, 255, 255, 0.4); }
+
+/* 단계 표시. 칸마다 다른 색 */
+.steps { display: flex; justify-content: center; gap: 8px; flex: 0 0 auto; flex-wrap: wrap; }
+.step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 999px;
+  font-size: var(--t-label); color: var(--ink-soft); font-weight: 700; background: var(--cloud);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 1); border: 2px solid var(--edge-soft);
+  transition: transform var(--dur) var(--ease), border var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.step i { width: 12px; height: 12px; border-radius: 50%; background: var(--edge); }
+.step.on { color: var(--ink); transform: scale(1.06); box-shadow: var(--soft-sm), inset 0 2px 4px rgba(255, 255, 255, 1); border-color: currentColor; }
+.step.on i { background: currentColor; }
+.step.done i { opacity: .4; }
+
+/* ───────── 상자 ───────── */
+.box {
+  border-radius: var(--r-box); background: var(--cloud); box-shadow: var(--soft-sm);
+  padding: 16px 22px; font-size: var(--t-body); line-height: 1.6;
+}
+.box.warn { background: #FFF6E3; color: #8A6521; box-shadow: none; }
+.box.err { background: #FDEDEF; color: #A93E51; box-shadow: none; }
+.box.inline { display: flex; align-items: center; gap: 12px; }
+.box.inline > span { flex: 1; }
+
+.row { display: flex; gap: var(--gap); }
+.row > * { flex: 1; }
+.scroll { flex: 1; min-height: 0; overflow: auto; }
+.spacer { flex: 1; min-height: 0; }
+
+/* ───────── 대기 ───────── */
+.wait { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }
+.wait .mark {
+  width: 200px; height: 200px; border-radius: 50%;
+  background: var(--cloud); box-shadow: var(--soft);
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px;
+  animation: float 2.4s ease-in-out infinite;
+}
+.wait .mark .illust { max-width: 100%; max-height: 100%; }
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-12px) scale(1.03); }
+}
+.wait .msg { font-size: var(--t-question); }
+.diag {
+  font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--ink-soft);
+  background: var(--cloud); padding: 8px 16px; border-radius: 999px;
+}
+
+/* ───────── 어른 화면 ───────── */
+[data-audience="adult"] .question,
+[data-audience="adult"] .hint { text-align: left; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: var(--t-label); color: var(--ink-soft); }
+.field input {
+  min-height: var(--tap); padding: 0 20px; font-size: var(--t-body);
+  border: 2px solid transparent; border-radius: 999px;
+  background: var(--cloud); color: var(--ink); box-shadow: var(--soft-sm);
+}
+.field input:focus { border-color: var(--grape); outline: none; }
+.field em { font-style: normal; font-size: var(--t-label); color: var(--berry); padding-left: 16px; }
+
+.check { display: flex; align-items: center; gap: 11px; font-size: var(--t-body); color: var(--ink-soft); }
+.check input { width: 22px; height: 22px; accent-color: var(--grape); flex: 0 0 auto; }
+
+.list { border-radius: var(--r-box); background: var(--cloud); box-shadow: var(--soft-sm); overflow: hidden; }
+.list .item {
+  display: flex; align-items: center; gap: 14px; padding: 14px 20px;
+  border-top: 1px solid var(--edge-soft); text-align: left; width: 100%;
+}
+.list .item:first-child { border-top: 0; }
+.list .item .grow { flex: 1; min-width: 0; }
+.list .item .name { display: block; font-size: var(--t-button); font-weight: 700; }
+.list .item .desc { display: block; font-size: var(--t-label); color: var(--ink-soft); margin-top: 2px; }
+
+.seg { display: flex; gap: 4px; background: var(--milk); padding: 4px; border-radius: 999px; flex: 0 0 auto; }
+.seg button { padding: 7px 16px; border-radius: 999px; font-weight: 700; color: var(--ink-soft); }
+.seg button.on { background: var(--grape); color: #fff; }
+
+.tog { width: 26px; height: 26px; accent-color: var(--grape); flex: 0 0 auto; }
+.thumb { width: 86px; height: 56px; flex: 0 0 auto; border-radius: 16px; background: var(--grape-lt); }
+
+/* ───────── 관절 보정 ───────── */
+.joint-stage { position: relative; width: 100%; height: 100%; }
+.joint-stage img { width: 100%; height: 100%; object-fit: contain; }
+.joint {
+  position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  border-radius: 50%; border: 4px solid #fff; background: var(--grape);
+  box-shadow: var(--soft-sm); touch-action: none; cursor: grab;
+}
+.joint.low { background: var(--berry); }
+
+/* ───────── 순서 맞추기 ───────── */
+.slot-row { flex: 0 0 auto; display: flex; gap: var(--gap); }
+.slot-row > * { flex: 1; min-height: 116px; }
+.slot-box {
+  border-radius: var(--r-box); background: var(--edge-soft);
+  font-family: var(--font-round); font-size: var(--t-button); color: var(--ink-soft);
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.slot-box.open { background: var(--grape-lt); color: var(--grape); transform: scale(1.03); }
+.slot-box.taken { background: var(--butter); color: var(--ink); box-shadow: var(--soft-sm); }
+.card-used { opacity: .3; }
+.card-picked { box-shadow: 0 0 0 4px var(--grape), var(--soft) !important; }
+
+/* ───────── 임시 삽화 ───────── */
+.illust { width: 100%; height: 100%; max-width: 340px; max-height: 340px; object-fit: contain; }
+.illust-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
+@keyframes wave { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(-22deg) } }
+.wave-arm { animation: wave 1.1s var(--ease) infinite; }
+
+/* 길게 누르기 진행 고리 */
+.round { position: relative; }
+.round.hold::after {
+  content: ""; position: absolute; inset: -7px; border-radius: 50%;
+  background: conic-gradient(var(--grape) var(--p, 0deg), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+  pointer-events: none;
+}
+.hold-hint {
+  position: absolute; top: calc(var(--tap) + 10px); right: 0;
+  background: var(--ink); color: #fff; font-size: 14px;
+  padding: 8px 14px; border-radius: 999px; white-space: nowrap; z-index: 20;
+}
+
+/* 캔버스가 무대 높이를 꽉 채우게 한다 */
+.stage > .fillbox { align-self: stretch; flex: 1; min-width: 0; }

@@ -1,0 +1,51 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+
+body {
+  font-family: var(--font-text);
+  font-size: var(--t-body);
+  color: var(--ink);
+  background-color: var(--milk);
+  background-image: radial-gradient(rgba(170, 185, 220, 0.25) 2px, transparent 2px);
+  background-size: 28px 28px;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 바탕에 떠 있는 몽글한 덩어리 둘. 화면에서 유일한 장식이다 */
+body::before, body::after {
+  content: ""; position: fixed; z-index: -1; border-radius: 50%;
+  filter: blur(60px); pointer-events: none;
+}
+body::before {
+  width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax;
+  background: radial-gradient(circle, rgba(124, 178, 240, .30), transparent 68%);
+}
+body::after {
+  width: 40vmax; height: 40vmax; right: -12vmax; bottom: -14vmax;
+  background: radial-gradient(circle, rgba(244, 160, 180, .26), transparent 68%);
+}
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+img { max-width: 100%; display: block; }
+:focus-visible { outline: 3px solid var(--grape); outline-offset: 4px; }
+
+h1, h2, .question, .said, .rail-title, .wait .msg, .btn, .choice span, .slot b {
+  font-family: var(--font-round);
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+
+@keyframes nudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+.nudge { animation: nudge 240ms var(--ease); }
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.08); }
+  100% { transform: scale(1.03); }
+}

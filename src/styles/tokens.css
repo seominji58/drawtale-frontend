@@ -1,0 +1,79 @@
+/* 구름과 젤리.
+   모서리는 크게 굴리고, 그림자는 회색이 아니라 자기 색을 머금은 것만 쓴다. */
+:root {
+  --milk:      #E6EEFB;   /* 바탕 (무대와 구분되도록 명도 낮춤) */
+  --cloud:     #FFFFFF;   /* 아이 그림이 사는 자리 */
+  --ink:       #39405C;
+  --ink-soft:  #8990AE;
+  --edge:      #DCE3F6;   /* 경계선 대비를 약간 높임 */
+  --edge-soft: #ECF0FB;
+
+  --grape:     #7386F5;   /* 주된 행동 (시안처럼 더 맑은 톤) */
+  --grape-dk:  #5364CE;
+  --grape-lt:  #EDF0FE;
+  --butter:    #FFEA99;   /* 고른 것, 더 따뜻한 버터색 */
+
+  --mint:      #5CC2A4;
+  --apricot:   #E9A24B;
+  --berry:     #E8697D;
+
+  /* 이야기 네 단계. 지금 어느 칸인지 색으로도 읽힌다 */
+  --c-place:   #7FB2F0;
+  --c-problem: #F4909F;
+  --c-action:  #74CDAE;
+  --c-result:  #F5C46B;
+
+  --dur: 220ms;
+  --ease: cubic-bezier(.34, 1.4, .5, 1);   /* 살짝 튕긴다 */
+
+  --tap: 88px;
+  --gap: 20px;
+  --pad: 24px;
+
+  --r-stage: 36px;
+  --r-btn: 999px;          /* 버튼은 알약 */
+  --r-box: 26px;
+  --lip: 7px;              /* 버튼 아래 두께. 누르면 줄어든다 */
+
+  --soft: 0 10px 26px rgba(107, 127, 232, .13);
+  --soft-sm: 0 6px 16px rgba(107, 127, 232, .11);
+
+  --t-question: 38px;
+  --t-title: 28px;
+  --t-button: 23px;
+  --t-body: 18px;
+  --t-label: 15px;
+
+  --icon: 128px;
+  --show-label: block;
+  /* 선택지 카드 안에서 내용이 놓이는 자리. 라벨이 있으면 아래로 붙이고,
+     라벨이 없는 Level 1 에서는 아이콘만 남으므로 가운데로 올린다 */
+  --choice-align: flex-end;
+
+  --font-round: 'Jua', 'Pretendard Variable', sans-serif;
+  --font-text: 'Pretendard Variable', 'Pretendard', -apple-system,
+    BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+
+:root[data-level="1"] { --icon: 160px; --show-label: none; --t-question: 42px; --choice-align: center; }
+:root[data-level="2"] { --icon: 128px; --show-label: block; --t-question: 38px; }
+:root[data-level="3"] { --icon: 104px; --show-label: block; --t-question: 33px; }
+
+/* 어른 화면은 밀도를 낮추고 덜 통통하게 */
+[data-audience="adult"] {
+  --tap: 58px;
+  --gap: 13px;
+  --pad: 20px;
+  --lip: 4px;
+  --r-box: 18px;
+  --t-question: 25px;
+  --t-title: 24px;
+  --t-button: 18px;
+  --t-body: 16px;
+}
+
+@media (max-width: 1023px) { :root { --pad: 18px; --gap: 15px; --r-stage: 30px; } }
+@media (max-width: 767px) {
+  :root { --pad: 14px; --gap: 12px; --t-question: 29px; --icon: 100px; --tap: 76px; --r-stage: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { :root { --dur: 1ms; --ease: linear; } }
