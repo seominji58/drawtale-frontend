@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import {
-  H, PARTS, W, detachedParts, drawGuide, drawItems, emptyDrawing, stampFor, toPngFile,
+  H, PARTS, W, detachedParts, drawGuide, drawItems, emptyDrawing, placeStamp, stampFor, toPngFile,
 } from "@/features/draw/drawing";
 import type { Drawing, Part, Pt } from "@/features/draw/drawing";
 
@@ -103,7 +103,7 @@ export default function S03Draw() {
       const id = stampFor(part, toLogical(e));
       // 같은 도장을 또 누르면 아무 일도 없다 (한 자리에 하나)
       if (drawing[part].some((it) => it.kind === "stamp" && it.id === id)) return;
-      add({ kind: "stamp", id });
+      add({ kind: "stamp", id, shape: placeStamp(id, drawing) });
       return;
     }
     live.current = [toLogical(e)];
