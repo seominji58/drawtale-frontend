@@ -18,6 +18,22 @@
 
 ---
 
+### 설계 문서 네 개에 발표용 한 장 그림 · React 유지 · S-07 아이콘 투명도 문제 발견 (2026-10-01)
+
+**왜**: 사용자 요청 — 시스템 아키텍처를 참고 이미지(번호 계층 · 로고 · 실제 화면)처럼, 「누구나 잘 보이게」 큰 틀만.
+기능정의서 · 플로우차트 · 화면설계서도 같은 형식으로, 기존 형식(본문 · Mermaid)은 유지. 발표 덱이 「너무 AI스럽다(박스 · 동그라미)」.
+**바꾼 것** (`drawtale-pt_docs`):
+- 한 장 그림 넷: `assets/architecture/system-architecture.png` (8개 영역, A2 학습 포함, 교체 모델은 「추후」), `assets/feature-spec/feature-spec.png`
+  (여정 + 8칸, 기능 41개 · 담당 · 상태), `assets/flowchart/flowchart.png` (여정 6단계 × 사람 · 화면 · 서버 · AI 레인), `assets/screen-spec/screen-map.png`
+  (화면 19개). HTML(`tools/poster/*.html`)을 Chrome 으로 찍는다 — PIL 로 그리던 아키텍처는 버렸다. 로고는 simple-icons
+- 아키텍처 클라이언트 칸에 **실제 앱 캡처**(목 모드 5174, S-01 · S-05). 그 김에 S-07 아이콘 문제를 발견했다 (`backlog.md` 0-6)
+- 발표 덱을 편집 디자인으로 다시: 흰 바탕 + 남색 면, 그림자 카드 · 동그라미 번호 · 알약 · 블록 화살표 · 방울 · 흐린 배경 · 노란 띠 삭제
+- 다른 용도의 S-06 빈 판(그림 없음 / 끌어 옮기는 점만)은 화면설계서에 넣지 않았다. `make_screens.py` 의 `s06(blank, only_moved, save_as)` 로만
+**결정**: 프론트는 **React 유지** (사용자가 Vue 로 알고 있었음). 근거는 `team-status.md` 「정해진 것」
+**남은 것**: AI 아키텍처(교체 모델 구조), Looma 공식 사이트, 기능 상태가 바뀌면 02 문서와 `feature-spec.html` 을 함께 고칠 것
+
+---
+
 ### 설계 문서 저장소 시작 · 화면설계서 v0.3 · 중간 발표 덱
 
 **왜**: 사용자 요청 — 시스템 아키텍처 · 기능정의서 · 플로우차트 · 화면설계서를 새 저장소(`seominji58/drawtale-pt_docs`)에

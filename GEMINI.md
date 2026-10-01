@@ -10,7 +10,12 @@
 3. **`docs/animated-drawings-local.md`** 「지금 상태」 — 로컬에서 백엔드·AI 까지 띄우는 법과 진행 표
 4. 서버와 주고받는 것을 건드리면 `docs/api-contract.md` (원본 계약은 백엔드 저장소 `docs/api-contract.md`)
 
-## 지금 상태 (2026-09-29)
+## 지금 상태 (2026-10-01)
+
+- **설계 문서는 `hankan-story/drawtale-pt_docs/`** (github.com/seominji58/drawtale-pt_docs, main). 01 시스템 아키텍처 · 02 기능정의서 ·
+  03 플로우차트 · 04 화면설계서 v0.3, 문서마다 맨 위에 발표용 한 장 그림(`tools/poster/`). 발표 덱은 `presentation/` — 15~18번은 팀원 각자
+- 프론트는 **React 유지** (Vue 아님, 2026-10-01 확인)
+- S-07 아이콘 24장은 투명 PNG 가 아니다 (체크무늬가 박힌 RGB) — `docs/backlog.md` 0-6
 
 - 작업 브랜치: **`feat/backend-contract`** (push 됨, main 에 합치기 전)
 - 프론트는 **백엔드 계약(drawtale-backend dev) 기준**이다. 변환은 `src/api/index.ts` 한 곳

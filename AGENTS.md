@@ -6,6 +6,7 @@
 > 맞췄고, 실제 모델(팀원 `drawtale-ai`)로 S-01~S-11이 돈다. 카카오·구글 소셜 로그인, S-03D 화면에 그리기,
 > S-07 말로 덧붙이기를 만들었다. 백엔드는 `dev` 하나에 합쳤고, 프론트는 `feat/backend-contract`, AI 는 `feat/gentle-motions`.
 > 영역별 진행 표는 팀 공유 문서 「진행 상황」(사본은 `docs/team-status.md`).
+> **설계 문서(01~04)와 발표 덱은 `drawtale-pt_docs` 저장소**에 있다 (2026-10-01, 문서마다 한 장 그림). 프론트는 React 유지.
 > **이어서 작업하기 전에 `docs/team-status.md`와 `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
 
 | 문서 | 무엇이 있나 | 언제 보나 |
