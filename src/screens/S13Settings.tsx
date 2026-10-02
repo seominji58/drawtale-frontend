@@ -59,7 +59,7 @@ export default function S13Settings() {
             onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>
-        <Row name="원본 그림 보관" desc="분석 후에도 원본 이미지를 보관합니다">
+        <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
           <input type="checkbox" checked={s.keepOriginal}
             onChange={(e) => s.set("keepOriginal", e.target.checked)}
             className="tog" />

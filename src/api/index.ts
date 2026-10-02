@@ -154,21 +154,32 @@ function toStory(s: ServerStory): Story {
   };
 }
 
-/** S-03 → S-04. 그림을 올리고 분석이 끝날 때까지 기다린다 (계약 2-1 → 2-2 → 2-3) */
+/** S-03 → S-04. 그림을 올리고 분석이 끝날 때까지 기다린다 (계약 2-1 → 2-2 → 2-3).
+ *  keepOriginal 은 S-13 「원본 그림 보관」. 끄면 서버가 원본을 늦어도 24시간 뒤 지운다 */
 export async function analyzeCharacter(
   file: File,
   onStatus: (s: JobStatus) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  keepOriginal = false
 ): Promise<Character> {
   if (useMock) return mockAnalyze(file, onStatus, signal);
 
   const form = new FormData();
   form.append("image", file);
+  form.append("keep_original", String(keepOriginal));
   const { character_id, job_id } = await call<{ character_id: string; job_id: string }>(
     "/characters", { method: "POST", body: form, signal });
   onStatus("pending");
   await waitJob(job_id, ANALYZE_LIMIT_MS, onStatus, signal);
   return toCharacter(await call<ServerCharacter>(`/characters/${character_id}`, { signal }));
+}
+
+/** 서버의 원본 그림을 지운다 (계약 2-10). 관절과 이야기는 남는다.
+ *  탭을 닫는 중에도 끝나도록 keepalive 로 보내고, 실패해도 서버가 보관 시간 뒤 지우므로 넘어간다 */
+export function releaseOriginal(characterId: string): void {
+  if (useMock) return;
+  fetch(`${BASE}/characters/${characterId}/original`, { method: "DELETE", keepalive: true })
+    .catch(() => {});
 }
 
 /** S-06 관절 보정 저장 (계약 2-4). 15개 전부를 원본 픽셀 좌표로 보낸다 */

@@ -34,7 +34,7 @@ export default function S04Analyzing() {
     analyzeCharacter(file, (s) => {
       setStep(STEP[s]);
       setDiag(`${s} · ${Math.round(performance.now() - started)}ms · ${ENGINE}`);
-    }, ctrl.signal)
+    }, ctrl.signal, useSettings.getState().keepOriginal)
       .then((c) => {
         setCharacter(c);
         nav("/confirm", { replace: true });

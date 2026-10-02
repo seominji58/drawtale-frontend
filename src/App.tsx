@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import OfflineBar from "@/components/OfflineBar";
 import { useAuth } from "@/store/auth";
 import { useSettings } from "@/store/settings";
+import { watchOriginals } from "@/features/character/originals";
 
 import S01Start from "@/screens/S01Start";
 import S02Guide from "@/screens/S02Guide";
@@ -29,6 +30,10 @@ export default function App() {
   const level = useSettings((s) => s.level);
 
   useEffect(() => { document.documentElement.dataset.level = String(level); }, [level]);
+
+  // 원본 그림 보관을 끈 경우 그림을 떠날 때 서버 원본을 지운다 (S-13, 계약 2-10).
+  // 아래 주석의 비회원 데이터와 달리, 캐릭터는 새로고침하면 어차피 다시 쓸 수 없어서 pagehide 에 지워도 된다
+  useEffect(() => watchOriginals(), []);
 
   /* 비회원 데이터를 지우는 pagehide 핸들러는 두지 않는다 (설계서 11.1).
      pagehide 는 탭을 닫을 때만이 아니라 페이지를 떠날 때마다 발생해서,
