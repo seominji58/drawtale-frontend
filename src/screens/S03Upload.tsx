@@ -4,9 +4,13 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Paper } from "@/components/illust";
 import { useSession } from "@/store/session";
-import { shrink } from "@/lib";
+import { shrink, speak } from "@/lib";
+import { useSettings } from "@/store/settings";
 import { ENGINE } from "@/api";
 import { makeSampleDrawing } from "@/api/mock/sample";
+
+/** E-01 UNSUPPORTED_IMAGE 와 같은 말. 오류 화면으로 보내지 않고 이 화면에서 알린다 */
+const REJECTED = "이 그림은 열 수 없어요. 다른 그림을 골라 볼까요?";
 
 export default function S03Upload() {
   const nav = useNavigate();
@@ -14,11 +18,20 @@ export default function S03Upload() {
   const camera = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  /** 10MB 초과이거나 이미지가 아니어서 받지 않은 파일 (S-03-09). 업로드 전에 막고 아이 말로 알린다 */
+  const [rejected, setRejected] = useState(false);
+  const muteAll = useSettings((s) => s.muteAll);
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
-    if (!f || f.size > 10 * 1024 * 1024 || !f.type.startsWith("image/")) return;
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024 || !f.type.startsWith("image/")) {
+      setRejected(true);
+      speak(REJECTED, muteAll);
+      return;
+    }
+    setRejected(false);
     setBusy(true);
     setFile(await shrink(f));           // 긴 변 1600px, JPEG 0.85 로 줄여서 보낸다
     setBusy(false);
@@ -47,7 +60,9 @@ export default function S03Upload() {
       </div>
       {!imageUrl && (
         <>
-          <p className="hint">종이에 그린 그림을 찍거나, 화면에 그려 주세요</p>
+          {rejected
+            ? <div className="box warn">{REJECTED}</div>
+            : <p className="hint">종이에 그린 그림을 찍거나, 화면에 그려 주세요</p>}
           {ENGINE === "mock" && (
             <div className="aside-links">
               <span>확인용</span>

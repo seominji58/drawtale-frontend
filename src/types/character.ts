@@ -28,6 +28,8 @@ export interface Character {
   /** 현재 관절. 어른이 보정했으면 보정값이다 */
   keypoints: Keypoints;
   corrected: boolean;
+  /** AI 가 처음 짚은 관절. S-06 「처음 자리로」가 쓴다. 서버가 주지 않으면 없다 */
+  aiKeypoints?: Keypoints;
 }
 
 /** 백엔드 Job 상태 (계약 1-3). S-04·S-08 대기 표시가 쓴다 */

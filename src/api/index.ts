@@ -52,6 +52,8 @@ interface ServerCharacter {
   image_height: number;
   joints: ServerJoint[] | null;
   joints_corrected: boolean;
+  /** AI 가 처음 짚은 관절 (보정해도 변하지 않음, 계약 2-3) */
+  analysis: { joints: ServerJoint[] } | null;
 }
 interface ServerStory {
   id: string;
@@ -82,7 +84,14 @@ function sleep(ms: number, signal?: AbortSignal) {
   });
 }
 
-/** 계약 2-2. succeeded 가 될 때까지 기다린다. failed 면 job 의 오류 코드로 던진다 */
+/** 잠깐 끊긴 것: 네트워크가 안 닿거나(fetch 의 TypeError) 서버 앞단이 잠시 응답하지 못한 것(502·503·504).
+ *  기다리는 동안 이런 일이 생겨도 작업은 서버에서 계속 돌고 있다 (설계서 7장 「연결 끊김」) */
+const isBriefOutage = (e: unknown) =>
+  e instanceof TypeError ||
+  (e instanceof ApiError && /^HTTP_50[234]$/.test(e.serverCode ?? ""));
+
+/** 계약 2-2. succeeded 가 될 때까지 기다린다. failed 면 job 의 오류 코드로 던진다.
+ *  연결이 잠깐 끊기면 오류로 끝내지 않고 대기 한도 안에서 다시 묻는다 */
 async function waitJob(
   jobId: string, limitMs: number,
   onStatus: (s: JobStatus) => void, signal?: AbortSignal
@@ -90,7 +99,15 @@ async function waitJob(
   const until = Date.now() + limitMs;
   for (;;) {
     if (signal?.aborted) throw aborted();
-    const job = await call<ServerJob>(`/jobs/${jobId}`, { signal });
+    let job: ServerJob;
+    try {
+      job = await call<ServerJob>(`/jobs/${jobId}`, { signal });
+    } catch (e) {
+      if (!isBriefOutage(e) || signal?.aborted) throw e;
+      if (Date.now() > until) throw new ApiError("ENGINE_TIMEOUT");
+      await sleep(POLL_MS, signal);
+      continue;
+    }
     onStatus(job.status);
     if (job.status === "succeeded") return;
     if (job.status === "failed") {
@@ -104,13 +121,15 @@ async function waitJob(
 /** 원본 픽셀 좌표 → 0~1 (계약 1-2) */
 function toCharacter(c: ServerCharacter): Character {
   if (!c.joints) throw new ApiError("ENGINE_ERROR", "NO_JOINTS");
-  const keypoints = {} as Keypoints;
-  for (const j of c.joints) {
-    keypoints[j.name] = { x: j.x / c.image_width, y: j.y / c.image_height };
-  }
+  const norm = (joints: ServerJoint[]) => {
+    const k = {} as Keypoints;
+    for (const j of joints) k[j.name] = { x: j.x / c.image_width, y: j.y / c.image_height };
+    return k;
+  };
   return {
     id: c.id, width: c.image_width, height: c.image_height,
-    keypoints, corrected: c.joints_corrected,
+    keypoints: norm(c.joints), corrected: c.joints_corrected,
+    aiKeypoints: c.analysis?.joints?.length === JOINT_ORDER.length ? norm(c.analysis.joints) : undefined,
   };
 }
 

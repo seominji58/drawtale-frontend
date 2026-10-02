@@ -29,6 +29,7 @@ export async function mockAnalyze(
     height: size.height,
     keypoints: { ...REST_KEYPOINTS },
     corrected: false,
+    aiKeypoints: { ...REST_KEYPOINTS },
   };
 }
 

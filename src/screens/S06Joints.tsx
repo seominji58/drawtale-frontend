@@ -6,7 +6,7 @@ import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { useSession } from "@/store/session";
 import { saveJoints } from "@/api";
 import { JOINT_ORDER } from "@/types/character";
-import type { JointName } from "@/types/character";
+import type { JointName, Keypoints } from "@/types/character";
 
 /** S-06-03 관절 목록. hand·foot 은 모델 이름이고 실제로는 손목·발목이다 (open-decisions 3번).
  *  neck 은 Meta 모델에서 얼굴 가운데라서 「얼굴」로 적는다 */
@@ -56,6 +56,18 @@ export default function S06Joints() {
     const y = Math.min(1, Math.max(0, (e.clientY - r.top - box.t) / box.h));
     setKeypoints({ ...keypoints, [name]: { x, y } });
     if (!moved.has(name)) setMoved(new Set(moved).add(name));
+  };
+
+  // S-06-07 처음 자리로: AI 가 처음 짚은 관절로 되돌린다. 확인을 한 번 받는다 (설계서 v0.2 S-06-02).
+  // 저장된 관절과 달라지는 것은 「옮김」으로 두어, 「다 했어요」가 서버에 AI 값을 다시 저장한다
+  const ai = character.aiKeypoints;
+  const same = (a: Keypoints, b: Keypoints, n: JointName) =>
+    Math.abs(a[n].x - b[n].x) < 1e-6 && Math.abs(a[n].y - b[n].y) < 1e-6;
+  const atAi = !ai || JOINT_ORDER.every((n) => same(keypoints, ai, n));
+  const resetToAi = () => {
+    if (!ai || !confirm("관절을 AI가 처음 짚은 자리로 되돌릴까요?")) return;
+    setKeypoints({ ...ai });
+    setMoved(new Set(JOINT_ORDER.filter((n) => !same(ai, character.keypoints, n))));
   };
 
   // 계약 2-4: 끈 관절이 없으면 저장하지 않는다. 끈 것이 있으면 15개 전부를 보낸다
@@ -111,6 +123,12 @@ export default function S06Joints() {
       {failed
         ? <div className="box err">저장하지 못했습니다. 「다 했어요」를 다시 눌러 주세요</div>
         : <div className="box">점을 끌어서 그림의 관절 자리에 맞춰 주세요</div>}
+      {!atAi && !preview && (
+        <div className="aside-links">
+          <span>잘못 옮겼나요?</span>
+          <button className="btn link" onClick={resetToAi}>처음 자리로 되돌리기</button>
+        </div>
+      )}
     </Screen>
   );
 }
