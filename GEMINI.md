@@ -15,7 +15,8 @@
 - **설계 문서는 `hankan-story/drawtale-pt_docs/`** (github.com/seominji58/drawtale-pt_docs, main). 01 시스템 아키텍처 · 02 기능정의서 ·
   03 플로우차트 · 04 화면설계서 v0.3, 문서마다 맨 위에 발표용 한 장 그림(`tools/poster/`). 발표 덱은 `presentation/` — 15~18번은 팀원 각자
 - 프론트는 **React 유지** (Vue 아님, 2026-10-01 확인)
-- S-07 아이콘 24장은 투명 PNG 가 아니다 (체크무늬가 박힌 RGB) — `docs/backlog.md` 0-6
+- S-07 아이콘 24장은 10/2 에 체크무늬를 지워 투명 PNG(512px)로 바꿨다. 행동 · 결과 12장이 같은 그림인 것은 그대로 — `docs/backlog.md` 0-6
+- 10/2: S-03 받지 않은 파일 안내(S-03-09), S-06 처음 자리로 되돌리기(S-06-07, 서버 `analysis.joints`), 기다리는 중 연결 끊김 · 502~504 면 다시 묻기
 
 - 작업 브랜치: **`feat/backend-contract`** (push 됨, main 에 합치기 전)
 - 프론트는 **백엔드 계약(drawtale-backend dev) 기준**이다. 변환은 `src/api/index.ts` 한 곳
