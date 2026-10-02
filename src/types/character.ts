@@ -30,7 +30,24 @@ export interface Character {
   corrected: boolean;
   /** AI 가 처음 짚은 관절. S-06 「처음 자리로」가 쓴다. 서버가 주지 않으면 없다 */
   aiKeypoints?: Keypoints;
+  /** AI 가 관절마다 얼마나 확신하는지 (0~1, 계약 2-3). 서버가 주지 않으면 없다 */
+  aiScores?: Partial<Record<JointName, number>>;
+  /** 캐릭터 검출 점수 (0~1). 없으면 모른다 */
+  confidence?: number;
 }
+
+/** 이 점수보다 낮은 관절은 S-06 에서 따로 표시한다 (계약 2-3) */
+export const LOW_JOINT_SCORE = 0.4;
+/** 검출 점수가 이보다 낮으면 어른 확인을 권한다 */
+export const LOW_DETECTION = 0.6;
+
+/** AI 가 자신 없어 한 관절 */
+export const lowJoints = (c: Character): JointName[] =>
+  JOINT_ORDER.filter((n) => (c.aiScores?.[n] ?? 1) < LOW_JOINT_SCORE);
+
+/** S-05-05 「어른에게 도움 받기」를 보일지. 점수를 모르면(목 엔진, 예전 서버) 늘 보인다 */
+export const needsAdult = (c: Character): boolean =>
+  c.aiScores === undefined || (c.confidence ?? 1) < LOW_DETECTION || lowJoints(c).length > 0;
 
 /** 백엔드 Job 상태 (계약 1-3). S-04·S-08 대기 표시가 쓴다 */
 export type JobStatus = "pending" | "running" | "succeeded" | "failed";

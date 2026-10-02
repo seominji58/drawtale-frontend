@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { useSession } from "@/store/session";
 import { saveJoints } from "@/api";
-import { JOINT_ORDER } from "@/types/character";
+import { JOINT_ORDER, lowJoints } from "@/types/character";
 import type { JointName, Keypoints } from "@/types/character";
 
 /** S-06-03 관절 목록. hand·foot 은 모델 이름이고 실제로는 손목·발목이다 (open-decisions 3번).
@@ -70,6 +70,10 @@ export default function S06Joints() {
     setMoved(new Set(JOINT_ORDER.filter((n) => !same(ai, character.keypoints, n))));
   };
 
+  // AI 가 자신 없어 한 관절 (score < 0.4, 계약 2-3). 빨간 점으로 두고, 어른이 옮기면 확인한 것으로 센다
+  const low = new Set(lowJoints(character));
+  const unchecked = [...low].filter((n) => !moved.has(n)).length;
+
   // 계약 2-4: 끈 관절이 없으면 저장하지 않는다. 끈 것이 있으면 15개 전부를 보낸다
   const done = async () => {
     if (moved.size === 0) { nav("/confirm"); return; }
@@ -102,7 +106,7 @@ export default function S06Joints() {
                    onPointerMove={move} onPointerUp={() => (drag.current = null)}>
                 <img src={imageUrl} alt="" />
                 {JOINT_ORDER.map((name) => (
-                  <span key={name} className="joint"
+                  <span key={name} className={`joint ${low.has(name) ? "low" : ""}`}
                     style={{ left: box.l + keypoints[name].x * box.w, top: box.t + keypoints[name].y * box.h }}
                     onPointerDown={(e) => {
                       drag.current = name;
@@ -115,14 +119,18 @@ export default function S06Joints() {
           {JOINT_ORDER.map((name) => (
             <div key={name} className="item">
               <span className="grow">{NAMES[name]}</span>
-              {moved.has(name) && <span style={{ color: "var(--ink-soft)" }}>옮김</span>}
+              {moved.has(name)
+                ? <span style={{ color: "var(--ink-soft)" }}>옮김</span>
+                : low.has(name) && <span style={{ color: "var(--berry)", fontWeight: 700 }}>확인해 주세요</span>}
             </div>
           ))}
         </div>
       </div>
       {failed
         ? <div className="box err">저장하지 못했습니다. 「다 했어요」를 다시 눌러 주세요</div>
-        : <div className="box">점을 끌어서 그림의 관절 자리에 맞춰 주세요</div>}
+        : unchecked > 0
+          ? <div className="box warn">AI가 자신 없는 관절이 {unchecked}개 있어요. 빨간 점부터 맞춰 주세요</div>
+          : <div className="box">점을 끌어서 그림의 관절 자리에 맞춰 주세요</div>}
       {!atAi && !preview && (
         <div className="aside-links">
           <span>잘못 옮겼나요?</span>

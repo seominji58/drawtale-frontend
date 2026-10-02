@@ -7,10 +7,11 @@ import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { MOTIONS } from "@/features/character/skeleton";
 import type { MotionId } from "@/types/story";
+import { needsAdult } from "@/types/character";
 
 export default function S05Confirm() {
   const nav = useNavigate();
-  const { imageUrl, keypoints } = useSession();
+  const { imageUrl, keypoints, character } = useSession();
   const level = useSettings((s) => s.level);
   const [i, setI] = useState(3);
 
@@ -29,11 +30,14 @@ export default function S05Confirm() {
       <div className="stage" onClick={() => setI((v) => v + 1)}>
         <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={motion} />
       </div>
-      {/* S-05-05. 백엔드가 관절 신뢰도를 주지 않아(계약 1-1) 조건 없이 늘 둔다 */}
-      <div className="aside-links">
-        <span>잘 움직이지 않나요?</span>
-        <button className="btn link" onClick={() => nav("/joints")}>어른에게 도움 받기</button>
-      </div>
+      {/* S-05-05. AI 가 자신 없어 한 관절이 있거나 검출 점수가 낮을 때만 둔다 (계약 2-3).
+          점수를 모르면(목 엔진, 예전 서버) 늘 둔다 */}
+      {character && needsAdult(character) && (
+        <div className="aside-links">
+          <span>잘 움직이지 않나요?</span>
+          <button className="btn link" onClick={() => nav("/joints")}>어른에게 도움 받기</button>
+        </div>
+      )}
     </Screen>
   );
 }

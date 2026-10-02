@@ -35,6 +35,9 @@ const ERROR_MAP: Record<string, ErrorCode> = {
   INVALID_IMAGE: "UNSUPPORTED_IMAGE",
   FILE_TOO_LARGE: "UNSUPPORTED_IMAGE",
   AI_TIMEOUT: "ENGINE_TIMEOUT",
+  // 여러 명 · 사람이 아닌 그림 (백엔드 dev 971a0a3, AI feat/joint-confidence)
+  MULTIPLE_CHARACTERS: "MULTIPLE_CHARACTERS",
+  LOW_CONFIDENCE: "LOW_CONFIDENCE",
   // 이야기 생성 job 오류 (백엔드 dev 51816e4, OpenAI moderation)
   CONTENT_BLOCKED: "CONTENT_BLOCKED",
 };
@@ -43,7 +46,8 @@ const toErrorCode = (serverCode?: string): ErrorCode =>
 
 // ─── 서버 응답 모양 (계약 2절) ───
 
-interface ServerJoint { name: JointName; x: number; y: number }
+/** score 는 analysis.joints 에만 있다 (계약 2-3) */
+interface ServerJoint { name: JointName; x: number; y: number; score?: number | null }
 interface ServerError { code: string; message: string }
 interface ServerJob { id: string; status: JobStatus; error: ServerError | null }
 interface ServerCharacter {
@@ -53,7 +57,7 @@ interface ServerCharacter {
   joints: ServerJoint[] | null;
   joints_corrected: boolean;
   /** AI 가 처음 짚은 관절 (보정해도 변하지 않음, 계약 2-3) */
-  analysis: { joints: ServerJoint[] } | null;
+  analysis: { joints: ServerJoint[]; confidence?: number | null } | null;
 }
 interface ServerStory {
   id: string;
@@ -126,10 +130,15 @@ function toCharacter(c: ServerCharacter): Character {
     for (const j of joints) k[j.name] = { x: j.x / c.image_width, y: j.y / c.image_height };
     return k;
   };
+  const ai = c.analysis?.joints?.length === JOINT_ORDER.length ? c.analysis.joints : undefined;
+  // 점수는 15개가 다 있을 때만 믿는다. 하나라도 없으면 예전 서버로 보고 모른다고 둔다
+  const scored = ai?.every((j) => typeof j.score === "number");
   return {
     id: c.id, width: c.image_width, height: c.image_height,
     keypoints: norm(c.joints), corrected: c.joints_corrected,
-    aiKeypoints: c.analysis?.joints?.length === JOINT_ORDER.length ? norm(c.analysis.joints) : undefined,
+    aiKeypoints: ai && norm(ai),
+    aiScores: scored ? Object.fromEntries(ai!.map((j) => [j.name, j.score as number])) : undefined,
+    confidence: c.analysis?.confidence ?? undefined,
   };
 }
 

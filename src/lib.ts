@@ -41,7 +41,8 @@ export async function shrink(file: File, max = 1600, quality = 0.85): Promise<Fi
 export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: string }> = {
   NO_CHARACTER:        { title: "그림에서 친구를 못 찾았어요", hint: "사람을 한 명만 크게 그려 볼까요?", primary: "다시 찍기" },
   MULTIPLE_CHARACTERS: { title: "친구가 여러 명이에요", hint: "한 명만 나오게 찍어 볼까요?", primary: "다시 찍기" },
-  LOW_CONFIDENCE:      { title: "그림이 조금 흐릿해요", hint: "더 밝은 곳에서 찍어 볼까요?", primary: "다시 찍기" },
+  // AI 는 흐린 사진보다 낙서·도형처럼 사람 모양이 아닌 그림에서 이 code 를 낸다 (너무 흐리면 NO_CHARACTER)
+  LOW_CONFIDENCE:      { title: "그림이 잘 안 보여요", hint: "사람을 크게 그려서 밝은 곳에서 찍어 볼까요?", primary: "다시 찍기" },
   UNSUPPORTED_IMAGE:   { title: "이 그림은 열 수 없어요", hint: "다른 그림을 골라 볼까요?", primary: "앨범에서 고르기" },
   ENGINE_TIMEOUT:      { title: "시간이 오래 걸리고 있어요", hint: "잠시 뒤에 다시 해 볼까요?", primary: "다시 하기" },
   ENGINE_ERROR:        { title: "잠깐 문제가 생겼어요", hint: "처음부터 다시 해 볼까요?", primary: "처음으로" },
