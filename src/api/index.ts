@@ -182,6 +182,23 @@ export function releaseOriginal(characterId: string): void {
     .catch(() => {});
 }
 
+/** S-10 순서 맞추기 한 번의 기록 (계약 2-11). 화면을 떠나는 중에도 끝나도록 keepalive 로 보낸다.
+ *  기록이 빠져도 아이 흐름에는 영향이 없으므로 실패는 넘어간다 */
+export function recordActivity(
+  storyId: string,
+  a: { attempts: number; completed: boolean; cardCount: number; level: number }
+): void {
+  if (useMock) return;
+  fetch(`${BASE}/stories/${storyId}/activity`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      attempts: a.attempts, completed: a.completed, card_count: a.cardCount, level: a.level,
+    }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 /** S-06 관절 보정 저장 (계약 2-4). 15개 전부를 원본 픽셀 좌표로 보낸다 */
 export async function saveJoints(character: Character, keypoints: Keypoints): Promise<Character> {
   if (useMock) return { ...character, keypoints, corrected: true };
