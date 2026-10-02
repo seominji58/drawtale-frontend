@@ -30,6 +30,10 @@ export async function mockAnalyze(
     keypoints: { ...REST_KEYPOINTS },
     corrected: false,
     aiKeypoints: { ...REST_KEYPOINTS },
+    // 실서버처럼 점수를 준다. 왼팔 두 관절을 자신 없게 두어 S-05-05 링크와 S-06 빨간 점이 보이게 한다
+    aiScores: Object.fromEntries(Object.keys(REST_KEYPOINTS).map((n) =>
+      [n, n === "left_elbow" || n === "left_hand" ? 0.3 : 0.9])),
+    confidence: 0.95,
   };
 }
 
