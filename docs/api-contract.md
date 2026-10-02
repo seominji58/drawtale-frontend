@@ -33,7 +33,6 @@
 | S-07 선택지 목록 | `src/features/story/choices.ts` | 계약 2-5 ⚠ 「선택지를 서버가 내려줄지」 미정 |
 | 이야기 목록 (S-01·S-12) | `store/library.ts` (sessionStorage / localStorage) | 목록 엔드포인트 없음 |
 | 어른 설정 (S-13) | `store/settings.ts` | 설정 엔드포인트 없음 |
-| S-10 시도 기록 | 보내지 않는다 | activity 엔드포인트 없음 |
 | 로그인·회원가입 (S-15·S-16) | `src/api/auth.ts`가 `/api/v1/auth/*`를 부르지만 **백엔드에 없다**. 아래 4절이 프론트 제안 | 계약 4절 9번 「로그인/세션 없음 (비회원)」 |
 
 ---
@@ -56,14 +55,14 @@
 Meta 모델의 `neck`은 목이 아니라 **얼굴 가운데(코)** 다. S-06 목록에는 「얼굴」로 적는다.
 `hand`·`foot`은 손목·발목이다 (3번).
 
-### 관절 신뢰도 — 없다
+### 관절 신뢰도 — `analysis.joints[].score` · `analysis.confidence` (2026-10-02)
 
-서버는 `confidence`도 관절별 `score`도 주지 않는다. 그래서
+백엔드 계약 2-3. AI `feat/joint-confidence` 가 내고 백엔드 dev 가 저장해 준다. `toCharacter` 가
+`Character.aiScores`(15개가 다 있을 때만) · `confidence` 로 옮긴다. 판단은 `types/character.ts` 의 `needsAdult` · `lowJoints`.
 
-- S-05의 「어른에게 도움 받기」는 조건 없이 늘 보이는 보조 링크다
-- S-06은 신뢰도 숫자와 빨간 점 없이, **어른이 옮긴 관절**만 「옮김」으로 표시한다
-
-모델은 점수를 낸다. AI 서버가 버리고 있을 뿐이다 (`open-decisions.md` 0-2).
+- S-05-05 「어른에게 도움 받기」: 검출 `confidence < 0.6` 이거나 `score < 0.4` 인 관절이 있을 때만. **점수를 모르면(목 엔진, 예전 서버) 늘** 보인다
+- S-06: `score < 0.4` 인 관절은 빨간 점 + 목록에 「확인해 주세요」. 아직 안 옮긴 개수를 「AI가 자신 없는 관절이 N개 있어요」로 알린다
+- 검출 점수는 낙서에도 0.97 이 나와서 거의 쓸모가 없다. 실제로 걸리는 것은 관절 점수다 (AI README 「점수와 걸러내기」)
 
 ### 오류 코드 → E-01
 
@@ -73,12 +72,26 @@ E-01 문구는 여전히 프론트가 코드로 고른다 (`src/lib.ts` `ERROR_T
 | 백엔드 코드 | E-01 코드 |
 |---|---|
 | `NO_CHARACTER_DETECTED` | `NO_CHARACTER` |
+| `MULTIPLE_CHARACTERS` (따로 떨어진 사람 둘 이상) | `MULTIPLE_CHARACTERS` → 「친구가 여러 명이에요」 |
+| `LOW_CONFIDENCE` (낙서 · 도형처럼 사람 모양이 아님) | `LOW_CONFIDENCE` → 「그림이 잘 안 보여요 / 사람을 크게 그려서 밝은 곳에서 찍어 볼까요?」 |
 | `INVALID_IMAGE`, `FILE_TOO_LARGE` | `UNSUPPORTED_IMAGE` |
 | `AI_TIMEOUT`, 프론트 polling 제한 초과 | `ENGINE_TIMEOUT` |
 | `CONTENT_BLOCKED` (이야기 job — 입력이나 만든 문장이 moderation 에 걸림) | `CONTENT_BLOCKED` → E-01 「이 이야기는 만들 수 없어요 / 다른 카드를 골라 볼까요?」 → 덧붙인 말을 지우고 S-07 로 |
 | 그 밖 전부 (`AI_UNAVAILABLE`, `AI_ERROR`, `INTERNAL_ERROR` …) | `ENGINE_ERROR` |
 
-`MULTIPLE_CHARACTERS`·`LOW_CONFIDENCE`는 백엔드가 내지 않는다. 문구표에는 남겨 둔다.
+너무 흐린 사진은 검출이 아예 안 돼서 `NO_CHARACTER` 로 온다. 그래서 `LOW_CONFIDENCE` 문구를 「흐릿해요」에서 바꿨다.
+
+### 원본 그림 — `keep_original` · `DELETE …/original` (계약 2-1 · 2-10)
+
+업로드에 S-13 「원본 그림 보관」을 `keep_original` 로 보낸다. 꺼져 있으면 `features/character/originals.ts` 가
+**그림을 떠날 때** `DELETE /api/v1/characters/{id}/original` 을 keepalive 로 보낸다 — 다른 캐릭터로 바뀜, S-01 `resetAll`(처음으로),
+`pagehide`(탭 닫기 · 새로고침). 분석 직후에 지우지 않는 것은 렌더와 S-11 「새 이야기 만들기」가 원본을 다시 쓰기 때문이다.
+요청이 빠져도 서버가 24시간 뒤 지운다. 화면은 서버 `image_url` 이 아니라 들고 있는 파일(`session.imageUrl`)을 쓰므로 지워도 그대로다.
+
+### S-10 순서 맞추기 기록 — `POST /stories/{id}/activity` (계약 2-11)
+
+「다 했어요」 횟수를 세어, 맞히면 `completed: true`, 맞히기 전에 나가면 `false` 로 한 번 보낸다. 한 번도 안 눌렀으면 안 보낸다.
+카드 수와 지원 수준도 함께. keepalive, 실패는 넘어간다 (`api/index.ts` `recordActivity`).
 
 ### 이야기 — `text` 한 덩어리 + 음성 + MP4
 

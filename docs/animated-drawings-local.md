@@ -15,11 +15,12 @@
 | 팀원 백엔드(`drawtale-backend` dev) 띄우기 | **끝** — 이제 git clone `drawtale-backend-git/`(dev)에서 띄운다. 로컬 Postgres, `AI_USE_MOCK=false`, 8000 |
 | **프론트를 백엔드 계약에 맞춤** | **끝** — `docs/api-contract.md`. 화면까지 백엔드 흐름으로 (S-09 MP4, S-10 문장 카드) |
 | 실제 모델로 S-01~S-11 전 구간 | **끝** — 브라우저로 확인. 목 모드도 끝까지 돈다 |
-| 커밋 · push | **끝** — 프론트 `feat/backend-contract`(+ 로컬 `main` 처음 커밋 3개), 백엔드 **`dev` 에 합침**(팀 합의로 dev 하나에서 작업), AI `feat/gentle-motions` push. 프론트 main 합치기와 PR 은 아직 |
+| 커밋 · push | **끝** — 프론트 `feat/backend-contract`(+ 로컬 `main` 처음 커밋 3개), 백엔드 **`dev` 에 합침**(팀 합의로 dev 하나에서 작업), AI `feat/gentle-motions` · 그 위의 `feat/joint-confidence` push. 프론트 main 합치기와 PR 은 아직 |
 | 팔이 뭉개지는 문제 | **고침** — S-02 권장 카드, AI 순화 동작, 백엔드 동작 매핑. 백엔드 매핑은 dev 에 있고, AI 가 순화 동작을 모르면 원래 동작으로 다시 렌더한다 |
 | S-03D 화면에 그리기 | **1단계 끝** — 부위별 안내, 손 그리기·도장, 연결 확인. 실서버로 인식 확인. 실제 터치 기기 확인은 남음 |
 | 소셜 로그인 (카카오·구글. 네이버는 보류로 뺌) | **프론트 끝** — 목 모드로 확인. **백엔드는 dev 에 합침** (migration 양방향 확인). 개발자 콘솔 등록은 남음 (`api-contract.md` 4절) |
 | 이야기 음성 | **백엔드 끝** — OpenAI TTS(팀원) + ElevenLabs 선택(`TTS_PROVIDER`). 실제 키로는 아직 안 돌려 봄 |
+| 관절 신뢰도 · 여러 명 · 원본 지우기 · S-10 기록 (2026-10-02) | **끝** — AI `feat/joint-confidence`(점수 · 걸러내기), 백엔드 dev(계약 2-3 · 2-10 · 2-11, migration 3개), 프론트. 실제 모델로 브라우저 확인 |
 | 영역별 진행 표 | **끝** — 공유 문서 「진행 상황」, 사본은 `docs/team-status.md` · 백엔드/AI `docs/진행상황.md` |
 
 **팀원용 한 장 요약은 `docs/team-status.md`**, Antigravity 는 `GEMINI.md` 부터 읽는다.
@@ -38,7 +39,7 @@ Desktop/hankan-story/
 ├─ drawtale-backend/      ← 팀원 백엔드 main 브랜치 zip (뼈대뿐)
 ├─ drawtale-backend-dev/  ← 팀원 백엔드 dev 브랜치 옛 zip (더 쓰지 않는다)
 ├─ drawtale-backend-git/  ← 팀원 백엔드 저장소 clone (git). dev — 이것을 띄운다
-├─ drawtale-ai-git/       ← 팀원 AI 저장소 clone (git). feat/gentle-motions
+├─ drawtale-ai-git/       ← 팀원 AI 저장소 clone (git). feat/joint-confidence (feat/gentle-motions 위)
 └─ AnimatedDrawings/      ← Meta 원본 저장소 (수정하지 않는다)
 ```
 
@@ -53,8 +54,8 @@ GitHub에서 zip으로 받아 풀었다. **git 저장소가 아니므로 pull �
 ### 1. AI 서버 (`drawtale-ai`)
 
 ```bash
-cd ../drawtale-ai
-docker compose up -d          # 첫 빌드 20~30분 (mmcv 컴파일)
+cd ../drawtale-ai-git
+docker compose -p drawtale-ai up -d --build   # -p 로 예전 이미지를 다시 쓴다. 첫 빌드는 20~30분 (mmcv 컴파일)
 docker compose ps             # torchserve 가 healthy 가 되면 ai 가 뜬다
 curl http://127.0.0.1:8001/internal/v1/health   # model_loaded: true
 ```
