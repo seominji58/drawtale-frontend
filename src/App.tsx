@@ -11,6 +11,7 @@ import S03Upload from "@/screens/S03Upload";
 import S03Draw from "@/screens/S03Draw";
 import S04Analyzing from "@/screens/S04Analyzing";
 import S05Confirm from "@/screens/S05Confirm";
+import S05Name from "@/screens/S05Name";
 import S06Joints from "@/screens/S06Joints";
 import S07Steps from "@/screens/S07Steps";
 import S08Generating from "@/screens/S08Generating";
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/draw" element={<S03Draw />} />
             <Route path="/analyzing" element={<S04Analyzing />} />
             <Route path="/confirm" element={<S05Confirm />} />
+            <Route path="/name" element={<S05Name />} />
             <Route path="/joints" element={<S06Joints />} />
             <Route path="/steps" element={<S07Steps />} />
             <Route path="/generating" element={<S08Generating />} />

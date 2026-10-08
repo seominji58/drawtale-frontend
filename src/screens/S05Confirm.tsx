@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import CharacterCanvas from "@/features/character/CharacterCanvas";
+import CharacterPreview from "@/features/character/CharacterPreview";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { MOTIONS } from "@/features/character/skeleton";
@@ -13,6 +13,8 @@ export default function S05Confirm() {
   const nav = useNavigate();
   const { imageUrl, keypoints, character } = useSession();
   const level = useSettings((s) => s.level);
+  // 캐릭터 목소리 판이면 나레이터가 부를 이름을 먼저 짓는다 (S05Name)
+  const next = useSettings((s) => s.voiceMode) === "characters" ? "/name" : "/steps";
   const [i, setI] = useState(3);
 
   if (!imageUrl || !keypoints) { nav("/upload", { replace: true }); return null; }
@@ -23,12 +25,12 @@ export default function S05Confirm() {
       acts={
         <>
           <BigButton onClick={() => nav("/upload")}>다시 찍기</BigButton>
-          <BigButton go onClick={() => nav("/steps")}>이 친구로 할래요</BigButton>
+          <BigButton go onClick={() => nav(next)}>이 친구로 할래요</BigButton>
         </>
       }>
       <h2 className="question">내 친구가 움직여요</h2>
       <div className="stage" onClick={() => setI((v) => v + 1)}>
-        <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={motion} />
+        <CharacterPreview motion={motion} />
       </div>
       {/* S-05-05. AI 가 자신 없어 한 관절이 있거나 검출 점수가 낮을 때만 둔다 (계약 2-3).
           점수를 모르면(목 엔진, 예전 서버) 늘 둔다 */}

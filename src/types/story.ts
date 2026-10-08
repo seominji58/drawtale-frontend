@@ -35,6 +35,11 @@ export interface Story {
 export type Segment = 1 | 2 | 3 | 4 | null;
 
 export type SupportLevel = 1 | 2 | 3;
+/** S-13 「읽어주기」. 나레이터 하나로 읽을지, 대사를 등장인물 목소리로 읽을지 (서버 `voice_mode`) */
+export type VoiceMode = "narration" | "characters";
+/** S-13 「주인공 목소리」. 캐릭터 목소리 판에서 주인공 「나」의 대사 목소리 (서버 `protagonist_voice`).
+ *  주인공은 아이가 그린 그림이라 어른이 고른다 */
+export type ProtagonistVoice = "girl" | "boy";
 export interface Settings {
   level: SupportLevel;
   muteAll: boolean;
@@ -42,4 +47,7 @@ export interface Settings {
   diagnostics: boolean;
   /** S-07 말로 덧붙이기(STT). 아이 목소리가 브라우저 인식 서버로 가므로 어른이 켠다. 기본 꺼짐 */
   voiceInput: boolean;
+  /** 새로 만드는 이야기부터 적용된다. 기본 나레이션 */
+  voiceMode: VoiceMode;
+  protagonistVoice: ProtagonistVoice;
 }

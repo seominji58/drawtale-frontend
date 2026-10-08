@@ -11,9 +11,14 @@ const ACCOUNT_KEY = "storyblanks.account";
  *  정수 하나만 localStorage 에 센다. 이야기 내용과 그림은 남기지 않으므로
  *  비회원 데이터 규칙(11.1)과 어긋나지 않는다. */
 export const TRIAL_LIMIT = 2;
-export const trialUsed = () => Number(localStorage.getItem(TRIAL_KEY) ?? 0);
+/** 배포 전까지 한도를 풀어 둔다 (사용자, 2026-10-08). 개발 서버(`npm run dev`)에서는 세지 않고
+ *  늘 처음처럼 2편이 남아 있다. 배포 빌드(`npm run build`)에서만 센다 */
+const TRIAL_ENFORCED = !import.meta.env.DEV;
+export const trialUsed = () => (TRIAL_ENFORCED ? Number(localStorage.getItem(TRIAL_KEY) ?? 0) : 0);
 export const trialLeft = () => Math.max(0, TRIAL_LIMIT - trialUsed());
-export const consumeTrial = () => localStorage.setItem(TRIAL_KEY, String(trialUsed() + 1));
+export const consumeTrial = () => {
+  if (TRIAL_ENFORCED) localStorage.setItem(TRIAL_KEY, String(trialUsed() + 1));
+};
 
 /** 비회원은 토큰을 sessionStorage 에만 둔다. 탭을 닫으면 함께 사라진다.
  *  회원은 localStorage 에 두어 다음 실행에도 유지된다. (설계서 11.1) */

@@ -17,10 +17,12 @@ const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, 
 
 export default function S08Generating() {
   const nav = useNavigate();
-  const { character, picks, said, setStory, setError } = useSession();
+  const { character, name, picks, said, setStory, setError } = useSession();
   const add = useLibrary((s) => s.add);
   const mode = useAuth((a) => a.mode);
   const diagnostics = useSettings((s) => s.diagnostics);
+  const voiceMode = useSettings((s) => s.voiceMode);
+  const protagonist = useSettings((s) => s.protagonistVoice);
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
   const [showStop, setShowStop] = useState(false);
@@ -36,7 +38,7 @@ export default function S08Generating() {
     generateStory(character.id, picks as Record<StepKind, string>, said, (s) => {
       setStep(STEP[s]);
       setDiag(`${s} · ${Math.round((performance.now() - started) / 1000)}s · ${ENGINE}`);
-    }, ctrl.signal)
+    }, ctrl.signal, { mode: voiceMode, protagonist, name })
       .then((s) => {
         setStory(s); add(s);
         if (mode === "guest") consumeTrial();
@@ -47,7 +49,7 @@ export default function S08Generating() {
         setError(e instanceof ApiError ? e.code : "ENGINE_ERROR"); nav("/error");
       });
     return () => { clearTimeout(t); ctrl.abort(); };
-  }, [character, picks, said, setStory, add, setError, nav, mode]);
+  }, [character, picks, said, setStory, add, setError, nav, mode, voiceMode, protagonist, name]);
 
   const stop = () => { abort.current?.abort(); nav("/steps"); };
 

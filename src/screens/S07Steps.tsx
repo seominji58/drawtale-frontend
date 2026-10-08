@@ -28,6 +28,7 @@ export default function S07Steps() {
   const muteAll = useSettings((s) => s.muteAll);
   // 어른 설정에서 켜야만 말로 덧붙이기를 한다 (아이 목소리가 브라우저 인식 서버로 간다, S-13)
   const voiceOn = useSettings((s) => s.voiceInput) && voiceSupported();
+  const named = useSettings((s) => s.voiceMode) === "characters";
   const cfg = LEVEL_CONFIG[level];
 
   const initialAt = STEP_ORDER.findIndex((k) => !picks[k]);
@@ -146,7 +147,7 @@ export default function S07Steps() {
   }
 
   return (
-    <Screen back={viewAt === 0 ? "/confirm" : () => setViewAt((v) => v - 1)}
+    <Screen back={viewAt === 0 ? (named ? "/name" : "/confirm") : () => setViewAt((v) => v - 1)}
       speech={STEP_QUESTION[kind]} segment={3}>
       {kind === "result" && (
         <p className="hint" style={{ marginBottom: "-10px", marginTop: "10px" }}>

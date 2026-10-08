@@ -34,6 +34,10 @@ export interface Character {
   aiScores?: Partial<Record<JointName, number>>;
   /** 캐릭터 검출 점수 (0~1). 없으면 모른다 */
   confidence?: number;
+  /** S-05 미리보기 MP4 (서버가 Meta 로 렌더, 계약 2-3). 없으면 브라우저 애니메이션으로 대신한다 */
+  previewUrl?: string | null;
+  /** rendering 이면 서버가 만드는 중이라 다시 묻는다 */
+  previewStatus?: "rendering" | "ready" | "failed" | null;
 }
 
 /** 이 점수보다 낮은 관절은 S-06 에서 따로 표시한다 (계약 2-3) */

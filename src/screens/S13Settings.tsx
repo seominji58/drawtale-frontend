@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
-import type { SupportLevel } from "@/types/story";
+import type { ProtagonistVoice, SupportLevel, VoiceMode } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
 
 function Row({ name, desc, children }: { name: string; desc: string; children: ReactNode }) {
@@ -44,6 +44,29 @@ export default function S13Settings() {
             ))}
           </span>
         </Row>
+
+        {/* 긴 동화책 대비 두 가지 읽어주기 (open-decisions 0-6). 새로 만드는 이야기부터 바뀐다 */}
+        <Row name="읽어주기"
+          desc={s.voiceMode === "characters"
+            ? "이야기에 짧은 대사가 들어가고, 대사는 등장인물 목소리로 읽어 줍니다. 새로 만드는 이야기부터 적용됩니다"
+            : "한 사람(나레이터)이 이야기 전체를 읽어 줍니다. 새로 만드는 이야기부터 적용됩니다"}>
+          <span className="seg">
+            {([["narration", "나레이션만"], ["characters", "캐릭터 목소리"]] as [VoiceMode, string][]).map(([v, label]) => (
+              <button key={v} className={s.voiceMode === v ? "on" : ""}
+                onClick={() => s.set("voiceMode", v)}>{label}</button>
+            ))}
+          </span>
+        </Row>
+        {s.voiceMode === "characters" && (
+          <Row name="주인공 목소리" desc="아이가 그린 주인공의 대사를 읽을 목소리입니다. 다른 인물은 엄마 · 할머니 · 동물처럼 종류에 맞춰 정해집니다">
+            <span className="seg">
+              {([["girl", "여자아이"], ["boy", "남자아이"]] as [ProtagonistVoice, string][]).map(([v, label]) => (
+                <button key={v} className={s.protagonistVoice === v ? "on" : ""}
+                  onClick={() => s.set("protagonistVoice", v)}>{label}</button>
+              ))}
+            </span>
+          </Row>
+        )}
 
         <Row name="소리 전체 끄기" desc="모든 음성과 효과음을 끕니다. 교실에서 쓸 때 켜세요">
           <input type="checkbox" checked={s.muteAll}

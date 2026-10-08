@@ -12,9 +12,11 @@ export function speak(text: string, mute: boolean, onEnd?: () => void) {
 }
 
 /** 백엔드는 이야기를 `text` 한 덩어리로 준다 (계약 2-6).
- *  S-09 가 한 문장씩 읽어 주고 S-10 이 순서를 맞추도록 문장 단위로 나눈다 */
+ *  S-09 가 한 문장씩 읽어 주고 S-10 이 순서를 맞추도록 문장 단위로 나눈다.
+ *  캐릭터 목소리 판은 대사를 “ ” 안에 넣는다 — 따옴표 안의 마침표에서는 끊지 않는다
+ *  (나는 친구에게 “미안해.” 하고 말했어요. → 한 문장) */
 export function sentences(text: string): string[] {
-  return text.match(/[^.!?。]+[.!?。]*/g)?.map((t) => t.trim()).filter(Boolean) ?? [];
+  return text.match(/(?:“[^”]*”?|[^.!?。“])+[.!?。]*/g)?.map((t) => t.trim()).filter(Boolean) ?? [];
 }
 
 export function stopSpeak() {
