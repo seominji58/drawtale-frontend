@@ -6,6 +6,9 @@
 > 맞췄고, 실제 모델(팀원 `drawtale-ai`)로 S-01~S-11이 돈다. 카카오·구글 소셜 로그인, S-03D 화면에 그리기,
 > S-07 말로 덧붙이기를 만들었다. 백엔드는 `dev` 하나에 합쳤고, 프론트는 `feat/backend-contract`, AI 는 `feat/joint-confidence`(`feat/gentle-motions` 위).
 > 2026-10-02: 관절 신뢰도(S-05-05 · S-06), 여러 명 · 사람 아닌 그림 오류, 원본 그림 지우기, S-10 기록까지 세 저장소에 들어갔다.
+> 2026-10-08: 이야기 음성을 ElevenLabs(나레이터 Anna Kim, `eleven_v4`)로. S-13 「읽어주기」 나레이션만 / 캐릭터 목소리 —
+> 캐릭터 목소리면 S-05 다음 `/name` 에서 친구 이름을 짓고, 나레이션이 그 이름으로 3인칭, 인물은 종류별 목소리 · 대사 감정.
+> S-05 캐릭터는 서버 Meta 렌더 미리보기 영상(`CharacterPreview`). 비회원 체험 한도는 배포 빌드에서만 센다.
 > 영역별 진행 표는 팀 공유 문서 「진행 상황」(사본은 `docs/team-status.md`).
 > **설계 문서(01~04)와 발표 덱은 `drawtale-pt_docs` 저장소**에 있다 (2026-10-01, 문서마다 한 장 그림). 프론트는 React 유지.
 > **이어서 작업하기 전에 `docs/team-status.md`와 `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
@@ -147,6 +150,7 @@ AI 없이도 돈다. 실제 모델까지 띄우는 법은 `docs/animated-drawing
 | S-03D 화면에 그리기 | `/draw` | `screens/S03Draw.tsx` | 아동 (설계서에 없음, open-decisions 0-4) |
 | S-04 캐릭터 만드는 중 | `/analyzing` | `screens/S04Analyzing.tsx` | 아동 |
 | S-05 캐릭터 확인 | `/confirm` | `screens/S05Confirm.tsx` | 아동 |
+| (S-05) 친구 이름 짓기 | `/name` | `screens/S05Name.tsx` | 아동 (캐릭터 목소리 판에서만, 설계서에 없음, open-decisions 0-3) |
 | S-06 관절 맞추기 | `/joints` | `screens/S06Joints.tsx` | **어른** |
 | S-07 이야기 만들기 | `/steps` | `screens/S07Steps.tsx` | 아동 |
 | S-08 이야기 만드는 중 | `/generating` | `screens/S08Generating.tsx` | 아동 |

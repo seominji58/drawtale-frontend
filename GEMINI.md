@@ -10,7 +10,7 @@
 3. **`docs/animated-drawings-local.md`** 「지금 상태」 — 로컬에서 백엔드·AI 까지 띄우는 법과 진행 표
 4. 서버와 주고받는 것을 건드리면 `docs/api-contract.md` (원본 계약은 백엔드 저장소 `docs/api-contract.md`)
 
-## 지금 상태 (2026-10-02)
+## 지금 상태 (2026-10-08)
 
 - **설계 문서는 `hankan-story/drawtale-pt_docs/`** (github.com/seominji58/drawtale-pt_docs, main). 01 시스템 아키텍처 · 02 기능정의서 ·
   03 플로우차트 · 04 화면설계서 v0.3, 문서마다 맨 위에 발표용 한 장 그림(`tools/poster/`). 발표 덱은 `presentation/` — 15~18번은 팀원 각자
@@ -26,10 +26,19 @@
 - 실제 모델로 S-01~S-11 이 돈다. S-09 는 서버 렌더 MP4 를 튼다
 - 백엔드는 팀 합의로 **`dev` 하나에서 작업**한다 (`hankan-story/drawtale-backend-git/`, 로컬 백엔드도 여기서 띄운다)
 - 소셜 로그인: 카카오·구글. 백엔드 쪽도 dev 에 있다. 네이버는 보류로 뺐다
-- 개발자 콘솔 키가 없어 실서버 모드(5173)에서는 소셜 버튼이 숨겨진다. 로그인 화면은 목 모드(5174)로 본다
+- 소셜 로그인 client id 는 프론트 `.env` 에 있다 (팀원이 전달, 2026-10-08, `VITE_ENGINE=agent`). 백엔드 `.env` 의
+  `KAKAO_CLIENT_ID/SECRET` · `GOOGLE_CLIENT_ID/SECRET` 이 비어 있으면 버튼은 보여도 로그인이 끝나지 않는다 (시크릿은 팀원에게 받는다)
 - MP4 에서 팔이 뭉개지는 문제: S-02 권장 카드(프론트), 순화 동작(AI `feat/gentle-motions`,
   `hankan-story/drawtale-ai-git/`, 검토 대기), 동작 매핑(백엔드 dev). AI 를 합치기 전에는 백엔드가 원래 동작으로 렌더한다
 - S-07 카드 + 말로 덧붙이기(STT, 어른 설정에서 켬) + 안내 나레이션. 이야기 음성은 백엔드 `TTS_PROVIDER` (openai / elevenlabs)
+- 10/8: ElevenLabs 목소리 가안 **Anna Kim**(한국어), 모델 `eleven_v4` (청취로 고름). S-09 는 `audioUrl` 이 있으면 그 MP3 를 튼다.
+  S-13 「읽어주기」: 나레이션만 / 캐릭터 목소리 → 서버 `voice_mode`. 대사는 `“ ”` 안, `sentences()` 는 따옴표 안에서 끊지 않는다
+  캐릭터 목소리면 S-13 「주인공 목소리」(여자아이/남자아이)도 보낸다. 다른 인물 목소리는 백엔드 `voices.py` 가 종류로 고른다
+  캐릭터 목소리면 S-05 다음 `/name`(S05Name)에서 친구 이름을 짓고, 나레이션이 그 이름으로 3인칭으로 들려준다
+  S-05 · 이름 짓기의 캐릭터는 서버 Meta 렌더 미리보기(`preview_url`)를 튼다 — `CharacterPreview.tsx`. 없으면 브라우저 `CharacterCanvas`
+  비회원 체험 한도는 개발 서버에서 세지 않는다 (배포 빌드만, `store/auth.ts`)
+  긴 동화책(15쪽 이내) 대비 음성 구조 가안은 `docs/open-decisions.md` 0-6
+  노트북에서 렌더가 300초를 넘으면 AI `.env` 에 `RENDER_MAX_FRAMES=150` (AI README)
 - **S-03D 화면에 그리기** (`/draw`, 설계서에 없음): 부위별 안내 + 손 그리기·도장. `features/draw/drawing.ts`.
   요소표 초안은 `docs/open-decisions.md` 0-4
 
