@@ -29,7 +29,30 @@ export interface Story {
   audioUrl: string | null;
   /** 서버가 렌더한 MP4. 목 AI 에서는 원본 그림 URL 이 오고, 목 엔진에서는 null 이다 */
   animationUrl: string | null;
+  /** 긴 이야기(S-13 「이야기 길이: 길게」)일 때만. 네 칸을 뼈대로 한 쪽 단위 그림책 (서버 `book`) */
+  book?: Book | null;
 }
+
+/** 긴 이야기의 한 쪽. stage 는 아이가 고른 네 칸 중 어디에서 나온 쪽인지 */
+export interface BookPage {
+  page: number;
+  stage: StepKind;
+  /** 그 쪽에서 캐릭터가 하는 동작. 쪽마다 움직임은 다음 단계라 지금은 화면에 쓰지 않는다 */
+  action: string;
+  text: string;
+  /** 이 쪽에 그대로 들어간 아이 말. 있으면 「내가 말한 부분」으로 보인다 */
+  childWords: string;
+}
+
+export interface Book {
+  title: string;
+  pages: BookPage[];
+  /** S-10 순서 맞추기에 쓸 쪽 번호. 장소 · 문제 · 행동 · 결과 순 */
+  orderPages: number[];
+}
+
+/** S-13 「이야기 길이」. short: 네 칸 → 네 문장 · long: 네 칸을 뼈대로 쪽 단위 그림책 (서버 `length`) */
+export type StoryLength = "short" | "long";
 
 /** C-03 전체 진행 표시 구간. 그림 → 친구 → 이야기 → 놀이 */
 export type Segment = 1 | 2 | 3 | 4 | null;
@@ -54,4 +77,6 @@ export interface Settings {
   /** 새로 만드는 이야기부터 적용된다. 기본 나레이션 */
   voiceMode: VoiceMode;
   protagonistVoice: ProtagonistVoice;
+  /** S-13 「이야기 길이」. 기본은 긴 이야기 (사용자, 2026-10-12 「일단은 긴 이야기로」) */
+  storyLength: StoryLength;
 }

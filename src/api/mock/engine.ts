@@ -1,5 +1,6 @@
 import type { Character, JobStatus } from "@/types/character";
-import type { StepKind, Story } from "@/types/story";
+import { STEP_ORDER } from "@/types/story";
+import type { Book, BookPage, StepKind, Story, StoryLength } from "@/types/story";
 import { REST_KEYPOINTS } from "./fixtures";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -43,19 +44,54 @@ export async function mockGenerate(
   characterId: string,
   labels: Record<StepKind, string>,
   onStatus: (s: JobStatus) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  length: StoryLength = "short",
+  spoken: StepKind[] = [],
+  name?: string | null
 ): Promise<Story> {
   await fakeJob(onStatus, 1200, signal);
+  const book = length === "long" ? mockBook(labels, spoken, name) : null;
   return {
     storyId: "s-" + Date.now(),
     characterId,
-    title: `${labels.place}에 간 날`,
+    title: book?.title ?? `${labels.place}에 간 날`,
     createdAt: new Date().toISOString().slice(0, 10),
-    text: `오늘 나는 ${labels.place}에 갔어요. 그런데 ${labels.problem}. `
-      + `그래서 나는 ${labels.action}. 그랬더니 ${labels.result}.`,
+    text: book ? book.pages.map((p) => p.text).join(" ")
+      : `오늘 나는 ${labels.place}에 갔어요. 그런데 ${labels.problem}. `
+        + `그래서 나는 ${labels.action}. 그랬더니 ${labels.result}.`,
     audioUrl: null,
     animationUrl: null,
+    book,
   };
+}
+
+/** 백엔드 `services/book.py` 의 fallback_book 과 같은 틀 (8쪽: 장소 1 · 문제 2 · 행동 2 · 결과 3).
+ *  OpenAI 없이 도는 틀 문장이다. 아이가 말로 덧붙인 단계는 그 단계 첫 쪽에 「내가 말한 부분」으로 표시한다 */
+function mockBook(labels: Record<StepKind, string>, spoken: StepKind[], name?: string | null): Book {
+  const who = name ? `${name}${hasFinal(name) ? "은" : "는"}` : "나는";
+  const t = (s: string) => s.replace(/[.\s]+$/, "");
+  const place = t(labels.place);
+  const lines: Record<StepKind, string[]> = {
+    place: [`햇살이 반짝이는 날이었어요. ${who} ${place}에 갔어요.`],
+    problem: [`그런데 그때였어요! ${t(labels.problem)}.`, "“어떡하지?” 잠깐 멈춰 섰어요. 가슴이 콩닥콩닥 뛰었어요."],
+    action: [`${who} 용기를 냈어요. 그리고 ${t(labels.action)}.`, "한 걸음, 또 한 걸음. 천천히 해 보았어요."],
+    result: [`드디어! ${t(labels.result)}.`, "“해냈다!” 얼굴에 웃음이 활짝 피었어요.", `${place}에서 보낸 하루는 정말 멋진 날이었어요.`],
+  };
+  const action: Record<StepKind, string> = { place: "walk", problem: "idle", action: "run", result: "dance" };
+  const pages: BookPage[] = [];
+  for (const stage of STEP_ORDER) {
+    lines[stage].forEach((text, j) => pages.push({
+      page: pages.length + 1, stage, action: j === 0 ? action[stage] : "idle", text,
+      childWords: j === 0 && spoken.includes(stage) ? labels[stage] : "",
+    }));
+  }
+  const orderPages = STEP_ORDER.map((s) => pages.find((p) => p.stage === s)!.page);
+  return { title: `${place}에 간 날`, pages, orderPages };
+}
+
+function hasFinal(word: string) {
+  const c = word.charCodeAt(word.length - 1);
+  return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0;
 }
 
 function readSize(file: File): Promise<{ width: number; height: number }> {

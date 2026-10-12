@@ -5,7 +5,7 @@ import { useAuth } from "@/store/auth";
 const KEY = "storyblanks.settings";
 const DEFAULTS: Settings = {
   level: 2, muteAll: false, keepOriginal: false, diagnostics: false, voiceInput: false, voiceMode: "narration", protagonistVoice: "girl",
-  photoUpload: false,
+  photoUpload: false, storyLength: "long",
 };
 
 function load(): Settings {

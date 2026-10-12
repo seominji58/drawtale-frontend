@@ -23,6 +23,7 @@ export default function S08Generating() {
   const diagnostics = useSettings((s) => s.diagnostics);
   const voiceMode = useSettings((s) => s.voiceMode);
   const protagonist = useSettings((s) => s.protagonistVoice);
+  const storyLength = useSettings((s) => s.storyLength);
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
   const [showStop, setShowStop] = useState(false);
@@ -38,7 +39,7 @@ export default function S08Generating() {
     generateStory(character.id, picks as Record<StepKind, string>, said, (s) => {
       setStep(STEP[s]);
       setDiag(`${s} · ${Math.round((performance.now() - started) / 1000)}s · ${ENGINE}`);
-    }, ctrl.signal, { mode: voiceMode, protagonist, name })
+    }, ctrl.signal, { mode: voiceMode, protagonist, name }, storyLength)
       .then((s) => {
         setStory(s); add(s);
         if (mode === "guest") consumeTrial();

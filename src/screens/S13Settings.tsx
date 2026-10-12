@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
-import type { ProtagonistVoice, SupportLevel, VoiceMode } from "@/types/story";
+import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
 
 function Row({ name, desc, children }: { name: string; desc: string; children: ReactNode }) {
@@ -43,6 +43,19 @@ export default function S13Settings() {
             {[1, 2, 3].map((n) => (
               <button key={n} className={s.level === n ? "on" : ""}
                 onClick={() => s.set("level", n as SupportLevel)}>{n}</button>
+            ))}
+          </span>
+        </Row>
+
+        {/* 긴 이야기 (open-decisions 0-6, 사용자 2026-10-12). 쪽 수는 서버 설정(STORY_PAGES, 지금 8쪽) */}
+        <Row name="이야기 길이"
+          desc={s.storyLength === "long"
+            ? "아이가 고른 네 칸을 뼈대로 여러 쪽짜리 그림책을 만듭니다. 아이가 고르지 않은 큰 사건은 넣지 않습니다. 새로 만드는 이야기부터 적용됩니다"
+            : "아이가 고른 네 칸이 네 문장이 됩니다. 새로 만드는 이야기부터 적용됩니다"}>
+          <span className="seg">
+            {([["short", "짧게"], ["long", "길게"]] as [StoryLength, string][]).map(([v, label]) => (
+              <button key={v} className={s.storyLength === v ? "on" : ""}
+                onClick={() => s.set("storyLength", v)}>{label}</button>
             ))}
           </span>
         </Row>

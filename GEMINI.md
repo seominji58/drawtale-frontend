@@ -39,6 +39,7 @@
   비회원 체험 한도는 개발 서버에서 세지 않는다 (배포 빌드만, `store/auth.ts`)
   긴 동화책(15쪽 이내) 대비 음성 구조 가안은 `docs/open-decisions.md` 0-6
   노트북에서 렌더가 300초를 넘으면 AI `.env` 에 `RENDER_MAX_FRAMES=150` (AI README)
+- 10/12: **긴 이야기 1단계** — S-13 「이야기 길이」(기본 길게) → 서버 `length=long` → 쪽 단위 `book`. S-09 쪽 넘기기, S-10 대표 쪽 네 장. pt_docs(네 문장)와 어긋나 서민지 님 확인 필요
 - 10/12: **「어른과 함께」(F-SET-06) 1단계** — 사진 올리기 · 말로 덧붙이기는 로그인한 보호자만 S-13 에서 켠다(기본 꺼짐, `useWithAdult()`). 꺼져 있으면 S-03 은 화면에 그리기만
 - 10/12: **동물 · 괴물 그림** 실험 (코드 변경 없음). Meta 는 서 있는 그림만 맞고, 모양에서 뼈대를 뽑는 방법은 13장 모두 움직였다.
   실험 코드 `hankan-story/experiments/animal-monster/`, 판단할 것은 `docs/open-decisions.md` 0-7

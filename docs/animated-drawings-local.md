@@ -27,6 +27,7 @@
 | 영역별 진행 표 | **끝** — 공유 문서 「진행 상황」, 사본은 `docs/team-status.md` · 백엔드/AI `docs/진행상황.md` |
 | 동물 · 괴물 그림 실험 (2026-10-12) | **실험만** — 모양에서 뼈대를 뽑는 방법이 13장 모두 움직임. 코드는 `hankan-story/experiments/animal-monster/`, 판단은 `open-decisions.md` 0-7 |
 | 「어른과 함께」 1단계 (2026-10-12) | **끝 (프론트)** — pt_docs F-SET-06. 사진 올리기 · 말로 덧붙이기를 로그인한 보호자만 켠다, 기본 꺼짐. 목 엔진으로 S-03 → S-11 확인 |
+| 긴 이야기 1단계 (2026-10-12) | **끝** — 쪽 단위 그림책 (`length=long`, `book`). 대본 gpt-5.4-mini 로 4편 확인. 쪽마다 음성 · 동작은 다음 |
 
 **팀원용 한 장 요약은 `docs/team-status.md`**, Antigravity 는 `GEMINI.md` 부터 읽는다.
 

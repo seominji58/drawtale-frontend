@@ -1,6 +1,6 @@
 import { JOINT_ORDER } from "@/types/character";
 import type { Character, ErrorCode, JobStatus, JointName, Keypoints } from "@/types/character";
-import type { ProtagonistVoice, StepChoice, StepKind, Story, VoiceMode } from "@/types/story";
+import type { ProtagonistVoice, StepChoice, StepKind, Story, StoryLength, VoiceMode } from "@/types/story";
 import { CHOICES, MAX_SAID, labelOf } from "@/features/story/choices";
 import { mockAnalyze, mockGenerate } from "./mock/engine";
 
@@ -69,6 +69,12 @@ interface ServerStory {
   audio_url: string | null;
   animation_url: string | null;
   created_at: string;
+  /** 긴 이야기일 때만 (계약 2-6 `book`) */
+  book?: {
+    title: string;
+    pages: { page: number; stage: StepKind; action: string; text: string; child_words: string }[];
+    order_pages: number[];
+  } | null;
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -150,11 +156,18 @@ function toStory(s: ServerStory): Story {
   return {
     storyId: s.id,
     characterId: s.character_id,
-    title: `${s.place}에 간 날`,
+    title: s.book?.title || `${s.place}에 간 날`,
     createdAt: s.created_at.slice(0, 10),
     text: s.text ?? "",
     audioUrl: s.audio_url,
     animationUrl: s.animation_url,
+    book: s.book ? {
+      title: s.book.title,
+      pages: s.book.pages.map((p) => ({
+        page: p.page, stage: p.stage, action: p.action, text: p.text, childWords: p.child_words ?? "",
+      })),
+      orderPages: s.book.order_pages,
+    } : null,
   };
 }
 
@@ -240,7 +253,8 @@ export async function generateStory(
   signal?: AbortSignal,
   voice: { mode: VoiceMode; protagonist: ProtagonistVoice; name?: string | null } = {
     mode: "narration", protagonist: "girl",
-  }
+  },
+  length: StoryLength = "short"
 ): Promise<Story> {
   const text = (k: StepKind) => said[k]?.slice(0, MAX_SAID) || labelOf(k, picks[k]);
   const labels = {
@@ -249,7 +263,9 @@ export async function generateStory(
     action: text("action"),
     result: text("result"),
   };
-  if (useMock) return mockGenerate(characterId, labels, onStatus, signal);
+  // 카드 대신 아이 말을 보낸 단계. 긴 이야기면 서버가 그 말을 그대로 살리고 그 쪽에 표시한다 (계약 2-5 `spoken`)
+  const spoken = (Object.keys(labels) as StepKind[]).filter((k) => !!said[k]);
+  if (useMock) return mockGenerate(characterId, labels, onStatus, signal, length, spoken, voice.name);
 
   const { story_id, job_id } = await call<{ story_id: string; job_id: string }>("/stories", {
     method: "POST",
@@ -259,6 +275,7 @@ export async function generateStory(
       voice_mode: voice.mode, protagonist_voice: voice.protagonist,
       // 캐릭터 목소리 판에서 나레이터가 3인칭으로 부를 이름 (S05Name). 없으면 서버가 짓는다
       ...(voice.name ? { protagonist_name: voice.name } : {}),
+      length, spoken,
     }),
     signal,
   });
