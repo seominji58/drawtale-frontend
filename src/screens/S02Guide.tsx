@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Paper } from "@/components/illust";
-import { useSettings } from "@/store/settings";
+import { useSettings, useWithAdult } from "@/store/settings";
 
 /** ok: 지켜야 잘 되는 것, tip: 권하는 것, no: 아직 안 되는 것.
  *  tip 은 강요하지 않는다 — 팔을 몸에 붙여 그려도 캐릭터는 만들어진다. 다만 팔을 몸에서 띄워
@@ -23,10 +23,12 @@ export default function S02Guide() {
   const level = useSettings((s) => s.level);
   // Level 1 은 「아직 어려워요」를 빼고 해도 되는 것만 보여준다
   const cards = level === 1 ? CARDS.filter((c) => c.kind !== "no") : CARDS;
+  // S-02-06. 사진 올리기가 꺼져 있으면(F-SET-06 기본) 다음 화면은 화면에 그리기뿐이라 「찍기」라고 하지 않는다
+  const { photo } = useWithAdult();
 
   return (
     <Screen back="/" speech="이런 그림이 좋아요" segment={1}
-      acts={<BigButton go onClick={() => nav("/upload")}>그림 찍기</BigButton>}>
+      acts={<BigButton go onClick={() => nav("/upload")}>{photo ? "그림 찍기" : "그림 그리기"}</BigButton>}>
       <h2 className="question">이런 그림이 좋아요</h2>
       <div className="row" style={{ flex: 1, minHeight: 0 }}>
         {cards.map((c) => (

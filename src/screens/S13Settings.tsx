@@ -31,7 +31,9 @@ export default function S13Settings() {
       acts={<BigButton onClick={() => nav("/")}>닫기</BigButton>}>
       <div className="list scroll">
         <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
-          <button className="btn link" onClick={mode === "member" ? logout : () => nav("/login")}>
+          {/* 로그아웃하면 「어른과 함께」 기능도 끈다. 다음에 들고 있는 사람이 보호자라는 보장이 없다 */}
+          <button className="btn link"
+            onClick={mode === "member" ? () => { s.set("photoUpload", false); s.set("voiceInput", false); logout(); } : () => nav("/login")}>
             {mode === "member" ? "로그아웃" : "로그인"}
           </button>
         </Row>
@@ -73,12 +75,32 @@ export default function S13Settings() {
             onChange={(e) => s.set("muteAll", e.target.checked)}
             className="tog" />
         </Row>
+        {/* 「어른과 함께」 묶음 (pt_docs 03 F-SET-06, 01 NFR-15). 위험이 따르는 기능은 로그인한 보호자만 켠다.
+            설계는 「로그인 후 아이 프로필 설정」에 두는 것이고, 아이 프로필(F-ACC-07)이 아직 없어 그때까지 여기 둔다.
+            로그인하지 않았으면 설정값과 상관없이 꺼진 것으로 본다 (store/settings.ts useWithAdult) */}
+        <div className="item head">
+          <span className="grow">
+            <span className="name">어른과 함께</span>
+            <span className="desc">
+              {mode === "member"
+                ? "위험이 따를 수 있는 기능입니다. 켜면 아이 화면에 버튼이 생기고, 꺼 두면 버튼 자체가 보이지 않습니다. 아이 곁에서 함께 써 주세요"
+                : "로그인한 보호자만 켤 수 있습니다. 로그인하지 않으면 아래 기능은 모두 꺼져 있습니다"}
+            </span>
+          </span>
+          {mode !== "member" && <button className="btn link" onClick={() => nav("/login")}>로그인</button>}
+        </div>
+        <Row name="사진으로 그림 올리기"
+          desc="종이에 그린 그림을 찍거나 앨범에서 고를 수 있습니다. 사람 사진이나 남이 그린 그림이 올라와도 자동으로 가려내지 못하니, 직접 그린 그림인지 함께 확인해 주세요. 끄면 화면에 그리기만 남습니다">
+          <input type="checkbox" checked={mode === "member" && s.photoUpload} disabled={mode !== "member"}
+            onChange={(e) => s.set("photoUpload", e.target.checked)}
+            className="tog" />
+        </Row>
         {/* 아이 목소리는 개인정보다. 어디로 가는지 켜는 사람이 알고 켠다 */}
         <Row name="목소리로 덧붙이기"
           desc={voiceSupported()
-            ? "이야기를 만들 때 아이가 마이크로 한마디 덧붙일 수 있습니다. 목소리는 이 브라우저의 음성 인식 서버(브라우저 회사)로 보내져 글자로 바뀌며, 녹음 파일은 저장하지 않습니다"
+            ? "이야기를 만들 때 아이가 마이크로 한마디 덧붙일 수 있습니다. 목소리는 이 브라우저의 음성 인식 서버(브라우저 회사)로 보내져 글자로 바뀌고, 그 글자는 이야기를 만드는 외부 AI 로 갑니다. 녹음 파일은 저장하지 않습니다"
             : "이 브라우저는 음성 인식을 지원하지 않습니다. 크롬이나 사파리에서 켤 수 있습니다"}>
-          <input type="checkbox" checked={s.voiceInput} disabled={!voiceSupported()}
+          <input type="checkbox" checked={mode === "member" && s.voiceInput} disabled={mode !== "member" || !voiceSupported()}
             onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>

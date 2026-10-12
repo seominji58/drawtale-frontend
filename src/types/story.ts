@@ -45,8 +45,12 @@ export interface Settings {
   muteAll: boolean;
   keepOriginal: boolean;
   diagnostics: boolean;
-  /** S-07 말로 덧붙이기(STT). 아이 목소리가 브라우저 인식 서버로 가므로 어른이 켠다. 기본 꺼짐 */
+  /** S-07 말로 덧붙이기(STT). 아이 목소리가 브라우저 인식 서버로 가므로 어른이 켠다. 기본 꺼짐.
+   *  「어른과 함께」 묶음(F-SET-06) — 로그인한 보호자만 켤 수 있다. 화면에서는 `useWithAdult()` 로 읽는다 */
   voiceInput: boolean;
+  /** S-03 사진으로 그림 올리기(F-DRW-02). 사람 사진 · 남의 그림이 올라올 수 있어 어른이 켠다. 기본 꺼짐.
+   *  「어른과 함께」 묶음(F-SET-06). 꺼져 있으면 S-03 에 찍기 · 앨범 버튼이 없다 */
+  photoUpload: boolean;
   /** 새로 만드는 이야기부터 적용된다. 기본 나레이션 */
   voiceMode: VoiceMode;
   protagonistVoice: ProtagonistVoice;

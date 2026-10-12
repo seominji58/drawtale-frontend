@@ -194,6 +194,8 @@
   border-top: 1px solid var(--edge-soft); text-align: left; width: 100%;
 }
 .list .item:first-child { border-top: 0; }
+/* 묶음 머리 (S-13 「어른과 함께」). 색이 아니라 배경 블록으로 나눈다 (AGENTS.md 3.5) */
+.list .item.head { background: var(--milk); }
 .list .item .grow { flex: 1; min-width: 0; }
 .list .item .name { display: block; font-size: var(--t-button); font-weight: 700; }
 .list .item .desc { display: block; font-size: var(--t-label); color: var(--ink-soft); margin-top: 2px; }

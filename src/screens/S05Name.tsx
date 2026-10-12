@@ -4,7 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import CharacterPreview from "@/features/character/CharacterPreview";
 import { useSession } from "@/store/session";
-import { useSettings, LEVEL_CONFIG } from "@/store/settings";
+import { useSettings, useWithAdult, LEVEL_CONFIG } from "@/store/settings";
 import { listen, voiceSupported } from "@/features/story/voice";
 import type { ListenError } from "@/features/story/voice";
 import { speak, stopSpeak } from "@/lib";
@@ -28,8 +28,8 @@ export default function S05Name() {
   const { imageUrl, keypoints, name, setName } = useSession();
   const level = useSettings((s) => s.level);
   const muteAll = useSettings((s) => s.muteAll);
-  // 어른 설정에서 켜야만 말로 짓는다 (아이 목소리가 브라우저 인식 서버로 간다, S-13)
-  const voiceOn = useSettings((s) => s.voiceInput) && voiceSupported();
+  // 「어른과 함께」에서 로그인한 보호자가 켜야만 말로 짓는다 (아이 목소리가 브라우저 인식 서버로 간다, F-SET-06)
+  const voiceOn = useWithAdult().voice && voiceSupported();
   const [listening, setListening] = useState(false);
   const [heardError, setHeardError] = useState<ListenError | null>(null);
   const stopListen = useRef<AbortController | null>(null);

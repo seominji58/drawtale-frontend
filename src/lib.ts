@@ -51,3 +51,10 @@ export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: 
   // 설계서 E-01 표에 없다. 검열에 걸린 말을 아이 탓으로 들리지 않게 쓴다 (open-decisions 0-5)
   CONTENT_BLOCKED:     { title: "이 이야기는 만들 수 없어요", hint: "다른 카드를 골라 볼까요?", primary: "다시 고르기" },
 };
+
+/** 사진 올리기가 꺼져 있을 때(F-SET-06 기본, 화면에 그린 그림) 「찍기」 문구를 바꿔 쓴다 */
+export const DRAW_TEXT: Record<string, { hint: string; primary: string }> = {
+  NO_CHARACTER:        { hint: "사람을 한 명만 크게 그려 볼까요?", primary: "다시 그리기" },
+  MULTIPLE_CHARACTERS: { hint: "한 명만 그려 볼까요?", primary: "다시 그리기" },
+  LOW_CONFIDENCE:      { hint: "사람을 크게 그려 볼까요?", primary: "다시 그리기" },
+};

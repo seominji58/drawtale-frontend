@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import { Paper } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { shrink, speak } from "@/lib";
-import { useSettings } from "@/store/settings";
+import { useSettings, useWithAdult } from "@/store/settings";
 import { ENGINE } from "@/api";
 import { makeSampleDrawing } from "@/api/mock/sample";
 
@@ -21,6 +21,9 @@ export default function S03Upload() {
   /** 10MB 초과이거나 이미지가 아니어서 받지 않은 파일 (S-03-09). 업로드 전에 막고 아이 말로 알린다 */
   const [rejected, setRejected] = useState(false);
   const muteAll = useSettings((s) => s.muteAll);
+  // S-03-03 · S-03-05 는 「어른과 함께」에서 사진 올리기를 켰을 때만 있다 (pt_docs 05 S-03, F-SET-06).
+  // 기본 경로는 S-03-04 화면에 그리기
+  const { photo } = useWithAdult();
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -39,7 +42,7 @@ export default function S03Upload() {
 
   return (
     <Screen back="/guide" segment={1}
-      speech={imageUrl ? "이 그림으로 할까요?" : "그림을 찍어 볼까요?"}
+      speech={imageUrl ? "이 그림으로 할까요?" : photo ? "그림을 찍어 볼까요?" : "화면에 그려 볼까요?"}
       acts={imageUrl ? (
         <>
           <BigButton onClick={() => setFile(null)}>다시 고르기</BigButton>
@@ -47,10 +50,10 @@ export default function S03Upload() {
         </>
       ) : (
         <>
-          <BigButton go onClick={() => camera.current?.click()}>그림 찍기</BigButton>
-          {/* S-03D. 종이 그림과 나란히 둔다 (open-decisions 0-4) */}
-          <BigButton onClick={() => nav("/draw")}>화면에 그리기</BigButton>
-          <BigButton onClick={() => album.current?.click()}>앨범에서 고르기</BigButton>
+          {/* S-03-04 화면에 그리기가 주된 행동이다 (pt_docs 05 S-03) */}
+          <BigButton go onClick={() => nav("/draw")}>화면에 그리기</BigButton>
+          {photo && <BigButton onClick={() => camera.current?.click()}>그림 찍기</BigButton>}
+          {photo && <BigButton onClick={() => album.current?.click()}>앨범에서 고르기</BigButton>}
         </>
       )}>
       <div className={`stage ${imageUrl ? "" : "empty"}`}>
@@ -62,7 +65,7 @@ export default function S03Upload() {
         <>
           {rejected
             ? <div className="box warn">{REJECTED}</div>
-            : <p className="hint">종이에 그린 그림을 찍거나, 화면에 그려 주세요</p>}
+            : <p className="hint">{photo ? "종이에 그린 그림을 찍거나, 화면에 그려 주세요" : "화면에 그려 주세요"}</p>}
           {ENGINE === "mock" && (
             <div className="aside-links">
               <span>확인용</span>
@@ -74,8 +77,8 @@ export default function S03Upload() {
           )}
         </>
       )}
-      <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={onPick} />
-      <input ref={album} type="file" accept="image/*" hidden onChange={onPick} />
+      {photo && <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={onPick} />}
+      {photo && <input ref={album} type="file" accept="image/*" hidden onChange={onPick} />}
     </Screen>
   );
 }
