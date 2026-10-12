@@ -12,8 +12,8 @@
 
 ## 지금 상태 (2026-10-08)
 
-- **설계 문서는 `hankan-story/drawtale-pt_docs/`** (github.com/seominji58/drawtale-pt_docs, main). 01 시스템 아키텍처 · 02 기능정의서 ·
-  03 플로우차트 · 04 화면설계서 v0.3, 문서마다 맨 위에 발표용 한 장 그림(`tools/poster/`). 발표 덱은 `presentation/` — 15~18번은 팀원 각자
+- **설계 문서는 `hankan-story/drawtale-pt_docs/`** (github.com/seominji58/drawtale-pt_docs, main) — **어긋나면 이 문서가 최우선** (2026-10-12 사용자). 01 요구사항 정의서 · 02 시스템 아키텍처 · 03 기능정의서 ·
+  04 플로우차트 · 05 화면설계서 · 06 입력 그림 요구사항 · 07 사용자 조사 · 08 기술 스택 · 09 DB ERD, `policy/` · `legal/` (10/12 번호가 바뀜). 발표 덱은 `presentation/`
 - 프론트는 **React 유지** (Vue 아님, 2026-10-01 확인)
 - S-07 아이콘 24장은 10/2 에 체크무늬를 지워 투명 PNG(512px)로 바꿨다. 행동 · 결과 12장이 같은 그림인 것은 그대로 — `docs/backlog.md` 0-6
 - 10/2: S-03 받지 않은 파일 안내(S-03-09), S-06 처음 자리로 되돌리기(S-06-07, 서버 `analysis.joints`), 기다리는 중 연결 끊김 · 502~504 면 다시 묻기
@@ -39,6 +39,9 @@
   비회원 체험 한도는 개발 서버에서 세지 않는다 (배포 빌드만, `store/auth.ts`)
   긴 동화책(15쪽 이내) 대비 음성 구조 가안은 `docs/open-decisions.md` 0-6
   노트북에서 렌더가 300초를 넘으면 AI `.env` 에 `RENDER_MAX_FRAMES=150` (AI README)
+- 10/12: **「어른과 함께」(F-SET-06) 1단계** — 사진 올리기 · 말로 덧붙이기는 로그인한 보호자만 S-13 에서 켠다(기본 꺼짐, `useWithAdult()`). 꺼져 있으면 S-03 은 화면에 그리기만
+- 10/12: **동물 · 괴물 그림** 실험 (코드 변경 없음). Meta 는 서 있는 그림만 맞고, 모양에서 뼈대를 뽑는 방법은 13장 모두 움직였다.
+  실험 코드 `hankan-story/experiments/animal-monster/`, 판단할 것은 `docs/open-decisions.md` 0-7
 - **S-03D 화면에 그리기** (`/draw`, 설계서에 없음): 부위별 안내 + 손 그리기·도장. `features/draw/drawing.ts`.
   요소표 초안은 `docs/open-decisions.md` 0-4
 

@@ -9,15 +9,16 @@
 > 2026-10-08: 이야기 음성을 ElevenLabs(나레이터 Anna Kim, `eleven_v4`)로. S-13 「읽어주기」 나레이션만 / 캐릭터 목소리 —
 > 캐릭터 목소리면 S-05 다음 `/name` 에서 친구 이름을 짓고, 나레이션이 그 이름으로 3인칭, 인물은 종류별 목소리 · 대사 감정.
 > S-05 캐릭터는 서버 Meta 렌더 미리보기 영상(`CharacterPreview`). 비회원 체험 한도는 배포 빌드에서만 센다.
+> 2026-10-12: 「어른과 함께」(F-SET-06) 1단계 — 사진 올리기 · 말로 덧붙이기는 로그인한 보호자만 켠다(기본 꺼짐, `store/settings.ts` `useWithAdult()`).
 > 영역별 진행 표는 팀 공유 문서 「진행 상황」(사본은 `docs/team-status.md`).
-> **설계 문서(01~04)와 발표 덱은 `drawtale-pt_docs` 저장소**에 있다 (2026-10-01, 문서마다 한 장 그림). 프론트는 React 유지.
+> **설계 문서(01~09 · policy · legal)와 발표 덱은 `drawtale-pt_docs` 저장소**에 있고, **판단이 어긋나면 그 문서가 최우선**이다 (2026-10-12 사용자). 프론트는 React 유지.
 > **이어서 작업하기 전에 `docs/team-status.md`와 `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
 
 | 문서 | 무엇이 있나 | 언제 보나 |
 |---|---|---|
 | `docs/team-status.md` | **팀원용 한 장 요약** — 영역별 진행 표, 브랜치, 바뀐 것 | **처음 볼 때, 작업을 끝낼 때마다 갱신** |
 | `docs/animated-drawings-local.md` | 실제 모델·백엔드를 로컬에 띄우는 법, 진행 상황 | **지금 진행 중인 작업** |
-| `drawtale-pt_docs/04-screen-spec.md` (설계 문서 저장소, v0.3) | 화면별 요소표, 동작과 예외, 계정과 데이터(11장) | **화면을 고칠 때마다**. v0.2 는 `docs/source/` 에 근거로 남긴다 |
+| `drawtale-pt_docs/` (설계 문서 저장소) — **판단이 어긋나면 이 문서가 최우선** | 01 요구사항 정의서부터. 화면은 `05-screen-spec.md`, 입력 그림은 `06`, 개인정보 · 안전은 `policy/`, 약관은 `legal/` | **작업 전에 fetch.** 이 저장소의 `open-decisions.md` 가안과 어긋나면 pt_docs 를 따른다 |
 | `docs/api-contract.md` | 백엔드 계약을 프론트가 어떻게 받아 쓰나 (원본은 백엔드 저장소) | 서버와 주고받는 것을 다룰 때 |
 | `docs/id-conventions.md` | 식별자 이름 규칙 | id·키·파일 이름을 다룰 때 |
 | `docs/art-direction.md` | 그림 화풍과 제약 | 아이콘·배경·삽화를 다룰 때 |
