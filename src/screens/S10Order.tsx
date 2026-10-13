@@ -9,12 +9,23 @@ import { recordActivity } from "@/api";
 
 /** 기본 조작은 탭 두 번이다. 카드를 고르고 자리를 고른다.
  *  드래그만 지원하면 소근육 조작이 어려운 아이가 배제된다.
- *  카드는 이야기 문장이다 — 백엔드가 장면이 아니라 `text` 한 덩어리를 주기 때문이다 (계약 2-6). */
+ *  카드는 이야기 문장이다. 짧은 이야기는 `text` 의 문장, 긴 이야기는 네 칸을 대표하는 쪽의 첫 문장 (계약 2-6). */
 export default function S10Order() {
   const nav = useNavigate();
   const { story } = useSession();
   const { level, muteAll } = useSettings();
-  const lines = useMemo(() => sentences(story?.text ?? ""), [story]);
+  // 긴 이야기면 쪽을 다 쓰지 않고 네 칸을 대표하는 쪽(서버 `order_pages`)의 첫 문장만 쓴다 —
+  // 대본 규칙상 단계 첫 쪽 첫머리에 아이가 고른 내용이 나온다. 쪽 전체는 카드에 너무 길다
+  const lines = useMemo(() => {
+    const book = story?.book;
+    if (book?.pages.length) {
+      return book.orderPages
+        .map((n) => book.pages.find((p) => p.page === n))
+        .filter((p) => !!p)
+        .map((p) => sentences(p!.text)[0] ?? p!.text);
+    }
+    return sentences(story?.text ?? "");
+  }, [story]);
   const count = Math.min(level === 1 ? 2 : 4, lines.length);
 
   const cards = useMemo(() => {

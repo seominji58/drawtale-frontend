@@ -4,7 +4,7 @@ import Screen from "@/components/Screen";
 import ChoiceCard from "@/components/ChoiceCard";
 import BigButton from "@/components/BigButton";
 import { useSession } from "@/store/session";
-import { useSettings, LEVEL_CONFIG } from "@/store/settings";
+import { useSettings, useWithAdult, LEVEL_CONFIG } from "@/store/settings";
 import { fetchSteps } from "@/api";
 import { STEP_LABEL, STEP_ORDER, STEP_QUESTION } from "@/types/story";
 import { MAX_SAID, VOICE_STEPS, labelOf, sentenceFor } from "@/features/story/choices";
@@ -26,8 +26,9 @@ export default function S07Steps() {
   const { picks, pick, said, say, setError } = useSession();
   const level = useSettings((s) => s.level);
   const muteAll = useSettings((s) => s.muteAll);
-  // 어른 설정에서 켜야만 말로 덧붙이기를 한다 (아이 목소리가 브라우저 인식 서버로 간다, S-13)
-  const voiceOn = useSettings((s) => s.voiceInput) && voiceSupported();
+  // 「어른과 함께」에서 로그인한 보호자가 켜야만 말로 덧붙인다 (아이 목소리가 브라우저 인식 서버로 간다, F-SET-06)
+  const voiceOn = useWithAdult().voice && voiceSupported();
+  const named = useSettings((s) => s.voiceMode) === "characters";
   const cfg = LEVEL_CONFIG[level];
 
   const initialAt = STEP_ORDER.findIndex((k) => !picks[k]);
@@ -146,7 +147,7 @@ export default function S07Steps() {
   }
 
   return (
-    <Screen back={viewAt === 0 ? "/confirm" : () => setViewAt((v) => v - 1)}
+    <Screen back={viewAt === 0 ? (named ? "/name" : "/confirm") : () => setViewAt((v) => v - 1)}
       speech={STEP_QUESTION[kind]} segment={3}>
       {kind === "result" && (
         <p className="hint" style={{ marginBottom: "-10px", marginTop: "10px" }}>

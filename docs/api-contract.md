@@ -106,6 +106,15 @@ E-01 문구는 여전히 프론트가 코드로 고른다 (`src/lib.ts` `ERROR_T
 - 문장은 `src/lib.ts`의 `sentences()`가 마침표 기준으로 나눈다. S-09는 한 문장씩 짚으며
   읽고, S-10은 문장 카드로 순서를 맞춘다
 - `audio_url`이 오면 그 파일을 재생하고, `null`이면 브라우저 TTS로 한 문장씩 읽는다
+- S-13 「읽어주기」를 `voice_mode`(`narration` | `characters`)로 보낸다 (계약 2-5, 2026-10-08). 캐릭터 목소리면
+  `text`에 `“ ”` 대사가 들어가므로 `sentences()`는 **따옴표 안의 마침표에서 끊지 않는다**
+- S-13 「주인공 목소리」(캐릭터 목소리일 때만 보임)를 `protagonist_voice`(`girl` | `boy`)로 보낸다. 다른 인물 목소리는 서버가 정한다
+- 캐릭터 목소리면 S-05 다음 `/name`(S05Name)에서 아이가 지은 이름을 `protagonist_name` 으로 보낸다. 서버가 3인칭으로 쓴다
+- S-05 · 이름 짓기의 캐릭터는 `features/character/CharacterPreview.tsx` — `preview_url`(서버 Meta 렌더 MP4)이 있으면 그것을, `preview_status: rendering` 이면
+  멈춘 그림 + 「움직일 준비를 하고 있어요」로 1.5초마다 다시 묻고(90초까지), 없거나 실패면 브라우저 `CharacterCanvas` 로 대신한다 (계약 2-3)
+- **긴 이야기 (2026-10-12)**: S-13 「이야기 길이」를 `length`(`short` | `long`, 앱 기본 `long`)로, 말로 덧붙인 단계를 `spoken` 으로 보낸다 (계약 2-5).
+  `long` 이면 응답에 `book`(제목 · 쪽마다 `stage` · `action` · `text` · `child_words` · `order_pages`)이 온다 (계약 2-6) → `Story.book`.
+  S-09 는 쪽을 넘기며 보고(`BookView`), 음성 파일은 하나라 재생 위치를 글자 수 비율로 쪽에 맞춘다. S-10 은 `order_pages` 쪽의 첫 문장 네 장
 - 서버에는 선택지 **id가 아니라 라벨**을 보낸다 (계약이 자유 문자열 50자)
 - 제목이 없어서 `「{장소}에 간 날」`을 프론트가 만든다 (S-12·S-13 목록용)
 
