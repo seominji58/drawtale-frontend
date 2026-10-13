@@ -89,6 +89,8 @@ export default function S09Story() {
         </BigButton>
         <BigButton onClick={() => setLoop((v) => !v)}>{loop ? "반복 켜짐" : "반복"}</BigButton>
       </div>
+
+      <AiNotice />
     </Screen>
   );
 }
@@ -168,6 +170,16 @@ function BookView({ story, stage, muteAll, onDone }: {
         </BigButton>
         <BigButton disabled={last} onClick={() => go(pg + 1)} nudgeOnDisabled={false}>다음 쪽</BigButton>
       </div>
+
+      <AiNotice />
     </Screen>
   );
+}
+
+/** AI 생성 표시 (인공지능기본법 제31조, 2026-01-22 시행). 이야기 문장 · 음성 · 영상이 AI 산물이다.
+ *  아이 화면이라 「AI」 같은 기술 용어를 쓰지 않는다 (설계서 2장) — 문구는 교사 자문에서 확정한다
+ *  (pt_docs 07 4-9). 영상 파일 자체에 넣는 표시는 내려받기 · 공유를 만들 때 함께 넣는다
+ *  (지금은 앱 밖으로 나가는 길이 없다). */
+export function AiNotice() {
+  return <span className="hint" style={{ opacity: 0.75 }}>이 이야기는 컴퓨터가 함께 만들었어요</span>;
 }
