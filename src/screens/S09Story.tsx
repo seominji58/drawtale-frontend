@@ -75,12 +75,15 @@ export default function S09Story() {
   return (
     <Screen back="/" speech={story.text} segment={4} autoSpeak={false}
       acts={<BigButton go onClick={() => { stop(); nav("/order"); }}>순서 맞추기</BigButton>}>
-      {stage}
-
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
-        {lines.map((line, n) => (
-          <span key={n} className={`said ${at === n ? "now" : ""}`}>{line}</span>
-        ))}
+      {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (피드백 2026-10-19).
+          좁은 화면에서는 위아래로 쌓인다 (ui.css `.spread`) */}
+      <div className="spread">
+        {stage}
+        <div className="spread-text">
+          {lines.map((line, n) => (
+            <span key={n} className={`said ${at === n ? "now" : ""}`}>{line}</span>
+          ))}
+        </div>
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>
@@ -155,12 +158,13 @@ function BookView({ story, stage, muteAll, onDone }: {
   return (
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
       acts={<BigButton go onClick={() => { stop(); onDone(); }}>순서 맞추기</BigButton>}>
-      {stage}
-
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>
-        <span className={`said ${reading ? "now" : ""}`} style={{ textAlign: "center" }}>{page.text}</span>
-        {page.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
+      <div className="spread">
+        {stage}
+        <div className="spread-text">
+          <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>
+          <span className={`said ${reading ? "now" : ""}`}>{page.text}</span>
+          {page.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
+        </div>
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>
