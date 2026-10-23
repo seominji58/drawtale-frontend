@@ -72,7 +72,10 @@ interface ServerStory {
   /** 긴 이야기일 때만 (계약 2-6 `book`) */
   book?: {
     title: string;
-    pages: { page: number; stage: StepKind; action: string; text: string; child_words: string }[];
+    pages: {
+      page: number; stage: StepKind; action: string; text: string; child_words: string;
+      audio_url?: string | null; animation_url?: string | null;
+    }[];
     order_pages: number[];
   } | null;
 }
@@ -165,6 +168,7 @@ function toStory(s: ServerStory): Story {
       title: s.book.title,
       pages: s.book.pages.map((p) => ({
         page: p.page, stage: p.stage, action: p.action, text: p.text, childWords: p.child_words ?? "",
+        audioUrl: p.audio_url ?? null, animationUrl: p.animation_url ?? null,
       })),
       orderPages: s.book.order_pages,
     } : null,

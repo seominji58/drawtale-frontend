@@ -7,7 +7,8 @@ import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { sentences, speak, stopSpeak } from "@/lib";
-import type { Story } from "@/types/story";
+import type { MotionId, Story } from "@/types/story";
+import type { Keypoints } from "@/types/character";
 
 /** 서버가 렌더한 애니메이션과 이야기 문장 (백엔드 계약 2-6).
  *  음성 파일이 오면 그것을, 없으면 브라우저 TTS 로 한 문장씩 읽으며 그 문장을 짚는다.
@@ -69,7 +70,8 @@ export default function S09Story() {
   );
 
   if (story.book && story.book.pages.length) {
-    return <BookView story={story} stage={stage} muteAll={muteAll} onDone={() => nav("/order")} />;
+    return <BookView story={story} imageUrl={imageUrl} keypoints={keypoints} muteAll={muteAll}
+      onDone={() => nav("/order")} />;
   }
 
   return (
@@ -94,19 +96,23 @@ export default function S09Story() {
 }
 
 /** 긴 이야기 — 쪽을 하나씩 넘긴다. 쪽 넘기기는 아이가 누를 때만 (자동 전환 금지, AGENTS 3.1).
- *  예외는 「들려주기」를 누른 동안: 읽는 쪽을 따라 넘어간다.
- *  음성 파일은 아직 이야기 전체에 하나라(쪽마다는 다음 단계) 재생 위치를 글자 수 비율로 쪽에 맞춘다.
- *  파일이 없으면 브라우저 TTS 로 쪽마다 읽는다. 아이가 말로 덧붙인 쪽은 「내가 말한 부분」으로 보인다 */
-function BookView({ story, stage, muteAll, onDone }: {
-  story: Story; stage: React.ReactNode; muteAll: boolean; onDone: () => void;
+ *  예외는 「들려주기」를 누른 동안: 그 쪽 음성이 끝나면 다음 쪽으로 넘어가 이어 읽는다.
+ *  쪽마다 서버가 만든 음성(`page.audioUrl`)과 동작 영상(`page.animationUrl`)을 쓴다. 음성이 없는 쪽은
+ *  브라우저 TTS, 영상이 없는 쪽(가만히 · 렌더 실패)은 멈춘 그림, 목 엔진은 캔버스가 그 쪽 동작으로 움직인다.
+ *  쪽 음성이 없고 이야기 전체 음성만 있는 예전 이야기는 재생 위치를 글자 수 비율로 쪽에 맞춘다.
+ *  아이가 말로 덧붙인 쪽은 「내가 말한 부분」으로 보인다 */
+function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
+  story: Story; imageUrl: string | null; keypoints: Keypoints | null; muteAll: boolean; onDone: () => void;
 }) {
   const book = story.book!;
   const pages = book.pages;
   const [pg, setPg] = useState(0);
   const [reading, setReading] = useState(false);
+  const readingRef = useRef(false);
   const audio = useRef<HTMLAudioElement | null>(null);
+  const perPage = pages.some((p) => p.audioUrl);
 
-  // 쪽마다 끝나는 지점(글자 수 누적 비율). 파일 하나를 쪽에 나눠 맞춘다
+  // 쪽마다 끝나는 지점(글자 수 누적 비율). 예전 이야기의 전체 음성 파일을 쪽에 나눠 맞춘다
   const ends = useMemo(() => {
     const lens = pages.map((p) => p.text.length);
     const total = lens.reduce((a, b) => a + b, 0) || 1;
@@ -114,46 +120,70 @@ function BookView({ story, stage, muteAll, onDone }: {
     return lens.map((l) => (acc += l) / total);
   }, [pages]);
 
-  useEffect(() => () => { stopSpeak(); audio.current?.pause(); }, []);
+  useEffect(() => () => { readingRef.current = false; stopSpeak(); audio.current?.pause(); }, []);
 
-  const stop = () => { stopSpeak(); audio.current?.pause(); setReading(false); };
+  const stop = () => {
+    readingRef.current = false;
+    stopSpeak(); audio.current?.pause(); setReading(false);
+  };
   const go = (n: number) => { stop(); setPg(Math.max(0, Math.min(pages.length - 1, n))); };
 
+  /** n 쪽부터 끝까지 읽는다. 쪽 음성 파일이 있으면 그것을, 없으면 브라우저 TTS */
   const readPage = (n: number) => {
-    if (n >= pages.length) { setReading(false); return; }
+    if (!readingRef.current) return;
+    if (n >= pages.length) { stop(); return; }
     setPg(n);
-    speak(pages[n].text, muteAll, () => readPage(n + 1));
+    const next = () => readPage(n + 1);
+    const url = pages[n].audioUrl;
+    if (url) {
+      audio.current?.pause();
+      const a = new Audio(url);
+      audio.current = a;
+      a.onended = next;
+      a.onerror = () => speak(pages[n].text, muteAll, next);
+      void a.play().catch(() => speak(pages[n].text, muteAll, next));
+    } else {
+      speak(pages[n].text, muteAll, next);
+    }
   };
 
   const play = () => {
     if (reading) { stop(); return; }
+    readingRef.current = true;
     setReading(true);
-    if (story.audioUrl) {
-      const a = audio.current ?? new Audio(story.audioUrl);
-      audio.current = a;
-      a.onended = () => setReading(false);
-      a.ontimeupdate = () => {
-        if (!a.duration) return;
-        const f = a.currentTime / a.duration;
-        const i = ends.findIndex((e) => f < e);
-        setPg(i === -1 ? pages.length - 1 : i);
-      };
-      // 지금 쪽부터 읽는다
-      const start = pg === 0 ? 0 : ends[pg - 1];
-      const begin = () => { a.currentTime = start * (a.duration || 0); void a.play(); };
-      if (a.readyState >= 1) begin(); else a.onloadedmetadata = begin;
-    } else {
-      readPage(pg);
-    }
+    if (perPage || !story.audioUrl) { readPage(pg); return; }
+    const a = audio.current ?? new Audio(story.audioUrl);
+    audio.current = a;
+    a.onended = () => stop();
+    a.ontimeupdate = () => {
+      if (!a.duration) return;
+      const i = ends.findIndex((e) => a.currentTime / a.duration < e);
+      setPg(i === -1 ? pages.length - 1 : i);
+    };
+    const start = pg === 0 ? 0 : ends[pg - 1];
+    const begin = () => { a.currentTime = start * (a.duration || 0); void a.play(); };
+    if (a.readyState >= 1) begin(); else a.onloadedmetadata = begin;
   };
 
   const page = pages[pg];
   const last = pg === pages.length - 1;
+  const clip = page.animationUrl && /\.mp4(\?|$)/i.test(page.animationUrl) ? page.animationUrl : null;
+  const still = story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
 
   return (
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
       acts={<BigButton go onClick={() => { stop(); onDone(); }}>순서 맞추기</BigButton>}>
-      {stage}
+      <div className="stage">
+        {clip
+          ? <video key={clip} src={clip} autoPlay loop muted playsInline
+                   style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+          : !perPage && !story.animationUrl && imageUrl && keypoints
+            // 목 엔진: 서버 영상이 없으니 캔버스가 그 쪽 동작으로 움직인다
+            ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[page.action] ?? "idle"} />
+            : still
+              ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
+              : <div className="illust-wrap"><Scene n={0} /></div>}
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
         <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>
@@ -171,3 +201,8 @@ function BookView({ story, stage, muteAll, onDone }: {
     </Screen>
   );
 }
+
+/** 쪽 동작 → 브라우저 캔버스 동작 (목 엔진). 캔버스에는 뛰기 · 춤이 없어 걷기 · 점프로 */
+const CANVAS_MOTION: Record<string, MotionId> = {
+  idle: "idle", walk: "walk", run: "walk", jump: "jump", wave: "wave", dance: "jump",
+};

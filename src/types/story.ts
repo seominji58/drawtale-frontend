@@ -37,11 +37,15 @@ export interface Story {
 export interface BookPage {
   page: number;
   stage: StepKind;
-  /** 그 쪽에서 캐릭터가 하는 동작. 쪽마다 움직임은 다음 단계라 지금은 화면에 쓰지 않는다 */
+  /** 그 쪽에서 캐릭터가 하는 동작 (idle · walk · run · jump · wave · dance). 서버가 쪽 영상으로 렌더한다 */
   action: string;
   text: string;
   /** 이 쪽에 그대로 들어간 아이 말. 있으면 「내가 말한 부분」으로 보인다 */
   childWords: string;
+  /** 이 쪽 MP3. 없으면 브라우저 TTS 로 읽는다 */
+  audioUrl?: string | null;
+  /** 이 쪽 동작 MP4 (같은 동작이면 같은 파일). 없으면 멈춘 그림 · 목 엔진은 캔버스 */
+  animationUrl?: string | null;
 }
 
 export interface Book {
