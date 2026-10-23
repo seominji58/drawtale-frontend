@@ -77,15 +77,24 @@ export const labelOf = (kind: StepKind, id: string | undefined) =>
  *  백엔드가 AI 로 문장을 다듬게 되면 여기는 미리 듣기용 초안이 된다. */
 export function sentenceFor(kind: StepKind, text: string): string {
   switch (kind) {
-    case "place": return `오늘 나는 ${text}에 갔어요.`;
+    case "place": return placeSentence(text);
     case "problem": return `그런데 ${text}.`;
     case "action": return `그래서 나는 ${text}.`;
     case "result": return `그랬더니 ${text}.`;
   }
 }
 
-/** 말로 덧붙이기를 받는 단계. 장소는 「○○에 갔어요」 틀에 문장이 들어가면 깨져서 받지 않는다 */
-export const VOICE_STEPS: StepKind[] = ["problem", "action", "result"];
+/** 장소 칸은 「오늘 나는 ○○에 갔어요」 틀이다. 아이가 말하거나 적은 글이 이미 문장이면
+ *  (「바닷가에 갔어요」) 틀에 넣지 않고 그대로 잇는다. 「바닷가에」처럼 조사가 붙어 오면 떼고 넣는다 */
+const SENTENCE_END = /(요|었다|았다|했다|갔다|왔다|었어|았어|했어|갔어|왔어|있어)$/;
+function placeSentence(text: string): string {
+  const t = text.trim().replace(/[.!?]+$/, "");
+  if (SENTENCE_END.test(t)) return `오늘 나는 ${t}.`;
+  return `오늘 나는 ${t.replace(/(에서|에)$/, "")}에 갔어요.`;
+}
+
+/** 말 · 글로 덧붙이기를 받는 단계 — 네 칸 모두 (2026-10-23 사용자 요청, pt_docs 03 「단계마다 한 칸」) */
+export const VOICE_STEPS: StepKind[] = ["place", "problem", "action", "result"];
 
 /** 백엔드 계약 2-5: 단계마다 자유 문자열 50자 */
 export const MAX_SAID = 50;
