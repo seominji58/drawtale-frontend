@@ -61,6 +61,7 @@ export default function S05Name() {
         if (n) { lock.current = 0; choose(n); } else throw new Error("no-speech");
       })
       .catch((e: Error) => {
+        if (ctrl.signal.aborted) return;   // 「다음」 등으로 떠나며 끊은 것은 실패가 아니다
         const code = (e.message in HEARD_ERROR ? e.message : "failed") as ListenError;
         setHeardError(code);
         speak(HEARD_ERROR[code], muteAll);

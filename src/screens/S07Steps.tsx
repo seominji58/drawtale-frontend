@@ -104,6 +104,7 @@ export default function S07Steps() {
         if (step) speak(sentenceFor(step, text), muteAll);   // 아이 말이 들어간 문장을 바로 읽어 준다
       })
       .catch((e: Error) => {
+        if (ctrl.signal.aborted) return;   // 「다음」 등으로 떠나며 끊은 것은 실패가 아니다
         const code = (e.message in HEARD_ERROR ? e.message : "failed") as ListenError;
         setHeardError(code);
         speak(HEARD_ERROR[code], muteAll);
