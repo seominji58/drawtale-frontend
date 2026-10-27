@@ -12,7 +12,8 @@ export const ENGINE = (import.meta.env.VITE_ENGINE ?? "mock") as
 
 const useMock = ENGINE === "mock";
 
-const BASE = "/api/v1";
+/** 배포에서는 백엔드가 다른 주소에 있다 (Static Web Apps 와 VM 이 따로). 비어 있으면 vite 프록시 */
+export const BASE = import.meta.env.VITE_API_BASE || "/api/v1";
 /** 계약 2-2: 1~2초 간격으로 polling */
 const POLL_MS = 1500;
 /** 분석은 S-04 의 30초 타이머 안에서 끝나야 한다 */

@@ -1,4 +1,4 @@
-import { ENGINE } from "./index";
+import { BASE, ENGINE } from "./index";
 
 /* 소셜 로그인은 백엔드 `feat/social-login` 브랜치의 계약 2-7·2-8 을 따른다 (dev 에 합쳐지기 전).
    이메일 로그인(`/auth/login` · `/auth/signup`)은 백엔드에 없다 — 프론트에만 남아 있다.
@@ -14,7 +14,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const useMock = ENGINE === "mock";
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const r = await fetch(`/api/v1${path}`, {
+  const r = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
