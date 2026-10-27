@@ -6,6 +6,7 @@ import { useSession } from "@/store/session";
 import { DRAW_TEXT, ERROR_TEXT } from "@/lib";
 import { useWithAdult } from "@/store/settings";
 import { STEP_ORDER } from "@/types/story";
+import { isPictureError, pictureFails } from "@/store/retry";
 
 /** 모달이 아니라 전체 화면으로 띄운다. 배경이 비치면 아이가 혼란스러워한다. */
 export default function E01Error() {
@@ -14,7 +15,13 @@ export default function E01Error() {
   const { photo } = useWithAdult();
   const base = ERROR_TEXT[errorCode ?? "ENGINE_ERROR"] ?? ERROR_TEXT.ENGINE_ERROR;
   // 사진 올리기가 꺼져 있으면(F-SET-06 기본) 그림은 화면에서 그린 것이다. 「찍기」 대신 「그리기」로 말한다
-  const t = !photo && DRAW_TEXT[errorCode ?? ""] ? { ...base, ...DRAW_TEXT[errorCode ?? ""] } : base;
+  const once = !photo && DRAW_TEXT[errorCode ?? ""] ? { ...base, ...DRAW_TEXT[errorCode ?? ""] } : base;
+  // 그림이 연속으로 걸러지면 같은 안내로 돌려보내지 않는다 (05 E-01 「반복해서 걸러질 때」).
+  // 2회면 화면에 그리기(S-03D)를 권하고, 3회부터는 어른을 부르게 한다. 버튼은 계속 S-03D 로 간다
+  const fails = isPictureError(errorCode) ? pictureFails() : 0;
+  const t = fails >= 3 ? { ...once, hint: "옆에 있는 어른에게 도와 달라고 해 볼까요?", primary: "화면에 그리기" }
+    : fails === 2 ? { ...once, hint: "화면에 그려 볼까요?", primary: "화면에 그리기" }
+    : once;
 
   const primary = () => {
     setError(null);
@@ -24,7 +31,7 @@ export default function E01Error() {
       nav("/steps");
       return;
     }
-    nav(errorCode === "ENGINE_ERROR" ? "/" : "/upload");
+    nav(fails >= 2 ? "/draw" : errorCode === "ENGINE_ERROR" ? "/" : "/upload");
   };
 
   return (
