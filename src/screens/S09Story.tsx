@@ -4,7 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
-import { propSceneFor, useProps } from "@/features/props/props";
+import { propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { sentences, speak, stopSpeak } from "@/lib";
@@ -173,14 +173,21 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 
   const page = pages[pg];
   const last = pg === pages.length - 1;
-  // 소품 장면: 내 소품 이름이 그 단계 카드의 물건과 맞으면 그 단계 첫 쪽은 소품만 크게, 다음 쪽부터 주인공.
-  // 주인공과 합성하지 않는다 — 손에 쥐거나 겹치는 리스크를 지지 않는다 (open-decisions 0-13, 10/27 회의)
+  // 소품 장면 → 주인공 장면 (한 쪽 안에서 순서대로, 10/27 사용자 「방법 2」, open-decisions 0-13).
+  // 그 단계 첫 쪽에 들어오면 먼저 소품들을 나란히 보여 주고, PROP_MS 뒤 주인공 장면으로 바뀐다. 무대를 누르면 바로 넘어간다.
+  // 「우산을 쓰고 손전등을 킨 채 걸어갔어요」처럼 소품이 여럿 · 행동과 한 문장이어도 쪽 수는 그대로다.
+  // 주인공과 합성하지 않는다 (손에 쥐거나 겹치는 리스크를 지지 않음). 아이 소품은 보호자 모드 이야기에서만 (팀원 의견)
   const mine = useProps((st) => st.mine);
-  // 그 단계 쪽이 하나뿐이면(장소 1쪽) 주인공이 빠지지 않게 소품 장면을 만들지 않는다
-  const stagePages = pages.filter((p) => p.stage === page.stage).length;
   const firstOfStage = pages.findIndex((p) => p.stage === page.stage) === pg;
-  // 아이가 만든 소품은 보호자 모드 이야기에서만. 기본 모드는 미리 만든 저장본 · 기본 소품만 쓴다 (팀원 의견, 10/27)
-  const insert = story.guardian && firstOfStage && stagePages > 1 ? propSceneFor(page.stage, story.picks, mine) : null;
+  const shown = story.guardian && firstOfStage ? propsForStage(page.stage, story.picks, mine) : [];
+  const shownKey = shown.map((p) => p.id).join(",");
+  const [propPhase, setPropPhase] = useState(false);
+  useEffect(() => {
+    if (!shownKey) { setPropPhase(false); return; }
+    setPropPhase(true);
+    const t = setTimeout(() => setPropPhase(false), PROP_MS);
+    return () => clearTimeout(t);
+  }, [pg, shownKey]);
   const clip = page.animationUrl && /\.mp4(\?|$)/i.test(page.animationUrl) ? page.animationUrl : null;
   const still = story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
 
@@ -189,9 +196,15 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       acts={<BigButton go onClick={() => { stop(); onDone(); }}>순서 맞추기</BigButton>}>
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23) */}
       <div className="spread">
-        <div className="stage">
-          {insert
-            ? <img src={insert.png} alt={`내가 그린 ${insert.name}`} style={{ maxWidth: "70%", maxHeight: "75%", objectFit: "contain" }} />
+        <div className="stage" onClick={propPhase ? () => setPropPhase(false) : undefined}>
+          {propPhase && shown.length
+            // 소품들을 같은 크기 칸에 나란히. 아이가 그린 크기 · 모양과 상관없이 칸에 맞춰 들어간다
+            ? <div style={{ display: "flex", gap: "6%", alignItems: "center", justifyContent: "center", width: "90%", height: "80%" }}>
+                {shown.map((p) => (
+                  <img key={p.id} src={p.png} alt={`내가 그린 ${p.name}`}
+                    style={{ flex: "1 1 0", minWidth: 0, maxHeight: "100%", objectFit: "contain" }} />
+                ))}
+              </div>
             : clip
             ? <video key={clip} src={clip} autoPlay loop muted playsInline
                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
@@ -221,6 +234,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     </Screen>
   );
 }
+
+/** 소품 장면을 보여 주는 시간. 그 뒤 같은 쪽에서 주인공 장면으로 바뀐다 */
+const PROP_MS = 2200;
 
 /** 쪽 동작 → 브라우저 캔버스 동작 (목 엔진). 캔버스에는 뛰기 · 춤이 없어 걷기 · 점프로 */
 const CANVAS_MOTION: Record<string, MotionId> = {

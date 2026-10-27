@@ -39,17 +39,22 @@ const matches = (name: string, word: string) => {
   return n === word || n.endsWith(word);
 };
 
-/** 그 단계 쪽에 보여 줄 내 소품 하나 (없으면 null) */
-export function propSceneFor(
+/** 한 쪽에 함께 보여 줄 소품은 이만큼까지 */
+export const MAX_PROPS_PER_PAGE = 3;
+
+/** 그 단계 쪽에 보여 줄 내 소품들 (없으면 빈 목록). 한 문장에 소품이 여럿이어도 같은 쪽에 함께 나온다.
+ *  지금은 카드 낱말로 고른다 — 보호자 모드 실시간 대본이 생기면 대본이 쪽마다 적는 소품 목록으로 바꾼다 */
+export function propsForStage(
   stage: StepKind, picks: Partial<Record<StepKind, string>> | undefined, mine: MyProp[],
-): MyProp | null {
+): MyProp[] {
   const id = picks?.[stage];
   const words = (id && WORDS_BY_CARD[stage]?.[id]) || [];
+  const out: MyProp[] = [];
   for (const w of words) {
-    const hit = mine.find((p) => matches(p.name, w));
-    if (hit) return hit;
+    const hit = mine.find((p) => matches(p.name, w) && !out.includes(p));
+    if (hit) out.push(hit);
   }
-  return null;
+  return out.slice(0, MAX_PROPS_PER_PAGE);
 }
 
 /* 저장 — 회원은 이 기기(localStorage), 비회원은 이 탭에만(sessionStorage). 원본 그림 보관 원칙과 같다 (AGENTS.md 5장).
