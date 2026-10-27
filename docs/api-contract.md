@@ -33,7 +33,7 @@
 | S-07 선택지 목록 | `src/features/story/choices.ts` | 계약 2-5 ⚠ 「선택지를 서버가 내려줄지」 미정 |
 | 이야기 목록 (S-01·S-12) | `store/library.ts` (sessionStorage / localStorage) | 목록 엔드포인트 없음 |
 | 어른 설정 (S-13) | `store/settings.ts` | 설정 엔드포인트 없음 |
-| 로그인·회원가입 (S-15·S-16) | `src/api/auth.ts`가 `/api/v1/auth/*`를 부르지만 **백엔드에 없다**. 아래 4절이 프론트 제안 | 계약 4절 9번 「로그인/세션 없음 (비회원)」 |
+| 이메일 로그인·회원가입 (S-15·S-16) | `src/api/auth.ts`가 `/api/v1/auth/login` · `/auth/signup`을 부르지만 **백엔드에 없다** (4-3). 소셜 로그인(`POST /api/v1/auth/{provider}` · `GET /api/v1/auth/me`)은 백엔드 dev 에 있다 | 계약 2-7 · 2-8 |
 
 ---
 
@@ -116,14 +116,14 @@ E-01 문구는 여전히 프론트가 코드로 고른다 (`src/lib.ts` `ERROR_T
   `long` 이면 응답에 `book`(제목 · 쪽마다 `stage` · `action` · `text` · `child_words` · `order_pages`)이 온다 (계약 2-6) → `Story.book`.
   S-09 는 쪽을 넘기며 보고(`BookView`), 쪽마다 `audio_url` · `animation_url`(같은 날 추가)을 쓴다 — 들려주기는 쪽 음성이 끝나면 다음 쪽으로, 음성 없는 쪽은 브라우저 TTS, 영상 없는 쪽은 멈춘 그림(목 엔진은 캔버스가 그 쪽 동작). S-10 은 `order_pages` 쪽의 첫 문장 네 장
 - 서버에는 선택지 **id가 아니라 라벨**을 보낸다 (계약이 자유 문자열 50자)
-- 제목이 없어서 `「{장소}에 간 날」`을 프론트가 만든다 (S-12·S-13 목록용)
+- 제목은 서버 `book.title`(계약 2-6, 긴 이야기)을 먼저 쓴다. 없으면(짧은 이야기) `「{장소}에 간 날」`을 프론트가 만든다 (S-12·S-13 목록용)
 
 ### 기다리는 시간
 
 | 구간 | 프론트 제한 | 실측 (2026-09-29, 이 PC, CPU) |
 |---|---|---|
 | 분석 (S-04) | 30초 (`ANALYZE_LIMIT_MS`, S-04 타이머와 같다) | 17초. 게임이 CPU 40%를 쓰던 때라 부풀려진 값. 오전 단독 실측은 검출 2.1~2.6초 |
-| 이야기 + MP4 (S-08) | 300초 (`STORY_LIMIT_MS`, 백엔드 AI 타임아웃과 같다) | 54초 |
+| 이야기 + MP4 (S-08) | 300초 (`STORY_LIMIT_MS`). 백엔드 로컬 `.env.example` 의 `AI_TIMEOUT_SECONDS`(300)에 맞췄다. 배포 `deploy/.env.prod.example` 은 120, 코드 기본값은 60 이라 배포에서는 백엔드가 먼저 `AI_TIMEOUT` 을 낸다 | 54초 |
 
 ---
 
