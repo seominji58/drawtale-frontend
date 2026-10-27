@@ -222,6 +222,12 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         </div>
       </div>
 
+      {/* 진행 바 — 몇 쪽째인지 (2026-10-27 사용자). 글자를 몰라도 남은 양이 보인다 */}
+      <div className="progress" role="progressbar" aria-label="이야기 진행"
+        aria-valuemin={1} aria-valuemax={pages.length} aria-valuenow={pg + 1}>
+        <i style={{ width: `${((pg + 1) / pages.length) * 100}%` }} />
+      </div>
+
       <div className="row" style={{ flex: "0 0 auto" }}>
         <BigButton disabled={pg === 0} onClick={() => go(pg - 1)} nudgeOnDisabled={false}>앞 쪽</BigButton>
         <BigButton disabled={muteAll} onClick={play} nudgeOnDisabled={false}>

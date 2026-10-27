@@ -69,6 +69,13 @@
 }
 .spread-text .hint { text-align: left; }
 
+/* S-09 진행 바 — 지금 몇 쪽째인지 가로로 길게. 회색 길에 진한 회색이 쪽 비율만큼 찬다 (2026-10-27 사용자).
+   --grape 는 주된 행동 하나에만 쓰므로 여기는 회색. 움직임은 채워지는 것만, 짧게 */
+.progress { flex: 0 0 auto; height: 14px; border-radius: 999px; background: var(--edge); overflow: hidden; }
+.progress > i { display: block; height: 100%; border-radius: inherit; background: var(--ink-soft);
+  transition: width var(--dur) var(--ease); }
+@media (prefers-reduced-motion: reduce) { .progress > i { transition: none; } }
+
 [data-level="1"] .spread { grid-template-columns: 1.6fr 1fr; }
 [data-level="1"] .spread-text .said { font-size: calc(var(--t-question) - 4px); }
 
