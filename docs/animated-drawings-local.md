@@ -13,6 +13,7 @@
 | Meta AnimatedDrawings TorchServe 이미지 | **끝** — 직접 빌드했다가 팀원 `drawtale-ai` 것으로 갈아탔다 (아래) |
 | 팀원 AI 서버(`drawtale-ai` dev) 띄우기 | **끝** — `docker compose up -d`, 8001·8080 |
 | 팀원 백엔드(`drawtale-backend` dev) 띄우기 | **끝** — 이제 git clone `drawtale-backend-git/`(dev)에서 띄운다. 로컬 Postgres, `AI_USE_MOCK=false`, 8000 |
+| 10/27 S-03D 그리기 도구 · 카드 4장 고정 · 문제별 행동 카드 · 인물 · 기분 칸(시험) | **push** — 백엔드는 `extras` 칸 · migration `f8a1b2c3d4e5` 가 함께 올라감 (`docs/worklog.md` 맨 위) |
 | **프론트를 백엔드 계약에 맞춤** | **끝** — `docs/api-contract.md`. 화면까지 백엔드 흐름으로 (S-09 MP4, S-10 문장 카드) |
 | 실제 모델로 S-01~S-11 전 구간 | **끝** — 브라우저로 확인. 목 모드도 끝까지 돈다 |
 | 커밋 · push | **끝** — 프론트 `feat/backend-contract`(+ 로컬 `main` 처음 커밋 3개), 백엔드 **`dev` 에 합침**(팀 합의로 dev 하나에서 작업), AI `feat/gentle-motions` · 그 위의 `feat/joint-confidence` push. 프론트 main 합치기와 PR 은 아직 |
@@ -27,7 +28,7 @@
 | 영역별 진행 표 | **끝** — 공유 문서 「진행 상황」, 사본은 `docs/team-status.md` · 백엔드/AI `docs/진행상황.md` |
 | 동물 · 괴물 그림 실험 (2026-10-12 · 10/19) | **실험만** — 모양에서 뼈대를 뽑는 방법이 13장 모두 움직임. 10/19 뱀 · 지렁이는 「몸 축 꿈틀」로 3장 움직임(똬리는 아직). 10/20 아무 그림 파일 · 폴더로 돌릴 수 있게 함(`shape_rig.py 파일 --out 폴더`), 네발 동물 전용 걷기 `quadruped.py`. 코드는 `hankan-story/experiments/animal-monster/`, 판단은 `open-decisions.md` 0-7 |
 | 「어른과 함께」 1단계 (2026-10-12) | **끝 (프론트)** — pt_docs F-SET-06. 사진 올리기 · 말로 덧붙이기를 로그인한 보호자만 켠다, 기본 꺼짐. 목 엔진으로 S-03 → S-11 확인 |
-| S-07 카드 옆 말하기 · 적기 (2026-10-23) | **끝 (프론트, 커밋 전)** — 카드 대신 아이 말로 칸을 정함, 네 칸 모두 · 앞 칸 돌아가 고치기. 들은 글 · 적은 글 모두 「이대로 할래요」로 확정해야 들어감. 목 엔진 확인, 실제 마이크는 아직 |
+| S-07 카드 옆 말하기 · 적기 (2026-10-23) | **끝 (프론트, 커밋 전)** — 카드 대신 아이 말로 칸을 정함(장소는 카드만) · 앞 칸 돌아가 고치기. 들은 글 · 적은 글 모두 「이대로 할래요」로 확정해야 들어감. 목 엔진 확인, 실제 마이크는 아직 |
 | 긴 이야기 1단계 (2026-10-12) | **끝** — 쪽 단위 그림책 (`length=long`, `book`). 대본 gpt-5.4-mini 로 4편 확인. 쪽마다 음성 · 동작은 다음 |
 
 **팀원용 한 장 요약은 `docs/team-status.md`**, Antigravity 는 `GEMINI.md` 부터 읽는다.
