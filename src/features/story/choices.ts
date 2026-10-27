@@ -124,8 +124,9 @@ const RAW_EXTRA: Record<ExtraKind, [string, string, string][]> = {
   ],
 };
 
-/** 인물 · 기분 칸을 묻는지. false 로 두면 네 칸만 묻는다 (회의에서 빼기로 하면 이것부터) */
-export const ASK_EXTRAS = true;
+/** 인물 · 기분 칸을 묻는지. false 면 네 칸만 묻는다.
+ *  2026-10-27 사용자 결정: 네 칸(장소 · 문제 · 행동 · 결과)만 고른다 — 꺼 둠 (open-decisions 0-11) */
+export const ASK_EXTRAS = false;
 
 /** 지원 수준별로 묻는 순서. Level 1 은 인물만 더하고, 2 · 3 은 기분까지 묻는다 — 칸이 늘수록 아이가 지치므로 */
 export function askOrder(level: SupportLevel): AskKind[] {
