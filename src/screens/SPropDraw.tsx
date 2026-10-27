@@ -7,6 +7,8 @@ import type { Tool } from "@/components/DrawTools";
 import { ERASER_SCALE, H, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, toTrimmedPng } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Pt } from "@/features/draw/drawing";
 import { MAX_PROP_NAME, useProps } from "@/features/props/props";
+import type { PropSize } from "@/features/props/props";
+import PropSizePicker from "@/features/props/PropSizePicker";
 import { useGuardianMode } from "@/store/settings";
 
 /** 소품 그리기 · 이름 붙이기 (2026-10-27 로컬 시험, open-decisions 0-13).
@@ -32,6 +34,7 @@ export default function SPropDraw() {
   const [png, setPng] = useState<string | null>(loc.state?.png ?? null);
   const from = loc.state?.from === "photo" ? "photo" : "draw";
   const [name, setName] = useState("");
+  const [size, setSize] = useState<PropSize>("m");
   const empty = drawing.head.length === 0;
 
   useLayoutEffect(() => {
@@ -94,15 +97,15 @@ export default function SPropDraw() {
     const typed = name.trim().slice(0, MAX_PROP_NAME);
     const register = () => {
       if (!typed) return;
-      add({ name: typed, png, from });
+      add({ name: typed, png, from, size });
       nav("/props", { replace: true });
     };
     return (
       <Screen back={from === "photo" ? "/props" : () => setPng(null)} speech="무엇을 그렸나요?" title="내 소품">
         <h2 className="question">무엇을 그렸나요?</h2>
         <div className="row" style={{ flex: 1, minHeight: 0, flexWrap: "wrap", alignItems: "stretch" }}>
-          <div className="stage" style={{ flex: 1, minWidth: 240 }}>
-            <img src={png} alt="새 소품" style={{ maxWidth: "80%", maxHeight: "80%", objectFit: "contain" }} />
+          <div className="stage" style={{ flex: 1, minWidth: 240, padding: 24 }}>
+            <PropSizePicker png={png} size={size} onSize={setSize} />
           </div>
           {/* 이름은 아이가 말하고 보호자가 적어도 된다. 글쇠판은 어른 크기 (AGENTS.md 3.4) */}
           <form data-audience="adult" className="own" style={{ flex: "0 1 360px" }}

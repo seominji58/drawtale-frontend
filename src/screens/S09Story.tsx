@@ -4,7 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
-import { propsForStage, useProps } from "@/features/props/props";
+import { propHeight, propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { sentences, speak, stopSpeak } from "@/lib";
@@ -117,8 +117,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const readingRef = useRef(false);
   const audio = useRef<HTMLAudioElement | null>(null);
   const perPage = pages.some((p) => p.audioUrl);
-  /** 지금 쪽을 얼마나 읽었는지 (0~1). 들려주는 동안 나레이션 길이에 맞춰 차고, 손으로 넘기면 그 쪽은 다 찬 것으로 본다 */
-  const [frac, setFrac] = useState(1);
+  /** 지금 쪽 진행 (0~1). 쪽에 들어올 때마다 0 에서 시작해 그 쪽 음성(없으면 글 길이로 어림한 나레이션) 길이에 맞춰 찬다.
+   *  들려주는 동안은 실제 재생 시각을 따른다 (2026-10-27 사용자 「쪽마다 하나의 바, 음성 · 영상 길이에 맞춰 회색이 초록으로」) */
+  const [frac, setFrac] = useState(0);
   const ttsTimer = useRef(0);
   const stopTts = () => cancelAnimationFrame(ttsTimer.current);
   /** 브라우저 TTS 는 진행 시각을 주지 않아 글자 수로 읽는 시간을 어림한다 (끝나면 onEnd 에서 1) */
@@ -147,7 +148,37 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     readingRef.current = false;
     stopSpeak(); audio.current?.pause(); stopTts(); setReading(false);
   };
-  const go = (n: number) => { stop(); setFrac(1); setPg(Math.max(0, Math.min(pages.length - 1, n))); };
+  const go = (n: number) => { stop(); setPg(Math.max(0, Math.min(pages.length - 1, n))); };
+
+  // 들려주지 않을 때도 쪽에 들어오면 바가 그 쪽 길이만큼 찬다. 쪽 음성 파일이 있으면 그 길이, 없으면 글 길이로 어림
+  useEffect(() => {
+    if (readingRef.current) return;
+    setFrac(0);
+    stopTts();
+    let alive = true;
+    const run = (sec: number) => {
+      if (!alive) return;
+      const t0 = performance.now();
+      const tick = () => {
+        const f = Math.min(1, (performance.now() - t0) / (sec * 1000));
+        setFrac(f);
+        if (f < 1) ttsTimer.current = requestAnimationFrame(tick);
+      };
+      tick();
+    };
+    const est = Math.max(1.2, pages[pg].text.length / TTS_CHARS_PER_SEC);
+    const url = pages[pg].audioUrl;
+    if (url) {
+      const a = new Audio();
+      a.preload = "metadata";
+      a.onloadedmetadata = () => run(a.duration && isFinite(a.duration) ? a.duration : est);
+      a.onerror = () => run(est);
+      a.src = url;
+    } else {
+      run(est);
+    }
+    return () => { alive = false; stopTts(); };
+  }, [pg]);
 
   /** n 쪽부터 끝까지 읽는다. 쪽 음성 파일이 있으면 그것을, 없으면 브라우저 TTS */
   const readPage = (n: number) => {
@@ -220,11 +251,12 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       <div className="spread">
         <div className="stage" onClick={propPhase ? () => setPropPhase(false) : undefined}>
           {propPhase && shown.length
-            // 소품들을 같은 크기 칸에 나란히. 아이가 그린 크기 · 모양과 상관없이 칸에 맞춰 들어간다
-            ? <div style={{ display: "flex", gap: "6%", alignItems: "center", justifyContent: "center", width: "90%", height: "80%" }}>
+            // 소품들을 나란히. 그린 곳만 잘라 두었으니 아이가 그린 크기 · 모양과 상관없이 고른 크기(작게 · 보통 · 크게) 상자에
+            // 비율을 지켜 맞춰 들어간다. 여럿이면 한 개가 차지할 폭도 줄인다
+            ? <div style={{ display: "flex", gap: "5%", alignItems: "center", justifyContent: "center", width: "92%", height: "100%" }}>
                 {shown.map((p) => (
                   <img key={p.id} src={p.png} alt={`내가 그린 ${p.name}`}
-                    style={{ flex: "1 1 0", minWidth: 0, maxHeight: "100%", objectFit: "contain" }} />
+                    style={{ height: `${propHeight(p.size) * 100}%`, maxWidth: `${Math.floor(85 / shown.length)}%`, objectFit: "contain" }} />
                 ))}
               </div>
             : clip
@@ -244,15 +276,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         </div>
       </div>
 
-      {/* 진행 바 (2026-10-27 사용자) — 쪽마다 한 칸, 칸 길이는 그 쪽 나레이션 길이(글자 수) 비율.
-          지난 쪽은 다 차 있고, 지금 쪽은 들려주는 동안 나레이션에 맞춰 찬다. 글자를 몰라도 남은 양이 보인다 */}
-      <div className="progress" role="progressbar" aria-label="이야기 진행"
-        aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(((pg === 0 ? 0 : ends[pg - 1]) + frac * (ends[pg] - (pg === 0 ? 0 : ends[pg - 1]))) * 100)}>
-        {pages.map((p, i) => (
-          <span key={p.page} style={{ flex: `${ends[i] - (i === 0 ? 0 : ends[i - 1])} 1 0` }}>
-            <i style={{ width: `${i < pg ? 100 : i === pg ? frac * 100 : 0}%` }} />
-          </span>
-        ))}
+      {/* 진행 바 (2026-10-27 사용자) — 이 쪽 하나의 바. 쪽에 들어올 때마다 비어서 시작해
+          그 쪽 음성 길이에 맞춰 회색이 초록으로 찬다. 글자를 몰라도 이 쪽이 얼마나 남았는지 보인다 */}
+      <div className="progress" role="progressbar" aria-label="이 쪽 진행"
+        aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(frac * 100)}>
+        <i style={{ width: `${frac * 100}%` }} />
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>

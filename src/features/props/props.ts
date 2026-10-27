@@ -15,10 +15,23 @@ export interface MyProp {
   png: string;
   /** "draw" 화면에 그림 · "photo" 종이 그림을 찍어 올림 */
   from: "draw" | "photo";
+  /** 장면에서 보일 크기. 없으면 보통 (10/27 사용자 「비율 작게 넣을 수 있도록」) */
+  size?: PropSize;
   createdAt: string;
 }
 
 export const MAX_PROPS = 30;
+
+/** 소품 크기 — 장면 높이에 대한 최대 비율. 그린 곳만 잘라 두었으니 크게 그렸든 작게 그렸든, 사진이든 그림이든
+ *  이 상자 안에 비율을 지켜 맞춰 들어간다 */
+export type PropSize = "s" | "m" | "l";
+export const PROP_SIZES: { id: PropSize; name: string; height: number }[] = [
+  { id: "s", name: "작게", height: 0.3 },
+  { id: "m", name: "보통", height: 0.45 },
+  { id: "l", name: "크게", height: 0.6 },
+];
+export const propHeight = (size: PropSize | undefined) =>
+  (PROP_SIZES.find((x) => x.id === size) ?? PROP_SIZES[1]).height;
 export const MAX_PROP_NAME = 12;
 
 /** 카드 → 그 단계 쪽에 나올 수 있는 물건 낱말. 내 소품 이름이 이 낱말로 끝나면 그 쪽에 소품 장면이 생긴다
@@ -86,6 +99,7 @@ interface PropState {
   mine: MyProp[];
   add: (p: Omit<MyProp, "id" | "createdAt">) => MyProp;
   remove: (id: string) => void;
+  update: (id: string, patch: Partial<Pick<MyProp, "name" | "size">>) => void;
   reload: () => void;
 }
 
@@ -100,6 +114,11 @@ export const useProps = create<PropState>((set, get) => ({
   },
   remove: (id) => {
     const mine = get().mine.filter((p) => p.id !== id);
+    set({ mine });
+    persist(mine);
+  },
+  update: (id, patch) => {
+    const mine = get().mine.map((p) => (p.id === id ? { ...p, ...patch } : p));
     set({ mine });
     persist(mine);
   },

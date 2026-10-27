@@ -69,13 +69,10 @@
 }
 .spread-text .hint { text-align: left; }
 
-/* S-09 진행 바 — 지금 몇 쪽째인지 가로로 길게. 회색 길에 진한 회색이 쪽 비율만큼 찬다 (2026-10-27 사용자).
-   --grape 는 주된 행동 하나에만 쓰므로 여기는 회색. 움직임은 채워지는 것만, 짧게 */
-.progress { flex: 0 0 auto; display: flex; gap: 4px; height: 14px; }
-.progress > span { height: 100%; border-radius: 999px; background: var(--edge); overflow: hidden; min-width: 0; }
-.progress > span > i { display: block; height: 100%; border-radius: inherit; background: var(--ink-soft);
-  transition: width 250ms linear; }
-@media (prefers-reduced-motion: reduce) { .progress > span > i { transition: none; } }
+/* S-09 진행 바 — 이 쪽 하나의 바. 그 쪽 음성 길이에 맞춰 회색 길이 초록으로 찬다 (2026-10-27 사용자).
+   길은 회색, 채움은 초록. --grape(주된 행동 하나)와 겹치지 않는다 */
+.progress { flex: 0 0 auto; height: 14px; border-radius: 999px; background: var(--edge); overflow: hidden; }
+.progress > i { display: block; height: 100%; border-radius: inherit; background: var(--progress-fill, #4CB782); }
 
 [data-level="1"] .spread { grid-template-columns: 1.6fr 1fr; }
 [data-level="1"] .spread-text .said { font-size: calc(var(--t-question) - 4px); }
