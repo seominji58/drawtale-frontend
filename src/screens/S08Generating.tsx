@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import Waiting from "@/components/Waiting";
 import { Pencil } from "@/components/illust";
 import { useSession } from "@/store/session";
-import { useSettings } from "@/store/settings";
+import { useGuardianMode, useSettings } from "@/store/settings";
 import { useLibrary } from "@/store/library";
 import { useAuth, consumeTrial } from "@/store/auth";
 import { generateStory, ApiError, ENGINE } from "@/api";
@@ -23,6 +23,7 @@ export default function S08Generating() {
   const voiceMode = useSettings((s) => s.voiceMode);
   const protagonist = useSettings((s) => s.protagonistVoice);
   const storyLength = useSettings((s) => s.storyLength);
+  const guardian = useGuardianMode();
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
   const [showStop, setShowStop] = useState(false);
@@ -41,7 +42,7 @@ export default function S08Generating() {
     }, ctrl.signal, { mode: voiceMode, protagonist, name }, storyLength)
       .then((res) => {
         // 고른 카드를 이야기에 붙여 둔다 — 내 이야기(S-12)에서 다시 볼 때도 소품을 얹을 수 있게
-        const s = { ...res, picks: { place: picks.place, problem: picks.problem, action: picks.action, result: picks.result } };
+        const s = { ...res, guardian, picks: { place: picks.place, problem: picks.problem, action: picks.action, result: picks.result } };
         setStory(s); add(s);
         if (mode === "guest") consumeTrial();
         nav("/story", { replace: true });
@@ -51,7 +52,7 @@ export default function S08Generating() {
         setError(e instanceof ApiError ? e.code : "ENGINE_ERROR"); nav("/error");
       });
     return () => { clearTimeout(t); ctrl.abort(); };
-  }, [character, picks, said, setStory, add, setError, nav, mode, voiceMode, protagonist, name]);
+  }, [character, picks, said, setStory, add, setError, nav, mode, voiceMode, protagonist, name, guardian]);
 
   const stop = () => { abort.current?.abort(); nav("/steps"); };
 

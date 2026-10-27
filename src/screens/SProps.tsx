@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { MAX_PROPS, paperToSticker, useProps } from "@/features/props/props";
 import { useAuth } from "@/store/auth";
-import { useWithAdult } from "@/store/settings";
+import { useGuardianMode, useWithAdult } from "@/store/settings";
 
 /** 내 소품 — 아이가 등록한 물건 목록 (2026-10-27 로컬 시험, 설계서에 없는 화면 · open-decisions 0-13).
  *  「소품 그리기」로 화면에 그리거나, 보호자가 켰으면 「그림 올리기」로 종이 그림을 찍어 올린 뒤 이름을 적는다.
@@ -14,6 +14,8 @@ export default function SProps() {
   const mine = useProps((s) => s.mine);
   const reload = useProps((s) => s.reload);
   const mode = useAuth((s) => s.mode);
+  // 보호자 모드에서만 연다 (open-decisions 0-13)
+  const guardian = useGuardianMode();
   // 사진 올리기는 「어른과 함께」를 켠 보호자만 (F-SET-06, S-03 과 같은 조건)
   const photoOn = useWithAdult().photo;
   const file = useRef<HTMLInputElement>(null);
@@ -22,6 +24,7 @@ export default function SProps() {
 
   // 로그인 · 로그아웃 뒤에는 저장 장소가 바뀐다 (회원 이 기기 · 비회원 이 탭)
   useEffect(() => { reload(); }, [reload, mode]);
+  if (!guardian) return <Navigate to="/stories" replace />;
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;

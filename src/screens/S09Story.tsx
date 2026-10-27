@@ -179,7 +179,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 그 단계 쪽이 하나뿐이면(장소 1쪽) 주인공이 빠지지 않게 소품 장면을 만들지 않는다
   const stagePages = pages.filter((p) => p.stage === page.stage).length;
   const firstOfStage = pages.findIndex((p) => p.stage === page.stage) === pg;
-  const insert = firstOfStage && stagePages > 1 ? propSceneFor(page.stage, story.picks, mine) : null;
+  // 아이가 만든 소품은 보호자 모드 이야기에서만. 기본 모드는 미리 만든 저장본 · 기본 소품만 쓴다 (팀원 의견, 10/27)
+  const insert = story.guardian && firstOfStage && stagePages > 1 ? propSceneFor(page.stage, story.picks, mine) : null;
   const clip = page.animationUrl && /\.mp4(\?|$)/i.test(page.animationUrl) ? page.animationUrl : null;
   const still = story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
 

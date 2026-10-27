@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { ColorPalette, PenTools } from "@/components/DrawTools";
@@ -7,6 +7,7 @@ import type { Tool } from "@/components/DrawTools";
 import { ERASER_SCALE, H, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, toTrimmedPng } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Pt } from "@/features/draw/drawing";
 import { MAX_PROP_NAME, useProps } from "@/features/props/props";
+import { useGuardianMode } from "@/store/settings";
 
 /** 소품 그리기 · 이름 붙이기 (2026-10-27 로컬 시험, open-decisions 0-13).
  *  1) 화면에 한 장 그린다 (S-03D 와 같은 도구, 부위 단계 · 안내 점선 없음). 종이 그림을 올렸으면 이 단계를 건너뛴다.
@@ -15,6 +16,8 @@ export default function SPropDraw() {
   const nav = useNavigate();
   const loc = useLocation() as { state?: { png?: string; from?: "photo" } };
   const add = useProps((s) => s.add);
+  // 보호자 모드에서만 연다 (open-decisions 0-13)
+  const guardian = useGuardianMode();
 
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState(PEN_COLORS[0].hex);
@@ -83,6 +86,8 @@ export default function SPropDraw() {
       }));
     }
   };
+
+  if (!guardian) return <Navigate to="/stories" replace />;
 
   // 2) 이름 붙이기
   if (png) {

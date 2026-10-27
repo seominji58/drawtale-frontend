@@ -1,6 +1,7 @@
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
+import { useGuardianMode } from "@/store/settings";
 import { useProps } from "@/features/props/props";
 
 /** 내 소품 하나 보기 · 지우기 (2026-10-27 로컬 시험, open-decisions 0-13) */
@@ -9,6 +10,9 @@ export default function SPropView() {
   const { id = "" } = useParams();
   const prop = useProps((s) => s.mine.find((p) => p.id === id));
   const remove = useProps((s) => s.remove);
+  // 보호자 모드에서만 연다 (open-decisions 0-13)
+  const guardian = useGuardianMode();
+  if (!guardian) return <Navigate to="/stories" replace />;
   if (!prop) return <Navigate to="/props" replace />;
 
   return (

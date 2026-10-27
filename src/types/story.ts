@@ -51,6 +51,8 @@ export interface Story {
   book?: Book | null;
   /** 이 이야기를 만들 때 고른 카드 id (프론트만, 서버에는 없다). 내 소품을 어느 쪽에 얹을지 정한다 (open-decisions 0-13) */
   picks?: Partial<Record<StepKind, string>>;
+  /** 보호자 모드에서 만든 이야기인지 (프론트만). 아이가 만든 소품은 이런 이야기에만 나온다 (open-decisions 0-13) */
+  guardian?: boolean;
 }
 
 /** 긴 이야기의 한 쪽. stage 는 아이가 고른 네 칸 중 어디에서 나온 쪽인지 */

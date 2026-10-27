@@ -49,6 +49,14 @@ export function useWithAdult() {
   return { member, photo: member && photoUpload, voice: member && voiceInput };
 }
 
+/** 보호자 모드 — 로그인한 보호자가 「어른과 함께」(사진 올리기 · 말로 덧붙이기) 중 하나라도 켰을 때.
+ *  질문 칸 · 실시간 대본 화면이 생기기 전까지 이것을 보호자 모드로 본다 (2026-10-27).
+ *  아이가 만든 소품(내 소품)은 보호자 모드에서만 쓴다 — 기본 모드는 미리 만든 저장본 · 기본 소품만 (open-decisions 0-13) */
+export function useGuardianMode() {
+  const { member, photo, voice } = useWithAdult();
+  return member && (photo || voice);
+}
+
 /** 지원 수준별 화면 구성값. 설계서 2.1
  *
  *  2026-10-12: 기본값(2)에도 confirmStep 을 켰다. 아이가 카드를 보지 않고 누를 수 있다는
