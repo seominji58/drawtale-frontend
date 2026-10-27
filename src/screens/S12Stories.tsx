@@ -20,6 +20,11 @@ export default function S12Stories() {
         <div className="box warn">앱을 닫으면 이야기가 사라져요</div>
       )}
 
+      {/* 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 곁들이는 길이라 글자 줄로 */}
+      <div className="aside-links">
+        <button className="btn link" onClick={() => nav("/props")}>내 소품 그리기</button>
+      </div>
+
       {stories.length > 0 ? (
         <div className="list scroll">
           {stories.map((s) => (

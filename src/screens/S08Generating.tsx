@@ -39,7 +39,9 @@ export default function S08Generating() {
       setStep(STEP[s]);
       setDiag(`${s} · ${Math.round((performance.now() - started) / 1000)}s · ${ENGINE}`);
     }, ctrl.signal, { mode: voiceMode, protagonist, name }, storyLength)
-      .then((s) => {
+      .then((res) => {
+        // 고른 카드를 이야기에 붙여 둔다 — 내 이야기(S-12)에서 다시 볼 때도 소품을 얹을 수 있게
+        const s = { ...res, picks: { place: picks.place, problem: picks.problem, action: picks.action, result: picks.result } };
         setStory(s); add(s);
         if (mode === "guest") consumeTrial();
         nav("/story", { replace: true });

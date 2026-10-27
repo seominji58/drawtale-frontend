@@ -4,6 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
+import PropLayer from "@/features/props/PropLayer";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { sentences, speak, stopSpeak } from "@/lib";
@@ -190,6 +191,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
               : still
                 ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}
+          {/* 내 소품 — 아이가 그린 물건을 이 쪽 자리에 얹는다 (open-decisions 0-13) */}
+          <PropLayer stage={page.stage} picks={story.picks} />
         </div>
         <div className="spread-text">
           <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>

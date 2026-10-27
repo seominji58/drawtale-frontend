@@ -49,6 +49,8 @@ export interface Story {
   animationUrl: string | null;
   /** 긴 이야기(S-13 「이야기 길이: 길게」)일 때만. 네 칸을 뼈대로 한 쪽 단위 그림책 (서버 `book`) */
   book?: Book | null;
+  /** 이 이야기를 만들 때 고른 카드 id (프론트만, 서버에는 없다). 내 소품을 어느 쪽에 얹을지 정한다 (open-decisions 0-13) */
+  picks?: Partial<Record<StepKind, string>>;
 }
 
 /** 긴 이야기의 한 쪽. stage 는 아이가 고른 네 칸 중 어디에서 나온 쪽인지 */

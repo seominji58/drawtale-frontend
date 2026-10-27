@@ -338,6 +338,31 @@ export function detachedParts(drawing: Drawing): Part[] {
   return out;
 }
 
+/** 소품용 — 투명 바탕, 그린 곳만 잘라(여백 조금) 긴 변 512px 이하로 줄인 PNG data URL. 아무것도 없으면 null */
+export function toTrimmedPng(drawing: Drawing): string | null {
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  drawItems(ctx, drawing);
+  const a = ctx.getImageData(0, 0, W, H).data;
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (a[(y * W + x) * 4 + 3] < 20) continue;
+    if (x < x0) x0 = x; if (x > x1) x1 = x;
+    if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (x1 < 0) return null;
+  const pad = 12;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(W - 1, x1 + pad); y1 = Math.min(H - 1, y1 + pad);
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const s = Math.min(1, 512 / Math.max(w, h));
+  const out = document.createElement("canvas");
+  out.width = Math.round(w * s); out.height = Math.round(h * s);
+  out.getContext("2d")!.drawImage(c, x0, y0, w, h, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
+}
+
 /** 흰 바탕 PNG 로 만든다. 백엔드는 PNG·JPG 만 받는다 (계약 1-4) */
 export function toPngFile(drawing: Drawing): Promise<File> {
   const c = document.createElement("canvas");

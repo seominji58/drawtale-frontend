@@ -19,6 +19,8 @@ import S09Story from "@/screens/S09Story";
 import S10Order from "@/screens/S10Order";
 import S11Done from "@/screens/S11Done";
 import S12Stories from "@/screens/S12Stories";
+import SProps from "@/screens/SProps";
+import SPropDraw from "@/screens/SPropDraw";
 import S13Settings from "@/screens/S13Settings";
 import E01Error from "@/screens/E01Error";
 import S14Welcome from "@/screens/S14Welcome";
@@ -70,6 +72,9 @@ export default function App() {
             <Route path="/order" element={<S10Order />} />
             <Route path="/done" element={<S11Done />} />
             <Route path="/stories" element={<S12Stories />} />
+            {/* 내 소품 (2026-10-27 로컬 시험, open-decisions 0-13) */}
+            <Route path="/props" element={<SProps />} />
+            <Route path="/props/:id" element={<SPropDraw />} />
             <Route path="/settings" element={<S13Settings />} />
             <Route path="/error" element={<E01Error />} />
             <Route path="*" element={<Navigate to="/" replace />} />
