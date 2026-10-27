@@ -176,8 +176,10 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 소품 장면: 내 소품 이름이 그 단계 카드의 물건과 맞으면 그 단계 첫 쪽은 소품만 크게, 다음 쪽부터 주인공.
   // 주인공과 합성하지 않는다 — 손에 쥐거나 겹치는 리스크를 지지 않는다 (open-decisions 0-13, 10/27 회의)
   const mine = useProps((st) => st.mine);
+  // 그 단계 쪽이 하나뿐이면(장소 1쪽) 주인공이 빠지지 않게 소품 장면을 만들지 않는다
+  const stagePages = pages.filter((p) => p.stage === page.stage).length;
   const firstOfStage = pages.findIndex((p) => p.stage === page.stage) === pg;
-  const insert = firstOfStage ? propSceneFor(page.stage, story.picks, mine) : null;
+  const insert = firstOfStage && stagePages > 1 ? propSceneFor(page.stage, story.picks, mine) : null;
   const clip = page.animationUrl && /\.mp4(\?|$)/i.test(page.animationUrl) ? page.animationUrl : null;
   const still = story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
 

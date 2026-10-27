@@ -55,11 +55,13 @@ export default function SProps() {
 
       {mine.length > 0 ? (
         <div className="scroll" style={{
-          display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 24, padding: 4,
+          display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 200px))", gap: 24, padding: 4, alignContent: "start",
         }}>
           {mine.map((p) => (
-            <button key={p.id} className="choice" aria-label={p.name} onClick={() => nav(`/props/${p.id}`)}>
-              <img src={p.png} alt="" style={{ objectFit: "contain" }} />
+            // 카드 모양은 S-07 카드와 같고, 높이는 칸 폭에서 정한다 (목록이 길어지면 아래로 스크롤)
+            <button key={p.id} className="choice" aria-label={p.name} onClick={() => nav(`/props/${p.id}`)}
+              style={{ height: "auto", width: "100%", justifyContent: "center" }}>
+              <img src={p.png} alt="" style={{ width: "75%", height: "auto", flex: "0 0 auto", aspectRatio: "1 / 1" }} />
               <span>{p.name}</span>
             </button>
           ))}
