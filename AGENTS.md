@@ -2,15 +2,27 @@
 
 이 파일은 이 저장소에서 작업하는 모든 코딩 에이전트가 먼저 읽는 규칙이다.
 
-> **진행 중인 작업 (2026-09-29)** — AnimatedDrawings(Meta)로 실제 관절 추정을 로컬에
-> 붙이는 중이다. Docker 설치 직후에서 멈춰 있다. **이어서 작업하기 전에
-> `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
+> **진행 중인 작업 (2026-09-29)** — 프론트를 팀원 백엔드(`drawtale-backend` dev) 계약에
+> 맞췄고, 실제 모델(팀원 `drawtale-ai`)로 S-01~S-11이 돈다. 카카오·구글 소셜 로그인, S-03D 화면에 그리기,
+> S-07 말로 덧붙이기를 만들었다. 백엔드는 `dev` 하나에 합쳤고, 프론트는 `feat/backend-contract`, AI 는 `feat/joint-confidence`(`feat/gentle-motions` 위).
+> 2026-10-02: 관절 신뢰도(S-05-05 · S-06), 여러 명 · 사람 아닌 그림 오류, 원본 그림 지우기, S-10 기록까지 세 저장소에 들어갔다.
+> 2026-10-08: 이야기 음성을 ElevenLabs(나레이터 Anna Kim, `eleven_v4`)로. S-13 「읽어주기」 나레이션만 / 캐릭터 목소리 —
+> 캐릭터 목소리면 S-05 다음 `/name` 에서 친구 이름을 짓고, 나레이션이 그 이름으로 3인칭, 인물은 종류별 목소리 · 대사 감정.
+> S-05 캐릭터는 서버 Meta 렌더 미리보기 영상(`CharacterPreview`). 비회원 체험 한도는 배포 빌드에서만 센다.
+> 2026-10-12: 긴 이야기 1단계 — S-13 「이야기 길이」, 서버 `length` · `book`, S-09 `BookView`.
+> 2026-10-12: 「어른과 함께」(F-SET-06) 1단계 — 사진 올리기 · 말로 덧붙이기는 로그인한 보호자만 켠다(기본 꺼짐, `store/settings.ts` `useWithAdult()`).
+> 2026-10-23: S-07 카드 옆 「카드에 없으면」 말하기 · 적기 — 카드 대신 아이 말로 칸을 정한다. 「이걸로 할래요」로 확정해야 이야기에 들어간다.
+> 2026-10-27: S-03D 직접 그리기(색 · 굵기 · 지우개, 도장 뺌). 지원 수준을 없애고 카드 4장 고정(`FIXED_LEVEL`) — 3.3절 표는 회의 뒤 고친다. 문제마다 다른 행동 카드, 인물 · 기분 칸 시험(`ASK_EXTRAS`).
+> 영역별 진행 표는 팀 공유 문서 「진행 상황」(사본은 `docs/team-status.md`).
+> **설계 문서(01~09 · policy · legal)와 발표 덱은 `drawtale-pt_docs` 저장소**에 있고, **판단이 어긋나면 그 문서가 최우선**이다 (2026-10-12 사용자). 프론트는 React 유지.
+> **이어서 작업하기 전에 `docs/team-status.md`와 `docs/animated-drawings-local.md`의 「지금 상태」부터 읽는다.**
 
 | 문서 | 무엇이 있나 | 언제 보나 |
 |---|---|---|
-| `docs/animated-drawings-local.md` | AnimatedDrawings 로컬 실행 진행 상황, 다음 단계 | **지금 진행 중인 작업** |
-| `docs/source/화면설계서_v0.2.md` | 화면별 요소표, 동작과 예외 | **화면을 고칠 때마다** |
-| `docs/api-contract.md` | 엔드포인트, 응답 모양, 오류 코드 | 서버와 주고받는 것을 다룰 때 |
+| `docs/team-status.md` | **팀원용 한 장 요약** — 영역별 진행 표, 브랜치, 바뀐 것 | **처음 볼 때, 작업을 끝낼 때마다 갱신** |
+| `docs/animated-drawings-local.md` | 실제 모델·백엔드를 로컬에 띄우는 법, 진행 상황 | **지금 진행 중인 작업** |
+| `drawtale-pt_docs/` (설계 문서 저장소) — **판단이 어긋나면 이 문서가 최우선** | 01 요구사항 정의서부터. 화면은 `05-screen-spec.md`, 입력 그림은 `06`, 개인정보 · 안전은 `policy/`, 약관은 `legal/` | **작업 전에 fetch.** 이 저장소의 `open-decisions.md` 가안과 어긋나면 pt_docs 를 따른다 |
+| `docs/api-contract.md` | 백엔드 계약을 프론트가 어떻게 받아 쓰나 (원본은 백엔드 저장소) | 서버와 주고받는 것을 다룰 때 |
 | `docs/id-conventions.md` | 식별자 이름 규칙 | id·키·파일 이름을 다룰 때 |
 | `docs/art-direction.md` | 그림 화풍과 제약 | 아이콘·배경·삽화를 다룰 때 |
 | `docs/image-prompts.md` | 붙여넣을 프롬프트 54개 | 그림을 실제로 뽑을 때 |
@@ -66,19 +78,15 @@ cp .env.example .env
 # VITE_ENGINE=mock | agent | finetuned
 ```
 
-`mock`이면 백엔드 없이 전체 흐름이 끝까지 돈다. 백엔드는 8000번에 올리면
-`/api` 요청이 프록시된다. 엔진이 파인튜닝이든 에이전트든 응답 계약이 같으므로
+`mock`이면 백엔드 없이 전체 흐름이 끝까지 돈다. `mock`이 아니면 `/api/v1` 요청이
+8000번의 팀원 백엔드(`drawtale-backend` dev)로 프록시된다. 계약의 원본은 백엔드
+저장소의 `docs/api-contract.md`이고, 프론트 쪽 변환은 `src/api/index.ts` 한 곳에 있다.
 **화면 코드는 `VITE_ENGINE` 값을 알 필요가 없다.**
 
-```bash
-python tools/stub-server/stub.py   # 8000번. 계약서대로 응답하는 임시 서버
-```
-
 목 엔진은 `src/api/index.ts`의 함수 첫 줄에서 리턴하므로 **실서버 분기를 덮지 못한다.**
-프록시·multipart·SSE·오류 매핑을 확인할 때는 스텁을 띄우고 `VITE_ENGINE`을
-`mock`이 아닌 값으로 둔다. 조작판 `http://localhost:8000/`에서 오류 6종과
-타임아웃·연결 끊김을 주입한다. 자세한 것은 `tools/stub-server/README.md`.
-**팀원의 진짜 서버가 오면 이 폴더는 지운다.**
+polling·multipart·오류 매핑을 확인할 때는 백엔드를 띄운다. 백엔드는 `AI_USE_MOCK=true`면
+AI 없이도 돈다. 실제 모델까지 띄우는 법은 `docs/animated-drawings-local.md`.
+(스텁 서버 `tools/stub-server/`는 백엔드가 생겨 2026-09-29에 지웠다. git 이력에 있다.)
 
 ---
 
@@ -143,8 +151,10 @@ python tools/stub-server/stub.py   # 8000번. 계약서대로 응답하는 임�
 | S-01 시작 | `/` | `screens/S01Start.tsx` | 아동 |
 | S-02 그림 그리기 안내 | `/guide` | `screens/S02Guide.tsx` | 아동·어른 |
 | S-03 그림 올리기 | `/upload` | `screens/S03Upload.tsx` | 아동·어른 |
+| S-03D 화면에 그리기 | `/draw` | `screens/S03Draw.tsx` | 아동 (설계서에 없음, open-decisions 0-4) |
 | S-04 캐릭터 만드는 중 | `/analyzing` | `screens/S04Analyzing.tsx` | 아동 |
 | S-05 캐릭터 확인 | `/confirm` | `screens/S05Confirm.tsx` | 아동 |
+| (S-05) 친구 이름 짓기 | `/name` | `screens/S05Name.tsx` | 아동 (캐릭터 목소리 판에서만, 설계서에 없음, open-decisions 0-3) |
 | S-06 관절 맞추기 | `/joints` | `screens/S06Joints.tsx` | **어른** |
 | S-07 이야기 만들기 | `/steps` | `screens/S07Steps.tsx` | 아동 |
 | S-08 이야기 만드는 중 | `/generating` | `screens/S08Generating.tsx` | 아동 |
@@ -156,6 +166,7 @@ python tools/stub-server/stub.py   # 8000번. 계약서대로 응답하는 임�
 | S-14 처음 실행 | `/welcome` | `screens/S14Welcome.tsx` | **어른** |
 | S-15 로그인 | `/login` | `screens/S15Login.tsx` | **어른** |
 | S-16 회원가입 | `/signup` | `screens/S16Signup.tsx` | **어른** |
+| (S-15) 소셜 로그인 콜백 | `/auth/:provider/callback` | `screens/S15Callback.tsx` | **어른** |
 | E-01 오류 공통 | `/error` | `screens/E01Error.tsx` | 아동 |
 
 화면 흐름:
@@ -169,7 +180,7 @@ S-01 ─┬─► S-12 ──► S-09
             S-04 ──실패──► E-01 ──► S-03
               │
               ▼
-            S-05 ──신뢰도 낮음──► S-06 ──► S-05
+            S-05 ──어른 도움──► S-06 ──► S-05
               │
               ▼
             S-07 (장소 → 문제 → 행동 → 결과)
@@ -209,7 +220,8 @@ S-07 안의 장소·문제·행동·결과 네 점은 **별도 요소**이고 �
   `localStorage`에 정수 하나만 센다. 이야기 내용과 그림은 남기지 않는다.
   만드는 도중에 끊지 않고 S-01에서 시작할 때만 확인한다. 한도를 다 쓰면
   아이 화면에서 막지 않고 S-14로 보낸다. 전환 안내는 S-11에서 한 번만 띄운다.
-- 원본 그림 보관은 기본 꺼짐이다. 꺼져 있으면 분석 후 서버에서 지운다.
+- 원본 그림 보관은 기본 꺼짐이다. 꺼져 있으면 **그 그림을 떠날 때**(다른 그림 · 처음으로 · 탭 닫기) 서버에서 지운다.
+  분석 직후가 아닌 것은 렌더와 「새 이야기 만들기」가 원본을 다시 쓰기 때문이다. 요청이 빠져도 서버가 24시간 뒤 지운다 (`features/character/originals.ts`, 계약 2-10).
 
 ---
 
@@ -286,6 +298,7 @@ S-07 안의 장소·문제·행동·결과 네 점은 **별도 요소**이고 �
    질문으로 적고 멈춘다.
 4. `npm run typecheck`를 통과시킨다.
 5. 목 엔진(`VITE_ENGINE=mock`)으로 S-01부터 S-11까지 끝까지 돌려서 확인한다.
+   서버와 주고받는 것을 고쳤으면 실서버 모드(백엔드·AI 를 띄운 상태)로도 돌린다.
    S-03의 「샘플 그림으로 해보기」를 쓰면 그림 없이도 캐릭터 애니메이션까지 볼 수 있다.
    **`npm run build`만으로는 부족하다.** StrictMode 때문에 개발 모드에서만 나는
    버그가 실제로 있었다 (`docs/worklog.md` 참고).
@@ -294,12 +307,18 @@ S-07 안의 장소·문제·행동·결과 네 점은 **별도 요소**이고 �
    코드를 고치지 않은 결정과, 되돌린 시도도 남긴다.
 7. 새로 생긴 할 일이나 확인 못 한 것은 `docs/backlog.md`에 옮긴다.
    판단이 필요한 것은 `docs/open-decisions.md`에 질문으로 적는다.
+8. **팀원이 보고 알 수 있게 정리한다 — 작업을 끝낼 때마다, 어떤 도구로 했든.**
+   이 저장소는 Claude Code 와 Antigravity 를 번갈아 쓰고, 팀원은 코드보다 문서를 먼저 본다.
+   - `docs/team-status.md` — 브랜치, 바뀐 것, **팀원별로 부탁할 것**. 한 장을 넘기지 않는다
+   - `docs/animated-drawings-local.md` 「지금 상태」 표
+   - `GEMINI.md` 「지금 상태」 — Antigravity 가 처음 읽는 파일이다
+   - 맨 위 「진행 중인 작업」 인용문 (이 파일)
+   - 다른 저장소(백엔드 등)를 고쳤으면 그 저장소 문서에도 남긴다 (계약서, README)
 
 ### 임시로 놓아둔 것
 
 | 자리 | 파일 | 실제 것이 오면 |
 |---|---|---|
 | 삽화 6종 (캐릭터·종이·연필·갸웃·축하·배경) | `components/illust.tsx` | 이 파일만 갈아끼운다 |
-| 선택지 아이콘 | `api/mock/fixtures.ts`의 `icon()` | 설계서 9장 미결정 항목 |
-| 장면 배경 | `StoryScene.backgroundUrl` | 자리만 있고 비어 있다 |
-| TTS | 음성 파일이 없을 때 브라우저 TTS로 대신 읽는다 | |
+| 선택지 목록·아이콘 | `features/story/choices.ts` | 백엔드에 선택지 엔드포인트가 생기면 그리로 (계약 2-5 ⚠) |
+| TTS | `audioUrl`이 없으면 브라우저 TTS로 한 문장씩 읽는다 | 백엔드 TTS 연동 후 |

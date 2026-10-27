@@ -1,0 +1,377 @@
+/** S-03D 화면에 그리기 — 부위별 안내 모양, 도장, 획 그리기, 연결 확인, PNG 내보내기.
+ *
+ * 좌표는 800×1000 논리 좌표 하나로 다룬다. 화면에 그릴 때와 PNG 로 내보낼 때 배율만 다르다.
+ *
+ * 모양과 자리는 실측으로 정했다 (docs/open-decisions.md 0-4, 2026-09-29).
+ * - 선만 있는 도형도 **조각끼리 닿아 있으면** 검출·관절·마스크가 모두 된다. 틈이 있으면 머리·팔이 빠진다
+ *   → 도장은 항상 몸에 겹치는 자리에 찍고, 올리기 전에 `detachedParts` 로 이어졌는지 확인한다
+ * - 팔을 몸통에 붙여 그리면 움직일 때 팔이 몸통에 눌려 뭉개진다 → 팔 자리를 옆으로 벌려 둔다
+ * - 다리가 길면 검출 상자가 발끝을 자른다 → 아이 그림 비율로 짧게 둔다
+ */
+
+export const W = 800;
+export const H = 1000;
+
+export interface Pt { x: number; y: number }
+
+export type Part = "head" | "body" | "arms" | "legs";
+export const PARTS: Part[] = ["head", "body", "arms", "legs"];
+
+export type StampId = "head" | "body" | "arm_r" | "arm_l" | "leg_r" | "leg_l";
+
+export type Item =
+  /** 손 그리기 획. color · width 가 없으면 예전 기본값(검정 · 12). erase 면 지우개 획 (그린 것을 지운다).
+   *  t 는 그린 차례 — 부위가 달라도 나중에 그은 지우개가 먼저 그린 선을 지우게 차례대로 그린다 */
+  | { kind: "stroke"; pts: Pt[]; color?: string; width?: number; erase?: boolean; t?: number }
+  /** 찍은 순간의 모양을 들고 있다. 자리는 그때 그려져 있던 부위에 맞춰 정해진다 (`placeStamp`) */
+  | { kind: "stamp"; id: StampId; shape: Shape };
+
+export type Drawing = Record<Part, Item[]>;
+export const emptyDrawing = (): Drawing => ({ head: [], body: [], arms: [], legs: [] });
+
+const INK = "#3A3733";
+const LINE = 10;      // 도장 선 굵기
+const PEN = 12;       // 손 그리기 선 굵기 (기본)
+
+/** S-03D 색 (2026-10-27 사용자 「색상 선택 · 지우개 · 선 굵기」). 흰 종이 위에서 AI 가 그림을 찾을 수 있게
+ *  아주 옅은 색은 넣지 않는다 — 노랑도 진하게 */
+export const PEN_COLORS: { id: string; name: string; hex: string }[] = [
+  { id: "black", name: "검정", hex: INK },
+  { id: "red", name: "빨강", hex: "#E0413A" },
+  { id: "orange", name: "주황", hex: "#EE8320" },
+  { id: "yellow", name: "노랑", hex: "#D9A400" },
+  { id: "green", name: "초록", hex: "#2E9E5B" },
+  { id: "blue", name: "파랑", hex: "#2F6FDB" },
+  { id: "purple", name: "보라", hex: "#7E4CC9" },
+  { id: "brown", name: "갈색", hex: "#8B5A2B" },
+];
+/** 선 굵기 세 가지 (논리 좌표 800×1000 기준 px). 지우개는 고른 굵기의 두 배 */
+export const PEN_WIDTHS: { id: string; name: string; px: number }[] = [
+  { id: "thin", name: "가늘게", px: 6 },
+  { id: "mid", name: "보통", px: PEN },
+  { id: "thick", name: "굵게", px: 24 },
+];
+export const ERASER_SCALE = 2;
+
+export type Shape =
+  | { type: "circle"; c: Pt; r: number }
+  | { type: "ellipse"; c: Pt; rx: number; ry: number }
+  | { type: "capsule"; a: Pt; b: Pt; w: number };
+
+/** 아무것도 그려지지 않았을 때의 도장·안내 자리. 팔·다리의 어깨·엉덩이 쪽 끝은 몸 타원 안에 들어가 있다 */
+const SHAPES: Record<StampId, Shape> = {
+  head:  { type: "circle", c: { x: 400, y: 215 }, r: 115 },
+  body:  { type: "ellipse", c: { x: 400, y: 475 }, rx: 135, ry: 175 },
+  // 캐릭터의 오른팔은 화면 왼쪽에 있다 (백엔드 계약 1-1)
+  arm_r: { type: "capsule", a: { x: 300, y: 400 }, b: { x: 150, y: 540 }, w: 64 },
+  arm_l: { type: "capsule", a: { x: 500, y: 400 }, b: { x: 650, y: 540 }, w: 64 },
+  leg_r: { type: "capsule", a: { x: 355, y: 600 }, b: { x: 345, y: 820 }, w: 74 },
+  leg_l: { type: "capsule", a: { x: 445, y: 600 }, b: { x: 455, y: 820 }, w: 74 },
+};
+
+/** 부위마다 안내하는 모양 */
+export const GUIDE: Record<Part, StampId[]> = {
+  head: ["head"], body: ["body"], arms: ["arm_r", "arm_l"], legs: ["leg_r", "leg_l"],
+};
+
+/** 도장 모드에서 누른 자리에 맞는 도장. 팔·다리는 화면 왼쪽을 누르면 캐릭터의 오른쪽이다 */
+export function stampFor(part: Part, p: Pt): StampId {
+  const [first, second] = GUIDE[part];
+  if (!second) return first;
+  return p.x < W / 2 ? first : second;
+}
+
+function shapePath(ctx: CanvasRenderingContext2D, s: Shape) {
+  ctx.beginPath();
+  if (s.type === "circle") {
+    ctx.arc(s.c.x, s.c.y, s.r, 0, Math.PI * 2);
+  } else if (s.type === "ellipse") {
+    ctx.ellipse(s.c.x, s.c.y, s.rx, s.ry, 0, 0, Math.PI * 2);
+  } else {
+    // 양 끝이 둥근 길쭉이
+    const ang = Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x);
+    const r = s.w / 2;
+    ctx.arc(s.a.x, s.a.y, r, ang + Math.PI / 2, ang - Math.PI / 2);
+    ctx.arc(s.b.x, s.b.y, r, ang - Math.PI / 2, ang + Math.PI / 2);
+    ctx.closePath();
+  }
+}
+
+interface Box { x0: number; y0: number; x1: number; y1: number }
+
+function shapeBox(s: Shape): Box {
+  if (s.type === "circle") return { x0: s.c.x - s.r, y0: s.c.y - s.r, x1: s.c.x + s.r, y1: s.c.y + s.r };
+  if (s.type === "ellipse") return { x0: s.c.x - s.rx, y0: s.c.y - s.ry, x1: s.c.x + s.rx, y1: s.c.y + s.ry };
+  const r = s.w / 2;
+  return {
+    x0: Math.min(s.a.x, s.b.x) - r, y0: Math.min(s.a.y, s.b.y) - r,
+    x1: Math.max(s.a.x, s.b.x) + r, y1: Math.max(s.a.y, s.b.y) + r,
+  };
+}
+
+/** 한 부위에 그려진 것 전체를 감싸는 상자. 비어 있으면 null */
+function partBox(drawing: Drawing, part: Part): Box | null {
+  let b: Box | null = null;
+  const grow = (o: Box) => {
+    b = b ? { x0: Math.min(b.x0, o.x0), y0: Math.min(b.y0, o.y0), x1: Math.max(b.x1, o.x1), y1: Math.max(b.y1, o.y1) } : o;
+  };
+  for (const it of drawing[part]) {
+    if (it.kind === "stamp") grow(shapeBox(it.shape));
+    else for (const q of it.pts) grow({ x0: q.x - PEN / 2, y0: q.y - PEN / 2, x1: q.x + PEN / 2, y1: q.y + PEN / 2 });
+  }
+  return b;
+}
+
+/** 머리·몸이 서로 겹치는 폭. 이만큼 겹쳐야 선 두께를 넘어 확실히 닿는다 */
+const OVERLAP = 28;
+
+/** 도장을 찍을 자리. **이미 그려진 부위에 붙는 자리**를 고른다 — 손으로 작게 그린 머리 아래에도
+ *  몸 도장이 닿게. 떨어진 조각은 AI 가 캐릭터에서 빼 버리기 때문이다 (open-decisions 0-4).
+ *  - 머리: 몸이 있으면 몸 위에 겹치게
+ *  - 몸: 머리가 있으면 머리 아래에 겹치게
+ *  - 팔: 몸이 있으면 몸 윗부분 안쪽에서 시작해 옆으로 벌린다
+ *  - 다리: 몸이 있으면 몸 아래쪽 안쪽에서 시작한다
+ *  아무것도 없으면 기본 자리(SHAPES). */
+export function placeStamp(id: StampId, drawing: Drawing): Shape {
+  const base = SHAPES[id];
+  const head = partBox(drawing, "head");
+  const body = partBox(drawing, "body");
+
+  if (id === "head" && body && base.type === "circle") {
+    const cx = (body.x0 + body.x1) / 2;
+    return { ...base, c: { x: cx, y: body.y0 - base.r + OVERLAP } };
+  }
+  if (id === "body" && head && base.type === "ellipse") {
+    const cx = (head.x0 + head.x1) / 2;
+    return { ...base, c: { x: cx, y: head.y1 + base.ry - OVERLAP } };
+  }
+  if (body && base.type === "capsule") {
+    const bw = body.x1 - body.x0, bh = body.y1 - body.y0;
+    const dx = base.b.x - base.a.x, dy = base.b.y - base.a.y;   // 기본 방향과 길이는 그대로
+    // 몸 상자 안쪽 점. 타원이면 안에 들어가는 비율이다 (어깨 가로 20%·세로 30%, 엉덩이 가로 33%·세로 85%)
+    const a =
+      id === "arm_r" ? { x: body.x0 + bw * 0.2, y: body.y0 + bh * 0.3 } :
+      id === "arm_l" ? { x: body.x1 - bw * 0.2, y: body.y0 + bh * 0.3 } :
+      id === "leg_r" ? { x: body.x0 + bw * 0.33, y: body.y0 + bh * 0.85 } :
+                       { x: body.x1 - bw * 0.33, y: body.y0 + bh * 0.85 };
+    return { ...base, a, b: { x: a.x + dx, y: a.y + dy } };
+  }
+  return base;
+}
+
+function drawStamp(ctx: CanvasRenderingContext2D, id: StampId, shape: Shape) {
+  shapePath(ctx, shape);
+  ctx.stroke();
+  if (id === "head" && shape.type === "circle") {
+    // 도장 머리에는 얼굴을 넣어 둔다. 손으로 그릴 때는 아이가 그린다
+    const { c } = shape;
+    ctx.beginPath();
+    ctx.arc(c.x - 38, c.y - 10, 11, 0, Math.PI * 2);
+    ctx.arc(c.x + 38, c.y - 10, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(c.x, c.y + 18, 40, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+  }
+}
+
+function drawStroke(ctx: CanvasRenderingContext2D, pts: Pt[]) {
+  if (pts.length === 0) return;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  if (pts.length === 1) {
+    ctx.lineTo(pts[0].x + 0.1, pts[0].y);   // 점 하나도 보이게
+  } else {
+    // 중점을 잇는 2차 곡선으로 매끈하게
+    for (let i = 1; i < pts.length - 1; i++) {
+      const m = { x: (pts[i].x + pts[i + 1].x) / 2, y: (pts[i].y + pts[i + 1].y) / 2 };
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, m.x, m.y);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last.x, last.y);
+  }
+  ctx.stroke();
+}
+
+function inkStyle(ctx: CanvasRenderingContext2D, color = INK) {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash([]);
+}
+
+/** 지금 긋고 있는 획 (아직 그림에 들어가지 않은 것) */
+export interface LiveStroke { pts: Pt[]; color: string; width: number; erase: boolean }
+
+function strokeOne(ctx: CanvasRenderingContext2D, pts: Pt[], color: string, width: number, erase: boolean) {
+  ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
+  inkStyle(ctx, color);
+  ctx.lineWidth = width;
+  drawStroke(ctx, pts);
+  ctx.globalCompositeOperation = "source-over";
+}
+
+/** 그림 전체를 그린다. ctx 는 이미 논리 좌표(800×1000) 배율이 걸려 있어야 한다.
+ *  지우개 획은 그 아래 그린 것을 투명하게 지우므로 **투명한 판**에 그려야 한다 — 바탕 · 안내선 위에는 drawLayer 로 */
+export function drawItems(ctx: CanvasRenderingContext2D, drawing: Drawing, live?: LiveStroke) {
+  const all = PARTS.flatMap((part, pi) => drawing[part].map((it, i) => ({ it, key: it.kind === "stroke" && it.t != null ? it.t : pi * 1e6 + i })));
+  all.sort((a, b) => a.key - b.key);
+  for (const { it } of all) {
+    if (it.kind === "stamp") { inkStyle(ctx); ctx.lineWidth = LINE; drawStamp(ctx, it.id, it.shape); }
+    else strokeOne(ctx, it.pts, it.color ?? INK, it.width ?? PEN, !!it.erase);
+  }
+  if (live) strokeOne(ctx, live.pts, live.color, live.width, live.erase);
+}
+
+/** 바탕 · 안내선 위에 그림을 얹는다. 그림은 투명한 판에 따로 그려 지우개가 바탕을 지우지 않게 한다.
+ *  ctx 에 걸린 배율을 그대로 쓴다 (판은 ctx.canvas 와 같은 픽셀 크기) */
+export function drawLayer(ctx: CanvasRenderingContext2D, drawing: Drawing, live?: LiveStroke) {
+  const c = document.createElement("canvas");
+  c.width = ctx.canvas.width; c.height = ctx.canvas.height;
+  const lc = c.getContext("2d")!;
+  lc.setTransform(ctx.getTransform());
+  drawItems(lc, drawing, live);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(c, 0, 0);
+  ctx.restore();
+}
+
+/** 지금 부위의 안내 점선. 도장이 찍힐 자리와 같다. 이미 찍은 도장 자리는 그리지 않는다 */
+export function drawGuide(ctx: CanvasRenderingContext2D, part: Part, drawing: Drawing) {
+  const placed = new Set(drawing[part].flatMap((it) => (it.kind === "stamp" ? [it.id] : [])));
+  ctx.save();
+  ctx.strokeStyle = "rgba(115, 134, 245, 0.55)";
+  ctx.lineWidth = 6;
+  ctx.setLineDash([18, 14]);
+  for (const id of GUIDE[part]) {
+    if (placed.has(id)) continue;
+    shapePath(ctx, placeStamp(id, drawing));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+const SCALE = 0.25;
+const SW = W * SCALE, SH = H * SCALE;
+
+/** 1/4 크기로 그린 알파 채널. 부위 하나만 그리고 싶으면 only 에 넘긴다 */
+function alphaOf(drawing: Drawing, only?: Item): Uint8ClampedArray {
+  const c = document.createElement("canvas");
+  c.width = SW; c.height = SH;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.scale(SCALE, SCALE);
+  if (only) drawItems(ctx, { ...emptyDrawing(), head: [only] });
+  else drawItems(ctx, drawing);
+  return ctx.getImageData(0, 0, SW, SH).data;
+}
+
+/** 덩어리 번호. 0 은 바깥, 1 부터 덩어리.
+ *  선이 없는 바깥을 가장자리부터 채우고, 채워지지 않은 곳(선 + 선 안쪽)을 덩어리로 나눈다.
+ *  눈·입처럼 머리 안에 든 것은 머리 덩어리에 들어간다. 선을 한 겹 부풀려 8px(원래 크기) 이하의 틈은
+ *  이어진 것으로 본다 — AI 쪽 마스크도 그 정도 틈은 메운다. */
+function label(drawing: Drawing): { labels: Int32Array; sizes: number[] } {
+  const w = SW, h = SH;
+  const alpha = alphaOf(drawing);
+  const ink = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (alpha[(y * w + x) * 4 + 3] < 40) continue;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx >= 0 && yy >= 0 && xx < w && yy < h) ink[yy * w + xx] = 1;
+    }
+  }
+  const outside = new Uint8Array(w * h);
+  const stack: number[] = [];
+  const push = (i: number) => { if (!ink[i] && !outside[i]) { outside[i] = 1; stack.push(i); } };
+  for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
+  while (stack.length) {
+    const i = stack.pop()!, x = i % w, y = (i / w) | 0;
+    if (x > 0) push(i - 1);
+    if (x < w - 1) push(i + 1);
+    if (y > 0) push(i - w);
+    if (y < h - 1) push(i + w);
+  }
+  const labels = new Int32Array(w * h);
+  const sizes = [0];
+  for (let start = 0; start < w * h; start++) {
+    if (outside[start] || labels[start]) continue;
+    const id = sizes.length;
+    let size = 0;
+    labels[start] = id; stack.push(start);
+    while (stack.length) {
+      const i = stack.pop()!, x = i % w, y = (i / w) | 0;
+      size++;
+      const next = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
+      for (const n of next) if (n >= 0 && !outside[n] && !labels[n]) { labels[n] = id; stack.push(n); }
+    }
+    sizes.push(size);
+  }
+  return { labels, sizes };
+}
+
+/** 몸에서 떨어진 부위. 비어 있으면 모두 이어졌다.
+ *
+ * AI 서버는 가장 큰 덩어리 하나만 캐릭터로 쓴다. 그래서 거기 닿지 않은 조각은 통째로 빠진다.
+ * 그린 것(획·도장) 하나하나가 가장 큰 덩어리에 닿는지 본다. 닿지 않은 것이 전체의 2% 도 안 되는
+ * 작은 점뿐이면 넘어간다 (실수로 찍은 점 — AI 가 조용히 버려도 티가 안 난다). */
+export function detachedParts(drawing: Drawing): Part[] {
+  const { labels, sizes } = label(drawing);
+  if (sizes.length < 2) return [];   // 아무것도 안 그렸다
+  const total = sizes.reduce((a, b) => a + b, 0);
+  let main = 1;
+  for (let i = 2; i < sizes.length; i++) if (sizes[i] > sizes[main]) main = i;
+
+  const out: Part[] = [];
+  for (const part of PARTS) {
+    const loose = drawing[part].some((it) => {
+      const a = alphaOf(drawing, it);
+      const seen = new Set<number>();
+      for (let i = 0; i < labels.length; i++) if (a[i * 4 + 3] >= 40 && labels[i]) seen.add(labels[i]);
+      if (seen.has(main)) return false;
+      return [...seen].some((id) => sizes[id] >= total * 0.02);
+    });
+    if (loose) out.push(part);
+  }
+  return out;
+}
+
+/** 소품용 — 투명 바탕, 그린 곳만 잘라(여백 조금) 긴 변 512px 이하로 줄인 PNG data URL. 아무것도 없으면 null */
+export function toTrimmedPng(drawing: Drawing): string | null {
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  drawItems(ctx, drawing);
+  const a = ctx.getImageData(0, 0, W, H).data;
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (a[(y * W + x) * 4 + 3] < 20) continue;
+    if (x < x0) x0 = x; if (x > x1) x1 = x;
+    if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (x1 < 0) return null;
+  const pad = 12;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(W - 1, x1 + pad); y1 = Math.min(H - 1, y1 + pad);
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const s = Math.min(1, 512 / Math.max(w, h));
+  const out = document.createElement("canvas");
+  out.width = Math.round(w * s); out.height = Math.round(h * s);
+  out.getContext("2d")!.drawImage(c, x0, y0, w, h, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
+}
+
+/** 흰 바탕 PNG 로 만든다. 백엔드는 PNG·JPG 만 받는다 (계약 1-4) */
+export function toPngFile(drawing: Drawing): Promise<File> {
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, W, H);
+  drawLayer(ctx, drawing);
+  return new Promise((resolve, reject) => {
+    c.toBlob((b) => (b ? resolve(new File([b], "drawing.png", { type: "image/png" })) : reject(new Error("toBlob"))), "image/png");
+  });
+}

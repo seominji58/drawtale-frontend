@@ -5,12 +5,14 @@ import BigButton from "@/components/BigButton";
 import { useLibrary } from "@/store/library";
 import { useSession } from "@/store/session";
 import { useAuth } from "@/store/auth";
+import { useGuardianMode } from "@/store/settings";
 
 export default function S12Stories() {
   const nav = useNavigate();
   const { stories, load } = useLibrary();
   const setStory = useSession((s) => s.setStory);
   const mode = useAuth((s) => s.mode);
+  const guardian = useGuardianMode();
 
   useEffect(() => { load(); }, [load]);
 
@@ -18,6 +20,13 @@ export default function S12Stories() {
     <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}>
       {mode === "guest" && (
         <div className="box warn">앱을 닫으면 이야기가 사라져요</div>
+      )}
+
+      {/* 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 보호자 모드에서만. 곁들이는 길이라 글자 줄로 */}
+      {guardian && (
+        <div className="aside-links">
+          <button className="btn link" onClick={() => nav("/props")}>내 소품 그리기</button>
+        </div>
       )}
 
       {stories.length > 0 ? (

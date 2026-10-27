@@ -45,6 +45,44 @@
 .slot b { font-size: var(--t-button); color: var(--ink-soft); }
 .slot span { font-size: var(--t-label); color: var(--ink-soft); opacity: .7; }
 
+/* ───────── 동화책 펼침면 (S-09) ─────────
+   왼쪽 그림 · 오른쪽 글. 종이책을 펼친 모양이다.
+   가로가 좁으면(폰 · 세로 태블릿) 위아래로 쌓는다 — 글이 그림 아래로 간다.
+   지원 수준 1 은 글을 작게 두고 그림을 키운다 (글을 읽지 못하는 아이가 있다). */
+.spread {
+  flex: 1; min-height: 0; display: grid; gap: 18px;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: stretch;
+}
+.spread > .stage { flex: initial; }
+.spread-text {
+  display: flex; flex-direction: column; justify-content: center; gap: 12px;
+  padding: 22px 26px; min-width: 0; overflow-y: auto;
+  border-radius: var(--r-stage);
+  background: var(--cloud); box-shadow: var(--soft);
+  /* 종이책의 안쪽 접힌 자리 */
+  border-left: 4px solid var(--edge-soft);
+}
+/* 펼침면 안에서는 글이 알약이 아니라 책 본문처럼 보인다 */
+.spread-text .said {
+  text-align: left; align-self: stretch; border-radius: 18px; padding: 10px 14px;
+}
+.spread-text .hint { text-align: left; }
+
+/* S-09 진행 바 — 이 쪽 하나의 바. 그 쪽 음성 길이에 맞춰 회색 길이 초록으로 찬다 (2026-10-27 사용자).
+   길은 회색, 채움은 초록. --grape(주된 행동 하나)와 겹치지 않는다 */
+.progress { flex: 0 0 auto; height: 14px; border-radius: 999px; background: var(--edge); overflow: hidden; }
+.progress > i { display: block; height: 100%; border-radius: inherit; background: var(--progress-fill, #4CB782); }
+
+[data-level="1"] .spread { grid-template-columns: 1.6fr 1fr; }
+[data-level="1"] .spread-text .said { font-size: calc(var(--t-question) - 4px); }
+
+@media (max-width: 1023px) {
+  .spread { grid-template-columns: 1fr; grid-template-rows: 1.4fr auto; }
+  .spread-text { border-left: none; border-top: 4px solid var(--edge-soft); }
+  .spread-text .said, .spread-text .hint { text-align: center; }
+}
+
 /* ───────── 글 ───────── */
 .question { font-size: var(--t-question); text-align: center; line-height: 1.32; }
 .said {
@@ -98,6 +136,31 @@
 @media (max-width: 1023px) { .choices, .choices[data-count] { grid-template-columns: repeat(2, auto); } }
 @media (max-width: 767px) { .choices, .choices[data-count] { grid-template-columns: auto; } }
 
+/* S-07 카드 + 말하기 · 적기. 카드 오른쪽에 세로로 둔다 — 아래에 두면 카드 높이가 줄어 아이콘이 작아진다 */
+.pick-area { flex: 1; min-height: 0; display: flex; gap: 36px; align-items: center; justify-content: center; }
+.pick-area > .choices { flex: 0 1 auto; align-self: stretch; }
+
+/* S-07-13 카드 대신 말하기 · 적기 (보호자 모드라 어른 밀도) */
+.own { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; padding: 20px;
+  background: var(--cloud); border-radius: var(--r-stage); box-shadow: var(--soft-sm); }
+.own-title { font-size: var(--t-label); color: var(--ink-soft); }
+.own .btn { width: 100%; min-height: var(--tap); }
+.own-mic { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.own-mic.on { background: var(--butter); }
+.own-field { display: flex; flex-direction: column; gap: 6px; }
+.own-field input {
+  min-height: var(--tap); padding: 0 18px; font-size: var(--t-body);
+  border: 2px solid var(--edge-soft); border-radius: 999px;
+  background: var(--milk); color: var(--ink);
+}
+.own-field input:focus { border-color: var(--grape); outline: none; }
+.own-field em { font-style: normal; font-size: var(--t-label); color: var(--ink-soft); padding: 0 6px; min-height: 2.6em; }
+.own-ok:disabled { opacity: .45; }
+@media (max-width: 767px) {
+  .pick-area { flex-direction: column; align-items: stretch; }
+  .own { flex: 0 0 auto; }
+}
+
 .choice {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: var(--choice-align);
   gap: 16px; padding: 24px; border-radius: 36px;
@@ -112,7 +175,8 @@
   background: var(--milk); border-bottom-left-radius: 50% 20%; border-bottom-right-radius: 50% 20%;
   z-index: 0; transition: background var(--dur) var(--ease);
 }
-.choice img { position: relative; z-index: 1; width: var(--icon); height: var(--icon); object-fit: contain; transform: scale(1.1); margin-top: -10px; }
+/* 아이콘은 카드가 작아지면(S-07 말하기 · 적기 줄, 결과 칸 요약 줄) 같이 줄어든다. 고정 크기면 카드 위로 잘린다 */
+.choice img { position: relative; z-index: 1; flex: 0 1 var(--icon); min-height: 0; width: var(--icon); max-width: 100%; height: var(--icon); object-fit: contain; transform: scale(1.1); margin-top: -10px; }
 .choice span { position: relative; z-index: 1; font-size: var(--t-button); color: var(--ink); font-weight: 700; display: var(--show-label); }
 .choice:active { transform: translateY(var(--lip)); box-shadow: 0 0 0 var(--edge), inset 0 3px 6px rgba(255, 255, 255, 1); }
 .choice.on {
@@ -194,6 +258,8 @@
   border-top: 1px solid var(--edge-soft); text-align: left; width: 100%;
 }
 .list .item:first-child { border-top: 0; }
+/* 묶음 머리 (S-13 「어른과 함께」). 색이 아니라 배경 블록으로 나눈다 (AGENTS.md 3.5) */
+.list .item.head { background: var(--milk); }
 .list .item .grow { flex: 1; min-width: 0; }
 .list .item .name { display: block; font-size: var(--t-button); font-weight: 700; }
 .list .item .desc { display: block; font-size: var(--t-label); color: var(--ink-soft); margin-top: 2px; }

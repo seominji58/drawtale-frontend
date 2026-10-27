@@ -1,9 +1,9 @@
-import type { JointName, Keypoints } from "@/types/character";
+import type { Keypoints, RigJoint } from "@/types/character";
 import type { MotionId } from "@/types/story";
 
 const TAU = Math.PI * 2;
 
-export const PARENT: Record<JointName, JointName | null> = {
+export const PARENT: Record<RigJoint, RigJoint | null> = {
   root: null, hip: "root", torso: "hip", neck: "torso", head: "neck",
   right_shoulder: "torso", right_elbow: "right_shoulder", right_hand: "right_elbow",
   left_shoulder: "torso", left_elbow: "left_shoulder", left_hand: "left_elbow",
@@ -11,17 +11,17 @@ export const PARENT: Record<JointName, JointName | null> = {
   left_hip: "hip", left_knee: "left_hip", left_foot: "left_knee",
 };
 
-const CHILDREN: Partial<Record<JointName, JointName[]>> = {};
-(Object.keys(PARENT) as JointName[]).forEach((n) => {
+const CHILDREN: Partial<Record<RigJoint, RigJoint[]>> = {};
+(Object.keys(PARENT) as RigJoint[]).forEach((n) => {
   const p = PARENT[n];
   if (p) (CHILDREN[p] ??= []).push(n);
 });
 
 export interface Pt { x: number; y: number }
-export type Pose = Record<JointName, Pt>;
+export type Pose = Record<RigJoint, Pt>;
 
 /** [시작, 끝, 두께, 시작쪽 여유, 끝쪽 여유] — 뒤에서 앞으로 그린다 */
-export const BONES: [JointName, JointName, number, number, number][] = [
+export const BONES: [RigJoint, RigJoint, number, number, number][] = [
   ["left_hip", "left_knee", 54, 24, 12],
   ["left_knee", "left_foot", 50, 12, 32],
   ["left_shoulder", "left_elbow", 46, 26, 12],
@@ -30,18 +30,29 @@ export const BONES: [JointName, JointName, number, number, number][] = [
   ["right_hip", "right_knee", 54, 24, 12],
   ["right_knee", "right_foot", 50, 12, 32],
   ["torso", "neck", 92, 0, 10],
-  ["neck", "head", 132, 6, 78],
+  // neck 이 얼굴 가운데(코)라서 머리 조각을 neck 아래로 60 만큼 더 내려 얼굴 아래쪽까지 덮는다
+  ["neck", "head", 132, 60, 78],
   ["right_shoulder", "right_elbow", 46, 26, 12],
   ["right_elbow", "right_hand", 42, 12, 28],
 ];
 
-/** 정규화 키포인트를 이미지 픽셀 좌표로 편다. root 는 hip 과 같은 자리 */
+/** head 를 torso → neck 방향으로 이만큼 연장한 자리에 둔다.
+ *  Meta 모델의 neck 은 얼굴 가운데(코)라서 0.5 면 대략 정수리에 온다
+ *  (샘플 그림과 Meta 예제 그림에 겹쳐 보고 정한 값. 2026-09-29) */
+const HEAD_EXTEND = 0.5;
+
+/** 정규화 키포인트를 이미지 픽셀 좌표로 편다.
+ *  서버는 관절 15개만 준다. root 와 head 는 여기서 만든다 (open-decisions 1번 A안) */
 export function toPixels(k: Keypoints, w: number, h: number): Pose {
   const out = {} as Pose;
   (Object.keys(k) as (keyof Keypoints)[]).forEach((name) => {
     out[name] = { x: k[name].x * w, y: k[name].y * h };
   });
   out.root = { ...out.hip };
+  out.head = {
+    x: out.neck.x + (out.neck.x - out.torso.x) * HEAD_EXTEND,
+    y: out.neck.y + (out.neck.y - out.torso.y) * HEAD_EXTEND,
+  };
   return out;
 }
 
@@ -50,10 +61,10 @@ const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** 순방향 운동학. 부모의 누적 회전만큼 오프셋을 돌려 위치를 얻는다 */
 export function computePose(
-  rest: Pose, rot: Partial<Record<JointName, number>>, dy = 0, dx = 0
+  rest: Pose, rot: Partial<Record<RigJoint, number>>, dy = 0, dx = 0
 ): Pose {
   const out = {} as Pose;
-  const walk = (name: JointName, parent: JointName | null, acc: number, pp: Pt | null) => {
+  const walk = (name: RigJoint, parent: RigJoint | null, acc: number, pp: Pt | null) => {
     let pos: Pt;
     if (!parent || !pp) {
       pos = { x: rest[name].x + dx, y: rest[name].y + dy };
@@ -73,13 +84,14 @@ export function computePose(
 
 /** 그림마다 인물 크기가 달라서 조각 두께를 보정한다 */
 export function boneScale(rest: Pose) {
-  const base = 0.229; // 기본 자세의 hip→neck 비율
+  // 목 엔진 기본 자세(fixtures.ts)에서 hip→neck 은 0.336, head→발 은 0.751 이다.
+  // 이 비율일 때 두께 보정이 1 이 되도록 맞춰 둔다
   const cur = dist(rest.hip, rest.neck);
-  const ref = base * (rest.left_foot.y - rest.head.y) / 0.675;
+  const ref = 0.336 * (rest.left_foot.y - rest.head.y) / 0.751;
   return ref > 4 ? cur / ref : 1;
 }
 
-export interface MotionOut { rot: Partial<Record<JointName, number>>; dy: number }
+export interface MotionOut { rot: Partial<Record<RigJoint, number>>; dy: number }
 export interface Motion { id: MotionId; label: string; period: number; fn: (t: number) => MotionOut }
 
 export const MOTIONS: Motion[] = [

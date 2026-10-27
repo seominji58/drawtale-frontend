@@ -178,12 +178,16 @@ schoolyard / small town / cave interior).
 
 `{분위기}`는 장면 번호에 대응한다. 이야기 흐름이 배경으로도 읽히게 하는 장치다.
 
-| 장면 | 단계 | 모션 | `{분위기}` |
+| 장면 | 단계 | 캐릭터 | `{분위기}` |
 |---|---|---|---|
-| 0 | 장소 도착 | `walk` | bright clear daylight, calm and open |
-| 1 | 문제 발생 | `look` | overcast and dimmer, cooler light, still gentle |
-| 2 | 행동 | `wave` | light beginning to return, warmer than before |
-| 3 | 결과 | `jump` | warm golden late-afternoon light |
+| 0 | 장소 도착 | 대기 자세 (`idle`) | bright clear daylight, calm and open |
+| 1 | 문제 발생 | **좌절 자세** | overcast and dimmer, cooler light, still gentle |
+| 2 | 행동 | **움직임 — 여기만 서버 MP4** | light beginning to return, warmer than before |
+| 3 | 결과 | 기뻐함 (`jump` 반복) | warm golden late-afternoon light |
+
+**움직이는 장면은 2번 하나다.** 나머지 셋은 배경 그림 + 아이 그림 + 문장을 겹쳐 보여 준다
+(pt_docs 03 5.4). 기본 동작은 여섯 가지뿐이라 `look` 같은 동작은 없다 —
+걷기 · 뛰기 · 점프 · 대기 · 손 흔들기 · 좌절.
 
 **1번(문제) 분위기를 무섭게 만들지 않는다.** 어두워지는 정도가 아니라 흐려지는
 정도다. `still gentle`을 프롬프트에서 빼지 말 것.
