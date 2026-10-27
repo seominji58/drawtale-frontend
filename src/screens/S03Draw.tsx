@@ -10,7 +10,7 @@ import {
 } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
 
-/** S-03D 화면에 그리기. 설계서에 없는 화면이다 (open-decisions 0-4, 2026-09-29 사용자 결정).
+/** S-03D 화면에 그리기 (pt_docs 05 S-03D, v0.3 신설. 처음 결정은 open-decisions 0-4, 2026-09-29).
  *  S-03 의 「그림 찍기」와 나란히 있다. 머리 → 몸 → 팔 → 다리를 한 단계씩, 점선 안내 위에
  *  손으로 그린다. 다 그리면 S-03 으로 돌아가 「이 그림으로」를 누른다.
  *  2026-10-27: 도장 찍기를 빼고 직접 그리기만 — 색 8가지 · 선 굵기 세 가지 · 지우개 (사용자 결정).

@@ -7,7 +7,7 @@ import { finishSocialLogin, PROVIDER_NAME } from "@/api/auth";
 import type { SocialProvider } from "@/api/auth";
 
 /** S-15 소셜 로그인에서 돌아오는 자리 (`/auth/:provider/callback`).
- *  설계서에 없는 화면이다. 로그인 흐름의 일부라 S-15 에 붙인다 (open-decisions 0-3). */
+ *  pt_docs 05 S-15C. 로그인 흐름의 일부라 S-15 에 붙인다 (처음 결정은 open-decisions 0-3). */
 export default function S15Callback() {
   const nav = useNavigate();
   const { provider = "" } = useParams();
