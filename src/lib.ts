@@ -41,7 +41,7 @@ export async function shrink(file: File, max = 1600, quality = 0.85): Promise<Fi
 
 /** 설계서 E-01 오류 문구표 */
 export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: string }> = {
-  NO_CHARACTER:        { title: "그림에서 친구를 못 찾았어요", hint: "사람을 한 명만 크게 그려 볼까요?", primary: "다시 찍기" },
+  NO_CHARACTER:        { title: "그림에서 친구를 못 찾았어요", hint: "지금은 두 발로 선 친구만 움직일 수 있어요", primary: "다시 찍기" },
   MULTIPLE_CHARACTERS: { title: "친구가 여러 명이에요", hint: "한 명만 나오게 찍어 볼까요?", primary: "다시 찍기" },
   // AI 는 흐린 사진보다 낙서·도형처럼 사람 모양이 아닌 그림에서 이 code 를 낸다 (너무 흐리면 NO_CHARACTER)
   LOW_CONFIDENCE:      { title: "그림이 잘 안 보여요", hint: "사람을 크게 그려서 밝은 곳에서 찍어 볼까요?", primary: "다시 찍기" },
@@ -54,7 +54,7 @@ export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: 
 
 /** 사진 올리기가 꺼져 있을 때(F-SET-06 기본, 화면에 그린 그림) 「찍기」 문구를 바꿔 쓴다 */
 export const DRAW_TEXT: Record<string, { hint: string; primary: string }> = {
-  NO_CHARACTER:        { hint: "사람을 한 명만 크게 그려 볼까요?", primary: "다시 그리기" },
+  NO_CHARACTER:        { hint: "지금은 두 발로 선 친구만 움직일 수 있어요", primary: "다시 그리기" },
   MULTIPLE_CHARACTERS: { hint: "한 명만 그려 볼까요?", primary: "다시 그리기" },
   LOW_CONFIDENCE:      { hint: "사람을 크게 그려 볼까요?", primary: "다시 그리기" },
   // 앨범에서 고르기(S-03-05)는 사진 올리기를 켰을 때만 있다
