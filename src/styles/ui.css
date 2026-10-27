@@ -133,6 +133,7 @@
    카드 폭은 높이에서 나오므로(aspect-ratio) 열이 카드를 따라가야 맞는다. */
 .choices { flex: 1; min-height: 0; display: grid; gap: var(--gap); align-content: center; justify-content: center; grid-template-columns: repeat(2, auto); grid-auto-rows: minmax(0, 1fr); }
 .choices[data-count="6"] { grid-template-columns: repeat(3, auto); }
+.choices[data-count="8"] { grid-template-columns: repeat(4, auto); }
 @media (max-width: 1023px) { .choices, .choices[data-count] { grid-template-columns: repeat(2, auto); } }
 @media (max-width: 767px) { .choices, .choices[data-count] { grid-template-columns: auto; } }
 

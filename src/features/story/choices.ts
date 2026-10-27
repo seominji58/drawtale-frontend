@@ -21,6 +21,12 @@ const icon = (label: string) =>
 
 /** public/icons/{kind}/{id}.png 를 넣은 뒤 true 로 바꾼다 (docs/art-direction.md) */
 const USE_REAL_ICONS = true;
+/** 아직 그림 아이콘이 없는 카드 — 이모지로 보인다 */
+const NO_ICON = new Set(["place/playground", "place/desert"]);
+
+/** 칸마다 보여 주는 카드 수. 2026-10-27 사용자 「지원 수준 안 남기고 고정, 8 4 4 4」 —
+ *  장소 8 · 문제 4 · 행동 4(고른 문제마다) · 결과 4. 카드 내용은 아직 목업 */
+export const CARD_COUNT: Record<StepKind, number> = { place: 8, problem: 4, action: 4, result: 4 };
 
 /** [id, 라벨, 임시 이모지] — id 는 kind 안에서만 유일하다 (docs/id-conventions.md 1절) */
 const RAW: Record<StepKind, [string, string, string][]> = {
@@ -31,6 +37,9 @@ const RAW: Record<StepKind, [string, string, string][]> = {
     ["school", "학교", "🏫"],
     ["town", "마을", "🏘"],
     ["cave", "동굴", "🕳"],
+    // 장소 8장 (10/27) — 아래 둘은 목업, 그림 아이콘이 없어 이모지
+    ["playground", "놀이터", "🛝"],
+    ["desert", "사막", "🏜"],
   ],
   problem: [
     ["lost", "길을 잃었어요", "❓"],
@@ -145,7 +154,7 @@ export const CHOICES = {
       rows.map(([id, label, emoji]) => ({
         id,
         label,
-        iconUrl: USE_REAL_ICONS ? `/icons/${kind}/${id}.png` : icon(emoji),
+        iconUrl: USE_REAL_ICONS && !NO_ICON.has(`${kind}/${id}`) ? `/icons/${kind}/${id}.png` : icon(emoji),
       })),
     ])
   ),

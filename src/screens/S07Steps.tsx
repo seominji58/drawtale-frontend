@@ -7,7 +7,7 @@ import { useSession } from "@/store/session";
 import { useSettings, useWithAdult, LEVEL_CONFIG } from "@/store/settings";
 import { fetchSteps } from "@/api";
 import { ASK_QUESTION, EXTRA_STAGE, STEP_LABEL, STEP_ORDER, isStep } from "@/types/story";
-import { MAX_SAID, VOICE_STEPS, askOrder, labelOf, sentenceFor } from "@/features/story/choices";
+import { CARD_COUNT, MAX_SAID, VOICE_STEPS, askOrder, labelOf, sentenceFor } from "@/features/story/choices";
 import { listen, voiceSupported } from "@/features/story/voice";
 import type { ListenError } from "@/features/story/voice";
 import { speak, stopSpeak } from "@/lib";
@@ -56,7 +56,8 @@ export default function S07Steps() {
     if (viewAt === flow.length) { nav("/generating", { replace: true }); return; }
     if (kind) {
       // 행동 카드는 고른 문제에 따라 다르다 (ACTIONS_BY_PROBLEM). 문제를 바꾸면 뒤 칸은 지워진다 (store pick)
-      fetchSteps(kind, cfg.choiceCount, picks.problem)
+      // 네 칸은 칸마다 정한 장수(CARD_COUNT, 8 · 4 · 4 · 4), 인물 · 기분 칸(시험)은 수준 설정대로
+      fetchSteps(kind, isStep(kind) ? CARD_COUNT[kind] : cfg.choiceCount, picks.problem)
         .then(setChoices)
         .catch(() => { setError("ENGINE_ERROR"); nav("/error"); });
     }
