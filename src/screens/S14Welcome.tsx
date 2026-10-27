@@ -28,7 +28,7 @@ export default function S14Welcome() {
       </h1>
       <p className="hint" style={{ textAlign: "center" }}>
         {left > 0
-          ? `종이에 그린 그림을 찍으면 움직이는 이야기가 됩니다. 로그인 없이 ${left}편까지 만들어 볼 수 있어요.`
+          ? `직접 그린 그림이 움직이는 이야기가 됩니다. 로그인 없이 ${left}편까지 만들어 볼 수 있어요.`
           : "로그인하면 이어서 만들 수 있어요. 지금까지 만든 이야기는 저장되지 않았습니다."}
       </p>
 
