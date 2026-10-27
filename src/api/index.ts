@@ -77,8 +77,16 @@ interface ServerStory {
     pages: {
       page: number; stage: StepKind; action: string; text: string; child_words: string;
       audio_url?: string | null; animation_url?: string | null;
+      /** 배경 그림 계획 (10/27). 그림 생성 전이라 화면은 아직 안 쓴다. AI 실패면 null */
+      scene?: {
+        hero_on_page: boolean;
+        characters: { name: string; slot: "right-middle" | "right-bottom" }[];
+        background: string;
+      } | null;
     }[];
     order_pages: number[];
+    /** 배경에 그릴 인물 이름 → 영어 생김새 (10/27) */
+    character_sheet?: Record<string, string>;
   } | null;
 }
 
