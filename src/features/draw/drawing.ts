@@ -20,7 +20,9 @@ export const PARTS: Part[] = ["head", "body", "arms", "legs"];
 export type StampId = "head" | "body" | "arm_r" | "arm_l" | "leg_r" | "leg_l";
 
 export type Item =
-  | { kind: "stroke"; pts: Pt[] }
+  /** 손 그리기 획. color · width 가 없으면 예전 기본값(검정 · 12). erase 면 지우개 획 (그린 것을 지운다).
+   *  t 는 그린 차례 — 부위가 달라도 나중에 그은 지우개가 먼저 그린 선을 지우게 차례대로 그린다 */
+  | { kind: "stroke"; pts: Pt[]; color?: string; width?: number; erase?: boolean; t?: number }
   /** 찍은 순간의 모양을 들고 있다. 자리는 그때 그려져 있던 부위에 맞춰 정해진다 (`placeStamp`) */
   | { kind: "stamp"; id: StampId; shape: Shape };
 
@@ -29,7 +31,27 @@ export const emptyDrawing = (): Drawing => ({ head: [], body: [], arms: [], legs
 
 const INK = "#3A3733";
 const LINE = 10;      // 도장 선 굵기
-const PEN = 12;       // 손 그리기 선 굵기
+const PEN = 12;       // 손 그리기 선 굵기 (기본)
+
+/** S-03D 색 (2026-10-27 사용자 「색상 선택 · 지우개 · 선 굵기」). 흰 종이 위에서 AI 가 그림을 찾을 수 있게
+ *  아주 옅은 색은 넣지 않는다 — 노랑도 진하게 */
+export const PEN_COLORS: { id: string; name: string; hex: string }[] = [
+  { id: "black", name: "검정", hex: INK },
+  { id: "red", name: "빨강", hex: "#E0413A" },
+  { id: "orange", name: "주황", hex: "#EE8320" },
+  { id: "yellow", name: "노랑", hex: "#D9A400" },
+  { id: "green", name: "초록", hex: "#2E9E5B" },
+  { id: "blue", name: "파랑", hex: "#2F6FDB" },
+  { id: "purple", name: "보라", hex: "#7E4CC9" },
+  { id: "brown", name: "갈색", hex: "#8B5A2B" },
+];
+/** 선 굵기 세 가지 (논리 좌표 800×1000 기준 px). 지우개는 고른 굵기의 두 배 */
+export const PEN_WIDTHS: { id: string; name: string; px: number }[] = [
+  { id: "thin", name: "가늘게", px: 6 },
+  { id: "mid", name: "보통", px: PEN },
+  { id: "thick", name: "굵게", px: 24 },
+];
+export const ERASER_SCALE = 2;
 
 export type Shape =
   | { type: "circle"; c: Pt; r: number }
@@ -179,16 +201,41 @@ function inkStyle(ctx: CanvasRenderingContext2D, color = INK) {
   ctx.setLineDash([]);
 }
 
-/** 그림 전체를 그린다. ctx 는 이미 논리 좌표(800×1000) 배율이 걸려 있어야 한다 */
-export function drawItems(ctx: CanvasRenderingContext2D, drawing: Drawing, live?: Pt[], color?: string) {
+/** 지금 긋고 있는 획 (아직 그림에 들어가지 않은 것) */
+export interface LiveStroke { pts: Pt[]; color: string; width: number; erase: boolean }
+
+function strokeOne(ctx: CanvasRenderingContext2D, pts: Pt[], color: string, width: number, erase: boolean) {
+  ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
   inkStyle(ctx, color);
-  for (const part of PARTS) {
-    for (const it of drawing[part]) {
-      if (it.kind === "stamp") { ctx.lineWidth = LINE; drawStamp(ctx, it.id, it.shape); }
-      else { ctx.lineWidth = PEN; drawStroke(ctx, it.pts); }
-    }
+  ctx.lineWidth = width;
+  drawStroke(ctx, pts);
+  ctx.globalCompositeOperation = "source-over";
+}
+
+/** 그림 전체를 그린다. ctx 는 이미 논리 좌표(800×1000) 배율이 걸려 있어야 한다.
+ *  지우개 획은 그 아래 그린 것을 투명하게 지우므로 **투명한 판**에 그려야 한다 — 바탕 · 안내선 위에는 drawLayer 로 */
+export function drawItems(ctx: CanvasRenderingContext2D, drawing: Drawing, live?: LiveStroke) {
+  const all = PARTS.flatMap((part, pi) => drawing[part].map((it, i) => ({ it, key: it.kind === "stroke" && it.t != null ? it.t : pi * 1e6 + i })));
+  all.sort((a, b) => a.key - b.key);
+  for (const { it } of all) {
+    if (it.kind === "stamp") { inkStyle(ctx); ctx.lineWidth = LINE; drawStamp(ctx, it.id, it.shape); }
+    else strokeOne(ctx, it.pts, it.color ?? INK, it.width ?? PEN, !!it.erase);
   }
-  if (live) { ctx.lineWidth = PEN; drawStroke(ctx, live); }
+  if (live) strokeOne(ctx, live.pts, live.color, live.width, live.erase);
+}
+
+/** 바탕 · 안내선 위에 그림을 얹는다. 그림은 투명한 판에 따로 그려 지우개가 바탕을 지우지 않게 한다.
+ *  ctx 에 걸린 배율을 그대로 쓴다 (판은 ctx.canvas 와 같은 픽셀 크기) */
+export function drawLayer(ctx: CanvasRenderingContext2D, drawing: Drawing, live?: LiveStroke) {
+  const c = document.createElement("canvas");
+  c.width = ctx.canvas.width; c.height = ctx.canvas.height;
+  const lc = c.getContext("2d")!;
+  lc.setTransform(ctx.getTransform());
+  drawItems(lc, drawing, live);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(c, 0, 0);
+  ctx.restore();
 }
 
 /** 지금 부위의 안내 점선. 도장이 찍힐 자리와 같다. 이미 찍은 도장 자리는 그리지 않는다 */
@@ -298,7 +345,7 @@ export function toPngFile(drawing: Drawing): Promise<File> {
   const ctx = c.getContext("2d")!;
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
-  drawItems(ctx, drawing);
+  drawLayer(ctx, drawing);
   return new Promise((resolve, reject) => {
     c.toBlob((b) => (b ? resolve(new File([b], "drawing.png", { type: "image/png" })) : reject(new Error("toBlob"))), "image/png");
   });
