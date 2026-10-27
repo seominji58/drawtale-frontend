@@ -75,7 +75,7 @@ export default function S01Start() {
       }
     >
       <div className="stage">
-        <div className="illust-wrap"><Friend wave /></div>
+        <div className="illust-wrap"><Friend /></div>
       </div>
     </Screen>
   );

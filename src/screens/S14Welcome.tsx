@@ -20,7 +20,7 @@ export default function S14Welcome() {
           : <BigButton go onClick={() => nav("/login")}>로그인</BigButton>
       }>
       <div className="stage">
-        <div className="illust-wrap"><Friend wave /></div>
+        <div className="illust-wrap"><Friend /></div>
       </div>
 
       <h1 className="question" style={{ textAlign: "center" }}>
