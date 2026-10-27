@@ -3,6 +3,11 @@ import type { Settings, SupportLevel } from "@/types/story";
 import { useAuth } from "@/store/auth";
 
 const KEY = "storyblanks.settings";
+
+/** 지원 수준을 없애고 한 가지로 고정한다 (2026-10-27 사용자 결정 — 카드는 단계마다 4장 고정, open-decisions 0-12).
+ *  카드 모드의 이야기를 조합마다 미리 만들어 두려면 보이는 카드가 하나로 정해져야 한다 (4장 → 256가지).
+ *  null 로 바꾸면 예전처럼 S-13 에서 1 · 2 · 3 을 고른다. 고정값은 수준 2 의 구성(카드 4장 · 글자 · 자동 읽기 · 확인 단계) */
+export const FIXED_LEVEL: SupportLevel | null = 2;
 const DEFAULTS: Settings = {
   level: 2, muteAll: false, keepOriginal: false, diagnostics: false, voiceInput: false, voiceMode: "narration", protagonistVoice: "girl",
   photoUpload: false, storyLength: "long",
@@ -11,7 +16,8 @@ const DEFAULTS: Settings = {
 function load(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
+    const s = raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
+    return FIXED_LEVEL ? { ...s, level: FIXED_LEVEL } : s;
   } catch { return DEFAULTS; }
 }
 
@@ -22,6 +28,7 @@ interface SettingsState extends Settings {
 export const useSettings = create<SettingsState>((set, get) => ({
   ...load(),
   set: (key, value) => {
+    if (key === "level" && FIXED_LEVEL) return;
     set({ [key]: value } as Partial<SettingsState>);
     const state = get();
     // 설정 키가 늘어도 빠뜨리지 않게 DEFAULTS 의 키를 그대로 저장한다

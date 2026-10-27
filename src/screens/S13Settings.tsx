@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import { useSettings } from "@/store/settings";
+import { useSettings, FIXED_LEVEL } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
 import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
@@ -38,14 +38,15 @@ export default function S13Settings() {
           </button>
         </Row>
 
-        <Row name="지원 수준" desc="아동의 사용을 돕는 수준을 선택하세요">
+        {/* 지원 수준은 고정 (FIXED_LEVEL, open-decisions 0-12). null 이면 다시 보인다 */}
+        {!FIXED_LEVEL && <Row name="지원 수준" desc="아동의 사용을 돕는 수준을 선택하세요">
           <span className="seg">
             {[1, 2, 3].map((n) => (
               <button key={n} className={s.level === n ? "on" : ""}
                 onClick={() => s.set("level", n as SupportLevel)}>{n}</button>
             ))}
           </span>
-        </Row>
+        </Row>}
 
         {/* 긴 이야기 (open-decisions 0-6, 사용자 2026-10-12). 쪽 수는 서버 설정(STORY_PAGES, 지금 8쪽) */}
         <Row name="이야기 길이"
