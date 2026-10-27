@@ -36,7 +36,13 @@ export default function S03Upload() {
     }
     setRejected(false);
     setBusy(true);
-    setFile(await shrink(f));           // 긴 변 1600px, JPEG 0.85 로 줄여서 보낸다
+    try {
+      setFile(await shrink(f));         // 긴 변 1600px, JPEG 0.85 로 줄여서 보낸다
+    } catch {
+      // 브라우저가 열지 못한 그림 (HEIC 등). 받지 않은 파일과 같이 알린다 (S-03-09)
+      setRejected(true);
+      speak(REJECTED, muteAll);
+    }
     setBusy(false);
   };
 
