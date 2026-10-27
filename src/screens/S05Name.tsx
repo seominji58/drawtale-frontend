@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import CharacterPreview from "@/features/character/CharacterPreview";
@@ -36,7 +36,7 @@ export default function S05Name() {
   const lock = useRef(0);
 
   useEffect(() => () => { stopListen.current?.abort(); stopSpeak(); }, []);
-  if (!imageUrl || !keypoints) { nav("/upload", { replace: true }); return null; }
+  if (!imageUrl || !keypoints) return <Navigate to="/upload" replace />;
 
   const names = NAMES.slice(0, LEVEL_CONFIG[level].choiceCount);
 

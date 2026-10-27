@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import CharacterPreview from "@/features/character/CharacterPreview";
@@ -19,7 +19,7 @@ export default function S05Confirm() {
   // 사진 올리기가 꺼져 있으면(F-SET-06 기본) 그림은 화면에서 그린 것이다
   const { photo } = useWithAdult();
 
-  if (!imageUrl || !keypoints) { nav("/upload", { replace: true }); return null; }
+  if (!imageUrl || !keypoints) return <Navigate to="/upload" replace />;
   const motion = (level === 1 ? "wave" : MOTIONS[i % MOTIONS.length].id) as MotionId;
 
   return (

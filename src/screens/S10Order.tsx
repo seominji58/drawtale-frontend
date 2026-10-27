@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useSession } from "@/store/session";
@@ -52,7 +52,7 @@ export default function S10Order() {
     return () => { window.removeEventListener("pagehide", leave); leave(); };
   }, []);
 
-  if (!story) { nav("/", { replace: true }); return null; }
+  if (!story) return <Navigate to="/" replace />;
   const used = new Set(slots.filter((v) => v !== null));
   const filled = slots.every((v) => v !== null);
 

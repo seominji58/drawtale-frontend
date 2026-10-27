@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
@@ -27,7 +27,7 @@ export default function S09Story() {
   const lines = useMemo(() => sentences(story?.text ?? ""), [story]);
 
   useEffect(() => () => { stopSpeak(); audio.current?.pause(); }, []);
-  if (!story) { nav("/", { replace: true }); return null; }
+  if (!story) return <Navigate to="/" replace />;
 
   const stop = () => { stopSpeak(); audio.current?.pause(); setAt(null); };
 

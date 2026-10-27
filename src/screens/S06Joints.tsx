@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
@@ -46,7 +46,7 @@ export default function S06Joints() {
     return () => ro.disconnect();
   }, [character, preview]);
 
-  if (!imageUrl || !character || !keypoints) { nav("/upload", { replace: true }); return null; }
+  if (!imageUrl || !character || !keypoints) return <Navigate to="/upload" replace />;
 
   const move = (e: React.PointerEvent) => {
     const name = drag.current;
