@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { ColorPalette, PenTools } from "@/components/DrawTools";
 import type { Tool } from "@/components/DrawTools";
 import { ERASER_SCALE, H, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, toTrimmedPng } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Pt } from "@/features/draw/drawing";
-import { propById, useProps } from "@/features/props/props";
+import { MAX_PROP_NAME, useProps } from "@/features/props/props";
 
-/** 내 소품 그리기 — 물건 하나를 한 장에 그린다 (2026-10-27 로컬 시험, open-decisions 0-13).
- *  S-03D 와 같은 도구(색 · 굵기 · 지우개). 부위 단계 · 안내 점선은 없다.
- *  「다 그렸어요」를 누르면 그린 곳만 잘라 투명 그림으로 저장하고 목록으로 돌아간다. */
+/** 소품 그리기 · 이름 붙이기 (2026-10-27 로컬 시험, open-decisions 0-13).
+ *  1) 화면에 한 장 그린다 (S-03D 와 같은 도구, 부위 단계 · 안내 점선 없음). 종이 그림을 올렸으면 이 단계를 건너뛴다.
+ *  2) 「무엇을 그렸나요?」 — 아이 · 보호자가 이름을 적고 「이걸로 할래요」로 등록한다. */
 export default function SPropDraw() {
   const nav = useNavigate();
-  const { id = "" } = useParams();
-  const prop = propById(id);
-  const saved = useProps((s) => s.drawn[id]);
-  const save = useProps((s) => s.save);
-  const remove = useProps((s) => s.remove);
+  const loc = useLocation() as { state?: { png?: string; from?: "photo" } };
+  const add = useProps((s) => s.add);
 
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState(PEN_COLORS[0].hex);
@@ -28,8 +25,10 @@ export default function SPropDraw() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef<LiveStroke | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
-  /** 예전에 그린 것을 지우고 새로 그리는 중인지 */
-  const [fresh, setFresh] = useState(!saved);
+  /** 이름 붙이는 단계의 그림. 종이 그림을 올렸으면 처음부터 있다 */
+  const [png, setPng] = useState<string | null>(loc.state?.png ?? null);
+  const from = loc.state?.from === "photo" ? "photo" : "draw";
+  const [name, setName] = useState("");
   const empty = drawing.head.length === 0;
 
   useLayoutEffect(() => {
@@ -44,7 +43,7 @@ export default function SPropDraw() {
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [fresh]);
+  }, [png]);
 
   const paint = useCallback(() => {
     const c = canvas.current;
@@ -59,8 +58,6 @@ export default function SPropDraw() {
     drawLayer(ctx, drawing, live.current ?? undefined);
   }, [box, drawing]);
   useEffect(paint, [paint]);
-
-  if (!prop) return <Navigate to="/props" replace />;
 
   const toLogical = (e: React.PointerEvent): Pt => {
     const r = canvas.current!.getBoundingClientRect();
@@ -80,45 +77,57 @@ export default function SPropDraw() {
   const up = () => {
     const s = live.current;
     live.current = null;
-    if (s) setDrawing((d) => ({ ...d, head: [...d.head, { kind: "stroke", pts: s.pts, color: s.color, width: s.width, erase: s.erase || undefined, t: ++order.current }] }));
-  };
-  const done = () => {
-    const png = toTrimmedPng(drawing);
-    if (png) save(prop.id, png);
-    nav("/props", { replace: true });
+    if (s) {
+      setDrawing((d) => ({
+        ...d, head: [...d.head, { kind: "stroke", pts: s.pts, color: s.color, width: s.width, erase: s.erase || undefined, t: ++order.current }],
+      }));
+    }
   };
 
-  const question = `${prop.object} 그려 볼까요?`;
-
-  // 이미 그린 물건: 그림을 보여 주고 「다시 그리기」 · 「그대로 둘래요」
-  if (!fresh && saved) {
+  // 2) 이름 붙이기
+  if (png) {
+    const typed = name.trim().slice(0, MAX_PROP_NAME);
+    const register = () => {
+      if (!typed) return;
+      add({ name: typed, png, from });
+      nav("/props", { replace: true });
+    };
     return (
-      <Screen back="/props" speech={`${prop.object} 그렸어요`} title="내 소품"
-        acts={
-          <>
-            <BigButton onClick={() => { remove(prop.id); setFresh(true); }}>다시 그리기</BigButton>
-            <BigButton go onClick={() => nav("/props")}>그대로 둘래요</BigButton>
-          </>
-        }>
-        <h2 className="question">내가 그린 {prop.name}</h2>
-        <div className="stage">
-          <img src={saved} alt={`내가 그린 ${prop.name}`} style={{ maxHeight: "80%", objectFit: "contain" }} />
+      <Screen back={from === "photo" ? "/props" : () => setPng(null)} speech="무엇을 그렸나요?" title="내 소품">
+        <h2 className="question">무엇을 그렸나요?</h2>
+        <div className="row" style={{ flex: 1, minHeight: 0, flexWrap: "wrap", alignItems: "stretch" }}>
+          <div className="stage" style={{ flex: 1, minWidth: 240 }}>
+            <img src={png} alt="새 소품" style={{ maxWidth: "80%", maxHeight: "80%", objectFit: "contain" }} />
+          </div>
+          {/* 이름은 아이가 말하고 보호자가 적어도 된다. 글쇠판은 어른 크기 (AGENTS.md 3.4) */}
+          <form data-audience="adult" className="own" style={{ flex: "0 1 360px" }}
+            onSubmit={(e) => { e.preventDefault(); register(); }}>
+            <span className="own-title">소품 이름</span>
+            <div className="own-field">
+              <input value={name} maxLength={MAX_PROP_NAME} autoFocus
+                aria-label="소품 이름" placeholder="예: 노란 우산"
+                onChange={(e) => setName(e.target.value)} />
+              <em>이야기 카드에 나오는 물건 이름(우산 · 꽃 · 구름 …)으로 끝나면 그 이야기에 나와요</em>
+            </div>
+            <button type="submit" className="btn go own-ok" disabled={!typed}>이걸로 할래요</button>
+          </form>
         </div>
       </Screen>
     );
   }
 
+  // 1) 그리기
   return (
-    <Screen back="/props" speech={question} title="내 소품"
+    <Screen back="/props" speech="무엇을 그려 볼까요?" title="내 소품"
       acts={
         <>
           <BigButton disabled={empty} nudgeOnDisabled={false}
             onClick={() => setDrawing((d) => ({ ...d, head: d.head.slice(0, -1) }))}>되돌리기</BigButton>
-          <BigButton go disabled={empty} onClick={done}>다 그렸어요</BigButton>
+          <BigButton go disabled={empty} onClick={() => setPng(toTrimmedPng(drawing))}>다 그렸어요</BigButton>
         </>
       }>
-      <h2 className="question">{question}</h2>
-      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "크게 그려요"}</p>
+      <h2 className="question">무엇을 그려 볼까요?</h2>
+      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "이야기에 나올 물건을 크게 그려요"}</p>
       <div className="row" style={{ flex: 1, minHeight: 0, flexWrap: "wrap", alignItems: "flex-start" }}>
         <ColorPalette tool={tool} color={color} onColor={(hex) => { setColor(hex); setTool("pen"); }} />
         <div ref={wrap} className="stage" style={{ flex: 1, minWidth: 240, alignSelf: "stretch" }}>

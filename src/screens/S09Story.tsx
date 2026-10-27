@@ -4,7 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
-import PropLayer from "@/features/props/PropLayer";
+import { propSceneFor, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { sentences, speak, stopSpeak } from "@/lib";
@@ -173,6 +173,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 
   const page = pages[pg];
   const last = pg === pages.length - 1;
+  // 소품 장면: 내 소품 이름이 그 단계 카드의 물건과 맞으면 그 단계 첫 쪽은 소품만 크게, 다음 쪽부터 주인공.
+  // 주인공과 합성하지 않는다 — 손에 쥐거나 겹치는 리스크를 지지 않는다 (open-decisions 0-13, 10/27 회의)
+  const mine = useProps((st) => st.mine);
+  const firstOfStage = pages.findIndex((p) => p.stage === page.stage) === pg;
+  const insert = firstOfStage ? propSceneFor(page.stage, story.picks, mine) : null;
   const clip = page.animationUrl && /\.mp4(\?|$)/i.test(page.animationUrl) ? page.animationUrl : null;
   const still = story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
 
@@ -182,7 +187,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23) */}
       <div className="spread">
         <div className="stage">
-          {clip
+          {insert
+            ? <img src={insert.png} alt={`내가 그린 ${insert.name}`} style={{ maxWidth: "70%", maxHeight: "75%", objectFit: "contain" }} />
+            : clip
             ? <video key={clip} src={clip} autoPlay loop muted playsInline
                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
             : !perPage && !story.animationUrl && imageUrl && keypoints
@@ -191,8 +198,6 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
               : still
                 ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}
-          {/* 내 소품 — 아이가 그린 물건을 이 쪽 자리에 얹는다 (open-decisions 0-13) */}
-          <PropLayer stage={page.stage} picks={story.picks} />
         </div>
         <div className="spread-text">
           <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>
