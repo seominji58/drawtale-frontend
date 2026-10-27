@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
+import { ORDER_GAME } from "@/store/settings";
 import BigButton from "@/components/BigButton";
 import { Party } from "@/components/illust";
 import { useSession } from "@/store/session";
@@ -13,7 +14,7 @@ export default function S11Done() {
   const showNotice = mode === "guest" && !guestNoticeShown;
 
   return (
-    <Screen back="/order" speech="다 했어요!" segment={4}
+    <Screen back={ORDER_GAME ? "/order" : "/story"} speech="다 했어요!" segment={4}
       acts={
         <>
           <BigButton onClick={() => nav("/story")}>다시 보기</BigButton>

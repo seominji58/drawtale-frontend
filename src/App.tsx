@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useEffect } from "react";
 import OfflineBar from "@/components/OfflineBar";
 import { useAuth } from "@/store/auth";
-import { useSettings } from "@/store/settings";
+import { useSettings, ORDER_GAME } from "@/store/settings";
 import { watchOriginals } from "@/features/character/originals";
 
 import S01Start from "@/screens/S01Start";
@@ -70,7 +70,8 @@ export default function App() {
             <Route path="/steps" element={<S07Steps />} />
             <Route path="/generating" element={<S08Generating />} />
             <Route path="/story" element={<S09Story />} />
-            <Route path="/order" element={<S10Order />} />
+            {/* 순서 맞추기는 꺼 둠 (ORDER_GAME, 10/27) — 꺼져 있으면 다 했어요로 */}
+            <Route path="/order" element={ORDER_GAME ? <S10Order /> : <Navigate to="/done" replace />} />
             <Route path="/done" element={<S11Done />} />
             <Route path="/stories" element={<S12Stories />} />
             {/* 내 소품 (2026-10-27 로컬 시험, open-decisions 0-13) */}

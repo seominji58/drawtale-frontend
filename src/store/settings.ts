@@ -8,6 +8,10 @@ const KEY = "storyblanks.settings";
  *  카드 모드의 이야기를 조합마다 미리 만들어 두려면 보이는 카드가 하나로 정해져야 한다 (4장 → 256가지).
  *  null 로 바꾸면 예전처럼 S-13 에서 1 · 2 · 3 을 고른다. 고정값은 수준 2 의 구성(카드 4장 · 글자 · 자동 읽기 · 확인 단계) */
 export const FIXED_LEVEL: SupportLevel | null = 2;
+
+/** S-10 순서 맞추기를 쓰는지. 2026-10-27 사용자 「순서 맞추기는 일단 기능 자체를 동작 안 하게」 — 꺼 둠.
+ *  끄면 S-09 의 주된 버튼이 「다 봤어요」(→ S-11)가 되고 `/order` 는 S-11 로 보낸다. true 로 바꾸면 예전대로 */
+export const ORDER_GAME = false;
 const DEFAULTS: Settings = {
   level: 2, muteAll: false, keepOriginal: false, diagnostics: false, voiceInput: false, voiceMode: "narration", protagonistVoice: "girl",
   photoUpload: false, storyLength: "long",

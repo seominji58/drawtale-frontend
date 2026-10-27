@@ -6,7 +6,7 @@ import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { propHeight, propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
-import { useSettings } from "@/store/settings";
+import { ORDER_GAME, useSettings } from "@/store/settings";
 import { sentences, speak, stopSpeak } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
 import type { Keypoints } from "@/types/character";
@@ -72,12 +72,12 @@ export default function S09Story() {
 
   if (story.book && story.book.pages.length) {
     return <BookView story={story} imageUrl={imageUrl} keypoints={keypoints} muteAll={muteAll}
-      onDone={() => nav("/order")} />;
+      onDone={() => nav(ORDER_GAME ? "/order" : "/done")} />;
   }
 
   return (
     <Screen back="/" speech={story.text} segment={4} autoSpeak={false}
-      acts={<BigButton go onClick={() => { stop(); nav("/order"); }}>순서 맞추기</BigButton>}>
+      acts={<BigButton go onClick={() => { stop(); nav(ORDER_GAME ? "/order" : "/done"); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>}>
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (피드백 2026-10-19).
           좁은 화면에서는 위아래로 쌓인다 (ui.css `.spread`) */}
       <div className="spread">
@@ -246,7 +246,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 
   return (
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
-      acts={<BigButton go onClick={() => { stop(); onDone(); }}>순서 맞추기</BigButton>}>
+      acts={<BigButton go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>}>
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23) */}
       <div className="spread">
         <div className="stage" onClick={propPhase ? () => setPropPhase(false) : undefined}>
