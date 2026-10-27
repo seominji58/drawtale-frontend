@@ -117,6 +117,21 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const readingRef = useRef(false);
   const audio = useRef<HTMLAudioElement | null>(null);
   const perPage = pages.some((p) => p.audioUrl);
+  /** 지금 쪽을 얼마나 읽었는지 (0~1). 들려주는 동안 나레이션 길이에 맞춰 차고, 손으로 넘기면 그 쪽은 다 찬 것으로 본다 */
+  const [frac, setFrac] = useState(1);
+  const ttsTimer = useRef(0);
+  const stopTts = () => cancelAnimationFrame(ttsTimer.current);
+  /** 브라우저 TTS 는 진행 시각을 주지 않아 글자 수로 읽는 시간을 어림한다 (끝나면 onEnd 에서 1) */
+  const trackTts = (text: string) => {
+    stopTts();
+    const est = Math.max(1.2, text.length / TTS_CHARS_PER_SEC) * 1000;
+    const t0 = performance.now();
+    const tick = () => {
+      setFrac(Math.min(0.95, (performance.now() - t0) / est));
+      ttsTimer.current = requestAnimationFrame(tick);
+    };
+    tick();
+  };
 
   // 쪽마다 끝나는 지점(글자 수 누적 비율). 예전 이야기의 전체 음성 파일을 쪽에 나눠 맞춘다
   const ends = useMemo(() => {
@@ -126,30 +141,33 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     return lens.map((l) => (acc += l) / total);
   }, [pages]);
 
-  useEffect(() => () => { readingRef.current = false; stopSpeak(); audio.current?.pause(); }, []);
+  useEffect(() => () => { readingRef.current = false; stopSpeak(); audio.current?.pause(); stopTts(); }, []);
 
   const stop = () => {
     readingRef.current = false;
-    stopSpeak(); audio.current?.pause(); setReading(false);
+    stopSpeak(); audio.current?.pause(); stopTts(); setReading(false);
   };
-  const go = (n: number) => { stop(); setPg(Math.max(0, Math.min(pages.length - 1, n))); };
+  const go = (n: number) => { stop(); setFrac(1); setPg(Math.max(0, Math.min(pages.length - 1, n))); };
 
   /** n 쪽부터 끝까지 읽는다. 쪽 음성 파일이 있으면 그것을, 없으면 브라우저 TTS */
   const readPage = (n: number) => {
     if (!readingRef.current) return;
     if (n >= pages.length) { stop(); return; }
     setPg(n);
-    const next = () => readPage(n + 1);
+    setFrac(0);
+    const next = () => { stopTts(); setFrac(1); readPage(n + 1); };
+    const tts = () => { trackTts(pages[n].text); speak(pages[n].text, muteAll, next); };
     const url = pages[n].audioUrl;
     if (url) {
       audio.current?.pause();
       const a = new Audio(url);
       audio.current = a;
+      a.ontimeupdate = () => { if (a.duration) setFrac(a.currentTime / a.duration); };
       a.onended = next;
-      a.onerror = () => speak(pages[n].text, muteAll, next);
-      void a.play().catch(() => speak(pages[n].text, muteAll, next));
+      a.onerror = tts;
+      void a.play().catch(tts);
     } else {
-      speak(pages[n].text, muteAll, next);
+      tts();
     }
   };
 
@@ -163,8 +181,12 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     a.onended = () => stop();
     a.ontimeupdate = () => {
       if (!a.duration) return;
-      const i = ends.findIndex((e) => a.currentTime / a.duration < e);
-      setPg(i === -1 ? pages.length - 1 : i);
+      const t = a.currentTime / a.duration;
+      const i = ends.findIndex((e) => t < e);
+      const k = i === -1 ? pages.length - 1 : i;
+      setPg(k);
+      const from = k === 0 ? 0 : ends[k - 1];
+      setFrac(Math.min(1, (t - from) / Math.max(1e-6, ends[k] - from)));
     };
     const start = pg === 0 ? 0 : ends[pg - 1];
     const begin = () => { a.currentTime = start * (a.duration || 0); void a.play(); };
@@ -222,10 +244,15 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         </div>
       </div>
 
-      {/* 진행 바 — 몇 쪽째인지 (2026-10-27 사용자). 글자를 몰라도 남은 양이 보인다 */}
+      {/* 진행 바 (2026-10-27 사용자) — 쪽마다 한 칸, 칸 길이는 그 쪽 나레이션 길이(글자 수) 비율.
+          지난 쪽은 다 차 있고, 지금 쪽은 들려주는 동안 나레이션에 맞춰 찬다. 글자를 몰라도 남은 양이 보인다 */}
       <div className="progress" role="progressbar" aria-label="이야기 진행"
-        aria-valuemin={1} aria-valuemax={pages.length} aria-valuenow={pg + 1}>
-        <i style={{ width: `${((pg + 1) / pages.length) * 100}%` }} />
+        aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(((pg === 0 ? 0 : ends[pg - 1]) + frac * (ends[pg] - (pg === 0 ? 0 : ends[pg - 1]))) * 100)}>
+        {pages.map((p, i) => (
+          <span key={p.page} style={{ flex: `${ends[i] - (i === 0 ? 0 : ends[i - 1])} 1 0` }}>
+            <i style={{ width: `${i < pg ? 100 : i === pg ? frac * 100 : 0}%` }} />
+          </span>
+        ))}
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>
@@ -240,6 +267,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     </Screen>
   );
 }
+
+/** 브라우저 TTS 가 1초에 읽는 글자 수 어림 (rate 0.95, 한국어) — 진행 바용 */
+const TTS_CHARS_PER_SEC = 6.5;
 
 /** 소품 장면을 보여 주는 시간. 그 뒤 같은 쪽에서 주인공 장면으로 바뀐다 */
 const PROP_MS = 2200;
