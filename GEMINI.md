@@ -12,7 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
-- **10/27**: S-03D 는 직접 그리기만(색 8 · 굵기 3 · 지우개, 도장 뺌). 지원 수준을 없애고 카드 4장 고정(`FIXED_LEVEL = 2`, open-decisions 0-12). S-07 문제마다 다른 행동 카드(목업), 인물 · 기분 칸 시험(`ASK_EXTRAS`, 0-11). 대본 모델은 Claude Opus 5.5 로 바꾸기로(0-10, 백엔드 반영 전). 서민지 님 커밋 8개 병합(S-09 펼침면 · AI 생성 표시). 시연 전 고칠 목록 `docs/demo-fix-list.md`, AI API 정리 `docs/ai-api-usage.md`, 그림 교체 목록 `docs/image-replacement-plan.md`
+- **10/27**: S-03D 직접 그리기(색 8 · 굵기 3 · 지우개, 도장 뺌). 지원 수준을 없애고 카드 4장 고정(`FIXED_LEVEL = 2`, open-decisions 0-12). S-07 은 네 칸 4가지 선택(인물 · 기분 칸은 시험 뒤 뺌, `ASK_EXTRAS = false`, 0-11), 행동 카드는 문제마다 4장(목업). 긴 이야기 대본은 백엔드 dev 에서 Claude Opus 5.5(0-10). **내 소품**(0-13): 보호자 모드에서만 — 그리거나 종이 그림을 올려 이름 · 크기(작게 · 보통 · 크게)를 정해 등록, 이름이 카드 물건과 맞으면 S-09 그 단계 첫 쪽에서 소품들(최대 3) 2.2초 → 주인공. 기본 소품은 못 바꿈. S-09 진행 바: 이 쪽 하나의 바가 그 쪽 음성 길이에 맞춰 회색 → 초록. 디자인 다듬기는 나중에. 서민지 님 커밋 8개 병합(S-09 펼침면 · AI 생성 표시). 시연 전 고칠 목록 `docs/demo-fix-list.md`, AI API 정리 `docs/ai-api-usage.md`, 그림 교체 목록 `docs/image-replacement-plan.md`
 
 - **설계 문서는 `hankan-story/drawtale-pt_docs/`** (github.com/seominji58/drawtale-pt_docs, main) — **어긋나면 이 문서가 최우선** (2026-10-12 사용자). 01 요구사항 정의서 · 02 시스템 아키텍처 · 03 기능정의서 ·
   04 플로우차트 · 05 화면설계서 · 06 입력 그림 요구사항 · 07 사용자 조사 · 08 기술 스택 · 09 DB ERD, `policy/` · `legal/` (10/12 번호가 바뀜). 발표 덱은 `presentation/`

@@ -13,7 +13,7 @@
 | Meta AnimatedDrawings TorchServe 이미지 | **끝** — 직접 빌드했다가 팀원 `drawtale-ai` 것으로 갈아탔다 (아래) |
 | 팀원 AI 서버(`drawtale-ai` dev) 띄우기 | **끝** — `docker compose up -d`, 8001·8080 |
 | 팀원 백엔드(`drawtale-backend` dev) 띄우기 | **끝** — 이제 git clone `drawtale-backend-git/`(dev)에서 띄운다. 로컬 Postgres, `AI_USE_MOCK=false`, 8000 |
-| 10/27 S-03D 그리기 도구 · 카드 4장 고정 · 문제별 행동 카드 · 인물 · 기분 칸(시험) | **push** — 백엔드는 `extras` 칸 · migration `f8a1b2c3d4e5` 가 함께 올라감 (`docs/worklog.md` 맨 위) |
+| 10/27 S-03D 그리기 도구 · 카드 4장 고정 · 문제별 행동 카드 · 내 소품(보호자 모드) · S-09 진행 바, 백엔드 긴 이야기 대본 Claude Opus 5.5 | **push** — 프론트 `feat/backend-contract` 66822cf, 백엔드 dev 8b32c1d(`ANTHROPIC_API_KEY` 필요, 없으면 OpenAI 로), migration `e7f0a1b2c3d4` · `f8a1b2c3d4e5` (`docs/worklog.md` 맨 위) |
 | **프론트를 백엔드 계약에 맞춤** | **끝** — `docs/api-contract.md`. 화면까지 백엔드 흐름으로 (S-09 MP4, S-10 문장 카드) |
 | 실제 모델로 S-01~S-11 전 구간 | **끝** — 브라우저로 확인. 목 모드도 끝까지 돈다 |
 | 커밋 · push | **끝** — 프론트 `feat/backend-contract`(+ 로컬 `main` 처음 커밋 3개), 백엔드 **`dev` 에 합침**(팀 합의로 dev 하나에서 작업), AI `feat/gentle-motions` · 그 위의 `feat/joint-confidence` push. 프론트 main 합치기와 PR 은 아직 |
