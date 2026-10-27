@@ -15,6 +15,24 @@ export const STEP_LABEL: Record<StepKind, string> = {
   place: "장소", problem: "문제", action: "행동", result: "결과",
 };
 
+/** 네 칸 사이에 더 묻는 칸 — 함께 나오는 인물 · 문제 때 기분 · 마지막 기분.
+ *  2026-10-27 로컬 시험, 회의에서 빼면 지운다 (docs/open-decisions.md 0-11).
+ *  단계(stage)가 아니라서 아래 네 점 · S-10 순서 맞추기 · 쪽 배치는 그대로다 */
+export type ExtraKind = "who" | "feelProblem" | "feelResult";
+/** S-07 에서 묻는 칸 하나 */
+export type AskKind = StepKind | ExtraKind;
+export const isStep = (k: AskKind): k is StepKind => (STEP_ORDER as string[]).includes(k);
+/** 더 묻는 칸이 어느 단계에 붙나. 그 칸에서는 아래 네 점 중 이 단계 점이 켜진다 */
+export const EXTRA_STAGE: Record<ExtraKind, StepKind> = {
+  who: "place", feelProblem: "problem", feelResult: "result",
+};
+export const ASK_QUESTION: Record<AskKind, string> = {
+  ...STEP_QUESTION,
+  who: "누가 함께 나올까요?",
+  feelProblem: "그때 기분이 어땠을까요?",
+  feelResult: "마지막에 기분이 어땠을까요?",
+};
+
 export interface StepChoice { id: string; iconUrl: string; label: string }
 
 /** 백엔드 계약 2-6 의 이야기. 문장은 `text` 한 덩어리로 오고,

@@ -47,10 +47,11 @@ export async function mockGenerate(
   signal?: AbortSignal,
   length: StoryLength = "short",
   spoken: StepKind[] = [],
-  name?: string | null
+  name?: string | null,
+  extras: MockExtras = {}
 ): Promise<Story> {
   await fakeJob(onStatus, 1200, signal);
-  const book = length === "long" ? mockBook(labels, spoken, name) : null;
+  const book = length === "long" ? mockBook(labels, spoken, name, extras) : null;
   return {
     storyId: "s-" + Date.now(),
     characterId,
@@ -67,15 +68,22 @@ export async function mockGenerate(
 
 /** 백엔드 `services/book.py` 의 fallback_book 과 같은 틀 (8쪽: 장소 1 · 문제 2 · 행동 2 · 결과 3).
  *  OpenAI 없이 도는 틀 문장이다. 아이가 말로 덧붙인 단계는 그 단계 첫 쪽에 「내가 말한 부분」으로 표시한다 */
-function mockBook(labels: Record<StepKind, string>, spoken: StepKind[], name?: string | null): Book {
+/** 네 칸 사이에 더 고른 인물 · 기분 (로컬 시험, open-decisions 0-11) */
+type MockExtras = { who?: string; feel_problem?: string; feel_result?: string };
+
+function mockBook(labels: Record<StepKind, string>, spoken: StepKind[], name?: string | null,
+  extras: MockExtras = {}): Book {
   const who = name ? `${name}${hasFinal(name) ? "은" : "는"}` : "나는";
   const t = (s: string) => s.replace(/[.\s]+$/, "");
   const place = t(labels.place);
   const lines: Record<StepKind, string[]> = {
-    place: [`햇살이 반짝이는 날이었어요. ${who} ${place}에 갔어요.`],
-    problem: [`그런데 그때였어요! ${t(labels.problem)}.`, "“어떡하지?” 잠깐 멈춰 섰어요. 가슴이 콩닥콩닥 뛰었어요."],
+    place: [`햇살이 반짝이는 날이었어요. ${who} ${place}에 갔어요.`
+      + (extras.who ? ` ${extras.who}${hasFinal(extras.who) ? "과" : "와"} 함께였어요.` : "")],
+    problem: [`그런데 그때였어요! ${t(labels.problem)}.`, "“어떡하지?” 잠깐 멈춰 섰어요. "
+      + (extras.feel_problem ? `${who} ${extras.feel_problem}.` : "가슴이 콩닥콩닥 뛰었어요.")],
     action: [`${who} 용기를 냈어요. 그리고 ${t(labels.action)}.`, "한 걸음, 또 한 걸음. 천천히 해 보았어요."],
-    result: [`드디어! ${t(labels.result)}.`, "“해냈다!” 얼굴에 웃음이 활짝 피었어요.", `${place}에서 보낸 하루는 정말 멋진 날이었어요.`],
+    result: [`드디어! ${t(labels.result)}.`, "“해냈다!” 얼굴에 웃음이 활짝 피었어요.",
+      `${place}에서 보낸 하루는 정말 멋진 날이었어요.` + (extras.feel_result ? ` ${who} ${extras.feel_result}.` : "")],
   };
   const action: Record<StepKind, string> = { place: "walk", problem: "idle", action: "run", result: "dance" };
   const pages: BookPage[] = [];

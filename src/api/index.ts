@@ -1,7 +1,7 @@
 import { JOINT_ORDER } from "@/types/character";
 import type { Character, ErrorCode, JobStatus, JointName, Keypoints } from "@/types/character";
-import type { ProtagonistVoice, StepChoice, StepKind, Story, StoryLength, VoiceMode } from "@/types/story";
-import { CHOICES, MAX_SAID, labelOf } from "@/features/story/choices";
+import type { AskKind, ProtagonistVoice, StepChoice, StepKind, Story, StoryLength, VoiceMode } from "@/types/story";
+import { MAX_SAID, choicesFor, labelOf } from "@/features/story/choices";
 import { mockAnalyze, mockGenerate } from "./mock/engine";
 
 /* 백엔드 계약: drawtale-backend `docs/api-contract.md` (초안 v0.1, 2026-09-28).
@@ -241,8 +241,8 @@ export async function saveJoints(character: Character, keypoints: Keypoints): Pr
 }
 
 /** S-07 선택지. 서버에 엔드포인트가 없어서 프론트 목록을 쓴다 (계약 2-5 ⚠) */
-export async function fetchSteps(kind: StepKind, count: number): Promise<StepChoice[]> {
-  return CHOICES[kind].slice(0, count);
+export async function fetchSteps(kind: AskKind, count: number, problemId?: string): Promise<StepChoice[]> {
+  return choicesFor(kind, problemId).slice(0, count);
 }
 
 /** S-08 이야기 생성 (계약 2-5 → 2-2 → 2-6). 서버가 MP4 까지 만든 뒤에 돌아온다.
@@ -251,7 +251,7 @@ export async function fetchSteps(kind: StepKind, count: number): Promise<StepCho
  *  인물 종류에 맞는 목소리로 읽는다 (계약 2-5) */
 export async function generateStory(
   characterId: string,
-  picks: Record<StepKind, string>,
+  picks: Partial<Record<AskKind, string>>,
   said: Partial<Record<StepKind, string>>,
   onStatus: (s: JobStatus) => void,
   signal?: AbortSignal,
@@ -260,7 +260,7 @@ export async function generateStory(
   },
   length: StoryLength = "short"
 ): Promise<Story> {
-  const text = (k: StepKind) => said[k]?.slice(0, MAX_SAID) || labelOf(k, picks[k]);
+  const text = (k: StepKind) => said[k]?.slice(0, MAX_SAID) || labelOf(k, picks[k], picks.problem);
   const labels = {
     place: text("place"),
     problem: text("problem"),
@@ -269,7 +269,14 @@ export async function generateStory(
   };
   // 카드 대신 아이 말을 보낸 단계. 긴 이야기면 서버가 그 말을 그대로 살리고 그 쪽에 표시한다 (계약 2-5 `spoken`)
   const spoken = (Object.keys(labels) as StepKind[]).filter((k) => !!said[k]);
-  if (useMock) return mockGenerate(characterId, labels, onStatus, signal, length, spoken, voice.name);
+  // 네 칸 사이에 더 고른 인물 · 기분 카드 (로컬 시험, open-decisions 0-11). 긴 이야기 대본에만 쓰인다
+  const extras = {
+    who: labelOf("who", picks.who) || undefined,
+    feel_problem: labelOf("feelProblem", picks.feelProblem) || undefined,
+    feel_result: labelOf("feelResult", picks.feelResult) || undefined,
+  };
+  const hasExtras = Object.values(extras).some(Boolean);
+  if (useMock) return mockGenerate(characterId, labels, onStatus, signal, length, spoken, voice.name, extras);
 
   const { story_id, job_id } = await call<{ story_id: string; job_id: string }>("/stories", {
     method: "POST",
@@ -280,6 +287,7 @@ export async function generateStory(
       // 캐릭터 목소리 판에서 나레이터가 3인칭으로 부를 이름 (S05Name). 없으면 서버가 짓는다
       ...(voice.name ? { protagonist_name: voice.name } : {}),
       length, spoken,
+      ...(hasExtras ? { extras } : {}),
     }),
     signal,
   });

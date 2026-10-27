@@ -6,12 +6,12 @@ import BigButton from "@/components/BigButton";
 import { useSession } from "@/store/session";
 import { useSettings, useWithAdult, LEVEL_CONFIG } from "@/store/settings";
 import { fetchSteps } from "@/api";
-import { STEP_LABEL, STEP_ORDER, STEP_QUESTION } from "@/types/story";
-import { MAX_SAID, VOICE_STEPS, labelOf, sentenceFor } from "@/features/story/choices";
+import { ASK_QUESTION, EXTRA_STAGE, STEP_LABEL, STEP_ORDER, isStep } from "@/types/story";
+import { MAX_SAID, VOICE_STEPS, askOrder, labelOf, sentenceFor } from "@/features/story/choices";
 import { listen, voiceSupported } from "@/features/story/voice";
 import type { ListenError } from "@/features/story/voice";
 import { speak, stopSpeak } from "@/lib";
-import type { StepChoice, StepKind } from "@/types/story";
+import type { AskKind, StepChoice, StepKind } from "@/types/story";
 
 /** 카드 대신 아이가 말하거나 적은 말로 칸을 채웠을 때의 picks 값. 서버에는 said 의 글이 간다 (api generateStory) */
 const OWN = "own";
@@ -36,9 +36,11 @@ export default function S07Steps() {
   const named = useSettings((s) => s.voiceMode) === "characters";
   const cfg = LEVEL_CONFIG[level];
 
-  const initialAt = STEP_ORDER.findIndex((k) => !picks[k]);
-  const [viewAt, setViewAt] = useState(initialAt === -1 ? STEP_ORDER.length - 1 : initialAt);
-  const kind = viewAt >= 0 && viewAt < STEP_ORDER.length ? STEP_ORDER[viewAt] : null;
+  // 묻는 칸 순서. 네 칸 사이에 인물 · 기분 칸이 끼고, 수준마다 다르다 (open-decisions 0-11)
+  const flow = askOrder(level);
+  const initialAt = flow.findIndex((k) => !picks[k]);
+  const [viewAt, setViewAt] = useState(initialAt === -1 ? flow.length - 1 : initialAt);
+  const kind: AskKind | null = viewAt >= 0 && viewAt < flow.length ? flow[viewAt] : null;
 
   const [choices, setChoices] = useState<StepChoice[]>([]);
   const [pending, setPending] = useState<StepChoice | null>(null);
@@ -51,26 +53,32 @@ export default function S07Steps() {
   useEffect(() => () => stopListen.current?.abort(), []);
 
   useEffect(() => {
-    if (viewAt === STEP_ORDER.length) { nav("/generating", { replace: true }); return; }
+    if (viewAt === flow.length) { nav("/generating", { replace: true }); return; }
     if (kind) {
-      fetchSteps(kind, cfg.choiceCount)
+      // 행동 카드는 고른 문제에 따라 다르다 (ACTIONS_BY_PROBLEM). 문제를 바꾸면 뒤 칸은 지워진다 (store pick)
+      fetchSteps(kind, cfg.choiceCount, picks.problem)
         .then(setChoices)
         .catch(() => { setError("ENGINE_ERROR"); nav("/error"); });
     }
-  }, [kind, cfg.choiceCount, nav, setError, viewAt]);
+  }, [kind, cfg.choiceCount, nav, setError, viewAt, flow.length, picks.problem]);
 
   // 칸이 바뀌면 입력 칸을 그 칸에 정해 둔 말로 채운다. 앞 칸으로 돌아오면 적어 둔 말을 고칠 수 있다
   useEffect(() => {
     stopListen.current?.abort();
     setHeardError(null);
-    setDraft(kind && picks[kind] === OWN ? said[kind] ?? "" : "");
+    setDraft(kind && isStep(kind) && picks[kind] === OWN ? said[kind] ?? "" : "");
   }, [kind]);   // picks · said 는 칸이 바뀔 때의 값만 읽는다
 
   if (!kind) return null;
 
-  const canOwn = ownOn && VOICE_STEPS.includes(kind);
+  // 말하기 · 적기는 네 칸 중 VOICE_STEPS 에만. 인물 · 기분 칸은 카드로만 고른다 (이름을 받지 않으려고)
+  const step: StepKind | null = isStep(kind) ? kind : null;
+  const canOwn = ownOn && !!step && VOICE_STEPS.includes(step);
+  /** 아래 네 점 중 켜질 단계. 인물 · 기분 칸은 붙은 단계의 점이 켜진다 */
+  const stage: StepKind = step ?? EXTRA_STAGE[kind as Exclude<AskKind, StepKind>];
+  const stageAt = STEP_ORDER.indexOf(stage);
   /** 그 칸에 정해진 말 (아이 말이 있으면 그것, 없으면 카드 라벨) */
-  const shown = (k: StepKind) => (picks[k] === OWN ? said[k] : undefined) || labelOf(k, picks[k]);
+  const shown = (k: StepKind) => (picks[k] === OWN ? said[k] : undefined) || labelOf(k, picks[k], picks.problem);
   const next = () => { stopListen.current?.abort(); stopSpeak(); setViewAt((v) => v + 1); };
 
   const choose = (id: string) => {
@@ -93,7 +101,7 @@ export default function S07Steps() {
       .then((t) => {
         const text = t.slice(0, MAX_SAID);
         setDraft(text);   // 인식 원문은 바로 쓰지 않는다. 확정해야 들어간다 (S-07-14)
-        speak(sentenceFor(kind, text), muteAll);   // 아이 말이 들어간 문장을 바로 읽어 준다
+        if (step) speak(sentenceFor(step, text), muteAll);   // 아이 말이 들어간 문장을 바로 읽어 준다
       })
       .catch((e: Error) => {
         const code = (e.message in HEARD_ERROR ? e.message : "failed") as ListenError;
@@ -106,22 +114,22 @@ export default function S07Steps() {
   // S-07-14: 칸에 적힌 말로 이 칸을 정하고 다음 칸으로. 확정한 글만 서버로 간다
   const typed = draft.trim().slice(0, MAX_SAID);
   const confirmOwn = () => {
-    if (!typed || listening) return;
-    pick(kind, OWN);
-    say(kind, typed);
-    speak(sentenceFor(kind, typed), muteAll);
+    if (!typed || listening || !step) return;
+    pick(step, OWN);
+    say(step, typed);
+    speak(sentenceFor(step, typed), muteAll);
     setViewAt((v) => v + 1);
   };
 
   return (
     <Screen back={viewAt === 0 ? (named ? "/name" : "/confirm") : () => { stopListen.current?.abort(); setViewAt((v) => v - 1); }}
-      speech={STEP_QUESTION[kind]} segment={3}>
+      speech={ASK_QUESTION[kind]} segment={3}>
       {kind === "result" && (
         <p className="hint" style={{ marginBottom: "-10px", marginTop: "10px" }}>
           {shown("place")} · {shown("problem")} · {shown("action")}
         </p>
       )}
-      <h2 className="question">{STEP_QUESTION[kind]}</h2>
+      <h2 className="question">{ASK_QUESTION[kind]}</h2>
 
       {/* 카드와 말하기 · 적기를 나란히 둔다. 아래에 두면 카드가 그만큼 작아져 아이콘이 줄어든다 */}
       <div className="pick-area">
@@ -155,7 +163,7 @@ export default function S07Steps() {
                 onChange={(e) => setDraft(e.target.value)} />
               <em>
                 {heardError ? HEARD_ERROR[heardError]
-                  : typed ? sentenceFor(kind, typed)
+                  : typed && step ? sentenceFor(step, typed)
                   : "진짜 이름이나 학교 이름은 쓰지 않아요"}
               </em>
             </div>
@@ -168,8 +176,8 @@ export default function S07Steps() {
       <div className="steps">
         {STEP_ORDER.map((k, i) => (
           <span key={k}
-            className={`step ${i === viewAt ? "on" : ""} ${i < viewAt ? "done" : ""}`}
-            style={i === viewAt ? { color: `var(--c-${k})` } : undefined}>
+            className={`step ${i === stageAt ? "on" : ""} ${i < stageAt ? "done" : ""}`}
+            style={i === stageAt ? { color: `var(--c-${k})` } : undefined}>
             <i /> {STEP_LABEL[k]}
           </span>
         ))}

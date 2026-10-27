@@ -10,7 +10,6 @@ import { useLibrary } from "@/store/library";
 import { useAuth, consumeTrial } from "@/store/auth";
 import { generateStory, ApiError, ENGINE } from "@/api";
 import type { JobStatus } from "@/types/character";
-import type { StepKind } from "@/types/story";
 
 /** 백엔드 job 상태(계약 1-3). 서버가 문장과 애니메이션을 다 만든 뒤에 succeeded 가 된다 */
 const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, failed: 0 };
@@ -36,7 +35,7 @@ export default function S08Generating() {
     const ctrl = new AbortController();
     abort.current = ctrl;
     const started = performance.now();
-    generateStory(character.id, picks as Record<StepKind, string>, said, (s) => {
+    generateStory(character.id, picks, said, (s) => {
       setStep(STEP[s]);
       setDiag(`${s} · ${Math.round((performance.now() - started) / 1000)}s · ${ENGINE}`);
     }, ctrl.signal, { mode: voiceMode, protagonist, name }, storyLength)
