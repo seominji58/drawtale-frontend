@@ -57,4 +57,6 @@ export const DRAW_TEXT: Record<string, { hint: string; primary: string }> = {
   NO_CHARACTER:        { hint: "사람을 한 명만 크게 그려 볼까요?", primary: "다시 그리기" },
   MULTIPLE_CHARACTERS: { hint: "한 명만 그려 볼까요?", primary: "다시 그리기" },
   LOW_CONFIDENCE:      { hint: "사람을 크게 그려 볼까요?", primary: "다시 그리기" },
+  // 앨범에서 고르기(S-03-05)는 사진 올리기를 켰을 때만 있다
+  UNSUPPORTED_IMAGE:   { hint: "다시 그려 볼까요?", primary: "다시 그리기" },
 };
