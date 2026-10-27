@@ -42,11 +42,15 @@ export function useWithAdult() {
   return { member, photo: member && photoUpload, voice: member && voiceInput };
 }
 
-/** 지원 수준별 화면 구성값. 설계서 2.1 */
+/** 지원 수준별 화면 구성값. 설계서 2.1
+ *
+ *  2026-10-12: 기본값(2)에도 confirmStep 을 켰다. 아이가 카드를 보지 않고 누를 수 있다는
+ *  의견이 나왔고, 확인 단계가 없으면 고른 것과 다른 이야기가 나와도 알아차리지 못한다.
+ *  수준 3 은 글자를 읽고 스스로 확인할 수 있다고 보아 그대로 둔다. */
 export const LEVEL_CONFIG: Record<SupportLevel, {
   choiceCount: number; autoSpeak: boolean; confirmStep: boolean; showLabel: boolean;
 }> = {
   1: { choiceCount: 2, autoSpeak: true, confirmStep: true, showLabel: false },
-  2: { choiceCount: 4, autoSpeak: true, confirmStep: false, showLabel: true },
+  2: { choiceCount: 4, autoSpeak: true, confirmStep: true, showLabel: true },
   3: { choiceCount: 6, autoSpeak: false, confirmStep: false, showLabel: true },
 };

@@ -128,6 +128,13 @@ export default function S13Settings() {
             className="tog" />
         </Row>
 
+        {/* AI 생성 표시 (인공지능기본법 제31조, 2026-01-22 시행). 어른 화면이라 분명하게 적는다.
+            아이 화면(S-09)에는 쉬운 말로 둔다 */}
+        <Row name="AI 생성 안내"
+          desc="이야기 문장과 읽어 주는 음성, 움직이는 영상은 AI 가 만듭니다. 아이가 고른 네 칸과 말한 내용을 바탕으로 만들며, 아이 그림은 외부로 보내지 않습니다">
+          <span className="hint">알림</span>
+        </Row>
+
         {stories.map((st) => (
           <Row key={st.storyId} name={st.title} desc={`${st.createdAt}에 만들었어요`}>
             <button className="btn link" style={{ color: "var(--berry)" }}

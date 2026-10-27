@@ -45,6 +45,39 @@
 .slot b { font-size: var(--t-button); color: var(--ink-soft); }
 .slot span { font-size: var(--t-label); color: var(--ink-soft); opacity: .7; }
 
+/* ───────── 동화책 펼침면 (S-09) ─────────
+   왼쪽 그림 · 오른쪽 글. 종이책을 펼친 모양이다.
+   가로가 좁으면(폰 · 세로 태블릿) 위아래로 쌓는다 — 글이 그림 아래로 간다.
+   지원 수준 1 은 글을 작게 두고 그림을 키운다 (글을 읽지 못하는 아이가 있다). */
+.spread {
+  flex: 1; min-height: 0; display: grid; gap: 18px;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: stretch;
+}
+.spread > .stage { flex: initial; }
+.spread-text {
+  display: flex; flex-direction: column; justify-content: center; gap: 12px;
+  padding: 22px 26px; min-width: 0; overflow-y: auto;
+  border-radius: var(--r-stage);
+  background: var(--cloud); box-shadow: var(--soft);
+  /* 종이책의 안쪽 접힌 자리 */
+  border-left: 4px solid var(--edge-soft);
+}
+/* 펼침면 안에서는 글이 알약이 아니라 책 본문처럼 보인다 */
+.spread-text .said {
+  text-align: left; align-self: stretch; border-radius: 18px; padding: 10px 14px;
+}
+.spread-text .hint { text-align: left; }
+
+[data-level="1"] .spread { grid-template-columns: 1.6fr 1fr; }
+[data-level="1"] .spread-text .said { font-size: calc(var(--t-question) - 4px); }
+
+@media (max-width: 1023px) {
+  .spread { grid-template-columns: 1fr; grid-template-rows: 1.4fr auto; }
+  .spread-text { border-left: none; border-top: 4px solid var(--edge-soft); }
+  .spread-text .said, .spread-text .hint { text-align: center; }
+}
+
 /* ───────── 글 ───────── */
 .question { font-size: var(--t-question); text-align: center; line-height: 1.32; }
 .said {

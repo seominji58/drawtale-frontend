@@ -77,12 +77,15 @@ export default function S09Story() {
   return (
     <Screen back="/" speech={story.text} segment={4} autoSpeak={false}
       acts={<BigButton go onClick={() => { stop(); nav("/order"); }}>순서 맞추기</BigButton>}>
-      {stage}
-
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
-        {lines.map((line, n) => (
-          <span key={n} className={`said ${at === n ? "now" : ""}`}>{line}</span>
-        ))}
+      {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (피드백 2026-10-19).
+          좁은 화면에서는 위아래로 쌓인다 (ui.css `.spread`) */}
+      <div className="spread">
+        {stage}
+        <div className="spread-text">
+          {lines.map((line, n) => (
+            <span key={n} className={`said ${at === n ? "now" : ""}`}>{line}</span>
+          ))}
+        </div>
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>
@@ -91,6 +94,8 @@ export default function S09Story() {
         </BigButton>
         <BigButton onClick={() => setLoop((v) => !v)}>{loop ? "반복 켜짐" : "반복"}</BigButton>
       </div>
+
+      <AiNotice />
     </Screen>
   );
 }
@@ -173,22 +178,24 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   return (
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
       acts={<BigButton go onClick={() => { stop(); onDone(); }}>순서 맞추기</BigButton>}>
-      <div className="stage">
-        {clip
-          ? <video key={clip} src={clip} autoPlay loop muted playsInline
-                   style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-          : !perPage && !story.animationUrl && imageUrl && keypoints
-            // 목 엔진: 서버 영상이 없으니 캔버스가 그 쪽 동작으로 움직인다
-            ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[page.action] ?? "idle"} />
-            : still
-              ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
-              : <div className="illust-wrap"><Scene n={0} /></div>}
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>
-        <span className={`said ${reading ? "now" : ""}`} style={{ textAlign: "center" }}>{page.text}</span>
-        {page.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
+      {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23) */}
+      <div className="spread">
+        <div className="stage">
+          {clip
+            ? <video key={clip} src={clip} autoPlay loop muted playsInline
+                     style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            : !perPage && !story.animationUrl && imageUrl && keypoints
+              // 목 엔진: 서버 영상이 없으니 캔버스가 그 쪽 동작으로 움직인다
+              ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[page.action] ?? "idle"} />
+              : still
+                ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
+                : <div className="illust-wrap"><Scene n={0} /></div>}
+        </div>
+        <div className="spread-text">
+          <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>
+          <span className={`said ${reading ? "now" : ""}`}>{page.text}</span>
+          {page.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
+        </div>
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>
@@ -198,6 +205,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         </BigButton>
         <BigButton disabled={last} onClick={() => go(pg + 1)} nudgeOnDisabled={false}>다음 쪽</BigButton>
       </div>
+
+      <AiNotice />
     </Screen>
   );
 }
@@ -206,3 +215,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 const CANVAS_MOTION: Record<string, MotionId> = {
   idle: "idle", walk: "walk", run: "walk", jump: "jump", wave: "wave", dance: "jump",
 };
+
+/** AI 생성 표시 (인공지능기본법 제31조, 2026-01-22 시행). 이야기 문장 · 음성 · 영상이 AI 산물이다.
+ *  아이 화면이라 「AI」 같은 기술 용어를 쓰지 않는다 (설계서 2장) — 문구는 교사 자문에서 확정한다
+ *  (pt_docs 07 4-9). 영상 파일 자체에 넣는 표시는 내려받기 · 공유를 만들 때 함께 넣는다
+ *  (지금은 앱 밖으로 나가는 길이 없다). */
+export function AiNotice() {
+  return <span className="hint" style={{ opacity: 0.75 }}>이 이야기는 컴퓨터가 함께 만들었어요</span>;
+}
