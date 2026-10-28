@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import Screen from "@/components/Screen";
@@ -20,16 +21,71 @@ function Row({ name, desc, children }: { name: string; desc: string; children: R
   );
 }
 
+/** 묶음 머리. 위 바로가기 칩이 이 id 로 찾아간다 */
+function Head({ id, name, desc, children }: { id: string; name: string; desc?: string; children?: ReactNode }) {
+  // 머리는 위에 붙어 있으므로(sticky) 이름만 둔다. 긴 설명은 그 아래 보통 줄로 — 붙어 있는 동안 목록을 가리지 않게
+  return (
+    <>
+      {/* 위치는 이 표식으로 잰다. 위에 붙는(sticky) 머리는 offsetTop 이 붙은 자리로 나와 쓸 수 없다 */}
+      <div className="set-anchor" id={`set-${id}`} data-section={id} aria-hidden />
+      <div className="item head">
+        <span className="grow"><span className="name">{name}</span></span>
+        {children}
+      </div>
+      {desc && <div className="item note"><span className="desc">{desc}</span></div>}
+    </>
+  );
+}
+
+/** 바로가기 칩. 설정이 길어 폰 · 태블릿 · 컴퓨터 어디서든 원하는 묶음으로 바로 간다 (10/28 사용자 「스크롤 방식 고민」) */
+const SECTIONS: [string, string][] = [
+  ["account", "계정"], ["story", "이야기"], ["sound", "소리"], ["adult", "어른과 함께"], ["info", "기록 · 안내"], ["mine", "만든 이야기"],
+];
+
 export default function S13Settings() {
   const nav = useNavigate();
   const s = useSettings();
   const { mode, account, logout } = useAuth();
   const { stories, remove } = useLibrary();
+  const listRef = useRef<HTMLDivElement>(null);
+  const [current, setCurrent] = useState("account");
+
+  // 지금 보고 있는 묶음을 칩에 표시한다: 목록 맨 위를 지난 마지막 머리.
+  // 머리가 위에 붙어 있어(sticky) IntersectionObserver 로는 늘 「보이는」 것으로 나와 스크롤 위치로 센다
+  useEffect(() => {
+    const root = listRef.current;
+    if (!root) return;
+    const onScroll = () => {
+      const heads = [...root.querySelectorAll<HTMLElement>("[data-section]")];
+      const top = root.scrollTop + 12;
+      const atEnd = root.scrollTop + root.clientHeight >= root.scrollHeight - 4;
+      const passed = heads.filter((h) => h.offsetTop <= top);
+      const now = atEnd ? heads[heads.length - 1] : passed[passed.length - 1] ?? heads[0];
+      if (now) setCurrent(now.dataset.section!);
+    };
+    onScroll();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+  }, [stories.length]);
+
+  const jump = (id: string) => {
+    const root = listRef.current, el = document.getElementById(`set-${id}`);
+    if (!root || !el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    root.scrollTo({ top: el.offsetTop, behavior: reduce ? "auto" : "smooth" });
+  };
 
   return (
     <Screen back="/" speech={null} title="어른 설정" audience="adult" autoSpeak={false}
       acts={<BigButton onClick={() => nav("/")}>닫기</BigButton>}>
-      <div className="list scroll">
+      <nav className="set-nav" aria-label="설정 묶음 바로가기">
+        {SECTIONS.filter(([id]) => id !== "mine" || stories.length > 0).map(([id, label]) => (
+          <button key={id} className={current === id ? "on" : ""} aria-current={current === id} onClick={() => jump(id)}>{label}</button>
+        ))}
+      </nav>
+      {/* 터치 · 휠 · 트랙패드 · 스크롤 막대 · 키보드(눌러서 고른 뒤 화살표 · Page Down) 모두로 내린다 */}
+      <div className="list scroll set-list" ref={listRef} tabIndex={0} aria-label="설정 목록">
+        <Head id="account" name="계정" />
         <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
           {/* 로그아웃하면 「어른과 함께」 기능도 끈다. 다음에 들고 있는 사람이 보호자라는 보장이 없다 */}
           <button className="btn link"
@@ -48,6 +104,7 @@ export default function S13Settings() {
           </span>
         </Row>}
 
+        <Head id="story" name="이야기" />
         {/* 긴 이야기 (open-decisions 0-6, 사용자 2026-10-12). 쪽 수는 서버 설정(STORY_PAGES, 지금 8쪽) */}
         <Row name="이야기 길이"
           desc={s.storyLength === "long"
@@ -84,6 +141,7 @@ export default function S13Settings() {
           </Row>
         )}
 
+        <Head id="sound" name="소리" />
         <Row name="소리 전체 끄기" desc="모든 음성과 효과음을 끕니다. 교실에서 쓸 때 켜세요">
           <input type="checkbox" checked={s.muteAll}
             onChange={(e) => s.set("muteAll", e.target.checked)}
@@ -92,17 +150,12 @@ export default function S13Settings() {
         {/* 「어른과 함께」 묶음 (pt_docs 03 F-SET-06, 01 NFR-15). 위험이 따르는 기능은 로그인한 보호자만 켠다.
             설계는 「로그인 후 아이 프로필 설정」에 두는 것이고, 아이 프로필(F-ACC-07)이 아직 없어 그때까지 여기 둔다.
             로그인하지 않았으면 설정값과 상관없이 꺼진 것으로 본다 (store/settings.ts useWithAdult) */}
-        <div className="item head">
-          <span className="grow">
-            <span className="name">어른과 함께</span>
-            <span className="desc">
-              {mode === "member"
-                ? "위험이 따를 수 있는 기능입니다. 켜면 아이 화면에 버튼이 생기고, 꺼 두면 버튼 자체가 보이지 않습니다. 아이 곁에서 함께 써 주세요"
-                : "로그인한 보호자만 켤 수 있습니다. 로그인하지 않으면 아래 기능은 모두 꺼져 있습니다"}
-            </span>
-          </span>
+        <Head id="adult" name="어른과 함께"
+          desc={mode === "member"
+            ? "위험이 따를 수 있는 기능입니다. 켜면 아이 화면에 버튼이 생기고, 꺼 두면 버튼 자체가 보이지 않습니다. 아이 곁에서 함께 써 주세요"
+            : "로그인한 보호자만 켤 수 있습니다. 로그인하지 않으면 아래 기능은 모두 꺼져 있습니다"}>
           {mode !== "member" && <button className="btn link" onClick={() => nav("/login")}>로그인</button>}
-        </div>
+        </Head>
         <Row name="사진으로 그림 올리기"
           desc="종이에 그린 그림을 찍거나 앨범에서 고를 수 있습니다. 사람 사진이나 남이 그린 그림이 올라와도 자동으로 가려내지 못하니, 직접 그린 그림인지 함께 확인해 주세요. 끄면 화면에 그리기만 남습니다">
           <input type="checkbox" checked={mode === "member" && s.photoUpload} disabled={mode !== "member"}
@@ -118,6 +171,7 @@ export default function S13Settings() {
             onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>
+        <Head id="info" name="기록 · 안내" />
         <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
           <input type="checkbox" checked={s.keepOriginal}
             onChange={(e) => s.set("keepOriginal", e.target.checked)}
@@ -136,6 +190,7 @@ export default function S13Settings() {
           <span className="hint">알림</span>
         </Row>
 
+        {stories.length > 0 && <Head id="mine" name="만든 이야기" desc="지우면 되돌릴 수 없습니다" />}
         {stories.map((st) => (
           <Row key={st.storyId} name={st.title} desc={`${st.createdAt}에 만들었어요`}>
             <button className="btn link" style={{ color: "var(--berry)" }}

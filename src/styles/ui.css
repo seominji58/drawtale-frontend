@@ -394,3 +394,51 @@
 .book-cover img { width: 70%; height: 70%; object-fit: contain; }
 .book-title { margin-left: 10px; font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: 30px; line-height: 1.15; }
 .book-date { margin-left: 10px; font-size: var(--t-label); color: var(--ink-soft); }
+
+/* ───────── 어른 설정 스크롤 (S-13) ─────────
+   어느 기기에서든: 터치로 끌기 · 휠 · 트랙패드 · 스크롤 막대 끌기 · 키보드(목록을 누른 뒤 화살표 · Page Down).
+   위아래에 더 있으면 그림자가 보인다(내용과 함께 움직이는 덮개 + 고정 그림자 — CSS 만으로).
+   맨 위 칩으로 묶음에 바로 간다. 넓은 화면에서는 읽기 좋은 폭(860px)으로 가운데 */
+.list.scroll { overflow-y: auto; }
+.set-list {
+  width: 100%; max-width: 860px; align-self: center;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  scroll-padding-top: 8px;
+  scrollbar-width: auto; scrollbar-color: var(--edge) transparent;
+  background:
+    linear-gradient(var(--cloud) 30%, rgba(255, 253, 248, 0)) center top,
+    linear-gradient(rgba(255, 253, 248, 0), var(--cloud) 70%) center bottom,
+    radial-gradient(farthest-side at 50% 0, rgba(58, 46, 38, .16), transparent) center top,
+    radial-gradient(farthest-side at 50% 100%, rgba(58, 46, 38, .16), transparent) center bottom;
+  background-color: var(--cloud);
+  background-repeat: no-repeat;
+  background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+  background-attachment: local, local, scroll, scroll;
+}
+.set-list:focus-visible { outline-offset: 2px; }
+.set-list::-webkit-scrollbar { width: 12px; }
+.set-list::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 999px; border: 3px solid var(--cloud); }
+.set-list::-webkit-scrollbar-thumb:hover { background: var(--ink-soft); }
+.set-list::-webkit-scrollbar-track { background: transparent; }
+/* 묶음 머리는 내려도 위에 붙어 있어 지금 어느 묶음인지 보인다 */
+.set-list .item.head { position: sticky; top: 0; z-index: 1; border-top: 1px solid var(--edge); }
+.set-list .item.head .name { font-size: 17px; color: var(--ink-soft); }
+.set-list .item.head:first-child { border-top: 0; }
+.set-list { position: relative; }
+.set-list .item.note { padding-top: 10px; padding-bottom: 10px; }
+.set-anchor { height: 0; }
+.set-list .set-anchor:first-child + .item.head { border-top: 0; }
+
+.set-nav {
+  flex: 0 0 auto; display: flex; gap: 8px; justify-content: center;
+  overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px;
+  width: 100%; max-width: 860px; align-self: center;
+}
+.set-nav::-webkit-scrollbar { display: none; }
+.set-nav button {
+  flex: 0 0 auto; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  background: var(--cloud); border: 2px solid var(--edge); color: var(--ink-soft);
+  font-size: 15px; font-weight: 700;
+}
+.set-nav button.on { background: var(--ink); border-color: var(--ink); color: #FFFDF8; }
+@media (max-width: 767px) { .set-nav { justify-content: flex-start; } }
