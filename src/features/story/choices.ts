@@ -41,7 +41,7 @@ const iconOf = (kind: string, id: string, emoji: string) => {
  *  pt_docs 05 는 지원 수준에 따라 장수를 줄이지만(수준 1 은 앞 2장) 사용자 결정으로 고정이다 (open-decisions 0-12) */
 export const CARD_COUNT: Record<StepKind, number> = { place: 8, problem: 4, action: 4, result: 4 };
 
-/** 카드 내용은 pt_docs 05 S-07 「카드」 표 그대로다 (2026-10-28 확정, a7eb2b2). 순서도 표의 순서 — 앞에서부터 보여 준다.
+/** 카드 내용은 pt_docs 05 S-07 「카드」 표 그대로다 (2026-10-28 4차 — 뜻이 겹치던 일곱 장 교체). 순서도 표의 순서 — 앞에서부터 보여 준다.
  *  [id, 라벨, 임시 이모지] — id 는 kind 안에서만 유일하다 (docs/id-conventions.md 1절) */
 const RAW: Record<StepKind, [string, string, string][]> = {
   place: [
@@ -78,7 +78,7 @@ const RAW: Record<StepKind, [string, string, string][]> = {
 
 /** 문제마다 따로 나오는 행동 카드 16장 (pt_docs 05 「행동 카드 16장」). 한 문제 안의 네 장은 모두 다른 동작이다.
  *  [id, 라벨, 임시 이모지, 동작, 소품] — 동작은 05 의 다섯 가지(wave 손 흔들기 · walk 걷기 · run 뛰기 · idle 대기 ·
- *  hide 사라지기 — 렌더를 부르지 않음). 소품은 05 의 기본 소품(adult 어른 · friend 친구 · cover 숨을 것), 없으면 "".
+ *  hide 사라지기 — 렌더를 부르지 않음). 소품은 05 의 기본 소품(adult 어른 · friend 친구 · cover 숨을 것 · sign 표지판), 없으면 "".
  *  id 는 행동 16장 안에서 유일하다 (ACTION_MOTION 이 id 로 찾는다) */
 const ACTIONS_BY_PROBLEM: Record<string, [string, string, string, string, string][]> = {
   fall: [
@@ -97,8 +97,8 @@ const ACTIONS_BY_PROBLEM: Record<string, [string, string, string, string, string
   lost: [
     ["stay_wait", "그 자리에서 기다렸어요", "⏳", "idle", ""],
     ["ask_adult", "어른에게 물어봤어요", "🗣", "wave", "adult"],
-    ["find_way", "길을 찾아 나섰어요", "🧭", "walk", ""],
-    ["run_road", "큰 길로 달려갔어요", "🏃", "run", ""],
+    ["look_walk", "주위를 살피며 걸었어요", "👀", "walk", ""],
+    ["run_sign", "표지판으로 달려갔어요", "🪧", "run", "sign"],
   ],
   dark: [
     ["hide", "숨었어요", "🫣", "hide", "cover"],
@@ -112,20 +112,20 @@ const ACTIONS_BY_PROBLEM: Record<string, [string, string, string, string, string
  *  「모두 기뻐했어요」는 두 문제에 다 있어 id 를 나눴다 (같은 칸 안에서 id 가 겹치지 않게) */
 const RESULTS_BY_PROBLEM: Record<string, [string, string, string][]> = {
   fall: [
-    ["brave_again", "다시 씩씩해졌어요", "💪"],
     ["okay", "금방 괜찮아졌어요", "🙂"],
     ["smile", "웃음이 났어요", "😄"],
-    ["play_again", "다시 신나게 놀았어요", "🤸"],
+    ["got_there", "가려던 곳까지 갔어요", "🚩"],
+    ["new_friend", "친구가 생겼어요", "🧑‍🤝‍🧑"],
   ],
   crying: [
-    ["friend_smiled", "친구가 웃었어요", "😊"],
-    ["played_together", "함께 놀았어요", "🧑‍🤝‍🧑"],
+    ["tears_stop", "친구 눈물이 그쳤어요", "🌤"],
+    ["thanked", "고맙다는 말을 들었어요", "💌"],
     ["best_friend", "친한 친구가 됐어요", "💛"],
     ["party_friend", "모두 기뻐했어요", "🎉"],
   ],
   lost: [
     ["found_way", "길을 찾았어요", "🗺"],
-    ["back_safe", "무사히 돌아왔어요", "🏡"],
+    ["adult_took", "어른이 데려다 줬어요", "🤝"],
     ["relief", "마음이 놓였어요", "😌"],
     ["party_lost", "모두 기뻐했어요", "🎉"],
   ],
