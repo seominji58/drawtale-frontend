@@ -10,9 +10,9 @@
 
 | 쓰는 곳 | API · 모델 | 상태 |
 |---|---|---|
-| 이야기 글 (네 문장) | OpenAI `gpt-4o-mini` | 서비스에 들어감 |
+| 이야기 글 (네 문장 · 인물 목소리 대본) | **Claude `claude-opus-5-5`** (effort low, 10/28 부터. 예비 OpenAI `gpt-4o-mini`) | 백엔드 dev 반영 |
 | 이야기 글 (8쪽 그림책) | OpenAI `gpt-5.4-mini` | 서비스에 들어감 |
-| 대본 + 쪽별 배경 계획 | Claude `claude-opus-5-5` | 비교 시험 끝, **바꾸기로 결정(10/27)**, 백엔드 반영 전 |
+| 대본 + 쪽별 배경 계획 (8쪽 그림책) | Claude `claude-opus-5-5` (effort medium, 예비 `gpt-5.4-mini`) | 백엔드 dev 반영 (10/27) |
 | 내용 검열 | OpenAI `omni-moderation-latest` | 서비스에 들어감 |
 | 안전 판정 (상상은 살리고 위험만) | OpenAI `gpt-5.5` 등 3종 + Claude Opus 5.5 비교 | 시험만 |
 | 이야기 읽어주기 (TTS) | ElevenLabs `eleven_v4` (기본은 OpenAI `gpt-4o-mini-tts`) | 서비스에 들어감 |
@@ -28,7 +28,7 @@
 **원칙: 이야기의 주인은 아이다** — AI 는 아이가 고른 것을 문장으로 잇기만 하고, 고르지 않은 큰 사건을 만들지 않는다.
 
 **네 문장 판** (`backend app/services/story_writer.py`)
-- `gpt-4o-mini`, temperature 0.8, 최대 300토큰. 「~어요」 말투, 주인공 「나」.
+- **Claude Opus 5.5 (effort low, 10/28 사용자 「전부 클로드로」)**, 실패하면 그 시도만 `gpt-4o-mini`(temperature 0.8, 최대 300토큰). 「~어요」 말투, 주인공 「나」. 고르지 않은 인물을 데려오지 않는다.
 - 「캐릭터 목소리」 판이면 대사 1~2개를 넣고 말하는 사람 · 감정을 붙인다 (TTS 가 인물별 목소리로 읽음).
 
 **8쪽 그림책 판** (`backend app/services/book.py`, 10/12)
