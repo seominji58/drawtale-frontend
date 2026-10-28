@@ -62,16 +62,28 @@ export default function S03Upload() {
           {photo && <BigButton onClick={() => album.current?.click()}>앨범에서 고르기</BigButton>}
         </>
       )}>
-      <div className={`stage ${imageUrl ? "" : "empty"}`}>
-        {imageUrl
-          ? <img src={imageUrl} alt="고른 그림" style={{ maxHeight: "100%", objectFit: "contain" }} />
-          : <div className="illust-wrap"><Paper /></div>}
-      </div>
+      {imageUrl ? (
+        <div className="stage">
+          <img src={imageUrl} alt="고른 그림" style={{ maxHeight: "100%", objectFit: "contain" }} />
+        </div>
+      ) : (
+        // 빈 상자 대신 테이프 붙인 도화지 + 큰 안내 (2026-10-28 디자인)
+        <div className="hero">
+          <div className="stage hero-sheet"><div className="illust-wrap"><Paper /></div></div>
+          <div className="hero-side">
+            <h2 className="hero-title">{photo ? "그림을 보여 줄래요?" : "화면에 그려 볼까요?"}</h2>
+            <p className="hero-sub">{photo ? "종이에 그린 그림을 찍거나, 화면에 그려 주세요" : "손가락으로 쓱쓱 그리면 친구가 돼요"}</p>
+            <ul className="hero-tips">
+              <li>사람을 한 명만</li>
+              <li>팔과 다리는 몸에서 조금 떨어지게</li>
+              {photo && <li>하얀 종이 위에, 밝은 곳에서</li>}
+            </ul>
+          </div>
+        </div>
+      )}
       {!imageUrl && (
         <>
-          {rejected
-            ? <div className="box warn">{REJECTED}</div>
-            : <p className="hint">{photo ? "종이에 그린 그림을 찍거나, 화면에 그려 주세요" : "화면에 그려 주세요"}</p>}
+          {rejected && <div className="box warn">{REJECTED}</div>}
           {ENGINE === "mock" && (
             <div className="aside-links">
               <span>확인용</span>

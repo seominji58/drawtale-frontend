@@ -45,11 +45,14 @@ export default function E01Error() {
             : <BigButton onClick={() => { setError(null); nav("/"); }}>처음으로</BigButton>}
         </>
       }>
-      <div className="stage">
-        <div className="illust-wrap"><Puzzled /></div>
+      {/* 빈 무대 대신 도화지 + 큰 글 (2026-10-28 디자인) */}
+      <div className="hero">
+        <div className="stage hero-sheet"><div className="illust-wrap"><Puzzled /></div></div>
+        <div className="hero-side">
+          <h2 className="hero-title">{t.title}</h2>
+          <p className="hero-sub">{t.hint}</p>
+        </div>
       </div>
-      <h2 className="question">{t.title}</h2>
-      <p className="hint">{t.hint}</p>
       {/* 3회부터는 「처음으로」가 주된 줄에서 빠지므로 글자 줄로 남긴다 (한 화면의 주된 행동은 하나) */}
       {fails >= 3 && (
         <div className="aside-links">

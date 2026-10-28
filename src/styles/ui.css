@@ -559,3 +559,53 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .welcome-sheet { justify-self: center; width: 240px; }
   .welcome-name { font-size: 60px; }
 }
+
+/* ───────── 도화지 + 큰 글 (S-03 비었을 때 · E-01 · S-11) ─────────
+   빈 큰 무대에 작은 그림 하나만 있던 화면들. 첫 화면(S-01)과 같은 짜임 */
+.hero { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 52px; align-items: center; padding: 0 3vw; }
+.hero-sheet { flex: initial; justify-self: end; width: min(400px, 100%); aspect-ratio: 40 / 44; max-height: 100%;
+  transform: rotate(-1.5deg); overflow: visible; }
+.hero-sheet::before, .hero-sheet::after { content: ""; position: absolute; top: -14px; width: 90px; height: 26px; z-index: 1; }
+.hero-sheet::before { left: 34px; background: rgba(232, 178, 60, .55); transform: rotate(-6deg); }
+.hero-sheet::after { right: 38px; background: rgba(79, 143, 214, .45); transform: rotate(5deg); }
+.hero-sheet .illust { max-width: 280px; max-height: 300px; object-fit: contain; }
+.hero-side { display: flex; flex-direction: column; gap: 14px; max-width: 460px; }
+.hero-title { font-size: 56px; line-height: 1.08; }
+.hero-sub { font-size: 20px; color: var(--ink-soft); line-height: 1.6; }
+.hero-tips { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.hero-tips li { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.hero-tips li::before { content: ""; flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%; background: var(--mint); border: 2px solid var(--line); }
+/* 다 했어요: 도화지 둘레에 색종이 조각 (멈춰 있다 — 장식 움직임 없음) */
+.hero-sheet.done .confetti { position: absolute; inset: -18px; pointer-events: none;
+  background:
+    radial-gradient(circle, var(--c-result) 6px, transparent 7px) 8% 18% / 40px 40px no-repeat,
+    radial-gradient(circle, var(--c-place) 5px, transparent 6px) 92% 12% / 40px 40px no-repeat,
+    radial-gradient(circle, var(--c-problem) 6px, transparent 7px) 96% 70% / 40px 40px no-repeat,
+    radial-gradient(circle, var(--c-action) 5px, transparent 6px) 4% 82% / 40px 40px no-repeat; }
+@media (max-width: 767px) {
+  .hero { grid-template-columns: 1fr; gap: 18px; padding: 0; }
+  .hero-sheet { justify-self: center; width: 240px; }
+  .hero-title { font-size: 40px; }
+}
+
+/* ───────── 그림 안내 카드 (S-02) ───────── */
+.guide-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px; align-content: center; }
+.guide-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 14px 18px;
+  background: var(--cloud); border: var(--line-w) solid var(--line); border-radius: 20px 26px 18px 24px; box-shadow: 4px 5px 0 rgba(58, 46, 38, .12); text-align: center; }
+.guide-card:nth-child(even) { transform: rotate(.8deg); border-radius: 26px 18px 24px 20px; }
+.guide-card:nth-child(odd) { transform: rotate(-.6deg); }
+.guide-card.no { background: #F3EEE5; }
+.guide-art-wrap { width: 100%; max-width: 170px; aspect-ratio: 160 / 150; display: flex; }
+.guide-art { width: 100%; height: 100%; }
+.guide-card.no .guide-art { opacity: .75; }
+.guide-label { font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: 26px; }
+.guide-card.ok .guide-label { color: #2F7D57; }
+.guide-card.no .guide-label { color: var(--ink-soft); }
+.guide-text { font-size: 16px; line-height: 1.45; word-break: keep-all; }
+.guide-stamp { position: absolute; top: -12px; left: -10px; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; border: 3px solid var(--line); transform: rotate(-8deg); }
+.guide-stamp svg { width: 62%; height: 62%; }
+.guide-stamp.ok { background: var(--mint); }
+.guide-stamp.tip { background: var(--apricot); }
+.guide-stamp.no { background: #FFFDF8; border-style: dashed; border-color: var(--ink-soft); font-size: 13px; font-weight: 700; color: var(--ink-soft); }
