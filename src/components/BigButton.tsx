@@ -30,7 +30,9 @@ export default function BigButton({
   };
 
   return (
+    // type="button": 폼 안(S-15 · S-16 카드)에서 눌러도 폼 제출이 한 번 더 일어나지 않게. 엔터 제출은 폼의 onSubmit 이 맡는다
     <button
+      type="button"
       className={`btn ${go ? "go" : ""} ${disabled ? "off" : ""} ${nudging ? "nudge" : ""}`}
       onClick={handle}
       aria-disabled={disabled}

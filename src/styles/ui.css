@@ -442,3 +442,52 @@
 }
 .set-nav button.on { background: var(--ink); border-color: var(--ink); color: #FFFDF8; }
 @media (max-width: 767px) { .set-nav { justify-content: flex-start; } }
+
+/* ───────── 찢은 종이 카드 (S-14 · S-15 · S-16) ─────────
+   카드 하나만 있는 화면에서만 쓴다. 바탕(::before)만 찢긴 가장자리 필터를 받고 글자는 그대로 */
+.paper-card { position: relative; isolation: isolate; }
+.paper-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--cloud); filter: url(#paper-torn);
+}
+.tape { position: absolute; top: -13px; left: 50%; width: 84px; height: 26px; margin-left: -42px;
+  background: rgba(232, 178, 60, .55); transform: rotate(-3deg); z-index: 1; }
+
+/* 로그인 · 회원가입: 가운데 종이 카드. 화면이 낮으면 카드째 위아래로 내린다 */
+.auth-wrap { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; padding: 14px 6px 24px; }
+.auth-card { margin: auto; width: min(520px, 100%); padding: 38px 40px 30px; display: flex; flex-direction: column; gap: 14px; }
+.auth-brand { font-family: var(--font-round); font-weight: 700; font-size: 26px; letter-spacing: -.1em; color: var(--grape-dk); }
+.auth-title { font-size: 42px; line-height: 1.1; }
+.auth-sub { font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
+.auth-or { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-soft); }
+.auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--edge); }
+.auth-card .btn.go { margin-top: 6px; }
+.auth-card .aside-links { font-size: 14px; }
+.auth-card .check { color: var(--ink); }
+@media (max-width: 767px) { .auth-card { padding: 30px 22px 24px; } .auth-title { font-size: 34px; } }
+
+/* ───────── 처음 실행 (S-14) ─────────
+   왼쪽은 테이프로 붙인 (찢은 가장자리) 도화지, 오른쪽은 이름 · 하는 일 세 단계 · 시작 */
+.welcome { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px; align-items: center; padding: 8px 3vw; }
+.welcome-sheet { justify-self: end; width: min(380px, 100%); aspect-ratio: 38 / 42; display: flex; align-items: center; justify-content: center;
+  transform: rotate(-1.8deg); }
+.welcome-sheet .tape { left: 24%; }
+.welcome-sheet .tape + .tape { left: 76%; background: rgba(79, 143, 214, .45); transform: rotate(5deg); }
+.welcome-sheet .illust { max-width: 250px; max-height: 300px; }
+.welcome-side { display: flex; flex-direction: column; gap: 16px; max-width: 480px; }
+.welcome-name { font-family: var(--font-round); font-weight: 700; font-size: 84px; letter-spacing: -.1em; line-height: 1; color: var(--grape-dk); }
+.welcome-tag { font-family: var(--font-round); font-weight: 700; font-size: 32px; letter-spacing: -.1em; margin-top: 6px; }
+.welcome-steps { list-style: none; display: flex; flex-direction: column; gap: 10px; padding: 16px 18px;
+  background: rgba(255, 253, 248, .75); border: 2px solid var(--edge); border-radius: 18px 22px 16px 20px; }
+.welcome-steps li { display: flex; align-items: center; gap: 14px; font-size: 18px; }
+.welcome-steps b { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); color: #FFFDF8;
+  font-family: var(--font-round); font-size: 26px; display: flex; align-items: center; justify-content: center; }
+.welcome-note { text-align: center; font-size: 15px; color: var(--ink-soft); margin-top: -6px; }
+.welcome-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.welcome-foot { font-size: 13px; color: var(--ink-soft); }
+@media (max-width: 767px) {
+  .welcome { grid-template-columns: 1fr; gap: 20px; }
+  .welcome-sheet { justify-self: center; width: 240px; }
+  .welcome-name { font-size: 60px; }
+}

@@ -14,6 +14,15 @@
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   </head>
   <body>
+    <!-- 찢은 종이 가장자리 (카드 하나만 있는 화면: S-14 · S-15 · S-16). 그림 파일 없이 브라우저가 만든다.
+         카드 글자는 흔들지 않고 카드 바탕(::before)에만 건다. 필터를 모르는 브라우저는 반듯한 카드로 보인다 -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+      <filter id="paper-torn" x="-4%" y="-4%" width="108%" height="108%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="4" seed="4" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="11" xChannelSelector="R" yChannelSelector="G" result="torn" />
+        <feDropShadow dx="6" dy="8" stdDeviation="0" flood-color="#3A2E26" flood-opacity="0.14" />
+      </filter>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
