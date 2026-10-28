@@ -198,7 +198,7 @@ S-15/S-16 [○○ 로그인]
 | 제공자 | 파일 | 출처 |
 |---|---|---|
 | 카카오 | `public/brand/kakao/kakao_login_kr_medium.svg` | developers.kakao.com 리소스 「전체 다운로드」 |
-| 구글 | `public/brand/google/signin_light_square.svg` | Google 브랜딩 가이드 `signin-assets.zip` |
+| 구글 | `public/brand/google/signin_neutral_square.svg` | Google 브랜딩 가이드 `signin-assets.zip` |
 
 구글 공식 파일은 영어(「Sign in with Google」)뿐이다. 가이드는 한국어 현지화를 허용하지만
 로고만 따로 있는 파일이 없어 원본 그대로 쓴다. 자세한 것은 각 폴더의 `README.txt`.

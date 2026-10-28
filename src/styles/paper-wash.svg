@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+  <!-- 바탕 질감 7 「수채 번짐」 (2026-10-28 사용자 결정). 네 귀퉁이에 크레파스 네 색이 물감처럼 번진다.
+       화면 크기에 맞춰 늘어난다 (base.css 의 background-size: 100% 100%) -->
+  <filter id="wash" x="-20%" y="-20%" width="140%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="2" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="8"/>
+    <feGaussianBlur stdDeviation="2"/>
+  </filter>
+  <g filter="url(#wash)">
+    <ellipse cx="4" cy="6" rx="26" ry="20" fill="rgba(79,143,214,0.22)"/>
+    <ellipse cx="100" cy="96" rx="28" ry="22" fill="rgba(232,178,60,0.26)"/>
+    <ellipse cx="96" cy="2" rx="16" ry="12" fill="rgba(226,109,90,0.18)"/>
+    <ellipse cx="2" cy="100" rx="18" ry="14" fill="rgba(79,167,122,0.2)"/>
+  </g>
+</svg>

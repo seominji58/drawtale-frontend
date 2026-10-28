@@ -6,9 +6,12 @@ body {
   font-size: var(--t-body);
   color: var(--ink);
   background-color: var(--milk);
-  /* 종이 결: 아주 옅은 점 */
-  background-image: radial-gradient(rgba(120, 90, 60, 0.08) 1.5px, transparent 1.5px);
-  background-size: 22px 22px;
+  /* 바탕 질감 7 「수채 번짐」 (2026-10-28 사용자 결정, 예전은 옅은 점무늬): 귀퉁이에 네 색이 번진 종이.
+     화면에 붙여 두어(fixed) 스크롤해도 귀퉁이에 남는다 */
+  background-image: url("./paper-wash.svg");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
