@@ -27,15 +27,16 @@ export default function ChoiceCard({
       {/* 고른 카드는 압정으로 꽂아 둔 것처럼 (10/28 사용자 「고정핀으로 고정된 느낌」) */}
       {selected && (
         <span className="choice-pin" aria-hidden>
-          <svg viewBox="0 0 44 44">
-            {/* 비스듬히 꽂힌 압정: 머리 아래로 은색 바늘이 짧게 보인다 (막대사탕처럼 길게 그리지 않는다) */}
-            <ellipse cx="27" cy="33" rx="11" ry="5" fill="rgba(58,46,38,.22)" />
-            <path d="M24 25L31 36" stroke="#3A2E26" strokeWidth="4.6" strokeLinecap="round" />
-            <path d="M24 25L31 36" stroke="#A9AFB5" strokeWidth="2.6" strokeLinecap="round" />
-            <path d="M24.4 25.2L28.6 31.8" stroke="#EEF0F2" strokeWidth="1" strokeLinecap="round" />
-            <ellipse cx="22" cy="23" rx="11" ry="5.5" transform="rotate(-32 22 23)" fill="#A2402A" stroke="#3A2E26" strokeWidth="2.5" />
-            <ellipse cx="18.5" cy="17.5" rx="9.5" ry="8.5" transform="rotate(-32 18.5 17.5)" fill="#D65A3B" stroke="#3A2E26" strokeWidth="2.5" />
-            <ellipse cx="15.5" cy="14" rx="3.2" ry="2" transform="rotate(-40 15.5 14)" fill="#FFFDF8" opacity=".8" />
+          <svg viewBox="0 0 44 48">
+            {/* 위로 살짝 기운 압정: 앞에서 조금 내려다본 모양. 머리 · 받침 아래로 은색 바늘이 짧게 보인다 */}
+            <ellipse cx="24" cy="44" rx="9" ry="2.6" fill="rgba(58,46,38,.22)" />
+            <path d="M22 33v9" stroke="#3A2E26" strokeWidth="4.6" strokeLinecap="round" />
+            <path d="M22 33v9" stroke="#A9AFB5" strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M21.4 34v5" stroke="#EEF0F2" strokeWidth="1" strokeLinecap="round" />
+            <ellipse cx="22" cy="31" rx="12.5" ry="4.5" fill="#A2402A" stroke="#3A2E26" strokeWidth="2.5" />
+            <path d="M16.5 15.5C18 20 18.5 24 17.5 29h9c-1-5-.5-9 1-13.5" fill="#C24E32" stroke="#3A2E26" strokeWidth="2.5" strokeLinejoin="round" />
+            <ellipse cx="22" cy="13" rx="10" ry="6.5" fill="#D65A3B" stroke="#3A2E26" strokeWidth="2.5" />
+            <ellipse cx="18.5" cy="11" rx="3.4" ry="1.8" transform="rotate(-15 18.5 11)" fill="#FFFDF8" opacity=".8" />
           </svg>
         </span>
       )}
