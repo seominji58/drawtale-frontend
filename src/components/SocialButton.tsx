@@ -6,8 +6,8 @@ import type { SocialIntent, SocialProvider } from "@/api/auth";
  *  가이드상 문구가 정해져 있어서(「카카오 로그인」 등) 가입 화면에서도 같은 버튼이다.
  *  구글은 공식 파일에 한국어판이 없어 영어 그대로다. */
 const IMAGE: Record<SocialProvider, { src: string; alt: string }> = {
-  kakao: { src: "/brand/kakao/kakao_login_kr_medium.svg", alt: "카카오 로그인" },
-  google: { src: "/brand/google/signin_light_square.svg", alt: "Google 계정으로 로그인" },
+  kakao: { src: `${import.meta.env.BASE_URL}brand/kakao/kakao_login_kr_medium.svg`, alt: "카카오 로그인" },
+  google: { src: `${import.meta.env.BASE_URL}brand/google/signin_light_square.svg`, alt: "Google 계정으로 로그인" },
 };
 
 /** 버튼을 같은 폭으로 맞춘다. 높이는 각 리소스 비율대로 53~58px */

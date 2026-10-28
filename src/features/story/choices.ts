@@ -154,7 +154,7 @@ export const CHOICES = {
       rows.map(([id, label, emoji]) => ({
         id,
         label,
-        iconUrl: USE_REAL_ICONS && !NO_ICON.has(`${kind}/${id}`) ? `/icons/${kind}/${id}.png` : icon(emoji),
+        iconUrl: USE_REAL_ICONS && !NO_ICON.has(`${kind}/${id}`) ? `${import.meta.env.BASE_URL}icons/${kind}/${id}.png` : icon(emoji),
       })),
     ])
   ),

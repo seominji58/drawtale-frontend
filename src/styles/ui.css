@@ -134,6 +134,8 @@
   font-size: var(--t-body); color: var(--ink-soft);
 }
 .aside-links .sep { color: var(--edge); }
+.btn.link.adult-link { gap: 6px; }
+.btn.link.adult-link svg { width: 18px; height: 18px; flex: 0 0 auto; }
 
 /* ───────── 선택지 ───────── */
 /* 행은 남은 높이를 나눠 갖고(minmax), 열은 카드 폭에 맞춘다(auto).
@@ -307,15 +309,80 @@
 .tog { width: 26px; height: 26px; accent-color: var(--grape); flex: 0 0 auto; }
 .thumb { width: 86px; height: 56px; flex: 0 0 auto; border-radius: 14px; background: var(--edge-soft); }
 
-/* ───────── 관절 보정 ───────── */
-.joint-stage { position: relative; width: 100%; height: 100%; }
-.joint-stage img { width: 100%; height: 100%; object-fit: contain; }
-.joint {
-  position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px;
-  border-radius: 50%; border: 4px solid #FFFDF8; outline: 2px solid var(--line); background: var(--grape);
-  box-shadow: var(--soft-sm); touch-action: none; cursor: grab;
+/* ───────── 화면에 그리기 (S-03D) ─────────
+   종이 틀이 그림판 크기와 꼭 같다 — 틀 안에 그릴 수 없는 빈 칸을 두지 않는다 (2026-10-28) */
+.draw-area { flex: 1; min-height: 0; display: flex; gap: 20px; justify-content: center; }
+.draw-area.wide { align-items: flex-start; }
+/* 가운데 정렬로 두면 넘칠 때 위가 잘린다 — 위에서부터 쌓는다 */
+.draw-area.narrow {
+  flex-direction: column; align-items: center; justify-content: flex-start;
+  overflow-y: auto; overflow-x: hidden; padding: 6px 6px 12px; overscroll-behavior: contain;
 }
-.joint.low { background: var(--berry); }
+.draw-area.narrow .draw-paper { order: -1; }
+.draw-area.narrow .draw-tools { width: 100%; max-width: 420px; }
+.draw-paper {
+  flex: 0 0 auto; position: relative; background: #FFFFFF; overflow: hidden;
+  border: var(--line-w) solid var(--line); border-radius: 14px 18px 12px 16px;
+  box-shadow: 0 6px 0 rgba(58, 46, 38, .12); box-sizing: content-box;
+}
+.draw-paper canvas { display: block; }
+.draw-tools { flex: 0 0 auto; width: 288px; display: flex; flex-direction: column; gap: 12px; }
+
+/* ───────── 관절 보정 ─────────
+   2026-10-28: 점을 뼈로 잇고, 세 가지 상태를 색 + 모양으로 나눈다 (색만으로 구분하지 않는다, AGENTS.md 3.5).
+   보통 = 파랑 동그라미 · 자신 없음 = 빨강 + 깜빡이는 테 · 옮김 = 초록 + 흰 체크 */
+.joints { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr); gap: var(--gap); }
+.joints > .stage { min-height: 0; }
+.joint-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.joint-side .list { flex: 1; min-height: 0; }
+.joint-stage { position: relative; width: 100%; height: 100%; touch-action: none; user-select: none; }
+.joint-stage img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.joint-bones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.joint-bones line { stroke: #FFFDF8; stroke-width: 7; stroke-linecap: round; }
+.joint-bones { filter: drop-shadow(0 0 1.5px var(--line)); }
+.joint {
+  --c: #3F7FC6;
+  position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  border-radius: 50%; border: 4px solid #FFFDF8; outline: 2px solid var(--line); background: var(--c);
+  box-shadow: var(--soft-sm); touch-action: none; cursor: grab;
+  transition: transform var(--dur) var(--ease);
+}
+/* 손가락으로도 잡히게 보이는 점보다 넓게 받는다 */
+.joint::before { content: ""; position: absolute; inset: -14px; border-radius: 50%; }
+.joint.low { --c: var(--berry); }
+.joint.low::after {
+  content: ""; position: absolute; inset: -10px; border-radius: 50%;
+  border: 3px solid var(--berry); animation: joint-ring 1.4s var(--ease) infinite;
+}
+.joint.moved { --c: #3E9468; }
+.joint.moved::after {
+  content: ""; position: absolute; left: 5px; top: 2px; width: 5px; height: 9px;
+  border: solid #FFFDF8; border-width: 0 3px 3px 0; transform: rotate(45deg);
+}
+.joint.on { transform: scale(1.35); z-index: 2; cursor: grabbing; }
+.joint-name {
+  position: absolute; left: 50%; bottom: calc(100% + 10px); transform: translateX(-50%) scale(.74);
+  transform-origin: bottom center; white-space: nowrap; pointer-events: none;
+  background: var(--ink); color: #FFFDF8; font-size: 15px; font-weight: 700; padding: 4px 10px; border-radius: 8px;
+}
+@keyframes joint-ring { 0% { opacity: .9; transform: scale(.8); } 100% { opacity: 0; transform: scale(1.35); } }
+@media (prefers-reduced-motion: reduce) { .joint.low::after { animation: none; opacity: .7; } }
+
+.joint-dot {
+  --c: #3F7FC6;
+  display: inline-block; flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--c); outline: 2px solid var(--line); border: 2px solid #FFFDF8; vertical-align: -3px;
+}
+.joint-dot.low { --c: var(--berry); box-shadow: 0 0 0 4px rgba(201, 72, 58, .25); }
+.joint-dot.moved { --c: #3E9468; }
+.joint-key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-soft); }
+.joint-key span { display: inline-flex; align-items: center; gap: 6px; }
+.joint-row { padding-block: 11px !important; }
+.joint-row.on { background: #FFF3D2; }
+.joint-note { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+@media (max-width: 720px) {
+  .joints { grid-template-columns: 1fr; grid-template-rows: minmax(260px, 1.4fr) minmax(160px, 1fr); }
+}
 
 /* ───────── 순서 맞추기 ───────── */
 .slot-row { flex: 0 0 auto; display: flex; gap: var(--gap); }

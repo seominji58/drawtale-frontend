@@ -7,18 +7,22 @@ export type Tool = "pen" | "eraser";
 export const TAP = 88;
 
 /** 색 8가지. 고르면 그리기 도구로 돌아간다 */
-export function ColorPalette({ tool, color, onColor }: {
+export function ColorPalette({ tool, color, onColor, cols = 2, size = TAP }: {
   tool: Tool; color: string; onColor: (hex: string) => void;
+  /** 한 줄에 몇 개. 넓은 화면은 2 (세로로 긴 줄), 좁은 화면은 4 */
+  cols?: number;
+  /** 동그라미 지름. 폰처럼 좁으면 줄인다 */
+  size?: number;
 }) {
   return (
-    <div role="radiogroup" aria-label="색" style={{ display: "grid", gridTemplateColumns: `repeat(2, ${TAP}px)`, gap: 12 }}>
+    <div role="radiogroup" aria-label="색" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${size}px)`, gap: 12, alignContent: "start" }}>
       {PEN_COLORS.map((c) => {
         const on = tool === "pen" && color === c.hex;
         return (
           <button key={c.id} className="btn" role="radio" aria-checked={on} aria-label={c.name}
             onClick={() => onColor(c.hex)}
             style={{
-              width: TAP, height: TAP, minHeight: TAP, padding: 0, borderRadius: "50%",
+              width: size, height: size, minHeight: size, padding: 0, borderRadius: "50%",
               background: c.hex, color: "#FFFFFF", fontSize: 30,
               outline: on ? "6px solid #3A3733" : undefined, outlineOffset: on ? 3 : undefined,
             }}>

@@ -24,6 +24,8 @@ const QUESTION: Record<Part, string> = {
   arms: "팔을 그려 볼까요?",
   legs: "다리를 그려 볼까요?",
 };
+/** 넓은 화면에서 종이 양옆이 차지하는 폭: 색 두 줄 + 도구 세 칸 + 사이 간격 */
+const SIDES = (TAP * 2 + 12) + (TAP * 3 + 24) + 2 * 20;
 const LABEL: Record<Part, string> = { head: "머리", body: "몸", arms: "팔", legs: "다리" };
 
 /** 「○○가 떨어져 있어요」의 조사까지 맞춘 이름 */
@@ -54,20 +56,25 @@ export default function S03Draw() {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef<LiveStroke | null>(null);
-  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [box, setBox] = useState({ w: 0, h: 0, wide: true, aw: 0 });
 
   const part = PARTS[at];
   const last = at === PARTS.length - 1;
   const empty = drawing[part].length === 0;
 
-  // 무대 안에 4:5 종이를 맞춘다
+  // 남은 자리에 4:5 종이를 가장 크게 맞춘다 (2026-10-28).
+  // 넓으면 [색 | 종이 | 도구] 를 가운데 붙여 놓고, 좁으면(폰) 종이 아래로 색 · 도구를 내리고 위아래로 민다.
+  // 예전에는 종이를 감싼 무대 틀이 남은 폭을 다 차지해서 종이 양옆이 빈 칸으로 남고, 색과 도구가 화면 끝으로 밀렸다
   useLayoutEffect(() => {
     const el = wrap.current;
     if (!el) return;
     const fit = () => {
       const r = el.getBoundingClientRect();
-      const s = Math.min((r.width - 16) / W, (r.height - 16) / H);
-      setBox({ w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)) });
+      const wide = r.width >= SIDES + 320;
+      const s = wide
+        ? Math.min((r.width - SIDES) / W, r.height / H)
+        : Math.min((r.width - 12) / W, Math.max(260, r.height * 0.8) / H);
+      setBox({ w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), wide, aw: r.width });
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -153,18 +160,20 @@ export default function S03Draw() {
       <h2 className="question">{QUESTION[part]}</h2>
       <p className="hint">{hint}</p>
 
-      {/* 그림판이 가장 커야 한다. 색은 왼쪽, 도구 · 굵기 · 단계는 오른쪽 세로 줄 (기준 화면이 가로 1024×768).
-          좁은 화면에서는 줄이 아래로 내려간다 */}
-      <div className="row" style={{ flex: 1, minHeight: 0, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <ColorPalette tool={tool} color={color} onColor={(hex) => { setColor(hex); setTool("pen"); }} />
+      {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기 · 단계는 오른쪽에 종이와 붙여 둔다
+          (기준 화면이 가로 1024×768). 좁으면 종이 아래로 내려간다 */}
+      <div ref={wrap} className={`draw-area ${box.wide ? "wide" : "narrow"}`}>
+        <ColorPalette tool={tool} color={color} cols={box.wide ? 2 : 4}
+          size={box.wide ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
+          onColor={(hex) => { setColor(hex); setTool("pen"); }} />
 
-        <div ref={wrap} className="stage" style={{ flex: 1, minWidth: 240, alignSelf: "stretch" }}>
+        <div className="draw-paper" style={{ width: box.w, height: box.h }}>
           <canvas ref={canvas}
-            style={{ width: box.w, height: box.h, touchAction: "none", borderRadius: 16, cursor: "crosshair" }}
+            style={{ width: box.w, height: box.h, touchAction: "none", cursor: "crosshair" }}
             onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
         </div>
 
-        <div style={{ flex: `0 0 ${TAP * 3 + 24}px`, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="draw-tools">
           <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth} />
           {/* 단계 칸. 누르면 그 부위로 간다 */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

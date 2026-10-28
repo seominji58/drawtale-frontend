@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import Screen from "@/components/Screen";
+import Screen, { LockIcon } from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import CharacterPreview from "@/features/character/CharacterPreview";
 import { useSession } from "@/store/session";
@@ -39,7 +39,10 @@ export default function S05Confirm() {
       {character && needsAdult(character) && (
         <div className="aside-links">
           <span>잘 움직이지 않나요?</span>
-          <button className="btn link" onClick={() => nav("/joints")}>어른에게 도움 받기</button>
+          {/* 어른 화면으로 가는 길이라 자물쇠를 붙이고, 가서 무엇을 하는지 적는다 (2026-10-28 — 링크가 눈에 띄지 않았다) */}
+          <button className="btn link adult-link" onClick={() => nav("/joints")}>
+            <LockIcon />어른에게 도움 받기 · 관절 맞추기
+          </button>
         </div>
       )}
     </Screen>

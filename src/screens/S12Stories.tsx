@@ -53,7 +53,7 @@ function look(st: Story, i: number) {
 function CoverArt({ st }: { st: Story }) {
   if (st.cover) return <img src={st.cover} alt="" />;
   if (!st.picks?.place) return null;
-  return <img className="fallback" src={`/icons/place/${st.picks.place}.png`} alt=""
+  return <img className="fallback" src={`${import.meta.env.BASE_URL}icons/place/${st.picks.place}.png`} alt=""
     onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />;
 }
 
