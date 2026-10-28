@@ -69,9 +69,11 @@ function Cover({ st, children }: { st: Story; children?: ReactNode }) {
   );
 }
 
-/** 책을 펼치는 시간(ms). 떠오르기 420 + 표지 넘기기 430 (겹침 포함). 팀 규칙 「전환 200~300ms」보다 길어
- *  아이가 누른 데 답하는 한 번의 움직임으로만 쓰고, 움직임 줄이기면 건너뛴다 */
-const OPEN_MS = 900;
+/** 책을 펼치고 들어가는 시간(ms): 떠오르기 420 → 표지 넘기기 440 → 첫 장으로 다가가기 500(끝 200ms 동안 종이색으로 덮임).
+ *  팀 규칙 「전환 200~300ms」보다 길어 아이가 누른 데 답하는 한 번의 움직임으로만 쓰고, 움직임 줄이기면 건너뛴다 */
+const OPEN_MS = 1380;
+/** 첫 장으로 다가갈 때 더 키우는 배율 */
+const ZOOM = 3;
 
 /** 한 선반에 꽂을 권 수. 넓은 화면 4, 태블릿 세로 3, 폰 2 */
 function usePerShelf() {
@@ -102,7 +104,12 @@ export default function S12Stories() {
     setStory(st);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { nav("/story"); return; }
     setOpening({ st, rect: el.getBoundingClientRect(), style, long });
-    timer.current = window.setTimeout(() => nav("/story"), OPEN_MS);
+    timer.current = window.setTimeout(() => {
+      // S-09 가 종이색에서 스며 나오게 (styles/ui.css body[data-enter="book"]) — 잠깐 뒤 지운다
+      document.body.dataset.enter = "book";
+      window.setTimeout(() => { delete document.body.dataset.enter; }, 600);
+      nav("/story");
+    }, OPEN_MS);
   };
 
   // 떠오른 책이 놓일 자리: 화면 가운데, 화면 높이의 62% 크기
@@ -116,6 +123,9 @@ export default function S12Stories() {
       ...opening.style,
       left: rect.left, top: rect.top, width: rect.width, height: rect.height,
       "--dx": `${dx}px`, "--dy": `${dy}px`, "--sc": String(sc),
+      // 다가가기: 첫 장(이 책 자리 = 펼친 오른쪽 쪽) 가운데를 화면 가운데로 옮기며 ZOOM 배 더 키운다
+      "--dx2": `${window.innerWidth / 2 - (rect.left + rect.width / 2)}px`,
+      "--sc2": String(sc * ZOOM),
     } as CSSProperties;
   })();
 

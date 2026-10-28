@@ -430,8 +430,20 @@
   animation: open-dim 420ms ease forwards; pointer-events: none; }
 @keyframes open-dim { to { background: rgba(58, 46, 38, .28); } }
 .book-fly { position: fixed; perspective: 1600px; transform-origin: center center;
-  animation: book-fly 420ms cubic-bezier(.2, .8, .3, 1) forwards; }
+  animation: book-fly 420ms cubic-bezier(.2, .8, .3, 1) forwards,
+             book-zoom 500ms 880ms cubic-bezier(.6, 0, .8, .4) forwards; }
 @keyframes book-fly { to { transform: translate(var(--dx), var(--dy)) scale(var(--sc)); } }
+/* 펼친 뒤 첫 장으로 다가간다 — 이야기 속으로 들어가는 느낌 */
+@keyframes book-zoom {
+  from { transform: translate(var(--dx), var(--dy)) scale(var(--sc)); }
+  to   { transform: translate(var(--dx2), var(--dy)) scale(var(--sc2)); }
+}
+/* 다가가는 끝에 화면이 종이색으로 덮이고, S-09 가 그 종이색에서 스며 나온다 */
+.book-open-layer::after { content: ""; position: absolute; inset: 0; background: var(--milk); opacity: 0;
+  animation: open-paper 200ms 1180ms ease-in forwards; }
+@keyframes open-paper { to { opacity: 1; } }
+body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both; }
+@keyframes enter-from-book { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
 /* 첫 장: 공책 같은 크림 종이, 그림과 제목 */
 .book-first { position: absolute; inset: 0; background: #FFFDF8; border: 3px solid var(--line); border-radius: 4px 12px 12px 4px;
   box-shadow: 6px 8px 0 rgba(58, 46, 38, .12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8%;
