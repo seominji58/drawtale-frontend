@@ -422,6 +422,33 @@
 .book-window img.fallback { width: 72%; height: 72%; opacity: .85; }
 .book-date { position: absolute; left: 22%; right: 8%; bottom: 2.5%; text-align: center; font-size: 12px; color: rgba(58, 46, 38, .7); }
 .book.short .book-title { font-size: clamp(17px, 1.7vw, 22px); }
+/* ── 책 펼치기 (책을 누르면) ──
+   선반의 책은 그 자리에서 사라지고(lifted), 같은 모양의 책이 화면 가운데로 떠오르며 커진 뒤
+   앞표지가 왼쪽 책등을 축으로 넘어가 첫 장이 보인다. 그다음 이야기 화면(S-09)으로 */
+.book.lifted { visibility: hidden; }
+.book-open-layer { position: fixed; inset: 0; z-index: 50; background: rgba(58, 46, 38, 0);
+  animation: open-dim 420ms ease forwards; pointer-events: none; }
+@keyframes open-dim { to { background: rgba(58, 46, 38, .28); } }
+.book-fly { position: fixed; perspective: 1600px; transform-origin: center center;
+  animation: book-fly 420ms cubic-bezier(.2, .8, .3, 1) forwards; }
+@keyframes book-fly { to { transform: translate(var(--dx), var(--dy)) scale(var(--sc)); } }
+/* 첫 장: 공책 같은 크림 종이, 그림과 제목 */
+.book-first { position: absolute; inset: 0; background: #FFFDF8; border: 3px solid var(--line); border-radius: 4px 12px 12px 4px;
+  box-shadow: 6px 8px 0 rgba(58, 46, 38, .12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8%;
+  padding: 12%; background-image: repeating-linear-gradient(transparent 0 18px, rgba(79, 143, 214, .10) 18px 19px); }
+.book-first-art { flex: 0 1 55%; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.book-first-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.book-first-title { font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: 24px; line-height: 1.1; text-align: center; }
+.book-fly .book-cover { transform-origin: left center;
+  animation: cover-half 220ms 400ms cubic-bezier(.5, 0, .9, .6) forwards; }
+/* 다 세운(90도) 순간 감춘다 — 원근 때문에 얇은 조각으로 남아 보인다 */
+@keyframes cover-half { 99% { opacity: 1; } to { transform: rotateY(-90deg); opacity: 0; } }
+.book-left { position: absolute; top: 0; bottom: 0; right: 100%; width: 100%;
+  background: #F1E6D2; border: 3px solid var(--line); border-right-width: 1px; border-radius: 12px 4px 4px 12px;
+  transform-origin: right center; transform: rotateY(90deg); opacity: 0;   /* 차례가 오기 전엔 숨김 */
+  animation: left-half 220ms 620ms cubic-bezier(.1, .4, .5, 1) forwards;
+  background-image: radial-gradient(rgba(162, 64, 42, .10) 2px, transparent 2px); background-size: 16px 16px; }
+@keyframes left-half { from { opacity: 1; transform: rotateY(90deg); } to { opacity: 1; transform: rotateY(0deg); } }
 @media (prefers-reduced-motion: reduce) { .book, .book:active { transform: none; } }
 
 /* ───────── 어른 설정 스크롤 (S-13) ─────────
