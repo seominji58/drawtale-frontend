@@ -137,7 +137,8 @@ export default function SPropDraw() {
       <h2 className="question">무엇을 그려 볼까요?</h2>
       <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "이야기에 나올 물건을 크게 그려요"}</p>
       <div className="row" style={{ flex: 1, minHeight: 0, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <ColorPalette tool={tool} color={color} onColor={(hex) => { setColor(hex); setTool("pen"); }} />
+        {/* 내 소품은 보호자 모드에서만 쓰므로 보호자 팔레트 (2026-10-28) */}
+        <ColorPalette full tool={tool} color={color} onColor={(hex) => { setColor(hex); setTool("pen"); }} />
         <div ref={wrap} className="stage" style={{ flex: 1, minWidth: 240, alignSelf: "stretch" }}>
           <canvas ref={canvas}
             style={{ width: box.w, height: box.h, touchAction: "none", borderRadius: 16, cursor: "crosshair" }}

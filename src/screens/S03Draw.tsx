@@ -5,6 +5,7 @@ import BigButton from "@/components/BigButton";
 import { ColorPalette, PenTools, TAP } from "@/components/DrawTools";
 import type { Tool } from "@/components/DrawTools";
 import { useSession } from "@/store/session";
+import { useGuardianMode } from "@/store/settings";
 import {
   ERASER_SCALE, H, PARTS, PEN_COLORS, PEN_WIDTHS, W, detachedParts, drawGuide, drawLayer, emptyDrawing, toPngFile,
 } from "@/features/draw/drawing";
@@ -13,7 +14,8 @@ import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
 /** S-03D 화면에 그리기 (pt_docs 05 S-03D, v0.3 신설. 처음 결정은 open-decisions 0-4, 2026-09-29).
  *  S-03 의 「그림 찍기」와 나란히 있다. 머리 → 몸 → 팔 → 다리를 한 단계씩, 점선 안내 위에
  *  손으로 그린다. 다 그리면 S-03 으로 돌아가 「이 그림으로」를 누른다.
- *  2026-10-27: 도장 찍기를 빼고 직접 그리기만 — 색 8가지 · 선 굵기 세 가지 · 지우개 (사용자 결정).
+ *  2026-10-27: 도장 찍기를 빼고 직접 그리기만 — 색 · 선 굵기 세 가지 · 지우개 (사용자 결정).
+ *  2026-10-28: 색은 아이 모드 12색, 보호자 모드 24색 + 색 만들기 (사용자 결정).
  *  예전 도장 그림 데이터는 drawing.ts 에 남아 있어 그대로 그려진다.
  *  한 화면 한 질문, 자동 전환 없음 — 「다음」은 아이가 누른다.
  *  단계 칸(머리·몸·팔·다리)은 언제든 눌러서 돌아가 고칠 수 있다. */
@@ -24,8 +26,8 @@ const QUESTION: Record<Part, string> = {
   arms: "팔을 그려 볼까요?",
   legs: "다리를 그려 볼까요?",
 };
-/** 넓은 화면에서 종이 양옆이 차지하는 폭: 색 두 줄 + 도구 세 칸 + 사이 간격 */
-const SIDES = (TAP * 2 + 12) + (TAP * 3 + 24) + 2 * 20;
+/** 넓은 화면에서 종이 양옆이 차지하는 폭: 색 세 칸(보호자 팔레트도 같은 폭) + 도구 세 칸 + 사이 간격 */
+const SIDES = (TAP * 3 + 24) + (TAP * 3 + 24) + 2 * 20;
 const LABEL: Record<Part, string> = { head: "머리", body: "몸", arms: "팔", legs: "다리" };
 
 /** 「○○가 떨어져 있어요」의 조사까지 맞춘 이름 */
@@ -42,6 +44,7 @@ const TIP: Record<Part, string> = {
 export default function S03Draw() {
   const nav = useNavigate();
   const setFile = useSession((s) => s.setFile);
+  const guardian = useGuardianMode();
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState(PEN_COLORS[0].hex);
   const [width, setWidth] = useState(PEN_WIDTHS[1].px);
@@ -163,7 +166,8 @@ export default function S03Draw() {
       {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기 · 단계는 오른쪽에 종이와 붙여 둔다
           (기준 화면이 가로 1024×768). 좁으면 종이 아래로 내려간다 */}
       <div ref={wrap} className={`draw-area ${box.wide ? "wide" : "narrow"}`}>
-        <ColorPalette tool={tool} color={color} cols={box.wide ? 2 : 4}
+        {/* 아이 모드 12색, 보호자 모드는 24색 + 색 만들기 (2026-10-28 사용자) */}
+        <ColorPalette full={guardian} tool={tool} color={color} cols={box.wide ? 3 : 4}
           size={box.wide ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
           onColor={(hex) => { setColor(hex); setTool("pen"); }} />
 

@@ -33,18 +33,67 @@ const INK = "#3A3733";
 const LINE = 10;      // 도장 선 굵기
 const PEN = 12;       // 손 그리기 선 굵기 (기본)
 
-/** S-03D 색 (2026-10-27 사용자 「색상 선택 · 지우개 · 선 굵기」). 흰 종이 위에서 AI 가 그림을 찾을 수 있게
- *  아주 옅은 색은 넣지 않는다 — 노랑도 진하게 */
-export const PEN_COLORS: { id: string; name: string; hex: string }[] = [
+export interface PenColor { id: string; name: string; hex: string }
+
+/** 아이 모드 색 12가지 (2026-10-28 사용자 「5세 아이에게 권장하는 양의 색」).
+ *  유치원에서 쓰는 유아용 크레파스 12색과 같은 구성이라 아이가 아는 색 이름이다. 흰색은 흰 종이에서 보이지 않아
+ *  살구색으로 바꿨다. 더 많으면 고르느라 그리기가 멈춘다 — 만 5세는 고를 것이 적을수록 빨리 정한다.
+ *  흰 종이에서 AI 가 그림을 찾을 수 있게 옅은 색(노랑 · 연두 · 하늘 · 살구)도 한 단계 진하게 둔다 */
+export const KID_COLORS: PenColor[] = [
   { id: "black", name: "검정", hex: INK },
   { id: "red", name: "빨강", hex: "#E0413A" },
   { id: "orange", name: "주황", hex: "#EE8320" },
   { id: "yellow", name: "노랑", hex: "#D9A400" },
+  { id: "lime", name: "연두", hex: "#6DB33F" },
+  { id: "green", name: "초록", hex: "#2E9E5B" },
+  { id: "sky", name: "하늘", hex: "#3AA6DD" },
+  { id: "blue", name: "파랑", hex: "#2F6FDB" },
+  { id: "purple", name: "보라", hex: "#7E4CC9" },
+  { id: "pink", name: "분홍", hex: "#E9649B" },
+  { id: "peach", name: "살구", hex: "#E39A6C" },
+  { id: "brown", name: "갈색", hex: "#8B5A2B" },
+];
+
+/** 보호자 모드 색 24가지 + 「색 만들기」(그림판처럼 아무 색). 여섯 줄 × 네 칸: 밝은 색 · 진한 색 · 연한 색 · 무채색 */
+export const FULL_COLORS: PenColor[] = [
+  { id: "red", name: "빨강", hex: "#E0413A" },
+  { id: "orange", name: "주황", hex: "#EE8320" },
+  { id: "yellow", name: "노랑", hex: "#F2C200" },
   { id: "green", name: "초록", hex: "#2E9E5B" },
   { id: "blue", name: "파랑", hex: "#2F6FDB" },
   { id: "purple", name: "보라", hex: "#7E4CC9" },
+  { id: "darkred", name: "진빨강", hex: "#9E1F2C" },
   { id: "brown", name: "갈색", hex: "#8B5A2B" },
+  { id: "ochre", name: "황토", hex: "#C08A3E" },
+  { id: "darkgreen", name: "진초록", hex: "#1D6638" },
+  { id: "navy", name: "남색", hex: "#1F3A8A" },
+  { id: "darkpurple", name: "진보라", hex: "#4B2C82" },
+  { id: "pink", name: "분홍", hex: "#F06EAA" },
+  { id: "peach", name: "살구", hex: "#F4B183" },
+  { id: "lightyellow", name: "연노랑", hex: "#FFE877" },
+  { id: "lime", name: "연두", hex: "#8DC63F" },
+  { id: "sky", name: "하늘", hex: "#5BC0EB" },
+  { id: "lavender", name: "연보라", hex: "#BFA2E6" },
+  { id: "black", name: "검정", hex: INK },
+  { id: "darkgray", name: "진회색", hex: "#5E5A55" },
+  { id: "gray", name: "회색", hex: "#9C9792" },
+  { id: "lightgray", name: "연회색", hex: "#D3CFCA" },
+  { id: "white", name: "흰색", hex: "#FFFFFF" },
+  { id: "mint", name: "민트", hex: "#6FD3B5" },
 ];
+
+/** 예전 이름. 처음 고른 색(검정)을 정할 때 쓴다 */
+export const PEN_COLORS = KID_COLORS;
+
+/** 흰 종이에서 AI 가 선을 못 찾을 만큼 옅은 색인지 (밝기 0.78 넘음). 보호자 모드에서 한 줄로 알린다 */
+export function isFaint(hex: string): boolean {
+  return luminance(hex) > 0.78;
+}
+export function luminance(hex: string): number {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
 /** 선 굵기 세 가지 (논리 좌표 800×1000 기준 px). 지우개는 고른 굵기의 두 배 */
 export const PEN_WIDTHS: { id: string; name: string; px: number }[] = [
   { id: "thin", name: "가늘게", px: 6 },

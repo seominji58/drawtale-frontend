@@ -328,6 +328,30 @@
 .draw-paper canvas { display: block; }
 .draw-tools { flex: 0 0 auto; width: 288px; display: flex; flex-direction: column; gap: 12px; }
 
+/* 보호자 모드 팔레트 — 그림판처럼 24색 + 색 만들기 + 최근 색 (2026-10-28) */
+.palette-full { width: 288px; display: flex; flex-direction: column; gap: 10px; }
+.palette-full .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.swatch {
+  aspect-ratio: 1; min-width: 0; border-radius: 10px; border: 2px solid var(--line);
+  font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 0 var(--line);
+}
+.swatch[aria-checked="true"] { outline: 4px solid #3A3733; outline-offset: 2px; }
+.palette-make { position: relative; }
+.palette-make .make {
+  width: 100%; min-height: 48px; border-radius: 12px; border: 2px solid var(--line); background: var(--cloud);
+  box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: 17px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.make-wheel {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); flex: 0 0 auto;
+  background: conic-gradient(#E0413A, #F2C200, #2E9E5B, #5BC0EB, #2F6FDB, #7E4CC9, #F06EAA, #E0413A);
+}
+.make-input { position: absolute; left: 50%; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.palette-recent { display: grid; grid-template-columns: auto repeat(6, 1fr); gap: 8px; align-items: center; font-size: 13px; color: var(--ink-soft); }
+.palette-note { font-size: 13px; line-height: 1.5; color: #7A5413; background: #FFF3D2; border: 1px solid #E8C77A; border-radius: 10px; padding: 8px 10px; }
+.draw-area.narrow .palette-full { width: 100%; max-width: 420px; }
+
 /* ───────── 관절 보정 ─────────
    2026-10-28: 점을 뼈로 잇고, 세 가지 상태를 색 + 모양으로 나눈다 (색만으로 구분하지 않는다, AGENTS.md 3.5).
    보통 = 파랑 동그라미 · 자신 없음 = 빨강 + 깜빡이는 테 · 옮김 = 초록 + 흰 체크 */
