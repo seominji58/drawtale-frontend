@@ -201,9 +201,13 @@
   box-shadow: 0 0 0 5px var(--apricot), 6px 8px 0 rgba(58, 46, 38, .15);
 }
 .choice.on::before { background: rgba(255, 253, 248, .55); }
+/* 고른 카드는 압정이 윗변 밖으로 나오도록 잘라내지 않는다. 대신 위쪽 띠가 둥근 모서리 밖으로 나오지 않게 모서리를 따른다 */
+.choice.on { overflow: visible; }
+.choice.on::before { border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 /* 고른 카드: 위 가운데에 압정이 꽂히고 카드가 바로 선다. 확인을 묻는 동안 나머지 카드는 흐리게 */
 .choice .choice-pin {
-  position: absolute; top: 2px; left: 50%; z-index: 2;
+  /* 카드 윗변에 꽂힌다: 손잡이는 카드 밖, 바늘 끝은 카드 안 */
+  position: absolute; top: -22px; left: 50%; z-index: 2;
   width: 44px; height: 48px; margin-left: -22px;
   display: block; animation: pin-in 320ms var(--ease) both;
 }
