@@ -21,86 +21,129 @@ const icon = (label: string) =>
 
 /** public/icons/{kind}/{id}.png 를 넣은 뒤 true 로 바꾼다 (docs/art-direction.md) */
 const USE_REAL_ICONS = true;
-/** 아직 그림 아이콘이 없는 카드 — 이모지로 보인다 */
-const NO_ICON = new Set(["place/playground", "place/desert"]);
+
+/** 카드 그림이 있는 카드. 없는 카드는 이모지로 보인다.
+ *  2026-10-28 확인: public/icons 의 행동 · 결과 그림과 problem/lost · alone · hungry · rain 은 모두 같은 사람 실루엣
+ *  자리표시라 카드끼리 구분이 안 된다 — 쓰지 않는다. 진짜 그림은 장소 6장과 문제 둘(넘어졌어요 · 어두워졌어요)뿐이다
+ *  (나머지 그림은 docs/image-replacement-plan.md) */
+const ICON_FILE: Record<string, string> = {
+  "place/school": "place/school", "place/town": "place/town", "place/forest": "place/forest",
+  "place/sea": "place/sea", "place/space": "place/space", "place/cave": "place/cave",
+  "problem/fall": "problem/fall", "problem/dark": "problem/dark",
+};
+const iconOf = (kind: string, id: string, emoji: string) => {
+  const f = ICON_FILE[`${kind}/${id}`];
+  return USE_REAL_ICONS && f ? `${import.meta.env.BASE_URL}icons/${f}.png` : icon(emoji);
+};
 
 /** 칸마다 보여 주는 카드 수. 2026-10-27 사용자 「지원 수준 안 남기고 고정, 8 4 4 4」 —
- *  장소 8 · 문제 4 · 행동 4(고른 문제마다) · 결과 4. 카드 내용은 아직 목업 */
+ *  장소 8 · 문제 4 · 행동 4(고른 문제마다) · 결과 4(고른 문제마다).
+ *  pt_docs 05 는 지원 수준에 따라 장수를 줄이지만(수준 1 은 앞 2장) 사용자 결정으로 고정이다 (open-decisions 0-12) */
 export const CARD_COUNT: Record<StepKind, number> = { place: 8, problem: 4, action: 4, result: 4 };
 
-/** [id, 라벨, 임시 이모지] — id 는 kind 안에서만 유일하다 (docs/id-conventions.md 1절) */
+/** 카드 내용은 pt_docs 05 S-07 「카드」 표 그대로다 (2026-10-28 확정, a7eb2b2). 순서도 표의 순서 — 앞에서부터 보여 준다.
+ *  [id, 라벨, 임시 이모지] — id 는 kind 안에서만 유일하다 (docs/id-conventions.md 1절) */
 const RAW: Record<StepKind, [string, string, string][]> = {
   place: [
-    ["space", "우주", "🪐"],
-    ["forest", "숲", "🌳"],
-    ["sea", "바다", "🌊"],
+    ["home", "집", "🏠"],
+    ["playground", "놀이터", "🛝"],
     ["school", "학교", "🏫"],
     ["town", "마을", "🏘"],
+    ["forest", "숲", "🌳"],
+    ["sea", "바다", "🌊"],
+    ["space", "우주", "🪐"],
     ["cave", "동굴", "🕳"],
-    // 장소 8장 (10/27) — 아래 둘은 목업, 그림 아이콘이 없어 이모지
-    ["playground", "놀이터", "🛝"],
-    ["desert", "사막", "🏜"],
   ],
   problem: [
-    ["lost", "길을 잃었어요", "❓"],
-    ["rain", "비가 내렸어요", "🌧"],
-    ["hungry", "배가 고팠어요", "🍞"],
-    ["dark", "어두워졌어요", "🌙"],
     ["fall", "넘어졌어요", "💥"],
-    ["alone", "혼자가 됐어요", "😢"],
+    ["crying", "친구가 울고 있었어요", "😢"],
+    ["lost", "길을 잃었어요", "❓"],
+    ["dark", "어두워졌어요", "🌙"],
   ],
+  // 아래 둘은 문제를 말로 정해(보호자 모드) 표에 없는 문제일 때만 쓴다. 표에 없는 임시 카드다 —
+  // 동작 넷(손 흔들기 · 걷기 · 뛰기 · 대기)이 하나씩, 결과는 어느 문제 뒤에도 붙는 말
   action: [
-    ["ask", "물어봤어요", "🗣"],
+    ["wave", "손을 흔들었어요", "👋"],
+    ["walk", "천천히 걸어갔어요", "🚶"],
     ["run", "달려갔어요", "🏃"],
-    ["hide", "숨었어요", "🫣"],
-    ["help", "도와줬어요", "🤝"],
     ["wait", "기다렸어요", "⏳"],
-    ["shout", "크게 불렀어요", "📣"],
   ],
   result: [
-    ["home", "집에 갔어요", "🏠"],
-    ["friend", "친구를 만났어요", "🧑‍🤝‍🧑"],
-    ["gift", "선물을 받았어요", "🎁"],
-    ["sun", "해가 떴어요", "☀️"],
-    ["sleep", "잠이 들었어요", "😴"],
-    ["party", "모두 기뻐했어요", "🎉"],
+    ["okay", "금방 괜찮아졌어요", "🙂"],
+    ["relief", "마음이 놓였어요", "😌"],
+    ["brave", "용기가 생겼어요", "💪"],
+    ["smile", "웃음이 났어요", "😄"],
   ],
 };
 
-/** 문제마다 따로 나오는 행동 카드 (2026-10-27 사용자 「문제 4개 각각에 맞는 행동 선택지」 — 목업 내용, 확정은 회의 뒤).
- *  문제를 4장으로 고정하므로(open-decisions 0-12) 문제 × 행동 = 4 × 4 = 16장. 조합 수는 그대로 256가지다
- *  (문제 하나를 고르면 행동은 그 문제의 4장 중 하나). 문제를 말로 정했거나 목록에 없는 문제면 RAW.action 을 쓴다.
- *  [id, 라벨, 임시 이모지, 영상 동작] — 동작은 서버 렌더 기본 동작 여섯 가지(idle · walk · run · jump · wave · dance) 중 하나.
- *  실제 아이콘이 없어 이모지를 쓴다 (docs/image-replacement-plan.md — 행동 카드가 16장이 된다) */
-const ACTIONS_BY_PROBLEM: Record<string, [string, string, string, string][]> = {
+/** 문제마다 따로 나오는 행동 카드 16장 (pt_docs 05 「행동 카드 16장」). 한 문제 안의 네 장은 모두 다른 동작이다.
+ *  [id, 라벨, 임시 이모지, 동작, 소품] — 동작은 05 의 다섯 가지(wave 손 흔들기 · walk 걷기 · run 뛰기 · idle 대기 ·
+ *  hide 사라지기 — 렌더를 부르지 않음). 소품은 05 의 기본 소품(adult 어른 · friend 친구 · cover 숨을 것), 없으면 "".
+ *  id 는 행동 16장 안에서 유일하다 (ACTION_MOTION 이 id 로 찾는다) */
+const ACTIONS_BY_PROBLEM: Record<string, [string, string, string, string, string][]> = {
+  fall: [
+    ["fall_run", "툭툭 털고 달려갔어요", "🏃", "run", ""],
+    ["call_adult", "어른을 불렀어요", "📣", "wave", "adult"],
+    ["walk_again", "천천히 다시 걸었어요", "🚶", "walk", ""],
+    ["fall_rest", "잠깐 쉬며 기다렸어요", "⏳", "idle", ""],
+  ],
+  crying: [
+    ["help_friend", "다가가서 도와줬어요", "🤝", "walk", "friend"],
+    ["wave_smile", "손을 흔들어 웃게 했어요", "👋", "wave", "friend"],
+    ["run_adult", "어른에게 달려갔어요", "🏃", "run", "adult"],
+    ["wait_beside", "옆에서 기다려 줬어요", "⏳", "idle", "friend"],
+  ],
+  // 앞 두 장은 안전 수칙이다 — 그 자리에서 기다리고, 어른에게 묻는다
   lost: [
-    ["ask", "길을 물어봤어요", "🗣", "wave"],
-    ["map", "지도를 봤어요", "🗺", "idle"],
-    ["back", "왔던 길로 돌아갔어요", "👣", "walk"],
-    ["shout", "크게 불렀어요", "📣", "wave"],
-  ],
-  rain: [
-    ["umbrella", "우산을 썼어요", "☂️", "walk"],
-    ["shelter", "나무 밑으로 갔어요", "🌳", "run"],
-    ["splash", "첨벙첨벙 놀았어요", "💦", "jump"],
-    ["wait", "비가 그치길 기다렸어요", "⏳", "idle"],
-  ],
-  hungry: [
-    ["lunchbox", "도시락을 꺼냈어요", "🍱", "idle"],
-    ["share", "나눠 먹었어요", "🤝", "wave"],
-    ["fruit", "열매를 땄어요", "🍎", "jump"],
-    ["askfood", "먹을 것을 찾아갔어요", "🔍", "walk"],
+    ["stay_wait", "그 자리에서 기다렸어요", "⏳", "idle", ""],
+    ["ask_adult", "어른에게 물어봤어요", "🗣", "wave", "adult"],
+    ["find_way", "길을 찾아 나섰어요", "🧭", "walk", ""],
+    ["run_road", "큰 길로 달려갔어요", "🏃", "run", ""],
   ],
   dark: [
-    ["light", "손전등을 켰어요", "🔦", "idle"],
-    ["hide", "숨었어요", "🫣", "idle"],
-    ["sing", "노래를 불렀어요", "🎵", "dance"],
-    ["star", "별빛을 따라갔어요", "⭐", "walk"],
+    ["hide", "숨었어요", "🫣", "hide", "cover"],
+    ["run_light", "밝은 곳으로 달려갔어요", "🏃", "run", ""],
+    ["tiptoe", "살금살금 걸어갔어요", "🐾", "walk", ""],
+    ["still_wait", "가만히 기다렸어요", "⏳", "idle", ""],
   ],
 };
-/** 행동 카드 id → 영상 동작 (서버가 동작을 정하지 못할 때 쓸 값. 지금 서버는 라벨 낱말로 고른다) */
+
+/** 문제마다 따로 나오는 결과 카드 16장 (pt_docs 05 「결과 카드 16장」). 그 문제의 행동 네 장 어느 것 뒤에도 맞는다.
+ *  「모두 기뻐했어요」는 두 문제에 다 있어 id 를 나눴다 (같은 칸 안에서 id 가 겹치지 않게) */
+const RESULTS_BY_PROBLEM: Record<string, [string, string, string][]> = {
+  fall: [
+    ["brave_again", "다시 씩씩해졌어요", "💪"],
+    ["okay", "금방 괜찮아졌어요", "🙂"],
+    ["smile", "웃음이 났어요", "😄"],
+    ["play_again", "다시 신나게 놀았어요", "🤸"],
+  ],
+  crying: [
+    ["friend_smiled", "친구가 웃었어요", "😊"],
+    ["played_together", "함께 놀았어요", "🧑‍🤝‍🧑"],
+    ["best_friend", "친한 친구가 됐어요", "💛"],
+    ["party_friend", "모두 기뻐했어요", "🎉"],
+  ],
+  lost: [
+    ["found_way", "길을 찾았어요", "🗺"],
+    ["back_safe", "무사히 돌아왔어요", "🏡"],
+    ["relief", "마음이 놓였어요", "😌"],
+    ["party_lost", "모두 기뻐했어요", "🎉"],
+  ],
+  dark: [
+    ["sun", "해가 떴어요", "☀️"],
+    ["brave", "용기가 생겼어요", "💪"],
+    ["sleep", "잠이 들었어요", "😴"],
+    ["back_safe", "무사히 돌아왔어요", "🏡"],
+  ],
+};
+
+/** 행동 카드 id → 영상 동작 (05 동작 열). 지금 서버는 라벨 낱말로 동작을 고르므로 아직 쓰지 않는다 */
 export const ACTION_MOTION: Record<string, string> = Object.fromEntries(
   Object.values(ACTIONS_BY_PROBLEM).flat().map(([id, , , motion]) => [id, motion])
+);
+/** 행동 카드 id → 기본 소품 (05 소품 열). 소품이 없으면 키가 없다 */
+export const ACTION_PROP: Record<string, string> = Object.fromEntries(
+  Object.values(ACTIONS_BY_PROBLEM).flat().filter(([, , , , prop]) => prop).map(([id, , , , prop]) => [id, prop])
 );
 
 /** 네 칸 사이에 더 묻는 칸의 카드 (2026-10-27 로컬 시험 — 회의에서 빼면 지운다, open-decisions 0-11).
@@ -151,11 +194,7 @@ export const CHOICES = {
   ...Object.fromEntries(
     Object.entries(RAW).map(([kind, rows]) => [
       kind,
-      rows.map(([id, label, emoji]) => ({
-        id,
-        label,
-        iconUrl: USE_REAL_ICONS && !NO_ICON.has(`${kind}/${id}`) ? `${import.meta.env.BASE_URL}icons/${kind}/${id}.png` : icon(emoji),
-      })),
+      rows.map(([id, label, emoji]) => ({ id, label, iconUrl: iconOf(kind, id, emoji) })),
     ])
   ),
   ...Object.fromEntries(
@@ -166,18 +205,20 @@ export const CHOICES = {
   ),
 } as Record<AskKind, StepChoice[]>;
 
-const toChoice = ([id, label, emoji]: [string, string, string, ...string[]]): StepChoice => ({ id, label, iconUrl: icon(emoji) });
-const ACTION_CHOICES: Record<string, StepChoice[]> = Object.fromEntries(
-  Object.entries(ACTIONS_BY_PROBLEM).map(([p, rows]) => [p, rows.map(toChoice)])
-);
+const byProblem = (kind: "action" | "result", table: Record<string, [string, string, string, ...string[]][]>) =>
+  Object.fromEntries(Object.entries(table).map(([p, rows]) =>
+    [p, rows.map(([id, label, emoji]) => ({ id, label, iconUrl: iconOf(kind, id, emoji) }))])) as Record<string, StepChoice[]>;
+const ACTION_CHOICES = byProblem("action", ACTIONS_BY_PROBLEM);
+const RESULT_CHOICES = byProblem("result", RESULTS_BY_PROBLEM);
 
-/** 그 칸에 보일 카드. 행동은 고른 문제에 따라 달라진다 */
+/** 그 칸에 보일 카드. 행동 · 결과는 고른 문제에 따라 달라진다 (문제를 말로 정했으면 RAW 의 임시 카드) */
 export function choicesFor(kind: AskKind, problemId?: string): StepChoice[] {
   if (kind === "action" && problemId && ACTION_CHOICES[problemId]) return ACTION_CHOICES[problemId];
+  if (kind === "result" && problemId && RESULT_CHOICES[problemId]) return RESULT_CHOICES[problemId];
   return CHOICES[kind];
 }
 
-/** 고른 id 를 서버에 보낼 라벨로 바꾼다. 행동은 문제별 카드에서 먼저 찾는다 */
+/** 고른 id 를 서버에 보낼 라벨로 바꾼다. 행동 · 결과는 문제별 카드에서 먼저 찾는다 */
 export const labelOf = (kind: AskKind, id: string | undefined, problemId?: string) =>
   choicesFor(kind, problemId).find((c) => c.id === id)?.label
     ?? CHOICES[kind].find((c) => c.id === id)?.label ?? "";
