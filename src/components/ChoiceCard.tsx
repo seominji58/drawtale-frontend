@@ -27,12 +27,15 @@ export default function ChoiceCard({
       {/* 고른 카드는 압정으로 꽂아 둔 것처럼 (10/28 사용자 「고정핀으로 고정된 느낌」) */}
       {selected && (
         <span className="choice-pin" aria-hidden>
-          <svg viewBox="0 0 40 40">
-            {/* 위에서 본 압정: 종이에 꽂혀 바늘은 안 보이고 머리와 그림자만 */}
-            <ellipse cx="24" cy="25" rx="13" ry="10" fill="rgba(58,46,38,.25)" />
-            <circle cx="20" cy="20" r="13" fill="#A2402A" stroke="#3A2E26" strokeWidth="3" />
-            <circle cx="20" cy="18" r="9.5" fill="#D65A3B" />
-            <ellipse cx="16" cy="14" rx="3.6" ry="2.4" fill="#FFFDF8" opacity=".8" transform="rotate(-30 16 14)" />
+          <svg viewBox="0 0 44 44">
+            {/* 비스듬히 꽂힌 압정: 머리 아래로 은색 바늘이 짧게 보인다 (막대사탕처럼 길게 그리지 않는다) */}
+            <ellipse cx="27" cy="33" rx="11" ry="5" fill="rgba(58,46,38,.22)" />
+            <path d="M24 25L31 36" stroke="#3A2E26" strokeWidth="4.6" strokeLinecap="round" />
+            <path d="M24 25L31 36" stroke="#A9AFB5" strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M24.4 25.2L28.6 31.8" stroke="#EEF0F2" strokeWidth="1" strokeLinecap="round" />
+            <ellipse cx="22" cy="23" rx="11" ry="5.5" transform="rotate(-32 22 23)" fill="#A2402A" stroke="#3A2E26" strokeWidth="2.5" />
+            <ellipse cx="18.5" cy="17.5" rx="9.5" ry="8.5" transform="rotate(-32 18.5 17.5)" fill="#D65A3B" stroke="#3A2E26" strokeWidth="2.5" />
+            <ellipse cx="15.5" cy="14" rx="3.2" ry="2" transform="rotate(-40 15.5 14)" fill="#FFFDF8" opacity=".8" />
           </svg>
         </span>
       )}

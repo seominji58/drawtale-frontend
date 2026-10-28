@@ -203,8 +203,8 @@
 .choice.on::before { background: rgba(255, 253, 248, .55); }
 /* 고른 카드: 위 가운데에 압정이 꽂히고 카드가 바로 선다. 확인을 묻는 동안 나머지 카드는 흐리게 */
 .choice .choice-pin {
-  position: absolute; top: 8px; left: 50%; z-index: 2;
-  width: 40px; height: 40px; margin-left: -20px;
+  position: absolute; top: 4px; left: 50%; z-index: 2;
+  width: 46px; height: 46px; margin-left: -23px;
   display: block; animation: pin-in 320ms var(--ease) both;
 }
 .choice .choice-pin svg { width: 100%; height: 100%; display: block; }
