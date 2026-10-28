@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
-import Screen from "@/components/Screen";
+import Screen, { LockIcon } from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Friend } from "@/components/illust";
 import { useLibrary } from "@/store/library";
@@ -60,22 +60,27 @@ export default function S01Start() {
             style={{ "--p": `${Math.min(held, 1) * 360}deg` } as CSSProperties}
             onPointerDown={down} onPointerUp={up} onPointerLeave={up}
             aria-label="어른 설정. 3초 길게 누르세요">
-            설정
+            <LockIcon />
           </button>
           {hint && <span className="hold-hint">3초 동안 꾹 눌러 주세요</span>}
         </>
       }
-      acts={
-        <>
-          <BigButton go onClick={start}>이야기 만들기</BigButton>
-          <BigButton disabled={stories.length === 0} onClick={() => nav("/stories")}>
-            내 이야기
-          </BigButton>
-        </>
-      }
     >
-      <div className="stage">
-        <div className="illust-wrap"><Friend /></div>
+      {/* 왼쪽: 테이프로 붙인 도화지 위의 주인공, 오른쪽: 인사와 두 갈래 (디자인 방향 A, 2026-10-28) */}
+      <div className="home">
+        <div className="stage home-sheet">
+          <div className="illust-wrap"><Friend /></div>
+        </div>
+        <div className="home-side">
+          <p className="home-brand">한칸이야기</p>
+          <h1 className="home-title">내 그림이<br />주인공이 돼요</h1>
+          <div className="home-acts">
+            <BigButton go onClick={start}>이야기 만들기</BigButton>
+            <BigButton disabled={stories.length === 0} onClick={() => nav("/stories")}>
+              내 이야기 책장
+            </BigButton>
+          </div>
+        </div>
       </div>
     </Screen>
   );

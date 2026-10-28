@@ -23,6 +23,33 @@ interface Props {
   children: ReactNode;
 }
 
+/** 레일 단추 그림. 글자(「뒤로」 · 「소리」)는 아이가 못 읽고 작아서 그림으로 (디자인 방향 A, 2026-10-28) */
+export function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M15 5l-7 7 7 7" />
+    </svg>
+  );
+}
+
+export function SoundIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 9v6h4l5 4V5L8 9z" />
+      <path d="M17 8c1.5 1.2 1.5 6.8 0 8" />
+    </svg>
+  );
+}
+
+export function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
 export default function Screen({
   back = null, speech = null, segment = null, title,
   audience = "child", autoSpeak = true, railEnd, acts, children,
@@ -46,7 +73,7 @@ export default function Screen({
       <div className="rail">
         <div className="rail-side">
           {back !== null && (
-            <button className="round" onClick={onBack} aria-label="되돌리기">뒤로</button>
+            <button className="round" onClick={onBack} aria-label="되돌리기"><BackIcon /></button>
           )}
         </div>
         <div className="rail-mid">
@@ -61,7 +88,7 @@ export default function Screen({
         <div className="rail-side end">
           {railEnd ?? (speech !== null && (
             <button className="round" onClick={() => speak(speech, muteAll)} aria-label="다시 듣기">
-              소리
+              <SoundIcon />
             </button>
           ))}
         </div>

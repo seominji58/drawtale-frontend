@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
@@ -6,6 +7,9 @@ import { useLibrary } from "@/store/library";
 import { useSession } from "@/store/session";
 import { useAuth } from "@/store/auth";
 import { useGuardianMode } from "@/store/settings";
+
+/** 책등 색. 네 단계 크레파스 색을 돌려 쓴다 */
+const SPINES = ["var(--c-place)", "var(--c-problem)", "var(--c-action)", "var(--c-result)"];
 
 export default function S12Stories() {
   const nav = useNavigate();
@@ -30,15 +34,17 @@ export default function S12Stories() {
       )}
 
       {stories.length > 0 ? (
-        <div className="list scroll">
-          {stories.map((s) => (
-            <button key={s.storyId} className="item"
+        <div className="shelf">
+          {stories.map((s, i) => (
+            <button key={s.storyId} className="book"
+              style={{ "--book-spine": SPINES[i % SPINES.length] } as CSSProperties}
               onClick={() => { setStory(s); nav("/story"); }}>
-              <span className="thumb" />
-              <span className="grow">
-                <span className="name">{s.title}</span>
-                <span className="desc">{s.createdAt}에 만들었어요</span>
+              <span className="book-cover">
+                {s.picks?.place && <img src={`/icons/place/${s.picks.place}.png`} alt=""
+                  onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />}
               </span>
+              <span className="book-title">{s.title}</span>
+              <span className="book-date">{s.createdAt}</span>
             </button>
           ))}
         </div>
