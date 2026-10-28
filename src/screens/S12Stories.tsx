@@ -21,21 +21,29 @@ function seed(id: string) {
   return h;
 }
 
-/** 한 책의 생김새: 천 색 · 높이 · 기울기 · 옆으로 삐져나온 색종이 탭 1~3장 */
+/** 한 책의 생김새. 크기에 뜻이 있다 (2026-10-28 사용자 「추천 1번」):
+ *  긴 이야기(여러 쪽 그림책, `book` 있음)는 크고 두꺼운 책, 짧은 이야기(네 문장)는 작고 얇은 책.
+ *  같은 종류 안에서는 이야기 id 로 높이를 ±2% 만 다르게 하고 살짝 기울여 늘 같은 모양이 나오게 한다.
+ *  색종이 탭도 긴 이야기는 2~3장, 짧은 이야기는 1~2장 */
 function look(st: Story, i: number) {
   const h = seed(st.storyId);
+  const long = !!st.book;
   const [cloth, spine] = CLOTH[i % CLOTH.length];
-  const tabs = Array.from({ length: 1 + (h % 3) }, (_, k) => ({
+  const tabs = Array.from({ length: (long ? 2 : 1) + (h % 2) }, (_, k) => ({
     top: 18 + ((h >> (k * 3)) % 14) + k * 24,        // 위에서 % — 겹치지 않게 아래로 벌린다
     w: 24 + ((h >> (k * 2 + 1)) % 9),
     color: TAB[(h + k) % TAB.length],
     rot: (((h >> (k + 4)) % 5) - 2) * 0.8,
   }));
+  const jitter = (((h >> 5) % 5) - 2) / 100;           // -0.02 ~ 0.02
   return {
+    long,
     style: {
       "--cloth": cloth, "--spine": spine,
-      "--hs": String(0.94 + ((h >> 5) % 10) / 100),          // 높이 0.94 ~ 1.03
-      "--tilt": `${(((h >> 9) % 5) - 2) * 0.6}deg`,           // -1.2 ~ 1.2도
+      "--ws": long ? "1" : "0.88",                     // 폭
+      "--hs": String((long ? 1 : 0.86) + jitter),      // 높이
+      "--thick": long ? "15px" : "7px",                // 오른쪽 종이 결 = 두께
+      "--tilt": `${(((h >> 9) % 5) - 2) * 0.6}deg`,    // -1.2 ~ 1.2도
     } as CSSProperties,
     tabs,
   };
@@ -85,9 +93,10 @@ export default function S12Stories() {
             <div key={r} className="shelf-row">
               <div className="shelf-books">
                 {row.map((st, j) => {
-                  const { style, tabs } = look(st, r * per + j);
+                  const { style, tabs, long } = look(st, r * per + j);
                   return (
-                    <button key={st.storyId} className="book" style={style} aria-label={`${st.title}, ${st.createdAt}`}
+                    <button key={st.storyId} className={`book ${long ? "long" : "short"}`} style={style}
+                      aria-label={`${st.title}, ${long ? "긴 이야기" : "짧은 이야기"}, ${st.createdAt}`}
                       onClick={() => { setStory(st); nav("/story"); }}>
                       <span className="book-pages" aria-hidden />
                       {tabs.map((t, k) => (

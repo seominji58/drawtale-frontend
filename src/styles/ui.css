@@ -390,14 +390,15 @@
 .shelf-plank::after { content: ""; position: absolute; left: 14px; right: 14px; top: 5px; height: 3px; border-radius: 2px; background: rgba(255, 253, 248, .35); }
 
 .book { --bw: clamp(140px, 17vw, 210px);
-  position: relative; display: block; flex: 0 0 auto; width: var(--bw); height: calc(var(--bw) * 1.43 * var(--hs, 1));
+  position: relative; display: block; flex: 0 0 auto; width: calc(var(--bw) * var(--ws, 1)); height: calc(var(--bw) * 1.43 * var(--hs, 1));
   padding: 0; text-align: left; transform: rotate(var(--tilt, 0deg)); transform-origin: bottom center;
   transition: transform var(--dur) var(--ease); }
 .book:active { transform: rotate(var(--tilt, 0deg)) translateY(-6px); }
-.book-pages { position: absolute; top: 5px; bottom: 5px; right: -8px; width: 10px;
+/* 오른쪽 종이 결 = 책 두께. 긴 이야기는 두껍게 (--thick) */
+.book-pages { position: absolute; top: 5px; bottom: 5px; right: calc(2px - var(--thick, 10px)); width: var(--thick, 10px);
   background: repeating-linear-gradient(90deg, #FFFDF8 0 2px, #E3D6BF 2px 3px);
   border: 2px solid var(--line); border-left: 0; border-radius: 0 4px 4px 0; }
-.book-tab { position: absolute; right: -30px; height: 24px; border: 2px solid var(--line); border-radius: 0 6px 6px 0; }
+.book-tab { position: absolute; right: calc(-20px - var(--thick, 10px)); height: 24px; border: 2px solid var(--line); border-radius: 0 6px 6px 0; }
 .book-cover { position: absolute; inset: 0; z-index: 1; overflow: hidden;
   background-color: var(--cloth, #8DB5E3);
   background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .07) 0 2px, transparent 2px 5px),
@@ -410,6 +411,7 @@
 .book-cover::after { content: ""; position: absolute; left: 26px; top: 0; bottom: 0; width: 3px;
   border-left: 2px solid rgba(58, 46, 38, .28); background: rgba(255, 253, 248, .3); }
 .book-title { position: absolute; left: 22%; right: 8%; top: 5.5%; padding: 6px 8px 4px;
+  /* 짧은 이야기 책은 작아서 글자도 조금 작게 */
   background: #FFFDF8; border: 2px solid var(--line); border-radius: 8px; text-align: center;
   font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: clamp(19px, 1.9vw, 25px); line-height: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -419,6 +421,7 @@
 .book-window img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .book-window img.fallback { width: 72%; height: 72%; opacity: .85; }
 .book-date { position: absolute; left: 22%; right: 8%; bottom: 2.5%; text-align: center; font-size: 12px; color: rgba(58, 46, 38, .7); }
+.book.short .book-title { font-size: clamp(17px, 1.7vw, 22px); }
 @media (prefers-reduced-motion: reduce) { .book, .book:active { transform: none; } }
 
 /* ───────── 어른 설정 스크롤 (S-13) ─────────
