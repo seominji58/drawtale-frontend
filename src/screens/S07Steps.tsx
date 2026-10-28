@@ -135,9 +135,10 @@ export default function S07Steps() {
 
       {/* 카드와 말하기 · 적기를 나란히 둔다. 아래에 두면 카드가 그만큼 작아져 아이콘이 줄어든다 */}
       <div className="pick-area">
-        <div className="choices" data-count={choices.length}>
+        {/* 확인을 묻는 동안(pending) 고른 카드는 표시하고 나머지는 흐리게 — 무엇을 골랐는지 보여야 「예」를 누른다 (10/28 사용자) */}
+        <div className={`choices ${pending ? "deciding" : ""}`} data-count={choices.length}>
           {choices.map((c) => (
-            <ChoiceCard key={c.id} choice={c} selected={picks[kind] === c.id} onPick={choose} />
+            <ChoiceCard key={c.id} choice={c} selected={pending ? pending.id === c.id : picks[kind] === c.id} onPick={choose} />
           ))}
         </div>
 
@@ -187,7 +188,7 @@ export default function S07Steps() {
 
       {pending && (
         <div className="box">
-          <p className="question" style={{ marginBottom: 14 }}>이걸로 할까요?</p>
+          <p className="question" style={{ marginBottom: 14 }}><b className="pick-name">{pending.label}</b>, 이걸로 할까요?</p>
           <div className="row">
             <BigButton go onClick={() => { pick(kind!, pending.id); setPending(null); next(); }}>예</BigButton>
             <BigButton onClick={() => setPending(null)}>다시</BigButton>

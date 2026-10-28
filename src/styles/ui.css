@@ -201,6 +201,20 @@
   box-shadow: 0 0 0 5px var(--apricot), 6px 8px 0 rgba(58, 46, 38, .15);
 }
 .choice.on::before { background: rgba(255, 253, 248, .55); }
+/* 고른 카드: 체크 도장이 찍히고 살짝 들린다. 확인을 묻는 동안 나머지 카드는 흐리게 */
+.choice .choice-check {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--mint); border: 3px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  animation: stamp 280ms var(--ease) both;
+}
+.choice .choice-check svg { width: 62%; height: 62%; }
+@keyframes stamp { from { transform: scale(0) rotate(-35deg); } to { transform: scale(1) rotate(0deg); } }
+.choices.deciding .choice:not(.on) { opacity: .38; filter: saturate(.25); }
+.choices.deciding .choice.on { transform: translateY(-8px) scale(1.06); z-index: 1; }
+.pick-name { color: var(--grape-dk); background: linear-gradient(transparent 55%, var(--butter) 55%); padding: 0 4px; }
+@media (prefers-reduced-motion: reduce) { .choice-check { animation: none; } }
 
 /* 단계 표시. 칸마다 다른 색 */
 .steps { display: flex; justify-content: center; gap: 8px; flex: 0 0 auto; flex-wrap: wrap; }

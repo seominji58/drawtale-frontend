@@ -23,7 +23,13 @@ export default function ChoiceCard({
   };
 
   return (
-    <button className={`choice ${on || selected ? "on" : ""}`} onClick={handle} aria-label={choice.label}>
+    <button className={`choice ${on || selected ? "on" : ""}`} onClick={handle} aria-label={choice.label} aria-pressed={selected}>
+      {/* 고른 카드에 붙는 체크 도장 */}
+      {selected && (
+        <span className="choice-check" aria-hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FFFDF8" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        </span>
+      )}
       {/* 아이콘을 못 불러오면 깨진 그림 대신 빈 자리를 둔다.
           아이 화면에 깨진 아이콘이 뜨는 것보다 낫고, 원인은 콘솔에 남긴다 */}
       <img src={choice.iconUrl} alt=""
