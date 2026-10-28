@@ -9,6 +9,7 @@ import { useGuardianMode, useSettings } from "@/store/settings";
 import { useLibrary } from "@/store/library";
 import { useAuth, consumeTrial } from "@/store/auth";
 import { generateStory, ApiError, ENGINE } from "@/api";
+import { makeCover } from "@/features/story/cover";
 import type { JobStatus } from "@/types/character";
 
 /** 백엔드 job 상태(계약 1-3). 서버가 문장과 애니메이션을 다 만든 뒤에 succeeded 가 된다 */
@@ -16,7 +17,7 @@ const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, 
 
 export default function S08Generating() {
   const nav = useNavigate();
-  const { character, name, picks, said, setStory, setError } = useSession();
+  const { character, name, picks, said, setStory, setError, imageUrl } = useSession();
   const add = useLibrary((s) => s.add);
   const mode = useAuth((a) => a.mode);
   const diagnostics = useSettings((s) => s.diagnostics);
@@ -44,6 +45,8 @@ export default function S08Generating() {
         // 고른 카드를 이야기에 붙여 둔다 — 내 이야기(S-12)에서 다시 볼 때도 소품을 얹을 수 있게
         const s = { ...res, guardian, picks: { place: picks.place, problem: picks.problem, action: picks.action, result: picks.result } };
         setStory(s); add(s);
+        // 책장 표지: 아이 그림을 작게 줄여 붙인다. 늦게 끝나도 같은 이야기(storyId)를 덮어쓸 뿐이다
+        if (imageUrl) makeCover(imageUrl).then((cover) => { if (cover) add({ ...s, cover }); });
         if (mode === "guest") consumeTrial();
         nav("/story", { replace: true });
       })
@@ -52,7 +55,7 @@ export default function S08Generating() {
         setError(e instanceof ApiError ? e.code : "ENGINE_ERROR"); nav("/error");
       });
     return () => { clearTimeout(t); ctrl.abort(); };
-  }, [character, picks, said, setStory, add, setError, nav, mode, voiceMode, protagonist, name, guardian]);
+  }, [character, picks, said, setStory, add, setError, nav, mode, voiceMode, protagonist, name, guardian, imageUrl]);
 
   const stop = () => { abort.current?.abort(); nav("/steps"); };
 

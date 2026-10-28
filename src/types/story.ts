@@ -53,6 +53,8 @@ export interface Story {
   picks?: Partial<Record<StepKind, string>>;
   /** 보호자 모드에서 만든 이야기인지 (프론트만). 아이가 만든 소품은 이런 이야기에만 나온다 (open-decisions 0-13) */
   guardian?: boolean;
+  /** 책장(S-12) 표지에 쓸 아이 그림 작은 사본 (data URL, 프론트만 · 서버에 보내지 않음). 없으면 고른 장소 그림 */
+  cover?: string;
 }
 
 /** 긴 이야기의 한 쪽. stage 는 아이가 고른 네 칸 중 어디에서 나온 쪽인지 */

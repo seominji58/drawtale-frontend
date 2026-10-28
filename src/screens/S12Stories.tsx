@@ -8,8 +8,8 @@ import { useSession } from "@/store/session";
 import { useAuth } from "@/store/auth";
 import { useGuardianMode } from "@/store/settings";
 
-/** 책등 색. 네 단계 크레파스 색을 돌려 쓴다 */
-const SPINES = ["var(--c-place)", "var(--c-problem)", "var(--c-action)", "var(--c-result)"];
+/** 책 천 색. 네 단계 크레파스 색을 옅게 돌려 쓴다 */
+const COVERS = ["#CFE0F5", "#F6D3CC", "#CFE8D9", "#F7E3B0"];
 
 export default function S12Stories() {
   const nav = useNavigate();
@@ -36,15 +36,20 @@ export default function S12Stories() {
       {stories.length > 0 ? (
         <div className="shelf">
           {stories.map((s, i) => (
-            <button key={s.storyId} className="book"
-              style={{ "--book-spine": SPINES[i % SPINES.length] } as CSSProperties}
+            <button key={s.storyId} className="book" aria-label={`${s.title}, ${s.createdAt}`}
+              style={{ "--book-color": COVERS[i % COVERS.length] } as CSSProperties}
               onClick={() => { setStory(s); nav("/story"); }}>
+              {/* 두께 있는 책: 표지 천 + 왼쪽 책등 + 오른쪽 · 아래 종이 결. 표지 가운데에 아이 그림을 붙인다 */}
               <span className="book-cover">
-                {s.picks?.place && <img src={`/icons/place/${s.picks.place}.png`} alt=""
-                  onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />}
+                <span className="book-label">
+                  {s.cover
+                    ? <img src={s.cover} alt="" />
+                    : s.picks?.place && <img className="fallback" src={`/icons/place/${s.picks.place}.png`} alt=""
+                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />}
+                </span>
+                <span className="book-title">{s.title}</span>
+                <span className="book-date">{s.createdAt}</span>
               </span>
-              <span className="book-title">{s.title}</span>
-              <span className="book-date">{s.createdAt}</span>
             </button>
           ))}
         </div>

@@ -193,7 +193,7 @@
 }
 /* 아이콘은 카드가 작아지면(S-07 말하기 · 적기 줄, 결과 칸 요약 줄) 같이 줄어든다. 고정 크기면 카드 위로 잘린다 */
 .choice img { position: relative; z-index: 1; flex: 0 1 var(--icon); min-height: 0; width: var(--icon); max-width: 100%; height: var(--icon); object-fit: contain; transform: scale(1.1); margin-top: -10px; }
-.choice span { position: relative; z-index: 1; font-family: var(--font-round); letter-spacing: -.1em; font-size: var(--t-button); color: var(--ink); font-weight: 700; display: var(--show-label); }
+.choice span { position: relative; z-index: 1; font-family: var(--font-round); letter-spacing: -.1em; word-break: keep-all; text-align: center; line-height: 1.1; font-size: var(--t-button); color: var(--ink); font-weight: 700; display: var(--show-label); }
 .choice:active { transform: translateY(4px) rotate(0deg); box-shadow: 0 0 0 rgba(58, 46, 38, .12); }
 .choice.on {
   background: var(--butter); transform: rotate(0deg) scale(1.04);
@@ -379,21 +379,36 @@
 }
 
 /* ───────── 내 이야기 책장 (S-12) ─────────
-   줄 목록 대신 책 표지를 꽂아 둔다. 표지 그림은 고른 장소 */
-.shelf { flex: 1; min-height: 0; overflow: auto; display: grid; gap: 22px; padding: 6px 6px 12px;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); align-content: start; }
-.book {
-  display: flex; flex-direction: column; text-align: left; gap: 10px; padding: 14px 14px 16px;
-  background: var(--cloud); border: var(--line-w) solid var(--line); border-radius: 10px 22px 22px 10px;
-  box-shadow: inset 10px 0 0 var(--book-spine, var(--c-place)), var(--soft-sm);
-  transition: transform var(--dur) var(--ease);
-}
-.book:active { transform: translateY(3px); }
-.book-cover { aspect-ratio: 4 / 3; margin-left: 10px; border-radius: 12px; background: var(--edge-soft);
-  display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.book-cover img { width: 70%; height: 70%; object-fit: contain; }
-.book-title { margin-left: 10px; font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: 30px; line-height: 1.15; }
-.book-date { margin-left: 10px; font-size: var(--t-label); color: var(--ink-soft); }
+   두께 있는 그림책: 천 표지 + 왼쪽 책등(어두운 띠 · 바느질 선) + 오른쪽 · 아래로 삐져나온 종이 결.
+   표지 가운데 흰 종이에 아이가 그린 그림을 붙인다(없으면 고른 장소 그림) */
+.shelf { flex: 1; min-height: 0; overflow: auto; display: grid; gap: 34px 30px; padding: 8px 22px 22px 8px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); align-content: start; }
+.book { position: relative; display: block; aspect-ratio: 3 / 4; padding: 0; margin: 0 12px 10px 0; text-align: left;
+  filter: drop-shadow(5px 7px 0 rgba(58, 46, 38, .14)); transition: transform var(--dur) var(--ease); }
+.book:active { transform: translateY(3px) rotate(-1deg); }
+/* 오른쪽 종이 결 (책 두께) */
+.book::before { content: ""; position: absolute; top: 7px; bottom: 3px; right: -11px; width: 13px;
+  background: repeating-linear-gradient(90deg, #FFFDF8 0 2px, #D9CCB6 2px 3px);
+  border: 2px solid var(--line); border-left: 0; border-radius: 0 7px 7px 0; }
+/* 아래 종이 결 */
+.book::after { content: ""; position: absolute; left: 14px; right: -9px; bottom: -10px; height: 12px;
+  background: repeating-linear-gradient(180deg, #FFFDF8 0 2px, #D9CCB6 2px 3px);
+  border: 2px solid var(--line); border-top: 0; border-radius: 0 0 7px 7px; }
+.book-cover { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 14px 12px 30px; background: var(--book-color, #CFE0F5);
+  border: 3px solid var(--line); border-radius: 5px 14px 14px 5px;
+  /* 책등: 어두운 띠 + 밝은 접힌 선 */
+  box-shadow: inset 16px 0 0 rgba(58, 46, 38, .16), inset 19px 0 0 rgba(255, 253, 248, .45); }
+/* 책등 바느질 선 */
+.book-cover::before { content: ""; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 0;
+  border-left: 2px dashed rgba(58, 46, 38, .35); }
+.book-label { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background: #FFFDF8; border: 2px solid var(--line); border-radius: 8px 10px 7px 9px; transform: rotate(-1deg); padding: 8px; }
+.book-label img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.book-label img.fallback { width: 70%; height: 70%; opacity: .85; }
+.book-title { font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: 30px; line-height: 1.1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-date { font-size: 13px; color: var(--ink-soft); }
 
 /* ───────── 어른 설정 스크롤 (S-13) ─────────
    어느 기기에서든: 터치로 끌기 · 휠 · 트랙패드 · 스크롤 막대 끌기 · 키보드(목록을 누른 뒤 화살표 · Page Down).
