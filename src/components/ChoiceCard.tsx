@@ -24,10 +24,16 @@ export default function ChoiceCard({
 
   return (
     <button className={`choice ${on || selected ? "on" : ""}`} onClick={handle} aria-label={choice.label} aria-pressed={selected}>
-      {/* 고른 카드에 붙는 체크 도장 */}
+      {/* 고른 카드는 압정으로 꽂아 둔 것처럼 (10/28 사용자 「고정핀으로 고정된 느낌」) */}
       {selected && (
-        <span className="choice-check" aria-hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#FFFDF8" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        <span className="choice-pin" aria-hidden>
+          <svg viewBox="0 0 40 40">
+            {/* 위에서 본 압정: 종이에 꽂혀 바늘은 안 보이고 머리와 그림자만 */}
+            <ellipse cx="24" cy="25" rx="13" ry="10" fill="rgba(58,46,38,.25)" />
+            <circle cx="20" cy="20" r="13" fill="#A2402A" stroke="#3A2E26" strokeWidth="3" />
+            <circle cx="20" cy="18" r="9.5" fill="#D65A3B" />
+            <ellipse cx="16" cy="14" rx="3.6" ry="2.4" fill="#FFFDF8" opacity=".8" transform="rotate(-30 16 14)" />
+          </svg>
         </span>
       )}
       {/* 아이콘을 못 불러오면 깨진 그림 대신 빈 자리를 둔다.
