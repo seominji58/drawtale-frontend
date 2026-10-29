@@ -64,7 +64,7 @@ S-01~S-11 이 끝까지 돈다. 백엔드는 **`dev` 하나에 합쳤고**, 프�
 | GPT 문장 · 검열 · OpenAI TTS | 완료 | 백엔드 | `OPENAI_API_KEY` 필요 (팀 드라이브) |
 | 소셜 로그인 API | 완료 | 백엔드 | 회원번호만 저장, 토큰은 해시 |
 | 행동 → 순화 동작 매핑 + 안전장치 | 완료 | 백엔드 | AI 가 순화 동작을 모르면 원래 동작으로 렌더 |
-| ElevenLabs TTS 선택 (`TTS_PROVIDER`) | 완료 | 백엔드 | 목소리 가안 Anna Kim(`uyVNoMrnUku1dZyVEXwD`), 모델 `eleven_v4` (10/8 청취로 고름) |
+| ElevenLabs TTS 선택 (`TTS_PROVIDER`) | 완료 | 백엔드 | 목소리 가안 Anna Kim(`uyVNoMrnUku1dZyVEXwD`), 모델 `eleven_v4` (10/8 청취로 고름) → **10/29 `eleven_v4_turbo`** (별 차이 없고 크레딧 절반) |
 | 계약서에 CONTENT_BLOCKED · 음성 반영 | 완료 | 백엔드 | 오류 표 1-4, 2-6 |
 | 관절 score · 검출 confidence 저장 · 응답 | 완료 | 백엔드 | 계약 2-3. migration `b7c1d2e3f4a5` |
 | 여러 명 · 사람 아닌 그림 오류 code | 완료 | 백엔드 | `MULTIPLE_CHARACTERS` · `LOW_CONFIDENCE` (계약 1-4, 3-2) |

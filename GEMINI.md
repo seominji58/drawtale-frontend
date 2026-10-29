@@ -34,7 +34,7 @@
 - MP4 에서 팔이 뭉개지는 문제: S-02 권장 카드(프론트), 순화 동작(AI `feat/gentle-motions`,
   `hankan-story/drawtale-ai-git/`, 검토 대기), 동작 매핑(백엔드 dev). AI 를 합치기 전에는 백엔드가 원래 동작으로 렌더한다
 - S-07 카드 + 말로 덧붙이기(STT, 어른 설정에서 켬) + 안내 나레이션. 이야기 음성은 백엔드 `TTS_PROVIDER` (openai / elevenlabs)
-- 10/8: ElevenLabs 목소리 가안 **Anna Kim**(한국어), 모델 `eleven_v4` (청취로 고름). S-09 는 `audioUrl` 이 있으면 그 MP3 를 튼다.
+- 10/8: ElevenLabs 목소리 가안 **Anna Kim**(한국어), 모델 `eleven_v4` (청취로 고름) → 10/29 `eleven_v4_turbo`(별 차이 없고 크레딧 절반). S-09 는 `audioUrl` 이 있으면 그 MP3 를 튼다.
   S-13 「읽어주기」: 나레이션만 / 캐릭터 목소리 → 서버 `voice_mode`. 대사는 `“ ”` 안, `sentences()` 는 따옴표 안에서 끊지 않는다
   캐릭터 목소리면 S-13 「주인공 목소리」(여자아이/남자아이)도 보낸다. 다른 인물 목소리는 백엔드 `voices.py` 가 종류로 고른다
   캐릭터 목소리면 S-05 다음 `/name`(S05Name)에서 친구 이름을 짓고, 나레이션이 그 이름으로 3인칭으로 들려준다
