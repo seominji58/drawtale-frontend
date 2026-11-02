@@ -53,16 +53,17 @@
 /* ───────── 동화책 펼침면 (S-09) ─────────
    왼쪽 그림 · 오른쪽 글. 종이책을 펼친 모양이다.
    가로가 좁으면(폰 · 세로 태블릿) 위아래로 쌓는다 — 글이 그림 아래로 간다.
-   지원 수준 1 은 글을 작게 두고 그림을 키운다 (글을 읽지 못하는 아이가 있다). */
+   지원 수준 1 은 글을 작게 두고 그림을 키운다 (글을 읽지 못하는 아이가 있다).
+   2026-11-02 사용자 「대본 화면이 너무 큰데 줄이고 장면 화면이 더 큰 비중」 — 그림 약 70% · 글 약 30% */
 .spread {
-  flex: 1; min-height: 0; display: grid; gap: 18px;
-  grid-template-columns: 1.15fr 1fr;
+  flex: 1; min-height: 0; display: grid; gap: 14px;
+  grid-template-columns: 2.3fr 1fr;
   align-items: stretch;
 }
 .spread > .stage { flex: initial; }
 .spread-text {
   display: flex; flex-direction: column; justify-content: center; gap: 12px;
-  padding: 22px 26px; min-width: 0; overflow-y: auto;
+  padding: 16px 18px; min-width: 0; overflow-y: auto;
   border-radius: var(--r-stage);
   background: var(--cloud); box-shadow: var(--soft);
   border: var(--line-w) solid var(--line);
@@ -71,20 +72,25 @@
 }
 /* 펼침면 안에서는 글이 알약이 아니라 책 본문처럼 보인다 */
 .spread-text .said {
-  text-align: left; align-self: stretch; border-radius: 18px; padding: 10px 14px;
+  text-align: left; align-self: stretch; border-radius: 18px; padding: 8px 10px;
+  font-size: calc(var(--t-question) - 18px);
 }
 .spread-text .hint { text-align: left; }
 
 /* S-09 진행 바 — 이 쪽 하나의 바. 그 쪽 음성 길이에 맞춰 회색 길이 초록으로 찬다 (2026-10-27 사용자).
    길은 회색, 채움은 초록. --grape(주된 행동 하나)와 겹치지 않는다 */
 .progress { flex: 0 0 auto; height: 16px; border-radius: 999px; background: var(--cloud); border: 2px solid var(--line); overflow: hidden; }
+/* S-09 읽어주기 빠르기 — 진행 바 옆 (2026-11-02 사용자 「각 장면 페이지에서 조절」) */
+.bar-row { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; }
+.bar-row > .progress { flex: 1; }
+.bar-row > .seg button { padding: 6px 14px; font-size: var(--t-label); }
 .progress > i { display: block; height: 100%; border-radius: inherit; background: var(--progress-fill, var(--mint)); }
 
-[data-level="1"] .spread { grid-template-columns: 1.6fr 1fr; }
-[data-level="1"] .spread-text .said { font-size: calc(var(--t-question) - 4px); }
+[data-level="1"] .spread { grid-template-columns: 2.6fr 1fr; }
+[data-level="1"] .spread-text .said { font-size: calc(var(--t-question) - 16px); }
 
 @media (max-width: 1023px) {
-  .spread { grid-template-columns: 1fr; grid-template-rows: 1.4fr auto; }
+  .spread { grid-template-columns: 1fr; grid-template-rows: 2.4fr auto; }
   .spread-text { background-image: none; }
   .spread-text .said, .spread-text .hint { text-align: center; }
 }
@@ -306,6 +312,9 @@
 .seg button { padding: 7px 16px; border-radius: 999px; font-weight: 700; color: var(--ink-soft); }
 .seg button.on { background: var(--grape); color: #fff; }
 
+/* S-13 이야기 제목 고치기 */
+.title-input { flex: 1; min-width: 0; font: inherit; font-size: var(--t-button); padding: 8px 12px;
+  border: 2px solid var(--edge); border-radius: 12px; background: var(--milk); color: var(--ink); }
 .tog { width: 26px; height: 26px; accent-color: var(--grape); flex: 0 0 auto; }
 .thumb { width: 86px; height: 56px; flex: 0 0 auto; border-radius: 14px; background: var(--edge-soft); }
 
@@ -360,6 +369,17 @@
 .joint-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .joint-side .list { flex: 1; min-height: 0; }
 .joint-stage { position: relative; width: 100%; height: 100%; touch-action: none; user-select: none; }
+/* S-05 관절 보기 — 보기만 하므로 점이 작고 잡히지 않는다 */
+.joint-stage.view { touch-action: auto; }
+.joint-stage.view .joint { width: 18px; height: 18px; margin: -9px 0 0 -9px; border-width: 3px; cursor: default; pointer-events: none; }
+.joint-stage.view .joint::before { display: none; }
+.joint-stage.view .joint-bones line { stroke-width: 5; }
+/* S-05 미리보기 반 · 관절 그림 반 (2026-11-02). 좁은 화면은 위아래로 */
+.preview-pair { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+.preview-pair > figure { margin: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.preview-pair > figure > .stage { flex: 1; min-height: 0; }
+.preview-pair figcaption { text-align: center; }
+@media (max-width: 700px) { .preview-pair { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
 .joint-stage img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .joint-bones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .joint-bones line { stroke: #FFFDF8; stroke-width: 7; stroke-linecap: round; }

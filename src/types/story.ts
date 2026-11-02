@@ -105,6 +105,12 @@ export interface Settings {
   /** 새로 만드는 이야기부터 적용된다. 기본 나레이션 */
   voiceMode: VoiceMode;
   protagonistVoice: ProtagonistVoice;
+  /** S-13 「내 목소리로 읽어주기」 (2026-11-02). 보호자가 등록한 목소리로 나레이션을 읽는다.
+   *  「어른과 함께」 묶음 — 로그인한 보호자가 동의하고 녹음해야 켜진다. 화면에서는 `useWithAdult().myVoice` */
+  guardianNarrator: boolean;
+  /** S-09 「읽어주기 빠르기」 (2026-11-02, 장면 쪽 진행 바 옆에서 고르고 다음 이야기에도 남는다). 이야기 음성 파일 · 브라우저 음성 · 안내 음성 모두에 곱한다.
+   *  서버 음성은 다시 만들지 않고 재생 속도만 바꾼다 (ElevenLabs v4 는 speed 를 무시하고, 저장본을 다시 쓰려고) */
+  speechRate: number;
   /** S-13 「이야기 길이」. 기본은 긴 이야기 (사용자, 2026-10-12 「일단은 긴 이야기로」) */
   storyLength: StoryLength;
 }

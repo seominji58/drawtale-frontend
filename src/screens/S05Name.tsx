@@ -9,8 +9,10 @@ import { listen, voiceSupported } from "@/features/story/voice";
 import type { ListenError } from "@/features/story/voice";
 import { speak, stopSpeak } from "@/lib";
 
-/** S-05 다음 「친구 이름 짓기」 (설계서에 없음, open-decisions 0-6).
- *  캐릭터 목소리 판에서만 나온다 — 나레이터가 주인공을 이 이름으로 3인칭으로 부른다.
+/** S-05 다음 「친구 이름 짓기」 (pt_docs 05 S-05N).
+ *  2026-11-02 사용자: 읽어주기 판과 상관없이 **늘** 묻고, 먼저 「이름 지을래요 / 이름 없이 할래요」를 단추로 고른다.
+ *  캐릭터 목소리 판은 나레이터가 이 이름으로 3인칭으로 부른다. 나레이션만 판(「나는」)은 글에 쓰지 않고
+ *  서버에 등록만 해 둔다 — 나중에 캐릭터 목소리 판으로 바꿀 때 쓴다 (계약 2-5). 05 는 「캐릭터 목소리 판일 때만」이라 어긋난다 (open-decisions 0-18).
  *  쉬운 두 글자 이름. 성별을 가리지 않는 이름만 둔다 */
 const NAMES = ["토토", "하루", "콩이", "별이", "보리", "솜이"];
 /** 서버가 받는 이름 길이 (계약 2-5 protagonist_name) */
@@ -34,6 +36,8 @@ export default function S05Name() {
   const [heardError, setHeardError] = useState<ListenError | null>(null);
   const stopListen = useRef<AbortController | null>(null);
   const lock = useRef(0);
+  /** 이름을 짓기로 했는지. 돌아왔을 때 이미 지은 이름이 있으면 바로 이름 카드 */
+  const [naming, setNaming] = useState(!!name);
 
   useEffect(() => () => { stopListen.current?.abort(); stopSpeak(); }, []);
   if (!imageUrl || !keypoints) return <Navigate to="/upload" replace />;
@@ -76,10 +80,26 @@ export default function S05Name() {
     nav("/steps");
   };
 
+  // 먼저 지을지 말지를 단추로 고른다
+  if (!naming) {
+    return (
+      <Screen back="/confirm" speech="친구 이름을 지어 줄까요?" segment={2}
+        acts={
+          <>
+            <BigButton onClick={() => go(false)}>이름 없이 할래요</BigButton>
+            <BigButton go onClick={() => { setNaming(true); speak("어떤 이름이 좋을까요?", muteAll); }}>이름 지을래요</BigButton>
+          </>
+        }>
+        <h2 className="question">친구 이름을 지어 줄까요?</h2>
+        <div className="stage"><CharacterPreview /></div>
+      </Screen>
+    );
+  }
+
   return (
-    <Screen back="/confirm" speech="친구 이름을 지어 줄까요?" segment={2}
+    <Screen back={() => { stopListen.current?.abort(); stopSpeak(); setNaming(false); }} speech="어떤 이름이 좋을까요?" segment={2}
       acts={<BigButton go disabled={!name || listening} onClick={() => go(true)}>이 이름으로 할래요</BigButton>}>
-      <h2 className="question">친구 이름을 지어 줄까요?</h2>
+      <h2 className="question">어떤 이름이 좋을까요?</h2>
 
       <div className="stage" style={{ flexDirection: "column", gap: 12 }}>
         <div style={{ flex: 1, minHeight: 0, width: "100%", display: "flex", justifyContent: "center" }}>

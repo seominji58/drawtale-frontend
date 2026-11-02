@@ -23,6 +23,7 @@ import SProps from "@/screens/SProps";
 import SPropDraw from "@/screens/SPropDraw";
 import SPropView from "@/screens/SPropView";
 import S13Settings from "@/screens/S13Settings";
+import S13Voice from "@/screens/S13Voice";
 import E01Error from "@/screens/E01Error";
 import S14Welcome from "@/screens/S14Welcome";
 import S15Login from "@/screens/S15Login";
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/props/new" element={<SPropDraw />} />
             <Route path="/props/:id" element={<SPropView />} />
             <Route path="/settings" element={<S13Settings />} />
+            <Route path="/voice" element={<S13Voice />} />
             <Route path="/error" element={<E01Error />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </>

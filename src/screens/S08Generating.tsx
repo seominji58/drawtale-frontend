@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import Waiting from "@/components/Waiting";
 import { Pencil } from "@/components/illust";
 import { useSession } from "@/store/session";
-import { useGuardianMode, useSettings } from "@/store/settings";
+import { useGuardianMode, useSettings, useWithAdult } from "@/store/settings";
 import { useLibrary } from "@/store/library";
 import { useAuth, consumeTrial } from "@/store/auth";
 import { generateStory, ApiError, ENGINE } from "@/api";
@@ -55,6 +55,8 @@ export default function S08Generating() {
   const protagonist = useSettings((s) => s.protagonistVoice);
   const storyLength = useSettings((s) => s.storyLength);
   const guardian = useGuardianMode();
+  // 보호자 목소리로 나레이션 (S-13 「내 목소리로 읽어주기」). 목소리가 없으면 서버가 기본 나레이터로 읽는다
+  const myVoice = useWithAdult().myVoice;
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
   const [showStop, setShowStop] = useState(false);
@@ -62,7 +64,9 @@ export default function S08Generating() {
   useEffect(() => {
     if (!character) { nav("/upload", { replace: true }); return; }
     const t = setTimeout(() => setShowStop(true), 3000);
-    const voice = { mode: voiceMode, protagonist, name };
+    // 이름은 판과 상관없이 등록해 둔다(S05Name). 나레이션만 판은 서버가 받아 두기만 하고 글은 「나는」 —
+    // 나중에 캐릭터 목소리 판으로 바꿀 때 그 이름을 쓴다 (2026-11-02, 계약 2-5 protagonist_name)
+    const voice = { mode: voiceMode, protagonist, name, guardian: myVoice };
     const key = JSON.stringify([character.id, picks, said, voice, storyLength]);
     const run = startStory(key, (onStatus, signal) =>
       generateStory(character.id, picks, said, onStatus, signal, voice, storyLength));
@@ -88,7 +92,7 @@ export default function S08Generating() {
         setError(e instanceof ApiError ? e.code : "ENGINE_ERROR"); nav("/error");
       });
     return () => { live = false; clearTimeout(t); };
-  }, [character, picks, said, setStory, add, setError, nav, mode, voiceMode, protagonist, name, guardian, imageUrl, storyLength]);
+  }, [character, picks, said, setStory, add, setError, nav, mode, voiceMode, protagonist, name, guardian, imageUrl, storyLength, myVoice]);
 
   const stop = () => { cancelStory(); nav("/steps"); };
 

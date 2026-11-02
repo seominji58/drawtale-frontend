@@ -90,6 +90,13 @@ interface ServerStory {
   } | null;
 }
 
+/** 로그인한 보호자의 토큰 (store/auth.ts 가 둔다). 보호자 목소리 · 이야기 만들기에만 싣는다 —
+ *  그림 올리기에 실으면 그림에 주인이 생겨 예전 흐름(토큰 없이 다시 묻기)이 404 가 된다 (계약 1-3) */
+function authHeader(): Record<string, string> {
+  const t = localStorage.getItem("storyblanks.token");
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(BASE + path, init);
   const body = await r.json().catch(() => null);
@@ -265,7 +272,7 @@ export async function generateStory(
   said: Partial<Record<StepKind, string>>,
   onStatus: (s: JobStatus) => void,
   signal?: AbortSignal,
-  voice: { mode: VoiceMode; protagonist: ProtagonistVoice; name?: string | null } = {
+  voice: { mode: VoiceMode; protagonist: ProtagonistVoice; name?: string | null; guardian?: boolean } = {
     mode: "narration", protagonist: "girl",
   },
   length: StoryLength = "short"
@@ -290,9 +297,11 @@ export async function generateStory(
 
   const { story_id, job_id } = await call<{ story_id: string; job_id: string }>("/stories", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({
       character_id: characterId, ...labels,
+      // 보호자 목소리로 나레이션 (S-13 「내 목소리로 읽어주기」, 계약 2-12). 목소리가 없으면 서버가 기본으로 읽는다
+      ...(voice.guardian ? { narrator: "guardian" } : {}),
       voice_mode: voice.mode, protagonist_voice: voice.protagonist,
       // 캐릭터 목소리 판에서 나레이터가 3인칭으로 부를 이름 (S05Name). 없으면 서버가 짓는다
       ...(voice.name ? { protagonist_name: voice.name } : {}),
@@ -304,4 +313,54 @@ export async function generateStory(
   onStatus("pending");
   await waitJob(job_id, STORY_LIMIT_MS, onStatus, signal);
   return toStory(await call<ServerStory>(`/stories/${story_id}`, { signal }));
+}
+
+// ---- 보호자 목소리 (계약 2-12, 2026-11-02) ----
+// 로그인한 보호자만. 녹음은 서버에 저장하지 않고 ElevenLabs 로 넘겨 목소리를 만든다.
+
+export interface GuardianVoice {
+  registered: boolean;
+  /** 서버가 목소리를 받을 수 있는지 (ElevenLabs 설정) */
+  available: boolean;
+  consentedAt: string | null;
+}
+
+/** 동의 화면 세 칸 (S13Voice). 모두 true 여야 서버가 받는다 */
+export interface VoiceConsent { collect: boolean; transfer: boolean; ownVoice: boolean; version: string }
+
+const MOCK_VOICE = "storyblanks.mock.voice";
+
+export async function getMyVoice(): Promise<GuardianVoice> {
+  if (useMock) {
+    const at = localStorage.getItem(MOCK_VOICE);
+    return { registered: !!at, available: true, consentedAt: at };
+  }
+  const r = await call<{ registered: boolean; available: boolean; consented_at: string | null }>(
+    "/me/voice", { headers: authHeader() });
+  return { registered: r.registered, available: r.available, consentedAt: r.consented_at };
+}
+
+export async function registerMyVoice(wav: Blob, consent: VoiceConsent): Promise<GuardianVoice> {
+  if (useMock) {
+    await sleep(1200);
+    const at = new Date().toISOString();
+    localStorage.setItem(MOCK_VOICE, at);
+    return { registered: true, available: true, consentedAt: at };
+  }
+  const form = new FormData();
+  form.append("audio", wav, "voice.wav");
+  form.append("agree_collect", String(consent.collect));
+  form.append("agree_transfer", String(consent.transfer));
+  form.append("own_voice", String(consent.ownVoice));
+  form.append("consent_version", consent.version);
+  const r = await call<{ registered: boolean; available: boolean; consented_at: string | null }>(
+    "/me/voice", { method: "POST", headers: authHeader(), body: form });
+  return { registered: r.registered, available: r.available, consentedAt: r.consented_at };
+}
+
+/** 목소리 지우기 (동의 철회). 서버가 ElevenLabs 목소리와 그 목소리로 만든 음성을 함께 지운다 */
+export async function deleteMyVoice(): Promise<void> {
+  if (useMock) { localStorage.removeItem(MOCK_VOICE); return; }
+  const r = await fetch(BASE + "/me/voice", { method: "DELETE", headers: authHeader() });
+  if (!r.ok && r.status !== 204) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
 }

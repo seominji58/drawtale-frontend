@@ -33,7 +33,6 @@ export default function S07Steps() {
   // 적기는 목소리를 보내지 않으므로 음성 인식이 없는 브라우저에서도 보이고, 마이크만 숨긴다
   const ownOn = useWithAdult().voice;
   const micOn = ownOn && voiceSupported();
-  const named = useSettings((s) => s.voiceMode) === "characters";
   const cfg = LEVEL_CONFIG[level];
 
   // 묻는 칸 순서. 네 칸 사이에 인물 · 기분 칸이 끼고, 수준마다 다르다 (open-decisions 0-11)
@@ -124,7 +123,7 @@ export default function S07Steps() {
   };
 
   return (
-    <Screen back={viewAt === 0 ? (named ? "/name" : "/confirm") : () => { stopListen.current?.abort(); setViewAt((v) => v - 1); }}
+    <Screen back={viewAt === 0 ? "/name" : () => { stopListen.current?.abort(); setViewAt((v) => v - 1); }}
       speech={ASK_QUESTION[kind]} segment={3}>
       {kind === "result" && (
         <p className="hint" style={{ marginBottom: "-10px", marginTop: "10px" }}>

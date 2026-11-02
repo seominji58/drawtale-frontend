@@ -7,7 +7,7 @@ import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { propHeight, propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
 import { ORDER_GAME, useSettings } from "@/store/settings";
-import { sentences, speak, stopSpeak } from "@/lib";
+import { SPEECH_RATES, sentences, speak, speechRate, stopSpeak } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
 import type { Keypoints } from "@/types/character";
 
@@ -46,6 +46,7 @@ export default function S09Story() {
       const a = audio.current ?? new Audio(story.audioUrl);
       audio.current = a;
       a.loop = loop;
+      a.playbackRate = speechRate();
       a.onended = () => setAt(null);
       a.currentTime = 0;
       void a.play();
@@ -95,6 +96,9 @@ export default function S09Story() {
         </BigButton>
         <BigButton onClick={() => setLoop((v) => !v)}>{loop ? "반복 켜짐" : "반복"}</BigButton>
       </div>
+      <div className="bar-row" style={{ justifyContent: "flex-end" }}>
+        <SpeedSeg onChange={(r) => { if (audio.current) audio.current.playbackRate = r; }} />
+      </div>
 
       <AiNotice />
     </Screen>
@@ -117,6 +121,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const readingRef = useRef(false);
   const audio = useRef<HTMLAudioElement | null>(null);
   const perPage = pages.some((p) => p.audioUrl);
+  const rate = useSettings((s) => s.speechRate);
   /** 지금 쪽 진행 (0~1). 쪽에 들어올 때마다 0 에서 시작해 그 쪽 음성(없으면 글 길이로 어림한 나레이션) 길이에 맞춰 찬다.
    *  들려주는 동안은 실제 재생 시각을 따른다 (2026-10-27 사용자 「쪽마다 하나의 바, 음성 · 영상 길이에 맞춰 회색이 초록으로」) */
   const [frac, setFrac] = useState(0);
@@ -125,7 +130,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   /** 브라우저 TTS 는 진행 시각을 주지 않아 글자 수로 읽는 시간을 어림한다 (끝나면 onEnd 에서 1) */
   const trackTts = (text: string) => {
     stopTts();
-    const est = Math.max(1.2, text.length / TTS_CHARS_PER_SEC) * 1000;
+    const est = Math.max(1.2, text.length / (TTS_CHARS_PER_SEC * speechRate())) * 1000;
     const t0 = performance.now();
     const tick = () => {
       setFrac(Math.min(0.95, (performance.now() - t0) / est));
@@ -166,19 +171,20 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       };
       tick();
     };
-    const est = Math.max(1.2, pages[pg].text.length / TTS_CHARS_PER_SEC);
+    // 빠르기를 바꾸면 그만큼 짧아지고 길어진다 (S-13 읽어주기 빠르기)
+    const est = Math.max(1.2, pages[pg].text.length / (TTS_CHARS_PER_SEC * speechRate()));
     const url = pages[pg].audioUrl;
     if (url) {
       const a = new Audio();
       a.preload = "metadata";
-      a.onloadedmetadata = () => run(a.duration && isFinite(a.duration) ? a.duration : est);
+      a.onloadedmetadata = () => run(a.duration && isFinite(a.duration) ? a.duration / speechRate() : est);
       a.onerror = () => run(est);
       a.src = url;
     } else {
       run(est);
     }
     return () => { alive = false; stopTts(); };
-  }, [pg]);
+  }, [pg, rate]);   // 빠르기를 바꾸면 바도 그 길이로 다시 찬다
 
   /** n 쪽부터 끝까지 읽는다. 쪽 음성 파일이 있으면 그것을, 없으면 브라우저 TTS */
   const readPage = (n: number) => {
@@ -192,6 +198,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     if (url) {
       audio.current?.pause();
       const a = new Audio(url);
+      a.playbackRate = speechRate();
       audio.current = a;
       a.ontimeupdate = () => { if (a.duration) setFrac(a.currentTime / a.duration); };
       a.onended = next;
@@ -220,6 +227,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       setFrac(Math.min(1, (t - from) / Math.max(1e-6, ends[k] - from)));
     };
     const start = pg === 0 ? 0 : ends[pg - 1];
+    a.playbackRate = speechRate();
     const begin = () => { a.currentTime = start * (a.duration || 0); void a.play(); };
     if (a.readyState >= 1) begin(); else a.onloadedmetadata = begin;
   };
@@ -278,9 +286,13 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 
       {/* 진행 바 (2026-10-27 사용자) — 이 쪽 하나의 바. 쪽에 들어올 때마다 비어서 시작해
           그 쪽 음성 길이에 맞춰 회색이 초록으로 찬다. 글자를 몰라도 이 쪽이 얼마나 남았는지 보인다 */}
-      <div className="progress" role="progressbar" aria-label="이 쪽 진행"
-        aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(frac * 100)}>
-        <i style={{ width: `${frac * 100}%` }} />
+      <div className="bar-row">
+        <div className="progress" role="progressbar" aria-label="이 쪽 진행"
+          aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(frac * 100)}>
+          <i style={{ width: `${frac * 100}%` }} />
+        </div>
+        {/* 읽는 중에 바꾸면 지금 쪽 음성부터 바로 바뀐다. 브라우저 음성(파일이 없는 쪽)은 다음 쪽부터 */}
+        <SpeedSeg onChange={(r) => { if (audio.current) audio.current.playbackRate = r; }} />
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>
@@ -293,6 +305,21 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 
       <AiNotice />
     </Screen>
+  );
+}
+
+/** 읽어주기 빠르기 (2026-11-02 사용자 「각 장면 페이지에서 조절」). 고른 값은 설정에 남아 다음 이야기에도 쓴다.
+ *  서버 음성은 다시 만들지 않고 재생 속도만 바꾼다 (크레딧 0, 음 높이는 그대로) */
+function SpeedSeg({ onChange }: { onChange: (rate: number) => void }) {
+  const rate = useSettings((s) => s.speechRate);
+  const set = useSettings((s) => s.set);
+  return (
+    <span className="seg" role="group" aria-label="읽어주기 빠르기">
+      {SPEECH_RATES.map(([label, v]) => (
+        <button key={v} className={rate === v ? "on" : ""} aria-pressed={rate === v}
+          onClick={() => { set("speechRate", v); onChange(v); }}>{label}</button>
+      ))}
+    </span>
   );
 }
 

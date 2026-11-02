@@ -22,6 +22,8 @@ interface LibraryState {
   load: () => void;
   add: (s: Story) => void;
   remove: (id: string) => void;
+  /** 제목 고치기 (S-13, 로그인한 보호자). 책장 · S-09 쪽 머리에 함께 보인다 */
+  rename: (id: string, title: string) => void;
   clearGuest: () => void;
 }
 
@@ -35,6 +37,12 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   },
   remove: (id) => {
     const next = get().stories.filter((x) => x.storyId !== id);
+    write(next);
+    set({ stories: next });
+  },
+  rename: (id, title) => {
+    const next = get().stories.map((x) =>
+      x.storyId === id ? { ...x, title, ...(x.book ? { book: { ...x.book, title } } : {}) } : x);
     write(next);
     set({ stories: next });
   },

@@ -25,6 +25,10 @@
 | S-06 | `PATCH /api/v1/characters/{id}/joints` | `saveJoints` |
 | S-08 | `POST /api/v1/stories` → 202 | `generateStory` |
 | S-08 | `GET /api/v1/stories/{id}` | `generateStory` |
+| S-13 · `/voice` | `GET` · `POST`(multipart) · `DELETE /api/v1/me/voice` — 보호자 목소리 (계약 2-12, 2026-11-02). `Authorization: Bearer` 를 싣는다 | `getMyVoice` · `registerMyVoice` · `deleteMyVoice` |
+
+`POST /api/v1/stories` 에는 「내 목소리로 읽어주기」가 켜져 있으면 `narrator: "guardian"` 과 로그인 토큰을 싣는다 (계약 2-5).
+토큰은 이 둘에만 싣는다 — 그림 올리기에 실으면 그림에 주인이 생겨 토큰 없이 다시 묻는 예전 흐름이 404 가 된다.
 
 **백엔드에 없어서 프론트가 들고 있는 것**
 

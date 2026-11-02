@@ -1,4 +1,11 @@
 /** 화면 어디서나 쓰는 작은 도구들 */
+import { useSettings } from "@/store/settings";
+
+/** S-09 「읽어주기 빠르기」에서 고르는 값. 보통(1)이 기본. 아이 화면이라 쉬운 말로 */
+export const SPEECH_RATES = [["천천히", 0.8], ["보통", 1], ["빠르게", 1.15]] as const;
+
+/** 지금 읽어주기 빠르기 (S-09 에서 고름, 설정에 남는다). 음성 파일은 `playbackRate`, 브라우저 음성은 `rate` 에 곱한다 */
+export const speechRate = () => useSettings.getState().speechRate || 1;
 
 /** C-02 다시 듣기. 음성 파일이 없을 때는 브라우저 TTS 로 대신 읽는다. */
 export function speak(text: string, mute: boolean, onEnd?: () => void) {
@@ -6,7 +13,7 @@ export function speak(text: string, mute: boolean, onEnd?: () => void) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "ko-KR";
-  u.rate = 0.95;
+  u.rate = 0.95 * speechRate();
   if (onEnd) u.onend = onEnd;
   window.speechSynthesis.speak(u);
 }

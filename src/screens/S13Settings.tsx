@@ -8,6 +8,8 @@ import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
 import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
+import { deleteMyVoice, getMyVoice } from "@/api";
+import type { GuardianVoice } from "@/api";
 
 function Row({ name, desc, children }: { name: string; desc: string; children: ReactNode }) {
   return (
@@ -37,6 +39,9 @@ function Head({ id, name, desc, children }: { id: string; name: string; desc?: s
   );
 }
 
+/** 이야기 제목 길이 (책장 책등에 들어가는 만큼) */
+const TITLE_MAX = 20;
+
 /** 바로가기 칩. 설정이 길어 폰 · 태블릿 · 컴퓨터 어디서든 원하는 묶음으로 바로 간다 (10/28 사용자 「스크롤 방식 고민」) */
 const SECTIONS: [string, string][] = [
   ["account", "계정"], ["story", "이야기"], ["sound", "소리"], ["adult", "어른과 함께"], ["info", "기록 · 안내"], ["mine", "만든 이야기"],
@@ -46,9 +51,32 @@ export default function S13Settings() {
   const nav = useNavigate();
   const s = useSettings();
   const { mode, account, logout } = useAuth();
-  const { stories, remove } = useLibrary();
+  const { stories, remove, rename } = useLibrary();
+  /** 제목을 고치는 중인 이야기와 그 글 (로그인한 보호자만) */
+  const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
+  const saveTitle = () => {
+    const t = editing?.title.trim().slice(0, TITLE_MAX);
+    if (editing && t) rename(editing.id, t);
+    setEditing(null);
+  };
   const listRef = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState("account");
+  // 보호자 목소리 상태 (로그인했을 때만 서버에 묻는다). null 이면 아직 모름
+  const [myVoice, setMyVoice] = useState<GuardianVoice | null>(null);
+  useEffect(() => {
+    if (mode !== "member") { setMyVoice(null); return; }
+    let alive = true;
+    getMyVoice().then((v) => { if (alive) setMyVoice(v); }).catch(() => { if (alive) setMyVoice(null); });
+    return () => { alive = false; };
+  }, [mode]);
+  const forgetVoice = async () => {
+    if (!confirm("등록한 목소리를 지울까요? 이 목소리로 만든 이야기 음성도 함께 지워집니다.")) return;
+    try {
+      await deleteMyVoice();
+      s.set("guardianNarrator", false);
+      setMyVoice((v) => (v ? { ...v, registered: false, consentedAt: null } : v));
+    } catch { alert("지우지 못했습니다. 인터넷 연결을 확인하고 다시 해 주세요."); }
+  };
 
   // 지금 보고 있는 묶음을 칩에 표시한다: 목록 맨 위를 지난 마지막 머리.
   // 머리가 위에 붙어 있어(sticky) IntersectionObserver 로는 늘 「보이는」 것으로 나와 스크롤 위치로 센다
@@ -89,7 +117,7 @@ export default function S13Settings() {
         <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
           {/* 로그아웃하면 「어른과 함께」 기능도 끈다. 다음에 들고 있는 사람이 보호자라는 보장이 없다 */}
           <button className="btn link"
-            onClick={mode === "member" ? () => { s.set("photoUpload", false); s.set("voiceInput", false); logout(); } : () => nav("/login")}>
+            onClick={mode === "member" ? () => { s.set("photoUpload", false); s.set("voiceInput", false); s.set("guardianNarrator", false); logout(); } : () => nav("/login")}>
             {mode === "member" ? "로그아웃" : "로그인"}
           </button>
         </Row>
@@ -171,6 +199,29 @@ export default function S13Settings() {
             onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>
+        {/* 보호자 목소리로 나레이션 (2026-11-02). 동의 · 녹음은 따로 화면(/voice, S13Voice).
+            녹음은 저장하지 않고 ElevenLabs(미국)로 넘긴다. 지우면 그 목소리로 만든 음성도 지운다 (계약 2-12) */}
+        <Row name="내 목소리로 읽어주기"
+          desc={mode !== "member" ? "로그인한 보호자만 쓸 수 있습니다"
+            : myVoice?.registered
+              ? `보호자님 목소리로 나레이션을 읽습니다 (${myVoice.consentedAt?.slice(0, 10) ?? ""} 등록). 끄면 기본 나레이터가 읽습니다. 새로 만드는 이야기부터 적용됩니다`
+              : myVoice && !myVoice.available
+                ? "지금은 목소리를 등록할 수 없습니다"
+                : "보호자님이 1~3분 글을 읽어 녹음하면, 이야기 나레이션을 그 목소리로 읽어 드립니다. 등록 전에 동의 내용을 안내합니다"}>
+          {mode === "member" && myVoice?.registered
+            ? <input type="checkbox" className="tog" checked={s.guardianNarrator}
+                onChange={(e) => s.set("guardianNarrator", e.target.checked)} />
+            : <button className="btn link" disabled={mode !== "member" || !myVoice?.available}
+                onClick={() => nav("/voice")}>등록하기</button>}
+        </Row>
+        {mode === "member" && myVoice?.registered && (
+          <Row name="내 목소리 다시 녹음 · 지우기" desc="다시 녹음하면 예전 목소리는 지워집니다. 지우면 동의를 거둬들인 것으로 기록합니다">
+            <span style={{ display: "flex", gap: 14 }}>
+              <button className="btn link" onClick={() => nav("/voice")}>다시 녹음</button>
+              <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => void forgetVoice()}>지우기</button>
+            </span>
+          </Row>
+        )}
         <Head id="info" name="기록 · 안내" />
         <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
           <input type="checkbox" checked={s.keepOriginal}
@@ -190,14 +241,30 @@ export default function S13Settings() {
           <span className="hint">알림</span>
         </Row>
 
-        {stories.length > 0 && <Head id="mine" name="만든 이야기" desc="지우면 되돌릴 수 없습니다" />}
+        {/* 제목 고치기 · 지우기는 로그인한 보호자만 (2026-11-02 사용자 「보호자 모드에서」, 「삭제도 보호자랑 같이」).
+            아이가 혼자 지우지 않게. 비회원 이야기는 탭을 닫으면 저절로 사라진다 */}
+        {stories.length > 0 && <Head id="mine" name="만든 이야기"
+          desc={mode === "member" ? "제목을 고치거나 지울 수 있습니다. 지우면 되돌릴 수 없습니다"
+            : "제목 고치기와 지우기는 로그인한 보호자만 할 수 있습니다"} />}
         {stories.map((st) => (
-          <Row key={st.storyId} name={st.title} desc={`${st.createdAt}에 만들었어요`}>
-            <button className="btn link" style={{ color: "var(--berry)" }}
-              onClick={() => { if (confirm("이 이야기를 지울까요?")) remove(st.storyId); }}>
-              삭제
-            </button>
-          </Row>
+          editing?.id === st.storyId
+            ? <form key={st.storyId} className="item" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
+                <input className="title-input" value={editing.title} maxLength={TITLE_MAX} autoFocus
+                  aria-label="이야기 제목" onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+                <button type="submit" className="btn link" disabled={!editing.title.trim()}>저장</button>
+                <button type="button" className="btn link" onClick={() => setEditing(null)}>취소</button>
+              </form>
+            : <Row key={st.storyId} name={st.title} desc={`${st.createdAt}에 만들었어요`}>
+                {mode === "member" && (
+                  <span style={{ display: "flex", gap: 14 }}>
+                    <button className="btn link" onClick={() => setEditing({ id: st.storyId, title: st.title })}>제목 고치기</button>
+                    <button className="btn link" style={{ color: "var(--berry)" }}
+                      onClick={() => { if (confirm("이 이야기를 지울까요?")) remove(st.storyId); }}>
+                      삭제
+                    </button>
+                  </span>
+                )}
+              </Row>
         ))}
       </div>
     </Screen>

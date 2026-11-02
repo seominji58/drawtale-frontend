@@ -14,7 +14,7 @@ export const FIXED_LEVEL: SupportLevel | null = 2;
 export const ORDER_GAME = false;
 const DEFAULTS: Settings = {
   level: 2, muteAll: false, keepOriginal: false, diagnostics: false, voiceInput: false, voiceMode: "narration", protagonistVoice: "girl",
-  photoUpload: false, storyLength: "long",
+  photoUpload: false, storyLength: "long", speechRate: 1, guardianNarrator: false,
 };
 
 function load(): Settings {
@@ -50,7 +50,8 @@ export function useWithAdult() {
   const member = useAuth((a) => a.mode === "member");
   const photoUpload = useSettings((s) => s.photoUpload);
   const voiceInput = useSettings((s) => s.voiceInput);
-  return { member, photo: member && photoUpload, voice: member && voiceInput };
+  const guardianNarrator = useSettings((s) => s.guardianNarrator);
+  return { member, photo: member && photoUpload, voice: member && voiceInput, myVoice: member && guardianNarrator };
 }
 
 /** 보호자 모드 — 로그인한 보호자가 「어른과 함께」(사진 올리기 · 말로 덧붙이기) 중 하나라도 켰을 때.
