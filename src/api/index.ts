@@ -97,8 +97,16 @@ function authHeader(): Record<string, string> {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+/** 429(F-NFR-10) 는 서버가 알려 준 시간만큼 기다렸다 다시 보낸다. 오래 붙잡지 않게 60초까지만 */
+const RATE_LIMIT_RETRIES = 2;
+
+async function call<T>(path: string, init?: RequestInit, retries = RATE_LIMIT_RETRIES): Promise<T> {
   const r = await fetch(BASE + path, init);
+  if (r.status === 429 && retries > 0) {
+    const wait = Math.min(Number(r.headers.get("Retry-After")) || 5, 60);
+    await sleep(wait * 1000, init?.signal ?? undefined);
+    return call<T>(path, init, retries - 1);
+  }
   const body = await r.json().catch(() => null);
   if (!r.ok) {
     const code = (body as { error?: ServerError } | null)?.error?.code;
