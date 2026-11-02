@@ -27,6 +27,8 @@
 | S-08 | `GET /api/v1/stories/{id}` | `generateStory` |
 | S-13 · `/voice` | `GET` · `POST`(multipart) · `DELETE /api/v1/me/voice` — 보호자 목소리 (계약 2-12, 2026-11-02). `Authorization: Bearer` 를 싣는다 | `getMyVoice` · `registerMyVoice` · `deleteMyVoice` |
 
+로그아웃은 `POST /api/v1/auth/logout`(토큰 지우기, 계약 2-7-1). 요청이 많으면 `429 RATE_LIMITED` · 하루 상한이면 `503 DAILY_LIMIT` → E-01 `BUSY`. 파일 주소는 기한이 있어서 책장에서 다시 열면 `GET /stories/{id}` 로 새 주소를 받는다 (`refreshStory`).
+
 `POST /api/v1/stories` 에는 「내 목소리로 읽어주기」가 켜져 있으면 `narrator: "guardian"` 과 로그인 토큰을 싣는다 (계약 2-5).
 토큰은 이 둘에만 싣는다 — 그림 올리기에 실으면 그림에 주인이 생겨 토큰 없이 다시 묻는 예전 흐름이 404 가 된다.
 

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useLibrary } from "@/store/library";
+import { refreshStory } from "@/api";
 import { useSession } from "@/store/session";
 import { useAuth } from "@/store/auth";
 import { useGuardianMode } from "@/store/settings";
@@ -102,6 +103,8 @@ export default function S12Stories() {
   const open = (st: Story, el: HTMLElement, style: CSSProperties, long: boolean) => {
     if (opening) return;   // 펼치는 동안 다른 책을 눌러도 무시
     setStory(st);
+    // 저장해 둔 음성 · 영상 주소는 기한이 지났을 수 있다 — 서버에서 새 주소를 받아 바꿔 끼운다
+    void refreshStory(st).then((fresh) => { if (useSession.getState().story?.storyId === st.storyId) setStory(fresh); });
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { nav("/story"); return; }
     setOpening({ st, rect: el.getBoundingClientRect(), style, long });
     timer.current = window.setTimeout(() => {

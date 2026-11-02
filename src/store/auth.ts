@@ -58,6 +58,14 @@ export const useAuth = create<AuthState>((set) => ({
     set({ mode: "member", account });
   },
   logout: () => {
+    // 서버에서도 이 토큰을 지운다 (2026-11-02 보안 — 전에는 기기에서만 지워 30일 동안 살아 있었다).
+    // 실패해도 기기에서는 로그아웃한다. 목 엔진은 서버가 없다
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token && (import.meta.env.VITE_ENGINE ?? "mock") !== "mock") {
+      const base = import.meta.env.VITE_API_BASE || "/api/v1";
+      void fetch(`${base}/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, keepalive: true })
+        .catch(() => undefined);
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ACCOUNT_KEY);
     sessionStorage.clear();

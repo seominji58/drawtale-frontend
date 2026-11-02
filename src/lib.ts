@@ -57,6 +57,8 @@ export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: 
   ENGINE_ERROR:        { title: "잠깐 문제가 생겼어요", hint: "처음부터 다시 해 볼까요?", primary: "처음으로" },
   // pt_docs 05 E-01 표. 검열에 걸린 말을 아이 탓으로 들리지 않게 쓴다 (처음 결정은 open-decisions 0-5)
   CONTENT_BLOCKED:     { title: "이 이야기는 만들 수 없어요", hint: "다른 카드를 골라 볼까요?", primary: "다시 고르기" },
+  // 요청이 많거나 오늘 한도를 다 썼을 때. 아이 탓이 아니라 쉬어 가는 것으로 말한다
+  BUSY:                { title: "지금은 잠깐 쉬어 갈게요", hint: "조금 뒤에 다시 해 볼까요?", primary: "처음으로" },
 };
 
 /** 사진 올리기가 꺼져 있을 때(F-SET-06 기본, 화면에 그린 그림) 「찍기」 문구를 바꿔 쓴다 */

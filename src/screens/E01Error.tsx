@@ -32,7 +32,7 @@ export default function E01Error() {
       nav("/steps");
       return;
     }
-    nav(fails >= 2 ? "/draw" : errorCode === "ENGINE_ERROR" ? "/" : "/upload");
+    nav(fails >= 2 ? "/draw" : errorCode === "ENGINE_ERROR" || errorCode === "BUSY" ? "/" : "/upload");
   };
 
   return (

@@ -42,6 +42,9 @@ const ERROR_MAP: Record<string, ErrorCode> = {
   LOW_CONFIDENCE: "LOW_CONFIDENCE",
   // 이야기 생성 job 오류 (백엔드 dev 51816e4, OpenAI moderation)
   CONTENT_BLOCKED: "CONTENT_BLOCKED",
+  // 요청 수 제한 · 하루 한도 (백엔드 2026-11-02 보안)
+  RATE_LIMITED: "BUSY",
+  DAILY_LIMIT: "BUSY",
 };
 const toErrorCode = (serverCode?: string): ErrorCode =>
   (serverCode && ERROR_MAP[serverCode]) || "ENGINE_ERROR";
@@ -102,9 +105,10 @@ const RATE_LIMIT_RETRIES = 2;
 
 async function call<T>(path: string, init?: RequestInit, retries = RATE_LIMIT_RETRIES): Promise<T> {
   const r = await fetch(BASE + path, init);
-  if (r.status === 429 && retries > 0) {
-    const wait = Math.min(Number(r.headers.get("Retry-After")) || 5, 60);
-    await sleep(wait * 1000, init?.signal ?? undefined);
+  // 하루 한도처럼 몇 시간 뒤라고 하면 기다리지 않고 바로 안내한다(E-01 BUSY) — 2026-11-02
+  const retryAfter = Number(r.headers.get("Retry-After")) || 5;
+  if (r.status === 429 && retries > 0 && retryAfter <= 60) {
+    await sleep(retryAfter * 1000, init?.signal ?? undefined);
     return call<T>(path, init, retries - 1);
   }
   const body = await r.json().catch(() => null);
@@ -371,4 +375,23 @@ export async function deleteMyVoice(): Promise<void> {
   if (useMock) { localStorage.removeItem(MOCK_VOICE); return; }
   const r = await fetch(BASE + "/me/voice", { method: "DELETE", headers: authHeader() });
   if (!r.ok && r.status !== 204) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
+}
+
+/** 책장(S-12)에서 다시 연 이야기를 서버에서 새로 받는다 (2026-11-02 보안).
+ *  음성 · 영상 주소에는 기한이 있어서(로컬 서명 24시간 · Azure SAS 2시간) 저장해 둔 주소는 곧 열리지 않는다.
+ *  기기에만 있는 것(고친 제목 · 표지 · 고른 카드 · 보호자 모드)은 그대로 둔다. 못 받으면 저장본 그대로 */
+export async function refreshStory(st: Story): Promise<Story> {
+  if (useMock) return st;
+  try {
+    const fresh = toStory(await call<ServerStory>(`/stories/${st.storyId}`, { headers: authHeader() }));
+    return {
+      ...fresh,
+      title: st.title,
+      createdAt: st.createdAt,
+      book: fresh.book ? { ...fresh.book, title: st.title } : fresh.book,
+      cover: st.cover, picks: st.picks, guardian: st.guardian,
+    };
+  } catch {
+    return st;
+  }
 }

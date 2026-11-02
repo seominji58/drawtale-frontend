@@ -5,7 +5,7 @@ let fails = 0;
 
 /** 반복 셈에 넣는 오류인지 */
 export const isPictureError = (code: string | null) =>
-  !!code && code !== "ENGINE_ERROR" && code !== "CONTENT_BLOCKED";
+  !!code && code !== "ENGINE_ERROR" && code !== "CONTENT_BLOCKED" && code !== "BUSY";
 
 /** S-04 분석 결과를 센다. 성공이면 null */
 export function countAnalysis(code: string | null) {
