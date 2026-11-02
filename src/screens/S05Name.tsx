@@ -17,6 +17,8 @@ import { speak, stopSpeak } from "@/lib";
 const NAMES = ["토토", "하루", "콩이", "별이", "보리", "솜이"];
 /** 서버가 받는 이름 길이 (계약 2-5 protagonist_name) */
 const MAX_NAME = 10;
+/** 이름에 쓰는 글자만 남긴다 — 글자 · 숫자, 10자 (말로 지은 이름 · 적은 이름 모두) */
+const cleanName = (v: string) => v.replace(/[^\p{L}\p{N}]/gu, "").slice(0, MAX_NAME);
 
 const HEARD_ERROR: Record<ListenError, string> = {
   "no-speech": "잘 못 들었어요. 한 번 더 말해 볼까요?",
@@ -38,6 +40,8 @@ export default function S05Name() {
   const lock = useRef(0);
   /** 이름을 짓기로 했는지. 돌아왔을 때 이미 지은 이름이 있으면 바로 이름 카드 */
   const [naming, setNaming] = useState(!!name);
+  /** 직접 적은 이름 (2026-11-02 사용자 「카드 말고 아이가 직접 입력하거나 말해서」). 카드를 고르면 비운다 */
+  const [typed, setTyped] = useState(name && !NAMES.includes(name) ? name : "");
 
   useEffect(() => () => { stopListen.current?.abort(); stopSpeak(); }, []);
   if (!imageUrl || !keypoints) return <Navigate to="/upload" replace />;
@@ -51,6 +55,14 @@ export default function S05Name() {
     setName(n);
     speak(`${n}, 좋은 이름이에요`, muteAll);
   };
+  /** 카드에서 고르면 적은 칸은 비운다 */
+  const pickCard = (n: string) => { setTyped(""); choose(n); };
+  /** 적는 칸: 글자 · 숫자만, 10자까지 (계약 2-5 protagonist_name). 비우면 이름도 비운다 */
+  const write = (v: string) => {
+    const n = cleanName(v);
+    setTyped(n);
+    setName(n || null);
+  };
 
   const hear = () => {
     if (listening) return;
@@ -61,8 +73,8 @@ export default function S05Name() {
     stopListen.current = ctrl;
     listen(ctrl.signal)
       .then((t) => {
-        const n = t.replace(/[^\p{L}\p{N}]/gu, "").slice(0, MAX_NAME);
-        if (n) { lock.current = 0; choose(n); } else throw new Error("no-speech");
+        const n = cleanName(t);
+        if (n) { lock.current = 0; setTyped(n); choose(n); } else throw new Error("no-speech");
       })
       .catch((e: Error) => {
         if (ctrl.signal.aborted) return;   // 「다음」 등으로 떠나며 끊은 것은 실패가 아니다
@@ -115,9 +127,9 @@ export default function S05Name() {
 
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "var(--gap)", flex: "0 0 auto" }}>
         {names.map((n) => (
-          <button key={n} className={`btn ${name === n ? "on" : ""}`} onClick={() => choose(n)}
-            aria-pressed={name === n}
-            style={{ width: "auto", minWidth: 140, fontSize: "var(--t-button)", background: name === n ? "var(--butter)" : undefined }}>
+          <button key={n} className={`btn ${name === n && !typed ? "on" : ""}`} onClick={() => pickCard(n)}
+            aria-pressed={name === n && !typed}
+            style={{ width: "auto", minWidth: 140, fontSize: "var(--t-button)", background: name === n && !typed ? "var(--butter)" : undefined }}>
             {n}
           </button>
         ))}
@@ -135,7 +147,14 @@ export default function S05Name() {
           </button>
         )}
       </div>
-      {heardError && <p className="hint">{HEARD_ERROR[heardError]}</p>}
+      {/* 직접 적기. 카드에 없는 이름도 아이가 정한다. 말로 지은 이름도 여기에 들어가 고칠 수 있다 */}
+      <div className="own-field name-own">
+        <input value={typed} maxLength={MAX_NAME} disabled={listening}
+          aria-label="친구 이름 직접 적기" placeholder="이름을 직접 적어요"
+          onChange={(e) => write(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && typed) go(true); }} />
+        <em>{heardError ? HEARD_ERROR[heardError] : "진짜 이름이나 학교 이름은 쓰지 않아요"}</em>
+      </div>
 
       <div className="aside-links">
         <button className="btn link" onClick={() => go(false)}>이름 없이 할래요</button>
