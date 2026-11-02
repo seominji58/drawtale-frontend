@@ -4,9 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import CharacterPreview from "@/features/character/CharacterPreview";
 import { useSession } from "@/store/session";
-import { useSettings, useWithAdult, LEVEL_CONFIG } from "@/store/settings";
-import { listen, voiceSupported } from "@/features/story/voice";
-import type { ListenError } from "@/features/story/voice";
+import { useSettings, LEVEL_CONFIG } from "@/store/settings";
 import { speak, stopSpeak } from "@/lib";
 
 /** S-05 다음 「친구 이름 짓기」 (pt_docs 05 S-05N).
@@ -17,33 +15,22 @@ import { speak, stopSpeak } from "@/lib";
 const NAMES = ["토토", "하루", "콩이", "별이", "보리", "솜이"];
 /** 서버가 받는 이름 길이 (계약 2-5 protagonist_name) */
 const MAX_NAME = 10;
-/** 이름에 쓰는 글자만 남긴다 — 글자 · 숫자, 10자 (말로 지은 이름 · 적은 이름 모두) */
+/** 이름에 쓰는 글자만 남긴다 — 글자 · 숫자, 10자.
+ *  이름은 카드로 고르거나 **적기만** 한다. 말로 짓기는 뺐다 (2026-11-02 사용자 「음성은 이름 적는 부분에서는 안 할려고」) */
 const cleanName = (v: string) => v.replace(/[^\p{L}\p{N}]/gu, "").slice(0, MAX_NAME);
-
-const HEARD_ERROR: Record<ListenError, string> = {
-  "no-speech": "잘 못 들었어요. 한 번 더 말해 볼까요?",
-  denied: "마이크를 쓸 수 없어요. 어른에게 알려 주세요.",
-  unsupported: "지금은 말로 할 수 없어요. 이름 카드에서 골라요.",
-  failed: "잘 못 들었어요. 이름 카드에서 골라도 돼요.",
-};
 
 export default function S05Name() {
   const nav = useNavigate();
   const { imageUrl, keypoints, name, setName } = useSession();
   const level = useSettings((s) => s.level);
   const muteAll = useSettings((s) => s.muteAll);
-  // 「어른과 함께」에서 로그인한 보호자가 켜야만 말로 짓는다 (아이 목소리가 브라우저 인식 서버로 간다, F-SET-06)
-  const voiceOn = useWithAdult().voice && voiceSupported();
-  const [listening, setListening] = useState(false);
-  const [heardError, setHeardError] = useState<ListenError | null>(null);
-  const stopListen = useRef<AbortController | null>(null);
   const lock = useRef(0);
   /** 이름을 짓기로 했는지. 돌아왔을 때 이미 지은 이름이 있으면 바로 이름 카드 */
   const [naming, setNaming] = useState(!!name);
   /** 직접 적은 이름 (2026-11-02 사용자 「카드 말고 아이가 직접 입력하거나 말해서」). 카드를 고르면 비운다 */
   const [typed, setTyped] = useState(name && !NAMES.includes(name) ? name : "");
 
-  useEffect(() => () => { stopListen.current?.abort(); stopSpeak(); }, []);
+  useEffect(() => () => stopSpeak(), []);
   if (!imageUrl || !keypoints) return <Navigate to="/upload" replace />;
 
   const names = NAMES.slice(0, LEVEL_CONFIG[level].choiceCount);
@@ -64,29 +51,7 @@ export default function S05Name() {
     setName(n || null);
   };
 
-  const hear = () => {
-    if (listening) return;
-    stopSpeak();
-    setHeardError(null);
-    setListening(true);
-    const ctrl = new AbortController();
-    stopListen.current = ctrl;
-    listen(ctrl.signal)
-      .then((t) => {
-        const n = cleanName(t);
-        if (n) { lock.current = 0; setTyped(n); choose(n); } else throw new Error("no-speech");
-      })
-      .catch((e: Error) => {
-        if (ctrl.signal.aborted) return;   // 「다음」 등으로 떠나며 끊은 것은 실패가 아니다
-        const code = (e.message in HEARD_ERROR ? e.message : "failed") as ListenError;
-        setHeardError(code);
-        speak(HEARD_ERROR[code], muteAll);
-      })
-      .finally(() => setListening(false));
-  };
-
   const go = (withName: boolean) => {
-    stopListen.current?.abort();
     stopSpeak();
     if (!withName) setName(null);   // 이름 없이 가면 서버가 지어 준다
     nav("/steps");
@@ -109,8 +74,8 @@ export default function S05Name() {
   }
 
   return (
-    <Screen back={() => { stopListen.current?.abort(); stopSpeak(); setNaming(false); }} speech="어떤 이름이 좋을까요?" segment={2}
-      acts={<BigButton go disabled={!name || listening} onClick={() => go(true)}>이 이름으로 할래요</BigButton>}>
+    <Screen back={() => { stopSpeak(); setNaming(false); }} speech="어떤 이름이 좋을까요?" segment={2}
+      acts={<BigButton go disabled={!name} onClick={() => go(true)}>이 이름으로 할래요</BigButton>}>
       <h2 className="question">어떤 이름이 좋을까요?</h2>
 
       <div className="stage" style={{ flexDirection: "column", gap: 12 }}>
@@ -133,27 +98,14 @@ export default function S05Name() {
             {n}
           </button>
         ))}
-        {/* 말로 짓기. 듣는 동안은 배경 블록과 글자로 알린다 (움직임 없음) */}
-        {voiceOn && (
-          <button className="btn" onClick={hear} aria-pressed={listening}
-            style={{ width: "auto", minWidth: 140, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-              background: listening ? "var(--butter)" : undefined }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="9" y="3" width="6" height="11" rx="3" />
-              <path d="M5 11a7 7 0 0014 0M12 18v3" />
-            </svg>
-            <span>{listening ? "듣고 있어요" : "말로 짓기"}</span>
-          </button>
-        )}
       </div>
-      {/* 직접 적기. 카드에 없는 이름도 아이가 정한다. 말로 지은 이름도 여기에 들어가 고칠 수 있다 */}
+      {/* 직접 적기. 카드에 없는 이름도 아이가 정한다 */}
       <div className="own-field name-own">
-        <input value={typed} maxLength={MAX_NAME} disabled={listening}
+        <input value={typed} maxLength={MAX_NAME}
           aria-label="친구 이름 직접 적기" placeholder="이름을 직접 적어요"
           onChange={(e) => write(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && typed) go(true); }} />
-        <em>{heardError ? HEARD_ERROR[heardError] : "진짜 이름이나 학교 이름은 쓰지 않아요"}</em>
+        <em>진짜 이름이나 학교 이름은 쓰지 않아요</em>
       </div>
 
       <div className="aside-links">
