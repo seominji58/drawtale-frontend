@@ -156,7 +156,7 @@ export default function S13Voice() {
 
   return (
     <Screen back={step === "consent" || step === "done" ? "/settings" : () => { rec.current?.cancel(); clearInterval(timer.current); setStep("consent"); }}
-      speech={null} title="내 목소리로 읽어주기" audience="adult" autoSpeak={false}
+      speech={null} title="내 목소리 등록" audience="adult" autoSpeak={false}
       acts={
         step === "consent" ? <BigButton go disabled={!agreed || !recordSupported()} onClick={() => setStep("record")}>동의하고 녹음하러 가기</BigButton>
         : step === "record" ? (recording

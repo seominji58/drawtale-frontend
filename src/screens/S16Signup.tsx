@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
-import { signup } from "@/api/auth";
+import { emailLoginAvailable, signup } from "@/api/auth";
 import SocialButtons from "@/components/SocialButton";
 import { PROVIDER_NAME } from "@/api/auth";
 import type { SocialProvider } from "@/api/auth";
@@ -36,7 +36,7 @@ export default function S16Signup() {
   return (
     <Screen back="/login" speech={null} audience="adult" autoSpeak={false}>
       <div className="auth-wrap">
-        <form className="paper-card auth-card" onSubmit={(e) => { e.preventDefault(); if (ready) submit(); }}>
+        <form className="paper-card auth-card" onSubmit={(e) => { e.preventDefault(); if (emailLoginAvailable && ready) submit(); }}>
           <span className="tape" aria-hidden />
           <p className="auth-brand">한칸이야기</p>
           <h1 className="auth-title">회원가입</h1>
@@ -52,27 +52,30 @@ export default function S16Signup() {
             이용약관과 개인정보 처리방침에 동의합니다
           </label>
           <SocialButtons intent="signup" disabled={!agree} />
-          <p className="auth-or">또는 이메일로</p>
-          <label className="field">
-            <span>이메일</span>
-            <input type="email" value={email} autoComplete="username"
-              onChange={(e) => setEmail(e.target.value)} placeholder="보호자 또는 교사 이메일" />
-          </label>
-          <label className="field">
-            <span>비밀번호</span>
-            <input type="password" value={pw} autoComplete="new-password"
-              onChange={(e) => setPw(e.target.value)} placeholder="8자 이상" />
-            {pw.length > 0 && !pwOk && <em>8자 이상으로 지어 주세요</em>}
-          </label>
-          <label className="field">
-            <span>비밀번호 확인</span>
-            <input type="password" value={pw2} autoComplete="new-password"
-              onChange={(e) => setPw2(e.target.value)} placeholder="다시 한 번" />
-            {pw2.length > 0 && !matched && <em>비밀번호가 서로 달라요</em>}
-          </label>
-          <BigButton go disabled={!ready} onClick={submit}>
-            {busy ? "만드는 중" : "가입하기"}
-          </BigButton>
+          {/* 이메일 가입은 백엔드에 없다 — 목 엔진에서만 보인다 (api/auth.ts emailLoginAvailable) */}
+          {emailLoginAvailable && <>
+            <p className="auth-or">또는 이메일로</p>
+            <label className="field">
+              <span>이메일</span>
+              <input type="email" value={email} autoComplete="username"
+                onChange={(e) => setEmail(e.target.value)} placeholder="보호자 또는 교사 이메일" />
+            </label>
+            <label className="field">
+              <span>비밀번호</span>
+              <input type="password" value={pw} autoComplete="new-password"
+                onChange={(e) => setPw(e.target.value)} placeholder="8자 이상" />
+              {pw.length > 0 && !pwOk && <em>8자 이상으로 지어 주세요</em>}
+            </label>
+            <label className="field">
+              <span>비밀번호 확인</span>
+              <input type="password" value={pw2} autoComplete="new-password"
+                onChange={(e) => setPw2(e.target.value)} placeholder="다시 한 번" />
+              {pw2.length > 0 && !matched && <em>비밀번호가 서로 달라요</em>}
+            </label>
+            <BigButton go disabled={!ready} onClick={submit}>
+              {busy ? "만드는 중" : "가입하기"}
+            </BigButton>
+          </>}
           <div className="aside-links">
             <span>이미 계정이 있으신가요?</span>
             <button type="button" className="btn link" onClick={() => nav("/login")}>로그인</button>

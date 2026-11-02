@@ -13,6 +13,10 @@ export interface AuthResult {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const useMock = ENGINE === "mock";
 
+/** 이메일 로그인 · 가입 칸을 보일지. 백엔드에 /auth/login · /auth/signup 이 없어서 실제 서버로 부르면 실패한다 —
+ *  목 엔진(서버 없이 화면만)에서만 둔다. 이메일 로그인을 둘지는 팀 논의 중 (team-status 「이메일 로그인 유지」) */
+export const emailLoginAvailable = useMock;
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(`${BASE}${path}`, {
     method: "POST",

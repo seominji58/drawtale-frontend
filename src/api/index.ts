@@ -305,7 +305,9 @@ export async function generateStory(
     feel_result: labelOf("feelResult", picks.feelResult) || undefined,
   };
   const hasExtras = Object.values(extras).some(Boolean);
-  if (useMock) return mockGenerate(characterId, labels, onStatus, signal, length, spoken, voice.name, extras);
+  // 실제 서버처럼 나레이션 판은 이름을 글에 쓰지 않는다 (「나는」, 백엔드 write_story_book)
+  if (useMock) return mockGenerate(characterId, labels, onStatus, signal, length, spoken,
+    voice.mode === "characters" ? voice.name : null, extras);
 
   const { story_id, job_id } = await call<{ story_id: string; job_id: string }>("/stories", {
     method: "POST",

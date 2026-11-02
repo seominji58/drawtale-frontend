@@ -81,9 +81,19 @@
    길은 회색, 채움은 초록. --grape(주된 행동 하나)와 겹치지 않는다 */
 .progress { flex: 0 0 auto; height: 16px; border-radius: 999px; background: var(--cloud); border: 2px solid var(--line); overflow: hidden; }
 /* S-09 읽어주기 빠르기 — 진행 바 옆 (2026-11-02 사용자 「각 장면 페이지에서 조절」) */
-.bar-row { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; }
-.bar-row > .progress { flex: 1; }
-.bar-row > .seg button { padding: 6px 14px; font-size: var(--t-label); }
+.bar-row { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.bar-row > .progress { flex: 1 1 240px; }
+/* 아이 손가락으로 누르는 단추라 높이 48px 이상 (11/2 — 처음에는 약 32px 로 작았다) */
+.bar-row > .seg { margin-left: auto; }
+.bar-row > .seg button { min-height: 48px; padding: 8px 18px; font-size: var(--t-body); }
+/* 휴대폰 폭: 진행 바는 한 줄을 다 쓰고 빠르기는 그 아래 (바가 아주 짧아지던 것) */
+@media (max-width: 560px) {
+  .bar-row > .progress { flex-basis: 100%; }
+  .bar-row > .seg { margin-left: 0; width: 100%; justify-content: space-between; }
+  .bar-row > .seg button { flex: 1; }
+  /* S-09 아래 단추 셋(앞 쪽 · 들려주기 · 다음 쪽)이 두 줄로 깨지지 않게 */
+  .row > .btn { font-size: 20px; padding-inline: 6px; white-space: nowrap; }
+}
 .progress > i { display: block; height: 100%; border-radius: inherit; background: var(--progress-fill, var(--mint)); }
 
 [data-level="1"] .spread { grid-template-columns: 2.6fr 1fr; }
@@ -624,6 +634,11 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 }
 .set-nav button.on { background: var(--ink); border-color: var(--ink); color: #FFFDF8; }
 @media (max-width: 767px) { .set-nav { justify-content: flex-start; } }
+/* 휴대폰 폭: 고르는 단추(짧게 · 길게 등)가 있는 줄은 단추를 설명 아래로 — 제목이 세로로 한 글자씩 쌓이던 것 (11/2) */
+@media (max-width: 560px) {
+  .set-list .item:has(> .seg) { flex-wrap: wrap; }
+  .set-list .item:has(> .seg) > .grow { flex-basis: 100%; }
+}
 
 /* ───────── 찢은 종이 카드 (S-14 · S-15 · S-16) ─────────
    카드 하나만 있는 화면에서만 쓴다. 바탕(::before)만 찢긴 가장자리 필터를 받고 글자는 그대로 */

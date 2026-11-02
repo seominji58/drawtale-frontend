@@ -35,15 +35,25 @@ export const propHeight = (size: PropSize | undefined) =>
 export const MAX_PROP_NAME = 12;
 
 /** 카드 → 그 단계 쪽에 나올 수 있는 물건 낱말. 내 소품 이름이 이 낱말로 끝나면 그 쪽에 소품 장면이 생긴다
- *  (「노란 우산」 → 우산). 카드 내용(목업)이 정해지면 같이 고친다. 행동 id 는 문제마다 따로다 (choices.ts) */
+ *  (「노란 우산」 → 우산). 키는 지금 카드표(choices.ts, pt_docs 05 카드표 2026-10-28)의 id 다 —
+ *  카드가 바뀌면 같이 고친다 (10/28 카드가 바뀐 뒤 옛 id 10개가 남아 소품이 안 나오던 것을 11/2 고침).
+ *  낱말은 가안: 그 장면에 있을 법한 물건. 행동 · 결과 id 는 문제마다 따로다 */
 const WORDS_BY_CARD: Partial<Record<StepKind, Record<string, string[]>>> = {
-  place: { forest: ["나무", "꽃"], town: ["집"], sea: ["조개", "물고기"], space: ["별", "로켓"] },
-  problem: { rain: ["구름"], dark: ["달", "별"], hungry: ["빵", "사과"] },
-  action: {
-    umbrella: ["우산"], light: ["손전등", "랜턴"], lunchbox: ["도시락"], map: ["지도"],
-    star: ["별"], fruit: ["열매", "사과"], share: ["도시락", "빵"],
+  place: {
+    home: ["인형", "블록", "장난감"], playground: ["공", "모래", "그네"], school: ["가방", "책", "연필"],
+    town: ["집", "자전거"], forest: ["나무", "꽃", "버섯"], sea: ["조개", "물고기", "배"],
+    space: ["별", "로켓", "달"], cave: ["돌", "보석"],
   },
-  result: { sun: ["해", "태양"], home: ["집"], gift: ["선물"], friend: ["꽃"] },
+  problem: { fall: ["돌", "공"], crying: ["손수건"], lost: ["지도", "나침반"], dark: ["달", "별"] },
+  action: {
+    help_friend: ["반창고", "손수건"], wait_beside: ["손수건"], ask_adult: ["지도"],
+    look_walk: ["지도", "나침반"], hide: ["상자", "이불"], run_light: ["손전등", "랜턴"], tiptoe: ["손전등"],
+  },
+  result: {
+    got_there: ["깃발"], new_friend: ["공", "선물"], thanked: ["편지", "선물"], best_friend: ["선물", "꽃"],
+    party_friend: ["풍선", "케이크"], party_lost: ["풍선", "케이크"], found_way: ["지도"],
+    sun: ["해", "태양"], sleep: ["이불", "인형", "베개"], back_safe: ["집"],
+  },
 };
 
 /** 이름이 낱말과 맞나 — 같거나 그 낱말로 끝난다 (「해바라기」는 「해」가 아니다) */

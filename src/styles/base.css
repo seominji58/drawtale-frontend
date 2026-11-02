@@ -15,6 +15,9 @@ body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  /* 한글을 낱말 단위로 줄바꿈 (11/2 휴대폰 폭 점검 — 「좋을까/요?」처럼 낱말 중간에서 끊기던 것). 긴 낱말은 넘치지 않게 끊는다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* 어른 화면은 고딕 (tokens.css 의 [data-audience="adult"]) */
