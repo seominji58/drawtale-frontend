@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
@@ -153,7 +153,85 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     readingRef.current = false;
     stopSpeak(); audio.current?.pause(); stopTts(); setReading(false);
   };
-  const go = (n: number) => { stop(); setPg(Math.max(0, Math.min(pages.length - 1, n))); };
+  // ---- 쪽 넘김 (2026-11-03 사용자 결정 N2: M 「비스듬한 말림 띠」, 쉬는 동안 귀퉁이 표시는 없음 —
+  //      「접혀 있는 게 애매, 없는 게 더 자연스러움」. 넘길 때 · 손가락으로 잡을 때만 귀퉁이가 생긴다) ----
+  // 넘기는 동안에만 두 쪽을 겹쳐 그린다: 밑 = 넘어갈 쪽, 위 = 넘어가는 쪽. 움직임은 위 쪽 스타일만 바꾼다(다시 그리지 않음)
+  const [turn, setTurn] = useState<{ from: number; to: number; dir: 1 | -1; drag: boolean } | null>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const wedgeRef = useRef<HTMLDivElement>(null);
+  const earRef = useRef<HTMLDivElement>(null);
+  const turnDone = useRef<(() => void) | null>(null);
+  const turnP = useRef(0);
+  const pgRef = useRef(pg);
+  pgRef.current = pg;
+  /** p: 0 = 넘기기 전, 1 = 다 넘김. 다음 쪽은 위 쪽(지금 쪽)이 빠지고, 앞 쪽은 위 쪽(앞 쪽)이 거꾸로 들어온다 */
+  const turnFrame = (p: number) => {
+    turnP.current = p;
+    const top = topRef.current, wedge = wedgeRef.current, ear = earRef.current;
+    if (!top || !wedge || !ear) return;
+    top.style.transform = `translateX(${-p * 104}%) rotate(${-2 * Math.sin(Math.PI * p)}deg)`;
+    wedge.style.width = `${(5 + 26 * Math.sin(Math.PI * Math.min(1, p * 1.35))).toFixed(1)}%`;
+    // 귀퉁이가 잡히며 생겨 커졌다가 말림 띠로 넘어가며 사라진다
+    ear.style.width = `${p < 0.2 ? EAR_REST + (EAR_MAX - EAR_REST) * (p / 0.2) : EAR_MAX * Math.max(0, 1 - (p - 0.2) / 0.5)}%`;
+  };
+  const animateTurn = (from: number, to: number, ms: number) => new Promise<void>((done) => {
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - t0) / ms), e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      turnFrame(from + (to - from) * e);
+      if (t < 1) requestAnimationFrame(tick); else done();
+    };
+    requestAnimationFrame(tick);
+  });
+  /** n 쪽으로 넘긴다. 움직임 줄이기면 바로 바꾼다. 끝나면 resolve */
+  const turnTo = (n: number) => new Promise<void>((done) => {
+    const from = pgRef.current;
+    if (n === from || n < 0 || n >= pages.length) { done(); return; }
+    if (REDUCE_MOTION) { setPg(n); done(); return; }
+    turnDone.current = done;
+    setTurn({ from, to: n, dir: n > from ? 1 : -1, drag: false });
+  });
+  // 겹쳐 그린 뒤 움직인다 (다음: 0 → 1, 앞: 1 → 0). 손가락으로 미는 중이면 기다린다
+  useLayoutEffect(() => {
+    if (!turn || turn.drag) { if (turn) turnFrame(turnP.current); return; }
+    const [a, b] = turn.dir > 0 ? [turnP.current, 1] : [1, 0];
+    turnFrame(a);
+    let alive = true;
+    void animateTurn(a, b, TURN_MS * Math.max(0.35, Math.abs(b - a))).then(() => {
+      if (!alive) return;
+      setPg(turn.to); setTurn(null); turnP.current = 0;
+      const d = turnDone.current; turnDone.current = null; d?.();
+    });
+    return () => { alive = false; };
+  }, [turn]);
+  const go = (n: number) => { stop(); void turnTo(Math.max(0, Math.min(pages.length - 1, n))); };
+
+  // 손가락으로 밀기: 왼쪽으로 밀면 민 만큼 귀퉁이가 잡혀 말리고, 손을 떼면 이어서 넘긴다(덜 밀었으면 되돌린다).
+  // 오른쪽으로 밀면 앞 쪽. 세로 스크롤은 막지 않는다 (touch-action: pan-y)
+  const drag = useRef<{ x: number; w: number; moved: boolean } | null>(null);
+  const onDown = (e: React.PointerEvent) => {
+    if (turn) return;
+    drag.current = { x: e.clientX, w: e.currentTarget.clientWidth, moved: false };
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = (e.clientX - d.x) / d.w;
+    if (dx < -0.02 && pg < pages.length - 1) {
+      if (!d.moved) { d.moved = true; stop(); e.currentTarget.setPointerCapture(e.pointerId); turnP.current = 0; setTurn({ from: pg, to: pg + 1, dir: 1, drag: true }); }
+      turnFrame(Math.min(0.85, -dx * 1.1));
+    }
+  };
+  const onUp = (e: React.PointerEvent) => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d) return;
+    const dx = (e.clientX - d.x) / d.w;
+    if (d.moved) {
+      if (dx < -0.12) setTurn((t) => (t ? { ...t, drag: false } : t));   // 이어서 넘긴다
+      else void animateTurn(turnP.current, 0, 220).then(() => { setTurn(null); turnP.current = 0; });   // 되돌린다
+    } else if (dx > 0.12 && pg > 0) go(pg - 1);
+  };
 
   // 들려주지 않을 때도 쪽에 들어오면 바가 그 쪽 길이만큼 찬다. 쪽 음성 파일이 있으면 그 길이, 없으면 글 길이로 어림
   useEffect(() => {
@@ -192,7 +270,12 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     if (n >= pages.length) { stop(); return; }
     setPg(n);
     setFrac(0);
-    const next = () => { stopTts(); setFrac(1); readPage(n + 1); };
+    // 다 읽으면 넘김 움직임으로 다음 쪽에 간 뒤 이어 읽는다
+    const next = () => {
+      stopTts(); setFrac(1);
+      if (n + 1 >= pages.length) { readPage(n + 1); return; }
+      void turnTo(n + 1).then(() => readPage(n + 1));
+    };
     const tts = () => { trackTts(pages[n].text); speak(pages[n].text, muteAll, next); };
     const url = pages[n].audioUrl;
     if (url) {
@@ -249,16 +332,16 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const t = setTimeout(() => setPropPhase(false), PROP_MS);
     return () => clearTimeout(t);
   }, [pg, shownKey]);
-  const clip = page.animationUrl && /\.mp4(\?|$)/i.test(page.animationUrl) ? page.animationUrl : null;
   const still = story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
-
-  return (
-    <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
-      acts={<BigButton go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>}>
-      {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23) */}
-      <div className="spread">
-        <div className="stage" onClick={propPhase ? () => setPropPhase(false) : undefined}>
-          {propPhase && shown.length
+  /** i 쪽 펼침면. active 는 지금 보고 있는 쪽(소품 장면 · 읽는 중 표시). top 이면 넘어가는 쪽 — 말림 띠 · 귀퉁이를 단다 */
+  const spread = (i: number, active: boolean, top = false) => {
+    const pgI = pages[i];
+    const clipI = pgI.animationUrl && /\.mp4(\?|$)/i.test(pgI.animationUrl) ? pgI.animationUrl : null;
+    const props = active && propPhase && shown.length > 0;
+    return (
+      <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
+        <div className="stage" onClick={props ? () => setPropPhase(false) : undefined}>
+          {props
             // 소품들을 나란히. 그린 곳만 잘라 두었으니 아이가 그린 크기 · 모양과 상관없이 고른 크기(작게 · 보통 · 크게) 상자에
             // 비율을 지켜 맞춰 들어간다. 여럿이면 한 개가 차지할 폭도 줄인다
             ? <div style={{ display: "flex", gap: "5%", alignItems: "center", justifyContent: "center", width: "92%", height: "100%" }}>
@@ -267,21 +350,39 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
                     style={{ height: `${propHeight(p.size) * 100}%`, maxWidth: `${Math.floor(85 / shown.length)}%`, objectFit: "contain" }} />
                 ))}
               </div>
-            : clip
-            ? <video key={clip} src={clip} autoPlay loop muted playsInline
+            : clipI
+            ? <video key={clipI} src={clipI} autoPlay loop muted playsInline
                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
             : !perPage && !story.animationUrl && imageUrl && keypoints
               // 목 엔진: 서버 영상이 없으니 캔버스가 그 쪽 동작으로 움직인다
-              ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[page.action] ?? "idle"} />
+              ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[pgI.action] ?? "idle"} />
               : still
                 ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}
         </div>
         <div className="spread-text">
-          <span className="hint">{book.title} · {pg + 1} / {pages.length}쪽</span>
-          <span className={`said ${reading ? "now" : ""}`}>{page.text}</span>
-          {page.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
+          <span className="hint">{book.title} · {i + 1} / {pages.length}쪽</span>
+          <span className={`said ${active && reading ? "now" : ""}`}>{pgI.text}</span>
+          {pgI.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
         </div>
+        {top && <>
+          <div className="turn-wedge" ref={wedgeRef} />
+          <div className="turn-ear-fold" ref={earRef} />
+        </>}
+      </div>
+    );
+  };
+
+  return (
+    <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
+      acts={<BigButton go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>}>
+      {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23).
+          넘기는 동안에만 두 쪽을 겹친다 (밑 = 넘어갈 쪽, 위 = 넘어가는 쪽) */}
+      <div className="turn" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+        {turn ? <>
+          {spread(turn.dir > 0 ? turn.to : turn.from, false)}
+          {spread(turn.dir > 0 ? turn.from : turn.to, false, true)}
+        </> : spread(pg, true)}
       </div>
 
       {/* 진행 바 (2026-10-27 사용자) — 이 쪽 하나의 바. 쪽에 들어올 때마다 비어서 시작해
@@ -325,6 +426,14 @@ function SpeedSeg({ onChange }: { onChange: (rate: number) => void }) {
 
 /** 브라우저 TTS 가 1초에 읽는 글자 수 어림 (rate 0.95, 한국어) — 진행 바용 */
 const TTS_CHARS_PER_SEC = 6.5;
+
+/** 쪽 넘김 (2026-11-03): 한 번 넘기는 시간, 귀퉁이가 처음 · 가장 클 때 크기 (펼침면 폭에 대한 %).
+ *  쉬는 동안 귀퉁이를 보이지 않으므로 처음 크기는 0 (예시 N2 — 시안 페이지 https://claude.ai/artifact/Ud35qMbtTzVLhyXz37XSFN) */
+const TURN_MS = 600;
+const EAR_REST = 0;
+const EAR_MAX = 16;
+/** 기기에서 「움직임 줄이기」를 켰으면 넘김 없이 바로 바꾼다 */
+const REDUCE_MOTION = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** 소품 장면을 보여 주는 시간. 그 뒤 같은 쪽에서 주인공 장면으로 바뀐다 */
 const PROP_MS = 2200;

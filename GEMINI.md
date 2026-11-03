@@ -51,6 +51,7 @@
 - 10/20: 그 실험 `shape_rig.py` 를 **아무 그림 파일 · 폴더로** 돌릴 수 있게 함 (`python shape_rig.py 내그림.jpg --out 결과`, 이 PC 경로 의존 삭제, 가장자리에 닿은 그림 처리). 실제 아이 그림 사진은 아직
 - 10/20: **네발 동물 전용 걷기** `experiments/animal-monster/quadruped.py` (코드 변경 없음). 배 아래 다리 찾기 + 네발 걷기 순서, 꼬리는 있을 때만, 네발 아니면 일반 방식으로. 경우의 수 11장 + 카톡 그림 2장 모두 맞음. 다리 곡선은 CMU 사람 걷기 mocap 에서 뽑은 모양(`--gait cmu`)
 - 11/2: **보안** — 백엔드 분당 · 동시 제한(서민지 님) + 하루 한도(429 · 503 → E-01 BUSY, 429 는 Retry-After 60초 이하면 기다렸다 다시), 파일 주소 서명(책장에서 다시 열면 `refreshStory`), `POST /auth/logout`, 배포 헤더(`public/staticwebapp.config.json` CSP), Pillow 13
+- 11/3: **S-09 쪽 넘김 움직임**(비스듬한 말림 띠 0.6초, 단추 · 자동 넘김 · 손가락 밀기, `BookView` 의 `turn` · `turnTo` · `turnFrame`)
 - 11/2: **이메일 로그인은 목 엔진에서만**(백엔드에 없음, `emailLoginAvailable`) · 내 소품 단어표를 지금 카드 id 로 · 휴대폰 폭(S-09 진행 바 · 빠르기, S-13 줄, 한글 `keep-all`)
 - 11/2: **이름 직접 적기**(S-05N 카드 아래 칸, 글자 · 숫자 10자). 말로 짓기는 뺐다
 - 11/2: **이름 짓기 늘 묻기**(S-05 → `/name`, 지을지 단추로, 이름은 판과 상관없이 서버에 등록 · 나레이션 판 글엔 안 씀) · **제목 고치기 · 삭제는 로그인한 보호자만**(S-13) · **S-05 미리보기 반 / 관절 그림 반**(`JointView.tsx`). `docs/open-decisions.md` 0-18
