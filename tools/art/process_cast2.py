@@ -11,7 +11,7 @@ HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
 from compose import cut  # noqa: E402
 
-FRONT = Path(r"C:\Users\Omnyumyum\Desktop\hankan-story\drawtale-frontend")
+FRONT = Path(__file__).resolve().parents[2]
 SCENES = FRONT / "public" / "scenes"
 OUT = SCENES / "props"
 sys.path.insert(0, str(HERE))
