@@ -29,8 +29,9 @@ export interface HeroPlan {
   loops: number;
   /** 「넘어졌어요」 — 살짝 기울어 주저앉은 자세 */
   fallen: boolean;
-  /** 「숨었어요」 — 앞 물건 뒤로 천천히 사라졌다 다시 나타난다 (pt_docs 05 S-09-05) */
-  hide: boolean;
+  /** 「숨었어요」 — out: 이 쪽에서 앞 물건 뒤로 천천히 사라지고 그대로 숨어 있다, gone: 이미 숨어 있다(행동 단계 다음 쪽).
+   *  다시 나타나지 않는다 (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 「2초 뒤 다시 나타난다」와 다름) */
+  hide: "out" | "gone" | null;
 }
 
 export interface Env {
@@ -147,8 +148,9 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       if (target === SLOT && from === 0.84) from = 0.16;
       to = target;
     }
-    const hide = p.stage === "action" && picks.action === "hide";
-    if (hide) { from = to = SLOT; }
+    const hiding = p.stage === "action" && picks.action === "hide";
+    const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
+    if (hiding) { from = to = SLOT; }
     out.push({
       location: loc,
       env: { night, sun },

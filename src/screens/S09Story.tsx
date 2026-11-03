@@ -432,7 +432,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     // 장면 층: 넘기는 동안 밑에 깔린 도착할 쪽은 시작 모습으로 기다리고, 넘긴 뒤 이어서 움직인다
     const forward = turn ? turn.dir > 0 : entered.from === null || entered.from < i;
     const sceneMode: "play" | "start" | "end" =
-      active && !top ? (forward && entered.pg === i ? "play" : "end")
+      // 넘김이 끝나고 entered 가 바뀌기 전 한 번도 시작 모습으로 (끝 모습이 끼면 주인공이 도착 자리 · 숨은 모습으로 튀었다 돌아온다)
+      active && !top ? (forward ? (entered.pg === i ? "play" : "start") : "end")
       : !top && turn && turn.dir > 0 && i === turn.to ? "start" : "end";
     const prevEnv = scenes && i > 0 ? scenes[forward ? i - 1 : i].env : null;
     if (scenes && !props) {

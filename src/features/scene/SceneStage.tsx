@@ -42,7 +42,21 @@ const PEOPLE: Record<string, { h: number; w: number }> = {
 
 const REDUCE = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const FPS = 12;
-const MOVE_MS = { walk: 2600, run: 1500, none: 0 } as const;
+// 걷기 · 뛰기는 AI 가 제자리로 렌더하고(11/3 저녁) 화면이 그림 칸째 옮긴다. 옮기는 속도가 렌더의 걸음 속도와
+// 같아야 발이 미끄러지지 않는다 — 예전(이동이 들어 있던) 렌더에서 잰 한 장당 이동, 그림 키 대비 (CMU walk · run)
+const STRIDE = { walk: 0.0079, run: 0.0129 } as const;
+// 그 속도로 너무 오래 걸리면 장을 빨리 넘겨(걸음이 빨라짐) 이 시간 안에. 장 넘김은 FPS 의 MAX_SPEEDUP 배까지
+const MOVE_MAX_MS = { walk: 5000, run: 3000 } as const;
+const MAX_SPEEDUP = 1.8;
+
+/** 옮겨 가는 시간 · 장 넘김 빠르기. dist 는 화면 너비 대비, heroH 는 화면 높이 대비 그림 키, aspect 는 너비 ÷ 높이 */
+function moveTiming(move: "walk" | "run" | "none", dist: number, heroH: number, aspect: number) {
+  if (move === "none" || dist <= 0) return { ms: 0, fps: FPS };
+  const heights = (dist * aspect) / Math.max(0.05, heroH);          // 그림 키 몇 개만큼 가나
+  const natural = (heights / (STRIDE[move] * FPS)) * 1000;           // 렌더 걸음 그대로면 걸리는 시간
+  const k = Math.min(MAX_SPEEDUP, Math.max(1, natural / MOVE_MAX_MS[move]));
+  return { ms: Math.round(natural / k / 50) * 50, fps: Math.round(FPS * k) };
+}
 // 해 · 달 자리 [가로, 세로(하늘 칸 기준)]. 오른쪽 = 동쪽(뜨는 쪽), 왼쪽 = 서쪽(지는 쪽)
 const SKY = { sunHigh: [68, 8], moonHigh: [50, 10], east: [93, 108], west: [9, 108] } as const;
 
@@ -103,14 +117,19 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     return () => clearTimeout(t);
   }, [mode, layout, plan]);
 
-  // 「숨었어요」: 0.8초 뒤 1초에 걸쳐 사라지고, 2초 뒤 다시 나타난다 (pt_docs 05 S-09-05)
+  // 「숨었어요」: 0.8초 뒤 1초에 걸쳐 사라지고 그대로 숨어 있다. 다음 쪽(같은 행동 단계)은 숨은 채로 시작
+  // (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 는 2초 뒤 다시 나타남)
   useEffect(() => {
-    if (!plan.hero.hide) { setHidden(false); return; }
-    if (!play || REDUCE) { setHidden(false); return; }
+    setHidden(false);   // 끝 모습 · 이미 숨은 쪽은 아래 heroGone 이 정한다
+    if (plan.hero.hide !== "out" || !play || REDUCE) return;
     const a = window.setTimeout(() => setHidden(true), 800);
-    const b = window.setTimeout(() => setHidden(false), 800 + 1000 + 2000);
-    return () => { clearTimeout(a); clearTimeout(b); };
-  }, [plan, play]);
+    return () => clearTimeout(a);
+  }, [plan, play, mode]);
+
+  // 이미 숨은 쪽 · 끝 모습은 첫 그림부터 숨김 (효과가 돌기 전 한 번 보였다 사라지지 않게)
+  const heroGone = hidden || plan.hero.hide === "gone" || (!!plan.hero.hide && (mode === "end" || REDUCE));
+
+  const timing = moveTiming(plan.hero.move, Math.abs(plan.hero.to - plan.hero.from), layout?.hero.h ?? 0.45, aspect);
 
   // 주인공 프레임: 옮겨 가는 동안은 계속, 제자리 동작은 loops 번, 그다음 첫 장에서 멈춘다
   useEffect(() => {
@@ -118,13 +137,14 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     if (!c || !spr) return;
     const g = c.getContext("2d")!;
     const moving = plan.hero.move !== "none";
+    const fps = moving ? timing.fps : FPS;
     const total = !play || REDUCE ? 0
-      : moving ? Math.ceil((MOVE_MS[plan.hero.move] / 1000) * FPS)
+      : moving ? Math.ceil((timing.ms / 1000) * fps)
       : plan.hero.loops * spr.frames;
     let i = 0, last = 0, raf = 0;
     drawFrame(g, spr, 0);
     const tick = (t: number) => {
-      if (t - last >= 1000 / FPS) {
+      if (t - last >= 1000 / fps) {
         last = t; i++;
         if (i >= total) { drawFrame(g, spr, 0); return; }
         drawFrame(g, spr, i % spr.frames);
@@ -133,7 +153,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     };
     if (total > 0) raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [spr, plan, play]);
+  }, [spr, plan, play, timing.ms, timing.fps]);
 
   if (!layout) return <div className="scene" ref={root} />;
 
@@ -162,8 +182,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   } else {
     heroStyle = { height: `${H.h * 100}%`, left: `${heroX * 100}%`, bottom: `${(1 - H.foot) * 100}%` };
   }
-  const moveMs = MOVE_MS[hero.move];
-  const heroTransition = REDUCE || !play ? "none" : `left ${moveMs}ms ${hero.move === "run" ? "cubic-bezier(.4,0,.3,1)" : "cubic-bezier(.35,.1,.35,1)"}, opacity 1s ease, filter 2.6s ease`;
+  // 같은 빠르기로 (속도가 바뀌면 걸음과 어긋나 발이 미끄러진다)
+  const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease`;
 
   const prop = (id: PropId): Spot | undefined => layout.props[id]
     ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: 0.93, h: PEOPLE[id].h } : undefined);
@@ -227,10 +247,10 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
       })}
       {spr
         ? <canvas ref={canvas} width={384} height={384} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}
-                  style={{ ...heroStyle, transition: heroTransition, opacity: hidden ? 0 : 1 }} />
+                  style={{ ...heroStyle, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
         : still
           ? <img className={`scene-hero ${hero.fallen ? "fallen" : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""}`}
-                 src={still} alt="" style={{ ...heroStyle, transition: heroTransition, opacity: hidden ? 0 : 1 }}
+                 src={still} alt="" style={{ ...heroStyle, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
                  onLoad={(e) => setStillAr(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight))} />
           : null}
       {front.map((p) => {
