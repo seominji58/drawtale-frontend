@@ -671,6 +671,13 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .auth-or { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-soft); }
 .auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--edge); }
 .auth-card .btn.go { margin-top: 6px; }
+/* 카드 아래 안내 줄 — 본문 글씨(--t-body)는 이 카드에서 너무 커서 한 단계 줄인다 */
+.auth-card .aside-links { font-size: 15px; gap: 6px; }
+.auth-card .aside-links .btn.link { font-size: 15px; padding: 2px; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+/* 약관 링크는 안내 문장보다 한 단계 작고 연하게 */
+.auth-legal { display: flex; justify-content: center; gap: 14px; font-size: 13px; }
+.auth-legal .btn.link { font-size: 13px; font-weight: 400; color: var(--ink-soft); padding: 0;
+  text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .auth-card .aside-links { font-size: 14px; }
 .auth-card .check { color: var(--ink); }
 @media (max-width: 767px) { .auth-card { padding: 30px 22px 24px; } .auth-title { font-size: 34px; } }
@@ -756,9 +763,11 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .consents { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .consents-row { display: flex; align-items: center; gap: 10px; min-height: 52px;
   padding: 6px 4px; border-bottom: 2px solid var(--edge); }
-.consents-name { flex: 1; font-size: var(--t-label); color: var(--ink); }
+.consents-name { flex: 1; min-width: 0; font-size: 16px; color: var(--ink); white-space: nowrap; }
 .consents-done { font-size: 14px; font-weight: 700; color: var(--grape); }
-.consents-read { min-height: 44px; padding: 0 18px; }
+/* .btn 기본이 폭 100% 라 줄을 다 차지한다. 글자만큼만 */
+.consents-read { flex: 0 0 auto; width: auto; min-height: 44px; padding: 0 22px; font-size: 17px; }
+.consents-row .btn.link { flex: 0 0 auto; font-size: 15px; }
 .legal { display: flex; flex-direction: column; gap: 14px; text-align: left; }
 .legal-body { font-size: 15px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; }
 .legal-body h1 { font-size: 22px; margin: 0 0 8px; }
@@ -768,6 +777,8 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .legal-body ul, .legal-body ol { padding-left: 22px; }
 .legal-body table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
 .legal-body th, .legal-body td { border: 1px solid var(--edge); padding: 6px 8px; vertical-align: top; text-align: left; }
+/* 표 첫 칸(항목 이름)이 한 글자씩 끊기지 않게 */
+.legal-body th:first-child, .legal-body td:first-child { min-width: 5.5em; }
 .legal-page { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--milk); }
 .legal-page-inner { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px;
   display: flex; flex-direction: column; gap: 18px; align-items: stretch; }

@@ -40,10 +40,6 @@ export default function S15Login() {
             카카오·구글에서는 회원번호만 받습니다. 이름·이메일·사진은 받지 않아요.
             처음이시면 회원가입 화면에서 약관에 동의한 뒤 시작합니다.
           </p>
-          <div className="aside-links">
-            <button type="button" className="btn link" onClick={() => nav("/terms")}>이용약관</button>
-            <button type="button" className="btn link" onClick={() => nav("/privacy")}>개인정보 처리방침</button>
-          </div>
           {/* 이메일 로그인은 백엔드에 없다 — 목 엔진에서만 보인다 (api/auth.ts emailLoginAvailable) */}
           {emailLoginAvailable && <>
             <p className="auth-or">또는 이메일로</p>
@@ -73,6 +69,10 @@ export default function S15Login() {
                 </button>
               </>
             )}
+          </div>
+          <div className="auth-legal">
+            <button type="button" className="btn link" onClick={() => nav("/terms")}>이용약관</button>
+            <button type="button" className="btn link" onClick={() => nav("/privacy")}>개인정보 처리방침</button>
           </div>
         </form>
       </div>
