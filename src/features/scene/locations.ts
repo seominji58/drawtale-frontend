@@ -11,9 +11,12 @@ interface Sub {
 
 /** 첫 번째가 장소 기본 배경 */
 export const LOCATIONS: Record<string, Sub[]> = {
+  // 집은 실내가 기본 (11/3 사용자 「집 안에서 기다리는데 배경은 밖」 — 현관 · 욕실처럼 목록에 없는 실내가 마당으로 갔다).
+  // 마당은 바깥 낱말이 있을 때만
   home: [
-    { id: "home", words: [] },
-    { id: "home-living", words: ["living room", "sofa", "couch", "hallway", "indoor", "inside the house"] },
+    { id: "home-living", words: ["living room", "sofa", "couch", "hallway", "indoor", "inside the house", "entryway", "entrance hall",
+      "front door", "doorway", "bathroom", "inside a cozy home", "inside the home", "window", " room"] },
+    { id: "home", words: ["yard", "garden", "gate", "outside the house", "alley", "porch", "doorstep", "street", "backyard"] },
     { id: "home-kitchen", words: ["kitchen", "dining", "table"] },
     { id: "home-bedroom", words: ["bedroom", "bed ", "pillow"] },
   ],
