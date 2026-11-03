@@ -51,6 +51,7 @@
 - 10/20: 그 실험 `shape_rig.py` 를 **아무 그림 파일 · 폴더로** 돌릴 수 있게 함 (`python shape_rig.py 내그림.jpg --out 결과`, 이 PC 경로 의존 삭제, 가장자리에 닿은 그림 처리). 실제 아이 그림 사진은 아직
 - 10/20: **네발 동물 전용 걷기** `experiments/animal-monster/quadruped.py` (코드 변경 없음). 배 아래 다리 찾기 + 네발 걷기 순서, 꼬리는 있을 때만, 네발 아니면 일반 방식으로. 경우의 수 11장 + 카톡 그림 2장 모두 맞음. 다리 곡선은 CMU 사람 걷기 mocap 에서 뽑은 모양(`--gait cmu`)
 - 11/2: **보안** — 백엔드 분당 · 동시 제한(서민지 님) + 하루 한도(429 · 503 → E-01 BUSY, 429 는 Retry-After 60초 이하면 기다렸다 다시), 파일 주소 서명(책장에서 다시 열면 `refreshStory`), `POST /auth/logout`, 배포 헤더(`public/staticwebapp.config.json` CSP), Pillow 13
+- 11/3: **S-12 「내 소품 그리기」 버튼**(행동 줄). 목업 그림은 층(배경판 · 뒤 물건 · 주인공 · 앞 물건/소품) + 장소별 좌표 표 안 — 목록 https://claude.ai/artifact/KJiDPVk9FDv756vPgYNinM
 - 11/3: **「천천히」 음성** — 음성 파일은 `fileRate()`(0.9배 아래로 안 늘림). `eleven_v4_turbo` 는 `voice_settings.speed` 를 무시함(느린 판 시도 실패)
 - 11/3: **S-09 형광펜 줄마다(`.said > .mark`) · 장면 칸을 영상 비율에 맞춤**(`FitStage`, `.stage-cell`, 컨테이너 단위)
 - 11/3: **화면 안내 음성을 나레이터 목소리로** — `lib.ts` `speak()` 가 `src/features/voice/guide.json`(문장 → `public/voice/guide/*.mp3`, 95문장)에 있으면 파일, 없으면 브라우저 TTS. 문구 바꾸면 `tools/guide-voice/` 로 다시 만든다(글자가 정확히 같아야 함)

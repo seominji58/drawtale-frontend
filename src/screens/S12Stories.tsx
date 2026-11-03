@@ -134,13 +134,10 @@ export default function S12Stories() {
   const shelves = Array.from({ length: Math.ceil(stories.length / per) }, (_, r) => stories.slice(r * per, r * per + per));
 
   return (
-    <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}>
-      {/* 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 보호자 모드에서만. 곁들이는 길이라 글자 줄로 */}
-      {guardian && (
-        <div className="aside-links">
-          <button className="btn link" onClick={() => nav("/props")}>내 소품 그리기</button>
-        </div>
-      )}
+    <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}
+      // 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 보호자 모드에서만.
+      // 글자 링크는 눈에 안 띄어(11/3 사용자) 아래 줄 버튼으로. 이 화면의 주된 행동은 책 고르기라 강조색은 쓰지 않는다
+      acts={guardian ? <BigButton onClick={() => nav("/props")}>내 소품 그리기</BigButton> : undefined}>
 
       {stories.length > 0 ? (
         <div className="shelf">
