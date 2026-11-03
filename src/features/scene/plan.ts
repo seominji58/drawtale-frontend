@@ -6,9 +6,28 @@ import { ACTION_PROP } from "@/features/story/choices";
 import { LOCATIONS, locationFor } from "./locations";
 
 export type PersonId = "friend" | "friend2" | "adult" | "grandma" | "grandpa" | "mom" | "dad" | "teacher" | "baby" | "dog" | "cat";
-export type PropId = PersonId | "box" | "bush" | "sign";
+export type PropId = PersonId | "cover" | "sign";
 /** 사람 · 동물 (옆에 서는 것). 숨을 것 · 표지판은 아니다 */
-export const isPerson = (id: PropId) => id !== "box" && id !== "bush" && id !== "sign";
+export const isPerson = (id: PropId) => id !== "cover" && id !== "sign";
+
+/** 「숨었어요」에서 주인공 앞을 가리는 물건 — 대본 글에 나온 숨는 곳으로 고른다 (11/3 사용자 「우주에서 박스에 숨는데 대본은 잠자리 주머니」).
+ *  [낱말, 그림(public/scenes/ 기준), 화면 높이 대비 키]. 글에서 먼저 나온 것. 맞는 그림이 없으면(담요 · 잠자리 주머니 · 틈 …)
+ *  물건 없이 사라지기만 한다 — pt_docs 05 S-09-05 「배경만 남긴다」 */
+const COVERS: [RegExp, string, number][] = [
+  [/상자|박스|포대|궤짝/, "props/box.webp", 0.36],
+  [/덤불|수풀|풀숲|나무(?= ?(?:뒤|뿌리|밑|아래|사이|옆))|화분|잎/, "props/bush.webp", 0.38],
+  [/바위|돌멩이|돌 /, "cave-entrance/rocks.webp", 0.3],
+  [/통나무/, "forest-trail/log.webp", 0.22],
+  [/고깃배|보트|배 (?:뒤|안|밑|옆)/, "sea-pier/boat.webp", 0.26],
+];
+export function coverFor(text: string): { src: string; h: number } | null {
+  let best: { src: string; h: number } | null = null, at = Infinity;
+  for (const [re, src, h] of COVERS) {
+    const m = re.exec(text);
+    if (m && m.index < at) { at = m.index; best = { src, h }; }
+  }
+  return best;
+}
 
 export interface PropPlan {
   id: PropId;
@@ -18,6 +37,9 @@ export interface PropPlan {
   name?: string;
   /** 이 쪽에서 들어오면 어느 쪽에서 걸어오는지. 없으면 처음부터 서 있다 */
   enter?: "left" | "right";
+  /** 숨을 것(cover)의 그림 · 키 */
+  src?: string;
+  h?: number;
 }
 
 export interface HeroPlan {
@@ -91,6 +113,8 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   const out: PagePlan[] = [];
   let x = SLOT, loc: string | undefined, night = false;
   const stageIdx = (s: string) => ["place", "problem", "action", "result"].indexOf(s);
+  // 숨는 곳은 행동 쪽들의 글에서 한 번 정해 쪽이 바뀌어도 같은 물건
+  const cover = coverFor(pages.filter((p) => p.stage === "action").map((p) => p.text).join(" "));
   for (const p of pages) {
     loc = locationFor(place, p, loc);
     const st = stageIdx(p.stage);
@@ -110,7 +134,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       if (actionProp === "adult") keep("adult", "left");
       if (actionProp === "friend" && !props.some((q) => q.id === "friend")) keep("friend", "right");
       if (actionProp === "sign") props.push({ id: "sign" });
-      if (actionProp === "cover") props.push({ id: isIndoor(loc) ? "box" : "bush" });
+      if (actionProp === "cover" && cover) props.push({ id: "cover", ...cover });
     }
     if (p.stage === "result" && picks.result) {
       if (FRIEND_RESULTS.has(picks.result)) keep("friend", "right");

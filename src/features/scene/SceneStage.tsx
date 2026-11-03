@@ -209,7 +209,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     return { x: bx, back: true };
   };
   const behind = plan.props.filter((p) => isPerson(p.id) || p.id === "sign");
-  const front = plan.props.filter((p) => p.id === "box" || p.id === "bush");
+  const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   return (
     <div className={`scene ${night ? "night" : ""}`} aria-hidden ref={root}>
@@ -253,10 +253,10 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
                  src={still} alt="" style={{ ...heroStyle, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
                  onLoad={(e) => setStillAr(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight))} />
           : null}
-      {front.map((p) => {
-        const s = prop(p.id);
-        return s ? <img key={p.id} className="scene-obj scene-cover" src={base + s.src} alt="" style={spotStyle(s)} /> : null;
-      })}
+      {front.map((p) => (
+        <img key={p.src} className="scene-obj scene-cover" src={`${sceneBase(p.src!.split("/")[0])}${p.src!.split("/")[1]}`} alt=""
+             style={spotStyle({ src: p.src!, x: 0.52, foot: 0.96, h: p.h ?? 0.36 })} />
+      ))}
     </div>
   );
 }
