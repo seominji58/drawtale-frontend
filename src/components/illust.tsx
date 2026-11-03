@@ -4,25 +4,12 @@
 /** 그림이 들어올 자리를 임시로 채우는 삽화.
  *  나중에 실제 일러스트가 오면 이 파일만 갈아끼우면 된다. */
 
+/** 앱의 주인공 (S-01 · S-14 서 있음, S-04 손 흔듦). B 크레용 인물 기준 그림의 주인공 (2026-11-03, `public/illust/hero-*.webp`) */
 export function Friend({ wave = false }: { wave?: boolean }) {
-  // 아이가 크레파스로 그린 듯한 주인공 (디자인 방향 A). 실제로는 아이 그림이 이 자리에 온다
-  return (
-    <svg viewBox="0 0 200 240" className="illust" aria-hidden>
-      <path d="M100 26c22 0 36 15 35 36s-16 35-36 34-34-15-34-35 13-35 35-35z" fill="#FCE3C8" stroke="#3A2E26" strokeWidth="4" strokeLinecap="round" />
-      <path d="M86 56l1 3M112 55l1 3" stroke="#3A2E26" strokeWidth="5" strokeLinecap="round" />
-      <path d="M88 74c7 6 17 6 24 -1" stroke="#D65A3B" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <path d="M76 100c-4 30-6 62-2 84 18 4 36 4 54 0 3-24 1-54-4-84-16-4-32-4-48 0z" fill="#D65A3B" stroke="#3A2E26" strokeWidth="4" strokeLinejoin="round" />
-      <path d="M78 116c-18 6-30 18-38 34" stroke="#3A2E26" strokeWidth="5" strokeLinecap="round" fill="none" />
-      <g className={wave ? "wave-arm" : undefined} style={{ transformOrigin: "124px 114px" }}>
-        <path d="M124 114c16 4 30 14 40 30" stroke="#3A2E26" strokeWidth="5" strokeLinecap="round" fill="none" />
-      </g>
-      <path d="M88 186c-2 16-4 30-8 42M114 186c2 16 4 30 9 42" stroke="#3A2E26" strokeWidth="5" strokeLinecap="round" fill="none" />
-      <path d="M70 230h20M114 230h20" stroke="#4F8FD6" strokeWidth="6" strokeLinecap="round" />
-    </svg>
-  );
+  return <img src={`${import.meta.env.BASE_URL}illust/hero-${wave ? "wave" : "stand"}.webp`} className="illust" alt="" aria-hidden draggable={false} />;
 }
 
-/** 삽화 넷은 B 크레용 화풍 그림이다 (2026-11-03, `public/illust/`). 주인공 자리(Friend)는 아이 그림이 오는 곳이라 SVG 그대로 */
+/** 삽화 넷은 B 크레용 화풍 그림이다 (2026-11-03, `public/illust/`) */
 const art = (name: string) => () => (
   <img src={`${import.meta.env.BASE_URL}illust/${name}.webp`} className="illust" alt="" aria-hidden draggable={false} />
 );
