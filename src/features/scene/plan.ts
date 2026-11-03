@@ -5,7 +5,10 @@ import type { BookPage } from "@/types/story";
 import { ACTION_PROP } from "@/features/story/choices";
 import { LOCATIONS, locationFor } from "./locations";
 
-export type PropId = "friend" | "adult" | "box" | "bush" | "sign";
+export type PersonId = "friend" | "friend2" | "adult" | "grandma" | "grandpa" | "mom" | "dad" | "teacher" | "baby" | "dog" | "cat";
+export type PropId = PersonId | "box" | "bush" | "sign";
+/** 사람 · 동물 (옆에 서는 것). 숨을 것 · 표지판은 아니다 */
+export const isPerson = (id: PropId) => id !== "box" && id !== "bush" && id !== "sign";
 
 export interface PropPlan {
   id: PropId;
@@ -54,12 +57,24 @@ const INDOOR = new Set(["cave", "home-living", "home-kitchen", "home-bedroom", "
 
 export const isIndoor = (location: string) => INDOOR.has(location);
 
-/** 대본 인물의 생김새(영어)로 어른 · 아이 그림을 고른다. 동물 · 물건 등은 그림이 없어 세우지 않는다 */
-export function personKind(desc: string): "adult" | "friend" | null {
+/** 대본 인물의 생김새(영어)로 그림을 고른다 (2026-11-03 인물 그림 9가지 — public/scenes/props).
+ *  위에서부터 먼저 맞는 것. 그림이 없는 것(물건 · 다른 동물)은 세우지 않는다 */
+const KINDS: [PersonId, RegExp][] = [
+  ["grandma", /(grandmother|grandma|granny|old woman|old lady)/],
+  ["grandpa", /(grandfather|grandpa|old man)/],
+  ["teacher", /(teacher|librarian)/],
+  ["baby", /(baby|toddler|infant)/],
+  ["dog", /(dog|puppy)/],
+  ["cat", /(cat|kitten)/],
+  ["mom", /(mother|mom|mommy|aunt|woman|lady)/],
+  ["dad", /(father|dad|daddy|uncle|man)/],
+  ["adult", /(adult|grown|nurse|police|doctor|chef|shopkeeper|driver|baker|farmer|guard)/],
+  ["friend2", /(girl|sister)/],
+  ["friend", /(boy|child|kid|friend|student|classmate|brother)/],
+];
+export function personKind(desc: string): PersonId | null {
   const d = ` ${desc.toLowerCase()} `;
-  if (/(grand|mother|mom|father|dad|teacher|woman|man|adult|aunt|uncle|lady|grown|nurse|police|librarian|doctor|chef|shopkeeper|driver)/.test(d)) return "adult";
-  if (/(boy|girl|child|kid|friend|baby|student|classmate|brother|sister|toddler)/.test(d)) return "friend";
-  return null;
+  return KINDS.find(([, re]) => re.test(d))?.[0] ?? null;
 }
 
 /** 대본 자리 → 가로 자리. 주인공은 왼쪽 가운데라 인물은 오른쪽 */
@@ -102,10 +117,16 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     // 대본 인물이 있으면 사람은 그것으로 바꾼다 (표지판 · 숨을 것은 카드대로 둔다)
     const scripted = (p.scene?.characters ?? [])
       .map((c) => ({ c, kind: personKind(sheet[c.name] ?? c.name) }))
-      .filter((v): v is { c: { name: string; slot: string }; kind: "adult" | "friend" } => !!v.kind);
+      .filter((v): v is { c: { name: string; slot: string }; kind: PersonId } => !!v.kind);
+    // 같은 그림이 한 쪽에 둘이면 다른 친구 그림으로 (친구 둘)
+    const usedKinds = new Set<PersonId>();
+    for (const v of scripted) {
+      if (usedKinds.has(v.kind)) v.kind = v.kind === "friend" ? "friend2" : v.kind === "friend2" ? "friend" : v.kind;
+      usedKinds.add(v.kind);
+    }
     if (scripted.length) {
       const prevNames = out.length ? out[out.length - 1].props.map((q) => q.name).filter(Boolean) : [];
-      for (let k = props.length - 1; k >= 0; k--) if (props[k].id === "friend" || props[k].id === "adult") props.splice(k, 1);
+      for (let k = props.length - 1; k >= 0; k--) if (isPerson(props[k].id)) props.splice(k, 1);
       scripted.forEach(({ c, kind }, k) => props.push({
         id: kind, name: c.name, x: SLOT_X[c.slot] ?? (k ? 0.66 : 0.78),
         enter: prevNames.includes(c.name) ? undefined : "right",

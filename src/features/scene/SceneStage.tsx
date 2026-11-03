@@ -9,7 +9,7 @@
  *         end: 끝 모습 그대로 (떠나는 쪽 · 뒤로 넘긴 쪽) */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Env, PagePlan, PropId } from "./plan";
-import { isIndoor } from "./plan";
+import { isIndoor, isPerson } from "./plan";
 import { sceneBase } from "./locations";
 import { drawFrame, loadSprite, type Sprite } from "./sprite";
 
@@ -32,6 +32,13 @@ function loadLayout(id: string): Promise<Layout> {
   }
   return p;
 }
+
+/** 장소 layout 에 없는 인물 그림(대본 인물 9가지, 11/3)의 키 · 폭. 자리는 대본이 정한다(x) */
+const PEOPLE: Record<string, { h: number; w: number }> = {
+  friend: { h: 0.46, w: 0.45 }, adult: { h: 0.58, w: 0.42 }, friend2: { h: 0.46, w: 0.45 },
+  grandma: { h: 0.54, w: 0.4 }, grandpa: { h: 0.57, w: 0.4 }, mom: { h: 0.58, w: 0.38 }, dad: { h: 0.6, w: 0.38 },
+  teacher: { h: 0.58, w: 0.42 }, baby: { h: 0.28, w: 0.62 }, dog: { h: 0.24, w: 0.9 }, cat: { h: 0.24, w: 0.72 },
+};
 
 const REDUCE = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const FPS = 12;
@@ -158,7 +165,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   const moveMs = MOVE_MS[hero.move];
   const heroTransition = REDUCE || !play ? "none" : `left ${moveMs}ms ${hero.move === "run" ? "cubic-bezier(.4,0,.3,1)" : "cubic-bezier(.35,.1,.35,1)"}, opacity 1s ease, filter 2.6s ease`;
 
-  const prop = (id: PropId) => layout.props[id];
+  const prop = (id: PropId): Spot | undefined => layout.props[id]
+    ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: 0.93, h: PEOPLE[id].h } : undefined);
   // 주인공 폭의 절반 (화면 너비 대비). 팔을 넓게 벌린 그림이면 옆 인물을 그만큼 바깥으로 민다 (겹치지 않게)
   const heroHalf = spr ? ((spr.box[2] - spr.box[0]) * (H.h / Math.max(0.05, spr.box[3] - spr.box[1])) / aspect) / 2
     : stillAr ? (H.h * stillAr / aspect) / 2 : 0.1;
@@ -180,7 +188,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     const bx = rightRoom >= leftRoom ? hi - 0.02 : lo + 0.02;
     return { x: bx, back: true };
   };
-  const behind = plan.props.filter((p) => p.id === "friend" || p.id === "adult" || p.id === "sign");
+  const behind = plan.props.filter((p) => isPerson(p.id) || p.id === "sign");
   const front = plan.props.filter((p) => p.id === "box" || p.id === "bush");
 
   return (
@@ -208,7 +216,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
         if (!base0) return null;
         const s = p.x !== undefined ? { ...base0, x: p.x } : base0;
         // 걸어 들어오는 인물: 처음엔 화면 밖, 끝 모습에서 제자리
-        const spot = personX(s.x, s.h, p.id === "sign" ? 0.6 : 0.45);
+        const spot = personX(s.x, s.h, p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45);
         const x = phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
         const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
         return (
