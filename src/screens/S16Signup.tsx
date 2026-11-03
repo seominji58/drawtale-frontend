@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
-import { emailLoginAvailable, signup } from "@/api/auth";
+import { emailLoginAvailable, finishSocialSignup, signup } from "@/api/auth";
 import SocialButtons from "@/components/SocialButton";
 import { PROVIDER_NAME } from "@/api/auth";
 import type { SocialProvider } from "@/api/auth";
@@ -11,13 +11,31 @@ import type { SocialProvider } from "@/api/auth";
 export default function S16Signup() {
   const nav = useNavigate();
   const auth = useAuth();
-  // 카카오로 로그인하려다 처음이라 넘어온 경우 (S15Callback 의 SIGNUP_REQUIRED)
-  const fromSocial = (useLocation().state as { social?: SocialProvider } | null)?.social;
+  // 카카오로 로그인하려다 처음이라 넘어온 경우 (S15Callback 의 SIGNUP_REQUIRED).
+  // 가입 확인증(ticket)이 있으면 동의만 받고 바로 가입한다 — 카카오 · 구글을 두 번 거치지 않는다
+  const from = useLocation().state as { social?: SocialProvider; ticket?: string } | null;
+  const fromSocial = from?.social;
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [ticket, setTicket] = useState(from?.ticket);
+  const [expired, setExpired] = useState(false);
+
+  const finishWithTicket = async () => {
+    if (!ticket) return;
+    setBusy(true);
+    try {
+      const r = await finishSocialSignup(ticket);
+      auth.login(r.account, r.token);
+      nav("/", { replace: true });
+    } catch {
+      // 10분이 지났거나 확인증이 틀렸다. 카카오 · 구글 버튼으로 다시 하게 한다
+      setTicket(undefined);
+      setExpired(true);
+    } finally { setBusy(false); }
+  };
 
   const pwOk = pw.length >= 8;
   const matched = pw2.length > 0 && pw === pw2;
@@ -42,7 +60,9 @@ export default function S16Signup() {
           <h1 className="auth-title">회원가입</h1>
           {fromSocial && (
             <div className="box warn">
-              처음 오셨네요. 약관에 동의하고 {PROVIDER_NAME[fromSocial] ?? fromSocial} 계정으로 가입해 주세요
+              {expired
+                ? "가입 시간이 지났어요. 아래 버튼으로 다시 가입해 주세요"
+                : `처음 오셨네요. 약관에 동의하고 ${PROVIDER_NAME[fromSocial] ?? fromSocial} 계정으로 가입해 주세요`}
             </div>
           )}
           {/* 동의는 가입 방법과 상관없이 먼저 받는다. 카카오 동의 화면은 카카오가 넘겨주는
@@ -51,7 +71,11 @@ export default function S16Signup() {
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             이용약관과 개인정보 처리방침에 동의합니다
           </label>
-          <SocialButtons intent="signup" disabled={!agree} />
+          {ticket && fromSocial
+            ? <BigButton go disabled={!agree || busy} onClick={finishWithTicket}>
+                {busy ? "가입하는 중" : `${PROVIDER_NAME[fromSocial] ?? fromSocial} 계정으로 가입하기`}
+              </BigButton>
+            : <SocialButtons intent="signup" disabled={!agree} />}
           {/* 이메일 가입은 백엔드에 없다 — 목 엔진에서만 보인다 (api/auth.ts emailLoginAvailable) */}
           {emailLoginAvailable && <>
             <p className="auth-or">또는 이메일로</p>

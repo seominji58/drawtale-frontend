@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
-import { finishSocialLogin, PROVIDER_NAME } from "@/api/auth";
+import { AuthError, finishSocialLogin, PROVIDER_NAME } from "@/api/auth";
 import type { SocialProvider } from "@/api/auth";
 
 /** S-15 소셜 로그인에서 돌아오는 자리 (`/auth/:provider/callback`).
@@ -25,8 +25,11 @@ export default function S15Callback() {
       .catch((e: Error) => {
         // 카카오 화면에서 취소했으면 오류로 보이지 않고 로그인 화면으로 돌아간다
         if (e.message === "CANCELLED") nav("/login", { replace: true });
-        // 처음 온 사람이다. 약관 동의를 받은 뒤 가입한다
-        else if (e.message === "SIGNUP_REQUIRED") nav("/signup", { replace: true, state: { social: p } });
+        // 처음 온 사람이다. 약관 동의를 받은 뒤 가입한다. 확인증이 있으면 제공자를 다시 거치지 않는다
+        else if (e.message === "SIGNUP_REQUIRED") {
+          const ticket = e instanceof AuthError ? e.detail?.signup_ticket : undefined;
+          nav("/signup", { replace: true, state: { social: p, ticket } });
+        }
         else setFailed(true);
       });
   }, [p, params, login, nav]);

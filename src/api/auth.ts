@@ -17,6 +17,13 @@ const useMock = ENGINE === "mock";
  *  목 엔진(서버 없이 화면만)에서만 둔다. 이메일 로그인을 둘지는 팀 논의 중 (team-status 「이메일 로그인 유지」) */
 export const emailLoginAvailable = useMock;
 
+/** 서버 오류 code 를 message 로, detail 을 그대로 싣는다 (SIGNUP_REQUIRED 의 가입 확인증) */
+export class AuthError extends Error {
+  constructor(code: string, public detail?: Record<string, unknown> | null) {
+    super(code);
+  }
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(`${BASE}${path}`, {
     method: "POST",
@@ -24,7 +31,10 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   const data = await r.json().catch(() => null);
-  if (!r.ok) throw new Error((data as { error?: { code?: string } } | null)?.error?.code ?? `HTTP_${r.status}`);
+  if (!r.ok) {
+    const err = (data as { error?: { code?: string; detail?: Record<string, unknown> | null } } | null)?.error;
+    throw new AuthError(err?.code ?? `HTTP_${r.status}`, err?.detail);
+  }
   return data as T;
 }
 
@@ -143,4 +153,10 @@ async function exchange(p: SocialProvider, params: URLSearchParams, code: string
   }
   // state 는 여기서 확인을 끝냈다. 백엔드에는 보내지 않는다 (백엔드 계약 2-7)
   return post<AuthResult>(`/auth/${p}`, { code, redirect_uri: redirectUri(p), agreed });
+}
+
+/** 처음 온 사람이 S-16 에서 약관에 동의하면 부른다. 카카오 · 구글 화면을 다시 거치지 않는다.
+ *  ticket 은 SIGNUP_REQUIRED 응답에 실려 온 가입 확인증이다 (10분) */
+export function finishSocialSignup(ticket: string): Promise<AuthResult> {
+  return post<AuthResult>("/auth/social-signup", { ticket, agreed: true });
 }
