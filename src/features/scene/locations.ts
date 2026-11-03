@@ -5,7 +5,7 @@ import type { BookPage } from "@/types/story";
 
 interface Sub {
   id: string;
-  /** scene.background(영어)에 이 낱말이 있으면 이 자리 */
+  /** scene.background(영어) · 쪽 글(한국어)에 이 낱말이 있으면 이 자리 */
   words: string[];
 }
 
@@ -15,49 +15,49 @@ export const LOCATIONS: Record<string, Sub[]> = {
   // 마당은 바깥 낱말이 있을 때만
   home: [
     { id: "home-living", words: ["living room", "sofa", "couch", "hallway", "indoor", "inside the house", "entryway", "entrance hall",
-      "front door", "doorway", "bathroom", "inside a cozy home", "inside the home", "window", " room"] },
-    { id: "home", words: ["yard", "garden", "gate", "outside the house", "alley", "porch", "doorstep", "street", "backyard"] },
-    { id: "home-kitchen", words: ["kitchen", "dining", "table"] },
-    { id: "home-bedroom", words: ["bedroom", "bed ", "pillow"] },
+      "front door", "doorway", "bathroom", "inside a cozy home", "inside the home", "window", " room", "거실", "현관", "소파"] },
+    { id: "home", words: ["yard", "garden", "gate", "outside the house", "alley", "porch", "doorstep", "street", "backyard", "마당", "대문", "골목"] },
+    { id: "home-kitchen", words: ["kitchen", "dining", "table", "부엌", "식탁"] },
+    { id: "home-bedroom", words: ["bedroom", "bed ", "pillow", "침대", "내 방", "방에서", "방으로"] },
   ],
   playground: [
-    { id: "playground", words: ["slide", "swing", "sandbox", "seesaw", "jungle gym", "monkey bars"] },
-    { id: "playground-path", words: ["path", "bench", "walkway", "park"] },
+    { id: "playground", words: ["slide", "swing", "sandbox", "seesaw", "jungle gym", "monkey bars", "미끄럼틀", "그네", "모래놀이", "시소"] },
+    { id: "playground-path", words: ["path", "bench", "walkway", "park", "산책길", "벤치"] },
   ],
   school: [
-    { id: "school", words: ["playground", "schoolyard", "field", "yard"] },
-    { id: "school-classroom", words: ["classroom", "desk", "blackboard", "chalkboard"] },
-    { id: "school-cafeteria", words: ["cafeteria", "lunch", "lunchroom", "canteen", "tray"] },
-    { id: "school-hallway", words: ["hallway", "corridor", "locker"] },
-    { id: "school-music", words: ["music", "piano", "drum", "instrument"] },
-    { id: "school-library", words: ["library", "bookshelf", "bookshelves"] },
+    { id: "school", words: ["playground", "schoolyard", "field", "yard", "운동장"] },
+    { id: "school-classroom", words: ["classroom", "desk", "blackboard", "chalkboard", "교실", "칠판"] },
+    { id: "school-cafeteria", words: ["cafeteria", "lunch", "lunchroom", "canteen", "tray", "급식실", "식판", "급식"] },
+    { id: "school-hallway", words: ["hallway", "corridor", "locker", "복도", "사물함"] },
+    { id: "school-music", words: ["music", "piano", "drum", "instrument", "음악실", "피아노"] },
+    { id: "school-library", words: ["library", "bookshelf", "bookshelves", "도서관", "책장"] },
   ],
   town: [
-    { id: "town", words: [] },
-    { id: "town-market", words: ["market", "stall", "shop", "store", "bakery"] },
-    { id: "town-park", words: ["park", "fountain"] },
-    { id: "town-busstop", words: ["bus"] },
+    { id: "town", words: ["거리"] },
+    { id: "town-market", words: ["market", "stall", "shop", "store", "bakery", "시장", "가게", "빵집"] },
+    { id: "town-park", words: ["park", "fountain", "공원", "분수"] },
+    { id: "town-busstop", words: ["bus", "버스", "정류장"] },
   ],
   forest: [
-    { id: "forest", words: [] },
-    { id: "forest-stream", words: ["stream", "river", "brook", "creek", "water"] },
-    { id: "forest-trail", words: ["trail", "path", "log"] },
-    { id: "forest-flowers", words: ["flower", "meadow", "butterfl"] },
+    { id: "forest", words: ["숲속"] },
+    { id: "forest-stream", words: ["stream", "river", "brook", "creek", "water", "시냇물", "개울", "냇가"] },
+    { id: "forest-trail", words: ["trail", "path", "log", "숲길", "오솔길", "통나무"] },
+    { id: "forest-flowers", words: ["flower", "meadow", "butterfl", "꽃밭"] },
   ],
   sea: [
-    { id: "sea", words: [] },
-    { id: "sea-underwater", words: ["underwater", "under the sea", "coral", "seabed", "sea floor"] },
-    { id: "sea-pier", words: ["pier", "dock", "boat", "harbor", "lighthouse"] },
+    { id: "sea", words: ["모래사장", "바닷가"] },
+    { id: "sea-underwater", words: ["underwater", "under the sea", "coral", "seabed", "sea floor", "바닷속", "물속"] },
+    { id: "sea-pier", words: ["pier", "dock", "boat", "harbor", "lighthouse", "등대", "선착장", "부두", "배를 타"] },
   ],
   space: [
-    { id: "space", words: [] },
-    { id: "space-ship", words: ["spaceship", "inside the ship", "cockpit", "control panel", "corridor", "hallway", "space station"] },
-    { id: "space-planet", words: ["planet", "alien"] },
+    { id: "space", words: ["달 표면"] },
+    { id: "space-ship", words: ["spaceship", "inside the ship", "cockpit", "control panel", "corridor", "hallway", "space station", "우주선"] },
+    { id: "space-planet", words: ["planet", "alien", "행성", "외계"] },
   ],
   cave: [
-    { id: "cave", words: [] },
-    { id: "cave-entrance", words: ["entrance", "outside the cave", "opening"] },
-    { id: "cave-lake", words: ["lake", "pool", "underground water"] },
+    { id: "cave", words: ["동굴 안"] },
+    { id: "cave-entrance", words: ["entrance", "outside the cave", "opening", "동굴 입구", "동굴 앞"] },
+    { id: "cave-lake", words: ["lake", "pool", "underground water", "호수"] },
   ],
 };
 
@@ -71,7 +71,9 @@ export function locationFor(place: string, page: BookPage, prev?: string): strin
   const subs = LOCATIONS[place];
   const loc = page.scene?.location;
   if (loc && subs.some((s) => s.id === loc)) return loc;
-  const bg = ` ${(page.scene?.background || "").toLowerCase()} `;
+  // 영어 배경 문장이 먼저, 그다음 쪽 한국어 글 — 짧은 이야기 · 예전 이야기는 배경 문장이 없다 (11/3).
+  // 한 줄로 이어 붙여 「먼저 나온 낱말」이 배경 문장 쪽에서 먼저 잡히게
+  const bg = ` ${(page.scene?.background || "").toLowerCase()} | ${page.text ?? ""} `;
   let best: string | undefined, at = Infinity;
   for (const s of subs) for (const w of s.words) {
     const i = bg.indexOf(w);

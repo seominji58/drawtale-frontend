@@ -52,6 +52,11 @@ export interface Story {
   /** 배경을 잘라 낸 캐릭터 정지 그림 — 이 이야기의 사본 (서버 still_url, 2026-11-03).
    *  영상이 없는 쪽 · 완료 화면 · 표지에 쓴다. 새로고침 · 책장에서 다시 열어도 있다 */
   stillUrl?: string | null;
+  /** 짧은 이야기: 동작 영상(animationUrl)의 바탕이 투명한 프레임 묶음과 행동 카드의 동작 (2026-11-03).
+   *  화면이 짧은 이야기도 네 쪽으로 나눠 긴 이야기와 같은 책 화면(장면 층)으로 보인다 */
+  spriteUrl?: string | null;
+  sprite?: { frames: number; box: [number, number, number, number] } | null;
+  actionMotion?: string;
   /** 긴 이야기(S-13 「이야기 길이: 길게」)일 때만. 네 칸을 뼈대로 한 쪽 단위 그림책 (서버 `book`) */
   book?: Book | null;
   /** 이 이야기를 만들 때 고른 카드 id (프론트만, 서버에는 없다). 내 소품을 어느 쪽에 얹을지 정한다 (open-decisions 0-13) */

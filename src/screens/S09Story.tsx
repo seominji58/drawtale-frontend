@@ -14,7 +14,7 @@ import SceneStage from "@/features/scene/SceneStage";
 import { planPages } from "@/features/scene/plan";
 import { ORDER_GAME, useSettings } from "@/store/settings";
 import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak, trackAudio } from "@/lib";
-import type { MotionId, Story } from "@/types/story";
+import type { Book, BookPage, MotionId, Story } from "@/types/story";
 import type { Keypoints } from "@/types/character";
 
 /** 서버가 렌더한 애니메이션과 이야기 문장 (백엔드 계약 2-6).
@@ -84,6 +84,13 @@ export default function S09Story() {
     return <BookView story={story} imageUrl={imageUrl} keypoints={keypoints} muteAll={muteAll}
       onDone={() => nav(ORDER_GAME ? "/order" : "/done")} />;
   }
+  // 짧은 이야기도 네 쪽(장소 · 문제 · 행동 · 결과)으로 나눠 같은 책 화면으로 — 장면 층 · 세부 배경 · 밤낮 · 물건 · 내 소품 ·
+  // 쪽에 들어오면 읽기가 똑같이 (2026-11-03 사용자 「짧은 쪽 이야기에는 지금까지 개발한 것들이 적용 안 된 거 같은데」)
+  const short = shortBook(story, lines);
+  if (short) {
+    return <BookView story={{ ...story, book: short }} imageUrl={imageUrl} keypoints={keypoints} muteAll={muteAll}
+      onDone={() => nav(ORDER_GAME ? "/order" : "/done")} />;
+  }
 
   return (
     <Screen back="/" speech={story.text} segment={4} autoSpeak={false}
@@ -112,6 +119,26 @@ export default function S09Story() {
       <AiNotice />
     </Screen>
   );
+}
+
+/** 짧은 이야기(문장 넷 안팎)를 네 쪽 그림책으로. 문장이 넷이 아니면 고르게 나눈다.
+ *  행동 쪽만 그 이야기의 동작 영상 · 프레임 묶음으로 움직이고, 나머지는 멈춘 그림. 음성은 이야기 전체 음성을 쪽 길이대로 나눠 읽는다 */
+function shortBook(story: Story, lines: string[]): Book | null {
+  if (!lines.length) return null;
+  const STAGES = ["place", "problem", "action", "result"] as const;
+  const n = Math.min(4, lines.length);
+  const groups: string[][] = Array.from({ length: n }, () => []);
+  lines.forEach((l, i) => groups[Math.min(n - 1, Math.floor((i * n) / lines.length))].push(l));
+  const pages: BookPage[] = groups.map((g, i) => {
+    const stage = n === 4 ? STAGES[i] : STAGES[Math.min(3, Math.round((i * 3) / Math.max(1, n - 1)))];
+    const acting = stage === "action";
+    return {
+      page: i + 1, stage, action: acting ? story.actionMotion ?? "wave" : "idle", text: g.join(" "), childWords: "",
+      audioUrl: null, animationUrl: acting ? story.animationUrl : null,
+      spriteUrl: acting ? story.spriteUrl ?? null : null, sprite: acting ? story.sprite ?? null : null, scene: null,
+    };
+  });
+  return { title: story.title, pages, orderPages: pages.map((p) => p.page) };
 }
 
 /** 긴 이야기 — 쪽을 하나씩 넘긴다. 쪽 넘기기는 아이가 누를 때만 (자동 전환 금지, AGENTS 3.1).
