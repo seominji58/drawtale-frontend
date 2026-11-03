@@ -195,6 +195,7 @@ function toStory(s: ServerStory): Story {
     characterId: s.character_id,
     title: s.book?.title || `${s.place}에 간 날`,
     createdAt: s.created_at.slice(0, 10),
+    place: s.place,
     text: s.text ?? "",
     audioUrl: s.audio_url,
     animationUrl: s.animation_url,

@@ -6,6 +6,8 @@
  *
  *  2026-11-03: 업로드 원본으로 만들면 사진 배경까지 표지에 나왔다(사용자 확인). 이야기 동작 영상이 있으면
  *  그 첫 장면 — 배경을 잘라 낸 캐릭터 — 으로 만들고, 없을 때만 원본 그림을 쓴다 */
+import { keyOut } from "./key";
+
 const SIDE = 240;
 
 function toCover(source: CanvasImageSource, width: number, height: number): string | null {
@@ -18,6 +20,14 @@ function toCover(source: CanvasImageSource, width: number, height: number): stri
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   ctx.drawImage(source, 0, 0, w, h);
+  // 영상 첫 장면은 단색 바탕이 깔려 있다 — 지워서 캐릭터만 남긴다 (key.ts)
+  try {
+    const frame = ctx.getImageData(0, 0, w, h);
+    keyOut(frame);
+    ctx.putImageData(frame, 0, 0);
+  } catch {
+    // CORS 로 못 읽으면 바탕째 둔다
+  }
   // webp 를 못 만드는 브라우저는 png 를 돌려준다 — 그래도 쓸 수 있다
   return canvas.toDataURL("image/webp", 0.82);
 }

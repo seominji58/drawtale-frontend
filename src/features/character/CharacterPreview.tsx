@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import CharacterCanvas from "./CharacterCanvas";
 import { artOf } from "./art";
+import KeyedClip from "@/features/story/KeyedClip";
 import { useSession } from "@/store/session";
 import { fetchCharacter } from "@/api";
 import type { MotionId } from "@/types/story";
@@ -37,7 +38,7 @@ export default function CharacterPreview({ motion = "wave" }: { motion?: MotionI
   const art = artOf(character, imageUrl);
 
   if (character?.previewUrl) {
-    return <video className="clip-art" key={character.previewUrl} src={character.previewUrl} autoPlay loop muted playsInline
+    return <KeyedClip key={character.previewUrl} src={character.previewUrl}
       style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />;
   }
   if (rendering) {

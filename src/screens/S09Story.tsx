@@ -9,6 +9,7 @@ import { useSession } from "@/store/session";
 import { ENGINE } from "@/api";
 import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
+import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
 import { ORDER_GAME, useSettings } from "@/store/settings";
 import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
@@ -346,8 +347,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 이 이야기의 동작 영상 하나를 첫 장면에 멈춰 보인다 — 배경을 잘라 낸 캐릭터가 가만히 선 모습이다.
   // 영상이 하나도 없을 때만 원본 그림을 쓴다
   const restClip = firstClip(story);
+  // 고른 장소를 장면 칸에 깐다 (2026-11-03). 장소 그림 비율(3:2)이 칸 비율이 된다. 장소를 못 읽으면 예전처럼 빈 무대
+  const layout = usePlaceLayout(ENGINE === "mock" ? null : placeOf(story));
   // 장면 칸 비율은 이 이야기의 장면 영상 비율 — 첫 쪽이 정지 그림이어도 처음부터 같은 크기 칸이 되게 미리 읽어 둔다
   const [ar, setAr] = useState<number | null>(null);
+  const stageAr = layout ? layout.size[0] / layout.size[1] : ar;
   // 글자 크기: 기본은 크게(38px), 긴 쪽만 글 칸에 들어갈 때까지 줄인다(최소 26px). 쪽마다 한 번 재서 기억한다 —
   // 넘기는 동안 그려지는 사본도 같은 크기로. 화면 크기가 바뀌면 다시 잰다
   const textRef = useRef<HTMLDivElement>(null);
@@ -404,8 +408,23 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const fit = !props && (!!clipI || !canvas);
     return (
       <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
-        <FitStage ar={fit ? ar : null} onClick={props ? () => setPropPhase(false) : undefined}>
-          {props
+        <FitStage ar={layout && !canvas ? stageAr : fit ? ar : null} onClick={props ? () => setPropPhase(false) : undefined}>
+          {layout && !canvas
+            ? <PlaceScene layout={layout}>
+                {props
+                  ? <div style={{ position: "absolute", inset: 0, display: "flex", gap: "5%", alignItems: "center", justifyContent: "center" }}>
+                      {shown.map((p) => (
+                        <img key={p.id} src={p.png} alt={`내가 그린 ${p.name}`}
+                          style={{ height: `${propHeight(p.size) * 100}%`, maxWidth: `${Math.floor(85 / shown.length)}%`, objectFit: "contain" }} />
+                      ))}
+                    </div>
+                  // 가만히 있는 쪽은 잘라 낸 정지 그림 — 영상 첫 장면은 동작 도중 자세일 수 있다
+                  : clipI ? <Hero key={clipI} src={clipI} layout={layout} />
+                  : still ? <Hero key={still} src={still} layout={layout} />
+                  : restClip ? <Hero key={`rest-${restClip}`} src={restClip} paused layout={layout} />
+                  : null}
+              </PlaceScene>
+            : props
             // 소품들을 나란히. 그린 곳만 잘라 두었으니 아이가 그린 크기 · 모양과 상관없이 고른 크기(작게 · 보통 · 크게) 상자에
             // 비율을 지켜 맞춰 들어간다. 여럿이면 한 개가 차지할 폭도 줄인다
             ? <div style={{ display: "flex", gap: "5%", alignItems: "center", justifyContent: "center", width: "92%", height: "100%" }}>
@@ -449,8 +468,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}>
       {/* 가로 화면: 장면이 높이를 거의 다 쓰고, 오른쪽 좁은 칸에 글 + 조작 (2026-11-03 사용자 「대본을 작게, 장면이 커야」).
           조작 줄은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 두고, 가로 화면에서는 글 칸 아래에 겹쳐 놓는다 (ui.css .book-area) */}
-      <div className={`book-area ${ar ? "fit" : ""}`} ref={areaRef}
-           style={ar ? ({ "--ar": ar } as CSSProperties) : undefined}>
+      <div className={`book-area ${stageAr ? "fit" : ""}`} ref={areaRef}
+           style={stageAr ? ({ "--ar": stageAr } as CSSProperties) : undefined}>
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23).
           넘기는 동안에만 두 쪽을 겹친다 (밑 = 넘어갈 쪽, 위 = 넘어가는 쪽) */}
       <div className="turn" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>

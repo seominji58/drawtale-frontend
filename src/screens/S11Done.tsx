@@ -6,7 +6,8 @@ import { Party } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { ENGINE } from "@/api";
 import { useLibrary } from "@/store/library";
-import { cutoutFor, firstClip, firstFrameSrc } from "@/features/story/clip";
+import { cutoutFor, firstClip } from "@/features/story/clip";
+import KeyedClip from "@/features/story/KeyedClip";
 
 export default function S11Done() {
   const nav = useNavigate();
@@ -37,7 +38,7 @@ export default function S11Done() {
             {cutout
               ? <img src={cutout} alt="" className="illust" />
               : clip
-              ? <video src={firstFrameSrc(clip)} muted playsInline preload="auto" className="illust clip-art" />
+              ? <KeyedClip src={clip} paused className="illust" />
               : art ? <img src={art} alt="" className="illust" /> : <Party />}
           </div>
           <span className="confetti" aria-hidden />

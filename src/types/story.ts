@@ -43,6 +43,8 @@ export interface Story {
   /** 서버에는 없다. 목록(S-12·S-13)에 띄우려고 장소로 만든다 */
   title: string;
   createdAt: string;
+  /** 고른 장소 낱말 (서버 place — 카드 라벨이거나 아이가 말한 곳). 장면 칸에 깔 장소를 고른다 */
+  place?: string;
   text: string;
   audioUrl: string | null;
   /** 서버가 렌더한 MP4. 목 AI 에서는 원본 그림 URL 이 오고, 목 엔진에서는 null 이다 */
