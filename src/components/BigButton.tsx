@@ -8,10 +8,12 @@ interface Props {
   disabled?: boolean;
   /** 비활성이어도 누를 수 있고, 누르면 흔들림으로 아직 안 됐다고 알린다 */
   nudgeOnDisabled?: boolean;
+  /** 자리 잡기용 클래스 (예: S-09 조작 칸의 prev · play · next) */
+  className?: string;
 }
 
 export default function BigButton({
-  children, onClick, go = false, disabled = false, nudgeOnDisabled = true,
+  children, onClick, go = false, disabled = false, nudgeOnDisabled = true, className = "",
 }: Props) {
   const [nudging, setNudging] = useState(false);
   const lock = useRef(0);
@@ -33,7 +35,7 @@ export default function BigButton({
     // type="button": 폼 안(S-15 · S-16 카드)에서 눌러도 폼 제출이 한 번 더 일어나지 않게. 엔터 제출은 폼의 onSubmit 이 맡는다
     <button
       type="button"
-      className={`btn ${go ? "go" : ""} ${disabled ? "off" : ""} ${nudging ? "nudge" : ""}`}
+      className={`btn ${go ? "go" : ""} ${disabled ? "off" : ""} ${nudging ? "nudge" : ""} ${className}`}
       onClick={handle}
       aria-disabled={disabled}
     >

@@ -65,6 +65,31 @@
 .stage-cell { min-width: 0; min-height: 0; display: grid; place-items: center; container-type: size; }
 .stage-cell > .stage { width: 100%; height: 100%; }
 .stage-cell > .stage.fit { width: min(100cqw, 100cqh * var(--ar)); height: auto; aspect-ratio: var(--ar); }
+/* S-09 긴 이야기 — 장면 · 글 · 조작 (2026-11-03 사용자 「대본을 작게, 장면이 커야」).
+   좁은 화면: 펼침면(장면 위 · 글 아래) 다음에 조작 칸. 버튼 셋은 한 줄 */
+.book-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; position: relative; }
+.book-ctl { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.ctl-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ctl-btns > .btn { width: auto; }
+/* 가로 화면: 장면이 높이를 다 쓰고(영상 비율 상자), 오른쪽 좁은 칸 위에 글 · 아래에 조작.
+   조작 칸은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 있고, 글 칸이 그 높이(--ctl-h)만큼 아래를 비운다 */
+@media (min-width: 1024px) {
+  .book-area { container-type: size; gap: 0;
+    --stage-w: calc((100cqw - 14px) * 2.3 / 3.3); }
+  .book-area.fit { --stage-w: min(100cqw - 360px, 100cqh * var(--ar)); }
+  .book-area > .turn { flex: 1 1 auto; }
+  .book-area .spread, .book-area .spread:has(.stage.fit) { container-type: normal; grid-template-columns: var(--stage-w) minmax(0, 1fr); }
+  .book-area .spread > .stage-cell { container-type: normal; }
+  .book-area .spread > .stage-cell > .stage.fit { width: 100%; }
+  .book-area .spread-text { margin-bottom: calc(var(--ctl-h, 240px) + 12px); justify-content: flex-start; }
+  .book-ctl { position: absolute; right: 0; bottom: 0; z-index: 3; width: calc(100cqw - var(--stage-w) - 14px); }
+  /* 들려주기는 한 줄을 다 쓰고, 앞 쪽 · 다음 쪽(마지막 쪽은 다 봤어요)이 그 아래 */
+  .ctl-btns { grid-template-columns: 1fr 1fr; grid-template-areas: "play play" "prev next"; }
+  .ctl-btns > .prev { grid-area: prev; } .ctl-btns > .play { grid-area: play; } .ctl-btns > .next { grid-area: next; }
+  .book-ctl .bar-row > .seg { margin-left: 0; width: 100%; justify-content: space-between; }
+  .book-ctl .bar-row > .seg button { flex: 1; }
+  .book-ctl .bar-row > .progress { flex-basis: 100%; }
+}
 /* 가로 화면: 비율 상자 바로 옆에 글 칸이 붙고, 남는 폭은 글 칸이 쓴다 (장면은 많아야 폭의 70%) */
 @media (min-width: 1024px) {
   .spread { container-type: size; }
@@ -119,7 +144,7 @@
   .bar-row > .seg { margin-left: 0; width: 100%; justify-content: space-between; }
   .bar-row > .seg button { flex: 1; }
   /* S-09 아래 단추 셋(앞 쪽 · 들려주기 · 다음 쪽)이 두 줄로 깨지지 않게 */
-  .row > .btn { font-size: 20px; padding-inline: 6px; white-space: nowrap; }
+  .row > .btn, .ctl-btns > .btn { font-size: 20px; padding-inline: 6px; white-space: nowrap; }
 }
 .progress > i { display: block; height: 100%; border-radius: inherit; background: var(--progress-fill, var(--mint)); }
 

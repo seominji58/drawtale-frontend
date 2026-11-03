@@ -348,6 +348,16 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const restClip = firstClip(story);
   // 장면 칸 비율은 이 이야기의 장면 영상 비율 — 첫 쪽이 정지 그림이어도 처음부터 같은 크기 칸이 되게 미리 읽어 둔다
   const [ar, setAr] = useState<number | null>(null);
+  // 조작 칸 높이 → 글 칸이 그만큼 아래를 비운다 (가로 화면에서 조작 칸이 글 칸 아래에 겹치므로)
+  const areaRef = useRef<HTMLDivElement>(null);
+  const ctlRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const area = areaRef.current, ctl = ctlRef.current;
+    if (!area || !ctl) return;
+    const ro = new ResizeObserver(() => area.style.setProperty("--ctl-h", `${ctl.offsetHeight}px`));
+    ro.observe(ctl);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     if (!restClip) return;
     const v = document.createElement("video");
@@ -363,7 +373,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const props = active && propPhase && shown.length > 0;
     const canvas = !perPage && !story.animationUrl && imageUrl && keypoints;
     // 영상 쪽이든 정지 그림 쪽이든 같은 칸 — 쪽마다 칸 크기가 바뀌지 않게. 캔버스(목 엔진) · 소품 장면만 칸을 다 쓴다
-    const fit = !props && !canvas;
+    const fit = !props && (!!clipI || !canvas);
     return (
       <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
         <FitStage ar={fit ? ar : null} onClick={props ? () => setPropPhase(false) : undefined}>
@@ -406,8 +416,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   };
 
   return (
-    <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
-      acts={<BigButton go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>}>
+    <Screen back="/" speech={page.text} segment={4} autoSpeak={false}>
+      {/* 가로 화면: 장면이 높이를 거의 다 쓰고, 오른쪽 좁은 칸에 글 + 조작 (2026-11-03 사용자 「대본을 작게, 장면이 커야」).
+          조작 줄은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 두고, 가로 화면에서는 글 칸 아래에 겹쳐 놓는다 (ui.css .book-area) */}
+      <div className={`book-area ${ar ? "fit" : ""}`} ref={areaRef}
+           style={ar ? ({ "--ar": ar } as CSSProperties) : undefined}>
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23).
           넘기는 동안에만 두 쪽을 겹친다 (밑 = 넘어갈 쪽, 위 = 넘어가는 쪽) */}
       <div className="turn" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
@@ -417,6 +430,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         </> : spread(pg, true)}
       </div>
 
+      <div className="book-ctl" ref={ctlRef}>
       {/* 진행 바 (2026-10-27 사용자) — 이 쪽 하나의 바. 쪽에 들어올 때마다 비어서 시작해
           그 쪽 음성 길이에 맞춰 회색이 초록으로 찬다. 글자를 몰라도 이 쪽이 얼마나 남았는지 보인다 */}
       <div className="bar-row">
@@ -428,15 +442,20 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         <SpeedSeg onChange={(r) => { if (audio.current) audio.current.playbackRate = fileRate(r); }} />
       </div>
 
-      <div className="row" style={{ flex: "0 0 auto" }}>
-        <BigButton disabled={pg === 0} onClick={() => go(pg - 1)} nudgeOnDisabled={false}>앞 쪽</BigButton>
-        <BigButton disabled={muteAll} onClick={play} nudgeOnDisabled={false}>
+      <div className="ctl-btns">
+        <BigButton className="prev" disabled={pg === 0} onClick={() => go(pg - 1)} nudgeOnDisabled={false}>앞 쪽</BigButton>
+        <BigButton className="play" disabled={muteAll} onClick={play} nudgeOnDisabled={false}>
           {reading ? "멈추기" : "들려주기"}
         </BigButton>
-        <BigButton disabled={last} onClick={() => go(pg + 1)} nudgeOnDisabled={false}>다음 쪽</BigButton>
+        {/* 마지막 쪽에서는 「다음 쪽」 자리에 「다 봤어요」 (pt_docs 05 S-09-03 · S-09-08 — 마지막 장면에서만) */}
+        {last
+          ? <BigButton className="next" go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>
+          : <BigButton className="next" onClick={() => go(pg + 1)} nudgeOnDisabled={false}>다음 쪽</BigButton>}
       </div>
 
       <AiNotice />
+      </div>
+      </div>
     </Screen>
   );
 }
