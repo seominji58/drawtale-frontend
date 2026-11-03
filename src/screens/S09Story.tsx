@@ -10,7 +10,7 @@ import { ENGINE } from "@/api";
 import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import { ORDER_GAME, useSettings } from "@/store/settings";
-import { SPEECH_RATES, sentences, speak, speechRate, stopSpeak } from "@/lib";
+import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
 import type { Keypoints } from "@/types/character";
 
@@ -49,7 +49,7 @@ export default function S09Story() {
       const a = audio.current ?? new Audio(story.audioUrl);
       audio.current = a;
       a.loop = loop;
-      a.playbackRate = speechRate();
+      a.playbackRate = fileRate();
       a.onended = () => setAt(null);
       a.currentTime = 0;
       void a.play();
@@ -103,7 +103,7 @@ export default function S09Story() {
         <BigButton onClick={() => setLoop((v) => !v)}>{loop ? "반복 켜짐" : "반복"}</BigButton>
       </div>
       <div className="bar-row" style={{ justifyContent: "flex-end" }}>
-        <SpeedSeg onChange={(r) => { if (audio.current) audio.current.playbackRate = r; }} />
+        <SpeedSeg onChange={(r) => { if (audio.current) audio.current.playbackRate = fileRate(r); }} />
       </div>
 
       <AiNotice />
@@ -261,7 +261,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     if (url) {
       const a = new Audio();
       a.preload = "metadata";
-      a.onloadedmetadata = () => run(a.duration && isFinite(a.duration) ? a.duration / speechRate() : est);
+      a.onloadedmetadata = () => run(a.duration && isFinite(a.duration) ? a.duration / fileRate() : est);
       a.onerror = () => run(est);
       a.src = url;
     } else {
@@ -287,7 +287,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     if (url) {
       audio.current?.pause();
       const a = new Audio(url);
-      a.playbackRate = speechRate();
+      a.playbackRate = fileRate();
       audio.current = a;
       a.ontimeupdate = () => { if (a.duration) setFrac(a.currentTime / a.duration); };
       a.onended = next;
@@ -316,7 +316,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       setFrac(Math.min(1, (t - from) / Math.max(1e-6, ends[k] - from)));
     };
     const start = pg === 0 ? 0 : ends[pg - 1];
-    a.playbackRate = speechRate();
+    a.playbackRate = fileRate();
     const begin = () => { a.currentTime = start * (a.duration || 0); void a.play(); };
     if (a.readyState >= 1) begin(); else a.onloadedmetadata = begin;
   };
@@ -416,7 +416,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
           <i style={{ width: `${frac * 100}%` }} />
         </div>
         {/* 읽는 중에 바꾸면 지금 쪽 음성부터 바로 바뀐다. 브라우저 음성(파일이 없는 쪽)은 다음 쪽부터 */}
-        <SpeedSeg onChange={(r) => { if (audio.current) audio.current.playbackRate = r; }} />
+        <SpeedSeg onChange={(r) => { if (audio.current) audio.current.playbackRate = fileRate(r); }} />
       </div>
 
       <div className="row" style={{ flex: "0 0 auto" }}>

@@ -35,8 +35,13 @@ KEY, VOICE = env("ELEVENLABS_API_KEY"), env("ELEVENLABS_VOICE_ID")
 MODEL = env("ELEVENLABS_MODEL_ID") or "eleven_v4_turbo"
 
 
-def make(text: str) -> tuple[str, str, int]:
-    path = OUT / f"{hashlib.sha1(text.encode('utf-8')).hexdigest()[:12]}.mp3"
+# (폴더, 읽는 속도). 「천천히」 판은 브라우저가 0.8배로 늘리면 소리가 깨져서(11/3 사용자)
+# ElevenLabs 가 처음부터 느리게 읽는다 — 0.9 × 0.8 = 0.72 (허용 0.7~1.2). 파일 이름은 같고 폴더만 slow/
+SETS = [(OUT, 0.9), (OUT / "slow", 0.72)]
+
+
+def make(text: str, out: Path = OUT, speed: float = 0.9) -> tuple[str, str, int]:
+    path = out / f"{hashlib.sha1(text.encode('utf-8')).hexdigest()[:12]}.mp3"
     if path.exists() and path.stat().st_size > 1000:
         return text, path.name, 0
     for attempt in range(4):
@@ -45,7 +50,7 @@ def make(text: str) -> tuple[str, str, int]:
             params={"output_format": "mp3_44100_64"},
             headers={"xi-api-key": KEY, "accept": "audio/mpeg"},
             # 이야기 나레이터와 같은 설정 (백엔드 app/services/tts.py ElevenLabsSpeech)
-            json={"text": text, "model_id": MODEL, "voice_settings": {"stability": 0.6, "similarity_boost": 0.75, "speed": 0.9}},
+            json={"text": text, "model_id": MODEL, "voice_settings": {"stability": 0.6, "similarity_boost": 0.75, "speed": speed}},
             timeout=60,
         )
         if r.status_code == 429:   # Starter 는 동시 요청 한도가 낮다
@@ -60,14 +65,16 @@ def make(text: str) -> tuple[str, str, int]:
 def main() -> None:
     if not (KEY and VOICE):
         sys.exit(f"{ENV} 에 ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID 가 없다")
-    OUT.mkdir(parents=True, exist_ok=True)
     texts = [t for items in json.loads(LINES.read_text(encoding="utf-8")).values() for t in items]
-    with ThreadPoolExecutor(2) as ex:
-        results = list(ex.map(make, texts))
+    results = []
+    for out, speed in SETS:
+        out.mkdir(parents=True, exist_ok=True)
+        with ThreadPoolExecutor(2) as ex:
+            results += list(ex.map(lambda t: make(t, out, speed), texts))
     table = {t: f for t, f, _ in results}
     TABLE.write_text(json.dumps(table, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
     # 목록에서 빠진 문장의 파일은 지운다
-    stale = [p for p in OUT.glob("*.mp3") if p.name not in table.values()]
+    stale = [p for out, _ in SETS for p in out.glob("*.mp3") if p.name not in table.values()]
     for p in stale:
         p.unlink()
     print(f"문장 {len(table)}, 새로 만든 것 {sum(1 for *_, n in results if n)}, 보낸 글자 {sum(n for *_, n in results)}, 지운 파일 {len(stale)}")
