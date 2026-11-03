@@ -69,7 +69,7 @@
    좁은 화면: 펼침면(장면 위 · 글 아래) 다음에 조작 칸. 버튼 셋은 한 줄 */
 .book-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; position: relative; }
 .book-ctl { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; }
-.ctl-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ctl-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }   /* 앞 쪽 · 다음 쪽 (들려주기 버튼은 11/3 뺌 — 쪽에 들어오면 읽는다) */
 .ctl-btns > .btn { width: auto; }
 /* 가로 화면: 장면이 높이를 다 쓰고(영상 비율 상자), 오른쪽 좁은 칸 위에 글 · 아래에 조작.
    조작 칸은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 있고, 글 칸이 그 높이(--ctl-h)만큼 아래를 비운다 */
@@ -890,3 +890,6 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .rename-acts { display: flex; gap: 16px; }
 .rename-acts > * { flex: 1; }
 .choice.pick { outline: 3px dashed var(--line); outline-offset: 4px; }
+/* 쪽 글에 나온 물건 · 내 소품 (주인공 옆 땅에, 2026-11-03). 밤에는 인물과 같은 옅은 그늘 */
+.scene-thing { transition: filter 2.6s ease; }
+.scene.night .scene-thing { filter: brightness(.78) saturate(.88) sepia(.04); }

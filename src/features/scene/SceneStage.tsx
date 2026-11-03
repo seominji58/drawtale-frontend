@@ -209,6 +209,20 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     return { x: bx, back: true };
   };
   const behind = plan.props.filter((p) => isPerson(p.id) || p.id === "sign");
+  // 쪽 글에 나온 물건 · 내 소품: 주인공 옆 땅에 (인물 자리를 먼저 잡은 뒤 남는 곳). 쪽 안 움직임 없이 처음부터 놓여 있다
+  const thingSpots = (plan.things ?? []).map((t, k) => {
+    const half = (t.h * t.ar / aspect) / 2;
+    const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
+    const tries: number[] = [];
+    for (let d = 0; d <= 40; d++) {
+      const off = heroHalf + half + gap + d * 0.02;
+      if (k % 2 === 0) tries.push(hero.to - off, hero.to + off); else tries.push(hero.to + off, hero.to - off);
+    }
+    const x = tries.find((c) => c >= lo && c <= hi && free(c - half - gap, c + half + gap));
+    if (x === undefined) return null;   // 놓을 자리가 없으면 겹치지 않게 뺀다 (글에서 먼저 나온 것이 먼저 자리를 잡는다)
+    placed.push([x - half, x + half]);
+    return { ...t, x };
+  }).filter((t): t is NonNullable<typeof t> => !!t);
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   return (
@@ -245,6 +259,11 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
                style={{ ...spotStyle({ ...sb, x }), transition: REDUCE || !play ? "none" : "left 2.4s cubic-bezier(.35,.1,.35,1), filter 2.6s ease" }} />
         );
       })}
+      {thingSpots.map((t, k) => (
+        <img key={`thing-${k}-${t.src.slice(0, 40)}`} className="scene-obj scene-thing" alt={t.name ? `내가 그린 ${t.name}` : ""}
+             src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
+             style={spotStyle({ src: t.src, x: t.x, foot: 0.95, h: t.h })} />
+      ))}
       {spr
         ? <canvas ref={canvas} width={384} height={384} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}
                   style={{ ...heroStyle, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />

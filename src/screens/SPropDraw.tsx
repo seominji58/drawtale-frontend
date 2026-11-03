@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
+import ConfirmCard from "@/components/ConfirmCard";
 import { ColorPalette, PenTools } from "@/components/DrawTools";
 import type { Tool } from "@/components/DrawTools";
 import { ERASER_SCALE, H, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, toTrimmedPng } from "@/features/draw/drawing";
@@ -26,6 +27,7 @@ export default function SPropDraw() {
   const [width, setWidth] = useState(PEN_WIDTHS[1].px);
   const order = useRef(0);
   const [drawing, setDrawing] = useState<Drawing>(emptyDrawing);
+  const [askClear, setAskClear] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef<LiveStroke | null>(null);
@@ -131,9 +133,14 @@ export default function SPropDraw() {
         <>
           <BigButton disabled={empty} nudgeOnDisabled={false}
             onClick={() => setDrawing((d) => ({ ...d, head: d.head.slice(0, -1) }))}>되돌리기</BigButton>
+          <BigButton disabled={empty} nudgeOnDisabled={false} onClick={() => setAskClear(true)}>전체 지우기</BigButton>
           <BigButton go disabled={empty} onClick={() => setPng(toTrimmedPng(drawing))}>다 그렸어요</BigButton>
         </>
       }>
+      {askClear && (
+        <ConfirmCard title="그림을 모두 지울까요?" yes="모두 지우기"
+          onYes={() => { setDrawing(emptyDrawing()); setAskClear(false); }} onNo={() => setAskClear(false)} />
+      )}
       <h2 className="question">무엇을 그려 볼까요?</h2>
       <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "이야기에 나올 물건을 크게 그려요"}</p>
       <div className="row" style={{ flex: 1, minHeight: 0, flexWrap: "wrap", alignItems: "flex-start" }}>

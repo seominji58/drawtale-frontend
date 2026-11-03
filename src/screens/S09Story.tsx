@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import Screen from "@/components/Screen";
+import Screen, { SoundIcon } from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
@@ -115,7 +115,8 @@ export default function S09Story() {
 }
 
 /** 긴 이야기 — 쪽을 하나씩 넘긴다. 쪽 넘기기는 아이가 누를 때만 (자동 전환 금지, AGENTS 3.1).
- *  예외는 「들려주기」를 누른 동안: 그 쪽 음성이 끝나면 다음 쪽으로 넘어가 이어 읽는다.
+ *  쪽에 들어오면 그 쪽을 한 번 읽어 준다 — 「들려주기」 버튼 없이 (2026-11-03 사용자 「버튼 자체를 없애고 바로 재생」).
+ *  다 읽어도 다음 쪽으로 넘어가지는 않는다. 다시 듣기는 오른쪽 위 C-02, 소리 끄기(S-13)면 읽지 않고 바만 찬다.
  *  쪽마다 서버가 만든 음성(`page.audioUrl`)과 동작 영상(`page.animationUrl`)을 쓴다. 음성이 없는 쪽은
  *  브라우저 TTS, 영상이 없는 쪽(가만히 · 렌더 실패)은 멈춘 그림, 목 엔진은 캔버스가 그 쪽 동작으로 움직인다.
  *  쪽 음성이 없고 이야기 전체 음성만 있는 예전 이야기는 재생 위치를 글자 수 비율로 쪽에 맞춘다.
@@ -126,11 +127,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const book = story.book!;
   const pages = book.pages;
   const [pg, setPg] = useState(0);
-  const [reading, setReading] = useState(false);
-  const readingRef = useRef(false);
   const audio = useRef<HTMLAudioElement | null>(null);
   const perPage = pages.some((p) => p.audioUrl);
-  const rate = useSettings((s) => s.speechRate);
   /** 지금 쪽 진행 (0~1). 쪽에 들어올 때마다 0 에서 시작해 그 쪽 음성(없으면 글 길이로 어림한 나레이션) 길이에 맞춰 찬다.
    *  들려주는 동안은 실제 재생 시각을 따른다 (2026-10-27 사용자 「쪽마다 하나의 바, 음성 · 영상 길이에 맞춰 회색이 초록으로」) */
   const [frac, setFrac] = useState(0);
@@ -156,11 +154,10 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     return lens.map((l) => (acc += l) / total);
   }, [pages]);
 
-  useEffect(() => () => { readingRef.current = false; stopSpeak(); audio.current?.pause(); stopTts(); }, []);
+  useEffect(() => () => { stopSpeak(); audio.current?.pause(); stopTts(); }, []);
 
   const stop = () => {
-    readingRef.current = false;
-    stopSpeak(); audio.current?.pause(); stopTts(); setReading(false);
+    stopSpeak(); audio.current?.pause(); stopTts();
   };
   // ---- 쪽 넘김 (2026-11-03 사용자 결정 N2: M 「비스듬한 말림 띠」, 쉬는 동안 귀퉁이 표시는 없음 —
   //      「접혀 있는 게 애매, 없는 게 더 자연스러움」. 넘길 때 · 손가락으로 잡을 때만 귀퉁이가 생긴다) ----
@@ -242,13 +239,16 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     } else if (dx > 0.12 && pg > 0) go(pg - 1);
   };
 
-  // 들려주지 않을 때도 쪽에 들어오면 바가 그 쪽 길이만큼 찬다. 쪽 음성 파일이 있으면 그 길이, 없으면 글 길이로 어림
+  // 쪽에 들어오면 그 쪽을 읽고, 바는 실제 재생 시각대로 찬다. 쪽 음성 파일이 있으면 그것, 예전 이야기의 전체 음성이면
+  // 그 쪽 구간만, 없으면 브라우저 TTS. 소리를 껐거나 브라우저가 소리를 막으면(누른 적 없는 탭) 글 길이로 바만 채운다
+  const [replay, setReplay] = useState(0);
   useEffect(() => {
-    if (readingRef.current) return;
     setFrac(0);
-    stopTts();
+    stop();
     let alive = true;
-    const run = (sec: number) => {
+    const text = pages[pg].text;
+    const est = Math.max(1.2, text.length / (TTS_CHARS_PER_SEC * speechRate()));
+    const fill = (sec: number) => {
       if (!alive) return;
       const t0 = performance.now();
       const tick = () => {
@@ -258,71 +258,45 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       };
       tick();
     };
-    // 빠르기를 바꾸면 그만큼 짧아지고 길어진다 (S-13 읽어주기 빠르기)
-    const est = Math.max(1.2, pages[pg].text.length / (TTS_CHARS_PER_SEC * speechRate()));
-    const url = pages[pg].audioUrl;
-    if (url) {
-      const a = new Audio();
-      a.preload = "metadata";
-      a.onloadedmetadata = () => run(a.duration && isFinite(a.duration) ? a.duration / fileRate() : est);
-      a.onerror = () => run(est);
-      a.src = url;
-    } else {
-      run(est);
-    }
-    return () => { alive = false; stopTts(); };
-  }, [pg, rate]);   // 빠르기를 바꾸면 바도 그 길이로 다시 찬다
-
-  /** n 쪽부터 끝까지 읽는다. 쪽 음성 파일이 있으면 그것을, 없으면 브라우저 TTS */
-  const readPage = (n: number) => {
-    if (!readingRef.current) return;
-    if (n >= pages.length) { stop(); return; }
-    setPg(n);
-    setFrac(0);
-    // 다 읽으면 넘김 움직임으로 다음 쪽에 간 뒤 이어 읽는다
-    const next = () => {
-      stopTts(); setFrac(1);
-      if (n + 1 >= pages.length) { readPage(n + 1); return; }
-      void turnTo(n + 1).then(() => readPage(n + 1));
+    const tts = () => {
+      if (!alive) return;
+      if (muteAll) { fill(est); return; }
+      trackTts(text);
+      speak(text, muteAll, () => { if (alive) { stopTts(); setFrac(1); } });
     };
-    const tts = () => { trackTts(pages[n].text); speak(pages[n].text, muteAll, next); };
-    const url = pages[n].audioUrl;
-    if (url) {
-      audio.current?.pause();
-      const a = new Audio(url);
-      a.playbackRate = fileRate();
-      audio.current = a;
-      a.ontimeupdate = () => { if (a.duration) setFrac(a.currentTime / a.duration); };
-      a.onended = next;
-      a.onerror = tts;
-      void a.play().catch(tts);
-    } else {
-      tts();
-    }
-  };
-
-  const play = () => {
-    if (reading) { stop(); return; }
-    readingRef.current = true;
-    setReading(true);
-    if (perPage || !story.audioUrl) { readPage(pg); return; }
-    const a = audio.current ?? new Audio(story.audioUrl);
-    audio.current = a;
-    a.onended = () => stop();
-    a.ontimeupdate = () => {
-      if (!a.duration) return;
-      const t = a.currentTime / a.duration;
-      const i = ends.findIndex((e) => t < e);
-      const k = i === -1 ? pages.length - 1 : i;
-      setPg(k);
-      const from = k === 0 ? 0 : ends[k - 1];
-      setFrac(Math.min(1, (t - from) / Math.max(1e-6, ends[k] - from)));
-    };
-    const start = pg === 0 ? 0 : ends[pg - 1];
-    a.playbackRate = fileRate();
-    const begin = () => { a.currentTime = start * (a.duration || 0); void a.play(); };
-    if (a.readyState >= 1) begin(); else a.onloadedmetadata = begin;
-  };
+    // 넘김 움직임이 끝나고 장면이 자리 잡은 뒤 읽기 시작한다
+    const t = window.setTimeout(() => {
+      if (!alive) return;
+      const url = pages[pg].audioUrl;
+      if (muteAll) { fill(est); return; }
+      if (url) {
+        const a = new Audio(url);
+        a.playbackRate = fileRate();
+        audio.current = a;
+        a.ontimeupdate = () => { if (a.duration) setFrac(a.currentTime / a.duration); };
+        a.onended = () => { if (alive) setFrac(1); };
+        a.onerror = tts;
+        void a.play().catch(() => fill(est));
+      } else if (!perPage && story.audioUrl) {
+        const a = audio.current && audio.current.src.includes(story.audioUrl.split("?")[0]) ? audio.current : new Audio(story.audioUrl);
+        audio.current = a;
+        const from = pg === 0 ? 0 : ends[pg - 1], to = ends[pg];
+        a.playbackRate = fileRate();
+        a.ontimeupdate = () => {
+          if (!a.duration) return;
+          const f = a.currentTime / a.duration;
+          setFrac(Math.min(1, (f - from) / Math.max(1e-6, to - from)));
+          if (f >= to) { a.pause(); setFrac(1); }
+        };
+        a.onended = () => { if (alive) setFrac(1); };
+        const begin = () => { a.currentTime = from * (a.duration || 0); void a.play().catch(() => fill(est)); };
+        if (a.readyState >= 1) begin(); else a.onloadedmetadata = begin;
+      } else {
+        tts();
+      }
+    }, 250);
+    return () => { alive = false; clearTimeout(t); stop(); };
+  }, [pg, replay]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const page = pages[pg];
   const last = pg === pages.length - 1;
@@ -332,7 +306,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 주인공과 합성하지 않는다 (손에 쥐거나 겹치는 리스크를 지지 않음). 아이 소품은 보호자 모드 이야기에서만 (팀원 의견)
   const mine = useProps((st) => st.mine);
   const firstOfStage = pages.findIndex((p) => p.stage === page.stage) === pg;
-  const shown = story.guardian && firstOfStage ? propsForStage(page.stage, story.picks, mine) : [];
+  // 장면 층 이야기는 쪽 글에 맞춰 장면 안에 넣으므로(아래 planPages) 따로 보이는 소품 장면은 없다
+  const layered = pages.some((p) => p.sprite);
+  const shown = story.guardian && firstOfStage && !layered ? propsForStage(page.stage, story.picks, mine) : [];
   const shownKey = shown.map((p) => p.id).join(",");
   const [propPhase, setPropPhase] = useState(false);
   useEffect(() => {
@@ -354,8 +330,13 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 투명 프레임 묶음이 있는 이야기는 장면 층으로 (2026-11-03 「나」 — features/scene): 세부 장소 · 밤낮 · 인물 · 움직임.
   // 묶음이 없는(예전 AI · 예전 이야기) 이야기는 위의 장소 배경 + 영상 바탕 지우기(PlaceScene)
   const scenes = useMemo(
-    () => (pages.some((p) => p.sprite) ? planPages(pages, { ...story.picks, place: placeOf(story) }, book.characterSheet) : null),
-    [pages, story],
+    // 내 소품은 보호자 모드 이야기에서만 (팀원 의견). 쪽 글에 이름이 나오면 그 쪽 장면 안 주인공 옆에 (11/3 사용자 추천안 —
+    // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게
+    () => (pages.some((p) => p.sprite)
+      ? planPages(pages, { ...story.picks, place: placeOf(story) }, book.characterSheet,
+          story.guardian ? mine.map((p) => ({ name: p.name, png: p.png, height: SCENE_PROP_H[p.size ?? "m"] })) : [])
+      : null),
+    [pages, story, mine],
   );
   // 들어온 쪽과 그 앞에 보던 쪽 — 앞으로 넘겨 들어왔을 때만 움직인다
   const [entered, setEntered] = useState<{ pg: number; from: number | null }>({ pg: 0, from: null });
@@ -504,7 +485,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   };
 
   return (
-    <Screen back="/" speech={page.text} segment={4} autoSpeak={false}>
+    <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
+      // C-02 다시 듣기: 이 쪽을 처음부터 다시 읽는다 (쪽 음성 파일이 있으면 그 목소리로 — 브라우저 음성과 겹치지 않게)
+      railEnd={<button className="round" onClick={() => setReplay((r) => r + 1)} aria-label="다시 듣기"><SoundIcon /></button>}>
       {/* 가로 화면: 장면이 높이를 거의 다 쓰고, 오른쪽 좁은 칸에 글 + 조작 (2026-11-03 사용자 「대본을 작게, 장면이 커야」).
           조작 줄은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 두고, 가로 화면에서는 글 칸 아래에 겹쳐 놓는다 (ui.css .book-area) */}
       <div className={`book-area ${stageAr ? "fit" : ""}`} ref={areaRef}
@@ -532,9 +515,6 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 
       <div className="ctl-btns">
         <BigButton className="prev" disabled={pg === 0} onClick={() => go(pg - 1)} nudgeOnDisabled={false}>앞 쪽</BigButton>
-        <BigButton className="play" disabled={muteAll} onClick={play} nudgeOnDisabled={false}>
-          {reading ? "멈추기" : "들려주기"}
-        </BigButton>
         {/* 마지막 쪽에서는 「다음 쪽」 자리에 「다 봤어요」 (pt_docs 05 S-09-03 · S-09-08 — 마지막 장면에서만) */}
         {last
           ? <BigButton className="next" go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>
@@ -576,6 +556,8 @@ const REDUCE_MOTION = typeof window !== "undefined" && window.matchMedia("(prefe
 
 /** 소품 장면을 보여 주는 시간. 그 뒤 같은 쪽에서 주인공 장면으로 바뀐다 */
 const PROP_MS = 2200;
+/** 장면 층에서 내 소품 키 (화면 높이 대비) — 주인공(약 0.52) 옆에 놓인다 */
+const SCENE_PROP_H = { s: 0.12, m: 0.2, l: 0.3 } as const;
 
 /** 쪽 동작 → 브라우저 캔버스 동작 (목 엔진). 캔버스에는 뛰기 · 춤이 없어 걷기 · 점프로 */
 const CANVAS_MOTION: Record<string, MotionId> = {

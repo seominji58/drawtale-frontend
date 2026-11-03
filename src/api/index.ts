@@ -394,6 +394,14 @@ export async function deleteMyVoice(): Promise<void> {
   if (!r.ok && r.status !== 204) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
 }
 
+/** 계정 탈퇴 (S-13, 2026-11-03). 서버가 그 계정의 그림 · 이야기 · 음성 · 영상 · 보호자 목소리 · 로그인 기록을 모두 지운다
+ *  (계약 2-8 DELETE /auth/me). 되돌릴 수 없다 — 화면이 먼저 묻는다 */
+export async function deleteAccount(): Promise<void> {
+  if (useMock) return;
+  const r = await fetch(BASE + "/auth/me", { method: "DELETE", headers: authHeader() });
+  if (!r.ok && r.status !== 204) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
+}
+
 /** 책장(S-12)에서 다시 연 이야기를 서버에서 새로 받는다 (2026-11-02 보안).
  *  음성 · 영상 주소에는 기한이 있어서(로컬 서명 24시간 · Azure SAS 2시간) 저장해 둔 주소는 곧 열리지 않는다.
  *  기기에만 있는 것(고친 제목 · 표지 · 고른 카드 · 보호자 모드)은 그대로 둔다. 못 받으면 저장본 그대로 */

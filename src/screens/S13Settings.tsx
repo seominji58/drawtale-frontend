@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
+import ConfirmCard from "@/components/ConfirmCard";
 import { useSettings, useWithAdult, FIXED_LEVEL } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { TITLE_MAX, useLibrary } from "@/store/library";
 import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
-import { deleteMyVoice, getMyVoice } from "@/api";
+import { deleteAccount, deleteMyVoice, getMyVoice } from "@/api";
 import type { GuardianVoice } from "@/api";
 
 function Row({ name, desc, children }: { name: string; desc: string; children: ReactNode }) {
@@ -69,13 +70,35 @@ export default function S13Settings() {
     getMyVoice().then((v) => { if (alive) setMyVoice(v); }).catch(() => { if (alive) setMyVoice(null); });
     return () => { alive = false; };
   }, [mode]);
+  // 되돌릴 수 없는 일은 화면 안 카드로 한 번 묻는다 (브라우저 확인 창 대신, 11/3 사용자)
+  const [ask, setAsk] = useState<{ kind: "voice" } | { kind: "story"; id: string; title: string } | { kind: "account" } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
   const forgetVoice = async () => {
-    if (!confirm("등록한 목소리를 지울까요? 이 목소리로 만든 이야기 음성도 함께 지워집니다.")) return;
+    setWorking(true);
     try {
       await deleteMyVoice();
       s.set("guardianNarrator", false);
       setMyVoice((v) => (v ? { ...v, registered: false, consentedAt: null } : v));
-    } catch { alert("지우지 못했습니다. 인터넷 연결을 확인하고 다시 해 주세요."); }
+      setAsk(null);
+    } catch { setAsk(null); setNotice("지우지 못했습니다. 인터넷 연결을 확인하고 다시 해 주세요."); }
+    finally { setWorking(false); }
+  };
+  /** 로그아웃하면 「어른과 함께」 기능도 끈다. 다음에 들고 있는 사람이 보호자라는 보장이 없다 */
+  const signOut = () => { s.set("guardianMode", false); s.set("photoUpload", false); s.set("voiceInput", false); s.set("guardianNarrator", false); logout(); };
+  /** 계정 탈퇴: 서버에서 다 지운 뒤 이 기기의 이야기 목록 · 내 소품 · 그 계정 설정도 지우고 처음 화면으로 */
+  const withdraw = async () => {
+    setWorking(true);
+    try {
+      await deleteAccount();
+      for (const k of ["storyblanks.stories", "storyblanks.myprops", "storyblanks.consents"]) {
+        try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch { /* 없어도 된다 */ }
+      }
+      signOut();
+      setAsk(null);
+      nav("/welcome", { replace: true });
+    } catch { setAsk(null); setNotice("탈퇴하지 못했습니다. 인터넷 연결을 확인하고 다시 해 주세요."); }
+    finally { setWorking(false); }
   };
 
   // 지금 보고 있는 묶음을 칩에 표시한다: 목록 맨 위를 지난 마지막 머리.
@@ -112,15 +135,37 @@ export default function S13Settings() {
         ))}
       </nav>
       {/* 터치 · 휠 · 트랙패드 · 스크롤 막대 · 키보드(눌러서 고른 뒤 화살표 · Page Down) 모두로 내린다 */}
+      {ask?.kind === "voice" && (
+        <ConfirmCard title="등록한 목소리를 지울까요?" yes="지우기" busy={working}
+          onYes={() => void forgetVoice()} onNo={() => setAsk(null)}>
+          <p className="hint">이 목소리로 만든 이야기 음성도 함께 지워집니다.</p>
+        </ConfirmCard>
+      )}
+      {ask?.kind === "story" && (
+        <ConfirmCard title={`「${ask.title}」 이야기를 지울까요?`} yes="지우기"
+          onYes={() => { remove(ask.id); setAsk(null); }} onNo={() => setAsk(null)}>
+          <p className="hint">이 기기의 책장에서 사라집니다.</p>
+        </ConfirmCard>
+      )}
+      {ask?.kind === "account" && (
+        <ConfirmCard title="계정을 탈퇴할까요?" yes={working ? "지우는 중" : "탈퇴하기"} busy={working}
+          onYes={() => void withdraw()} onNo={() => setAsk(null)}>
+          <p className="hint">이 계정의 그림 · 이야기 · 음성 · 영상 · 등록한 목소리가 모두 지워지고 되돌릴 수 없습니다.</p>
+        </ConfirmCard>
+      )}
+      {notice && <ConfirmCard title={notice} yes="확인" no={null} onYes={() => setNotice(null)} onNo={() => setNotice(null)} />}
       <div className="list scroll set-list" ref={listRef} tabIndex={0} aria-label="설정 목록">
         <Head id="account" name="계정" />
         <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
-          {/* 로그아웃하면 「어른과 함께」 기능도 끈다. 다음에 들고 있는 사람이 보호자라는 보장이 없다 */}
-          <button className="btn link"
-            onClick={mode === "member" ? () => { s.set("guardianMode", false); s.set("photoUpload", false); s.set("voiceInput", false); s.set("guardianNarrator", false); logout(); } : () => nav("/login")}>
+          <button className="btn link" onClick={mode === "member" ? signOut : () => nav("/login")}>
             {mode === "member" ? "로그아웃" : "로그인"}
           </button>
         </Row>
+        {mode === "member" && (
+          <Row name="계정 탈퇴" desc="그림 · 이야기 · 목소리가 모두 지워지고 되돌릴 수 없습니다">
+            <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "account" })}>탈퇴하기</button>
+          </Row>
+        )}
 
         {/* 지원 수준은 고정 (FIXED_LEVEL, open-decisions 0-12). null 이면 다시 보인다 */}
         {!FIXED_LEVEL && <Row name="지원 수준" desc="아동의 사용을 돕는 수준을 선택하세요">
@@ -227,7 +272,7 @@ export default function S13Settings() {
           <Row name="내 목소리 다시 녹음 · 지우기" desc="다시 녹음하면 예전 목소리는 지워집니다. 지우면 동의를 거둬들인 것으로 기록합니다">
             <span style={{ display: "flex", gap: 14 }}>
               <button className="btn link" onClick={() => nav("/voice")}>다시 녹음</button>
-              <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => void forgetVoice()}>지우기</button>
+              <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "voice" })}>지우기</button>
             </span>
           </Row>
         )}
@@ -268,7 +313,7 @@ export default function S13Settings() {
                   <span style={{ display: "flex", gap: 14 }}>
                     <button className="btn link" onClick={() => setEditing({ id: st.storyId, title: st.title })}>제목 고치기</button>
                     <button className="btn link" style={{ color: "var(--berry)" }}
-                      onClick={() => { if (confirm("이 이야기를 지울까요?")) remove(st.storyId); }}>
+                      onClick={() => setAsk({ kind: "story", id: st.storyId, title: st.title })}>
                       삭제
                     </button>
                   </span>

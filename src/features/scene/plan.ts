@@ -27,7 +27,69 @@ const COVERS: [RegExp, string, number][] = [
   [/책장/, "school-library/shelf.webp", 0.38],
   [/책상/, "school-classroom/desks.webp", 0.32],
   [/식탁|탁자/, "home-kitchen/table.webp", 0.34],
+  // 새로 그린 숨는 곳 (11/3, tools/art/gen_objects.py)
+  [/담요|이불|침낭|잠자리 주머니|돗자리/, "props/blanket.webp", 0.3],
+  [/텐트/, "props/tent.webp", 0.44],
+  [/모래 언덕/, "props/dune.webp", 0.26],
+  [/시소/, "props/seesaw.webp", 0.2],
+  [/정자|기둥/, "props/pavilion.webp", 0.56],
+  [/구령대/, "props/podium.webp", 0.24],
 ];
+
+/** 쪽 글에 나오면 주인공 옆 땅에 놓는 물건 (11/3 사용자 「대본에 들어갔는데 실제로 없는 오브젝트」 — 카드 이야기에서 자주 나온 것).
+ *  [낱말, 그림, 화면 높이 대비 키, 가로 ÷ 세로]. 「공」은 「공원 · 공책」이 걸리지 않게 낱말 단위로 */
+const THINGS: [RegExp, string, number, number][] = [
+  [/손전등/, "props/flashlight.webp", 0.1, 1.83],
+  [/랜턴|등불/, "props/lantern.webp", 0.17, 0.54],
+  [/(?:^|[^가-힣])공(?:을|이|은|과|도|놀이)?(?=[^가-힣]|$)/, "props/ball.webp", 0.12, 1.01],
+  [/빵/, "props/bread.webp", 0.12, 1.04],
+  [/의자/, "props/chair.webp", 0.2, 0.66],
+  [/벤치/, "town-park/bench.webp", 0.18, 1.6],
+  [/반창고/, "props/bandage.webp", 0.08, 0.99],
+  [/풍선/, "props/balloons.webp", 0.3, 0.58],
+];
+/** 한 쪽에 놓는 물건은 이만큼까지 (내 소품 포함) */
+const MAX_THINGS = 3;
+
+export interface ThingPlan {
+  /** 그림 주소 (장면 그림이면 public/scenes 기준 경로, 내 소품이면 data URL) */
+  src: string;
+  /** 화면 높이 대비 키 · 가로 ÷ 세로 */
+  h: number;
+  ar: number;
+  /** 내 소품이면 그 이름 (그림 설명) */
+  name?: string;
+}
+
+/** 내 소품 이름이 쪽 글에 나오나 — 이름 그대로(띄어쓰기 무시) 또는 마지막 낱말(「노란 우산」 → 「우산」) */
+function mentions(text: string, name: string): boolean {
+  const flat = text.replace(/\s+/g, "");
+  const whole = name.replace(/\s+/g, "");
+  const last = name.trim().split(/\s+/).pop() ?? "";
+  if (whole && flat.includes(whole) && whole.length >= 2) return true;
+  if (!last) return false;
+  // 한 글자 이름(「해」 · 「공」)은 다른 낱말 속 글자(「해요」 · 「공원」)가 걸리지 않게 낱말 단위로
+  if (last.length === 1) return new RegExp(`(?:^|[^가-힣])${last}(?:을|를|이|가|은|는|과|와|도|랑|이랑)?(?=[^가-힣]|$)`).test(text);
+  return flat.includes(last);
+}
+
+/** 쪽마다 놓을 물건 — 내 소품이 먼저(같은 낱말이면 내가 그린 것), 그다음 장면 그림. 글에서 먼저 나온 순 */
+export function thingsFor(text: string, mine: { name: string; png: string; height: number }[] = []): ThingPlan[] {
+  const hits: { at: number; t: ThingPlan; key: string }[] = [];
+  for (const p of mine) {
+    if (!mentions(text, p.name)) continue;
+    const last = p.name.trim().split(/\s+/).pop() ?? p.name;
+    hits.push({ at: text.indexOf(last), t: { src: p.png, h: p.height, ar: 1, name: p.name }, key: last });
+  }
+  for (const [re, src, h, ar] of THINGS) {
+    const m = re.exec(text);
+    if (!m) continue;
+    // 내 소품이 같은 낱말이면 장면 그림은 빼고 내가 그린 것만
+    if (hits.some((x) => m[0].includes(x.key) || x.key.includes(m[0].replace(/[^가-힣]/g, "").slice(0, 3)))) continue;
+    hits.push({ at: m.index, t: { src, h, ar }, key: m[0] });
+  }
+  return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
+}
 export function coverFor(text: string): { src: string; h: number } | null {
   let best: { src: string; h: number } | null = null, at = Infinity;
   for (const [re, src, h] of COVERS) {
@@ -75,6 +137,8 @@ export interface PagePlan {
   env: Env;
   hero: HeroPlan;
   props: PropPlan[];
+  /** 쪽 글에 나온 물건 · 내 소품 — 주인공 옆 땅에 */
+  things: ThingPlan[];
 }
 
 interface Picks { place?: string; problem?: string; action?: string; result?: string }
@@ -116,7 +180,8 @@ const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0
 /** 쪽마다 계획. place 는 장소 카드 id (말로 정한 장소면 부르지 않는다).
  *  인물: 대본이 그 쪽에 적은 인물(scene.characters)이 먼저다 — 글에 나오는 사람이 화면에 나온다.
  *  대본에 인물이 없는 쪽만 고른 카드로 정한다 (친구 카드면 친구, 어른 카드면 어른) */
-export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string, string> = {}): PagePlan[] {
+export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string, string> = {},
+  mine: { name: string; png: string; height: number }[] = []): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
   let x = SLOT, loc: string | undefined, night = false;
@@ -188,6 +253,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       env: { night, sun },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? 0, fallen: p.stage === "problem" && picks.problem === "fall", hide },
       props,
+      things: p.stage === "action" && picks.action === "hide" ? [] : thingsFor(p.text, mine),
     });
     x = to;
   }

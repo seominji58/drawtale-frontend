@@ -6,40 +6,24 @@ import { ColorPalette, PenTools, TAP } from "@/components/DrawTools";
 import type { Tool } from "@/components/DrawTools";
 import { useSession } from "@/store/session";
 import { useGuardianMode } from "@/store/settings";
+import ConfirmCard from "@/components/ConfirmCard";
 import {
-  ERASER_SCALE, H, PARTS, PEN_COLORS, PEN_WIDTHS, W, detachedParts, drawGuide, drawLayer, emptyDrawing, toPngFile,
+  ERASER_SCALE, H, PARTS, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, hasLoosePieces, toPngFile,
 } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
 
 /** S-03D 화면에 그리기 (pt_docs 05 S-03D, v0.3 신설. 처음 결정은 open-decisions 0-4, 2026-09-29).
- *  S-03 의 「그림 찍기」와 나란히 있다. 머리 → 몸 → 팔 → 다리를 한 단계씩, 점선 안내 위에
- *  손으로 그린다. 다 그리면 S-03 으로 돌아가 「이 그림으로」를 누른다.
+ *  S-03 의 「그림 찍기」와 나란히 있다. 다 그리면 S-03 으로 돌아가 「이 그림으로」를 누른다.
  *  2026-10-27: 도장 찍기를 빼고 직접 그리기만 — 색 · 선 굵기 세 가지 · 지우개 (사용자 결정).
  *  2026-10-28: 색은 아이 모드 12색, 보호자 모드 24색 + 색 만들기 (사용자 결정).
- *  예전 도장 그림 데이터는 drawing.ts 에 남아 있어 그대로 그려진다.
- *  한 화면 한 질문, 자동 전환 없음 — 「다음」은 아이가 누른다.
- *  단계 칸(머리·몸·팔·다리)은 언제든 눌러서 돌아가 고칠 수 있다. */
+ *  2026-11-03: 머리 → 몸 → 팔 → 다리 단계 · 점선 안내를 없애고 한 장에 통으로 자유롭게 (사용자
+ *  「점선 따라 그리세요 말고 자유롭게」 · 「몸, 머리, 팔, 다리 선택 없이 통으로」). 전체 지우기 (확인 카드).
+ *  떨어진 조각은 막지 않고 알려만 준다. 그린 것은 drawing.body 한 칸에 모은다(예전 단계 그림도 그대로 그려진다).
+ *  예전 도장 그림 데이터는 drawing.ts 에 남아 있어 그대로 그려진다. */
 
-const QUESTION: Record<Part, string> = {
-  head: "머리를 그려 볼까요?",
-  body: "몸을 그려 볼까요?",
-  arms: "팔을 그려 볼까요?",
-  legs: "다리를 그려 볼까요?",
-};
 /** 넓은 화면에서 종이 양옆이 차지하는 폭: 색 세 칸(보호자 팔레트도 같은 폭) + 도구 세 칸 + 사이 간격 */
 const SIDES = (TAP * 3 + 24) + (TAP * 3 + 24) + 2 * 20;
-const LABEL: Record<Part, string> = { head: "머리", body: "몸", arms: "팔", legs: "다리" };
-
-/** 「○○가 떨어져 있어요」의 조사까지 맞춘 이름 */
-const SUBJECT: Record<Part, string> = { head: "머리가", body: "몸이", arms: "팔이", legs: "다리가" };
-
-/** 팔·다리는 몸에 붙여야 한다 — 떨어진 조각은 캐릭터에서 빠진다 */
-const TIP: Record<Part, string> = {
-  head: "",
-  body: "머리에 붙여서",
-  arms: "몸에 붙여서, 옆으로 벌려요",
-  legs: "몸에 붙여서 아래로",
-};
+const QUESTION = "내 친구를 그려 볼까요?";
 
 export default function S03Draw() {
   const nav = useNavigate();
@@ -48,12 +32,12 @@ export default function S03Draw() {
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState(PEN_COLORS[0].hex);
   const [width, setWidth] = useState(PEN_WIDTHS[1].px);
-  /** 그린 차례. 지우개가 부위와 상관없이 먼저 그린 선을 지우게 한다 */
+  /** 그린 차례. 지우개가 먼저 그린 선을 지우게 한다 */
   const order = useRef(0);
-  const [at, setAt] = useState(0);
   const [drawing, setDrawing] = useState<Drawing>(emptyDrawing);
-  /** 몸에서 떨어진 부위. 「다 그렸어요」를 누를 때 확인한다 */
-  const [apart, setApart] = useState<Part[]>([]);
+  /** 「다 그렸어요」를 눌렀는데 떨어진 조각이 있다 — 고칠지 이대로 갈지 묻는다 */
+  const [loose, setLoose] = useState(false);
+  const [askClear, setAskClear] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const wrap = useRef<HTMLDivElement>(null);
@@ -61,13 +45,10 @@ export default function S03Draw() {
   const live = useRef<LiveStroke | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0, wide: true, aw: 0 });
 
-  const part = PARTS[at];
-  const last = at === PARTS.length - 1;
-  const empty = drawing[part].length === 0;
+  const empty = PARTS.every((p) => drawing[p].length === 0);
 
   // 남은 자리에 4:5 종이를 가장 크게 맞춘다 (2026-10-28).
-  // 넓으면 [색 | 종이 | 도구] 를 가운데 붙여 놓고, 좁으면(폰) 종이 아래로 색 · 도구를 내리고 위아래로 민다.
-  // 예전에는 종이를 감싼 무대 틀이 남은 폭을 다 차지해서 종이 양옆이 빈 칸으로 남고, 색과 도구가 화면 끝으로 밀렸다
+  // 넓으면 [색 | 종이 | 도구] 를 가운데 붙여 놓고, 좁으면(폰) 종이 아래로 색 · 도구를 내리고 위아래로 민다
   useLayoutEffect(() => {
     const el = wrap.current;
     if (!el) return;
@@ -95,20 +76,14 @@ export default function S03Draw() {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, c.width, c.height);
     ctx.setTransform((box.w * dpr) / W, 0, 0, (box.h * dpr) / H, 0, 0);
-    drawGuide(ctx, part, drawing);
     drawLayer(ctx, drawing, live.current ?? undefined);
-  }, [box, drawing, part]);
+  }, [box, drawing]);
 
   useEffect(paint, [paint]);
 
   const toLogical = (e: React.PointerEvent): Pt => {
     const r = canvas.current!.getBoundingClientRect();
     return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H };
-  };
-
-  const add = (item: Drawing[Part][number]) => {
-    setApart([]);
-    setDrawing((d) => ({ ...d, [part]: [...d[part], item] }));
   };
 
   const down = (e: React.PointerEvent) => {
@@ -126,19 +101,30 @@ export default function S03Draw() {
   const up = () => {
     const s = live.current;
     live.current = null;
-    if (s) add({ kind: "stroke", pts: s.pts, color: s.color, width: s.width, erase: s.erase || undefined, t: ++order.current });
+    if (!s) return;
+    setLoose(false);
+    setDrawing((d) => ({ ...d, body: [...d.body, { kind: "stroke", pts: s.pts, color: s.color, width: s.width, erase: s.erase || undefined, t: ++order.current }] }));
   };
 
+  /** 마지막에 그린 것 하나 (어느 칸에 있든 가장 늦게 그린 것) */
   const undo = () => {
-    setApart([]);
-    setDrawing((d) => ({ ...d, [part]: d[part].slice(0, -1) }));
+    setLoose(false);
+    setDrawing((d) => {
+      const lastPart = [...PARTS].reverse().reduce<Part | null>((best, p) => {
+        const it = d[p][d[p].length - 1];
+        if (!it) return best;
+        const t = "t" in it ? it.t ?? 0 : 0;
+        const bi = best ? d[best][d[best].length - 1] : undefined;
+        const bt = bi && "t" in bi ? bi.t ?? 0 : -1;
+        return t >= bt ? p : best;
+      }, null);
+      return lastPart ? { ...d, [lastPart]: d[lastPart].slice(0, -1) } : d;
+    });
   };
 
-  const next = async () => {
-    if (!last) { setAt(at + 1); return; }
-    // 떨어진 조각은 캐릭터에서 빠진다 (AI 는 가장 큰 덩어리 하나만 쓴다)
-    const loose = detachedParts(drawing);
-    if (loose.length) { setApart(loose); return; }
+  const finish = async (force = false) => {
+    // 떨어진 조각은 움직일 때 몸과 따로 논다 — 막지는 않고 한 번 알려 준다
+    if (!force && hasLoosePieces(drawing)) { setLoose(true); return; }
     setBusy(true);
     try {
       setFile(await toPngFile(drawing));
@@ -148,22 +134,19 @@ export default function S03Draw() {
     }
   };
 
-  const hint = [TIP[part], tool === "eraser" ? "문지르면 지워져요" : "점선을 따라 그려요"]
-    .filter(Boolean).join(" · ");
-
   return (
-    <Screen back={at === 0 ? "/upload" : () => setAt(at - 1)}
-      speech={QUESTION[part]} segment={1}
+    <Screen back="/upload" speech={QUESTION} segment={1}
       acts={
         <>
           <BigButton disabled={empty} nudgeOnDisabled={false} onClick={undo}>되돌리기</BigButton>
-          <BigButton go disabled={empty || busy} onClick={next}>{last ? "다 그렸어요" : "다음"}</BigButton>
+          <BigButton disabled={empty} nudgeOnDisabled={false} onClick={() => setAskClear(true)}>전체 지우기</BigButton>
+          <BigButton go disabled={empty || busy} onClick={() => void finish()}>다 그렸어요</BigButton>
         </>
       }>
-      <h2 className="question">{QUESTION[part]}</h2>
-      <p className="hint">{hint}</p>
+      <h2 className="question">{QUESTION}</h2>
+      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "머리 · 몸 · 팔 · 다리를 붙여서 그리면 더 잘 움직여요"}</p>
 
-      {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기 · 단계는 오른쪽에 종이와 붙여 둔다
+      {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기는 오른쪽에 종이와 붙여 둔다
           (기준 화면이 가로 1024×768). 좁으면 종이 아래로 내려간다 */}
       <div ref={wrap} className={`draw-area ${box.wide ? "wide" : "narrow"}`}>
         {/* 아이 모드 12색, 보호자 모드는 24색 + 색 만들기 (2026-10-28 사용자) */}
@@ -179,37 +162,18 @@ export default function S03Draw() {
 
         <div className="draw-tools">
           <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth} />
-          {/* 단계 칸. 누르면 그 부위로 간다 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {PARTS.map((p, i) => {
-              const loose = apart.includes(p);
-              const done = drawing[p].length > 0;
-              return (
-                <button key={p} className="btn" aria-current={i === at ? "step" : undefined}
-                  aria-label={`${LABEL[p]}${loose ? ", 떨어져 있어요" : done ? ", 그렸어요" : ""}`}
-                  onClick={() => setAt(i)}
-                  style={{
-                    minHeight: TAP, padding: 0, flexDirection: "column", gap: 2,
-                    background: i === at ? "var(--butter)" : undefined,
-                    outline: loose ? "4px solid var(--berry)" : undefined,
-                  }}>
-                  <span>{loose ? "! " : done ? "✓ " : ""}{LABEL[p]}</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
       </div>
 
-      {apart.length > 0 && (
+      {loose && (
         <div className="box warn inline">
-          <span>
-            {apart[0] === "body" ? "몸이 머리나 팔다리와" : `${SUBJECT[apart[0]]} 몸에서`} 떨어져 있어요. 붙게 그려 볼까요?
-          </span>
-          <button className="btn link" onClick={() => setAt(PARTS.indexOf(apart[0]))}>
-            {LABEL[apart[0]]} 고치러 가기
-          </button>
+          <span>떨어진 조각이 있어요. 몸에 붙이면 더 잘 움직여요</span>
+          <button className="btn link" onClick={() => void finish(true)}>이대로 할래요</button>
         </div>
+      )}
+      {askClear && (
+        <ConfirmCard title="그림을 모두 지울까요?" yes="모두 지우기"
+          onYes={() => { setDrawing(emptyDrawing()); setLoose(false); setAskClear(false); }} onNo={() => setAskClear(false)} />
       )}
     </Screen>
   );

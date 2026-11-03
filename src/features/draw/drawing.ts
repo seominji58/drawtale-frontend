@@ -387,6 +387,17 @@ export function detachedParts(drawing: Drawing): Part[] {
   return out;
 }
 
+/** 한 장에 통으로 그린 그림에서 가장 큰 덩어리와 떨어진 큰 조각이 있나 (2026-11-03 단계 없이 그리기).
+ *  떨어진 팔다리는 움직일 때 몸과 따로 논다 — 그리기는 막지 않고 알려만 준다 */
+export function hasLoosePieces(drawing: Drawing): boolean {
+  const { sizes } = label(drawing);
+  if (sizes.length < 3) return false;   // 덩어리가 하나뿐이거나 아무것도 없다
+  const total = sizes.reduce((a, b) => a + b, 0);
+  let main = 1;
+  for (let i = 2; i < sizes.length; i++) if (sizes[i] > sizes[main]) main = i;
+  return sizes.some((n, i) => i > 0 && i !== main && n >= total * 0.02);
+}
+
 /** 소품용 — 투명 바탕, 그린 곳만 잘라(여백 조금) 긴 변 512px 이하로 줄인 PNG data URL. 아무것도 없으면 null */
 export function toTrimmedPng(drawing: Drawing): string | null {
   const c = document.createElement("canvas");
