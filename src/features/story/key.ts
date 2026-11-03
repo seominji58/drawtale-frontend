@@ -7,6 +7,15 @@
 
 /** 바탕색에서 이만큼(RGB 거리) 안이면 바탕으로 본다. 영상 압축으로 바탕이 조금씩 얼룩진다 */
 const NEAR = 110;
+/** 선에 갇힌 바탕(자홍일 때만)은 이만큼 안이어야 지운다 — 아이가 칠한 진분홍은 남게 */
+const NEAR_ENCLOSED = 70;
+
+/** 자홍 바탕이 번진 테두리에서 자홍 기운(빨강 · 파랑이 초록보다 높은 만큼)을 뺀다. 흰 바탕은 번져도 티가 안 나 그대로 둔다 */
+function despill(d: Uint8ClampedArray, i: number, r: number, g: number, b: number) {
+  if (!(r > 200 && b > 200 && g < 80)) return;
+  const m = Math.min(d[i], d[i + 2]) - d[i + 1];
+  if (m > 0) { d[i] -= m; d[i + 2] -= m; }
+}
 
 export interface Box { x0: number; y0: number; x1: number; y1: number }
 
@@ -31,20 +40,37 @@ export function keyOut(img: ImageData): Box | null {
     for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
     while (top > 0) {
       const p = stack[--top];
-      d[p * 4 + 3] = 0;
       const x = p % w;
       if (x > 0) push(p - 1);
       if (x < w - 1) push(p + 1);
       if (p >= w) push(p - w);
       if (p < (h - 1) * w) push(p + w);
     }
-    // 바탕과 맞닿은 한 줄은 반투명으로 — 압축 얼룩이 테두리에 색 띠로 남지 않게
-    for (let p = 0; p < w * h; p++) {
-      if (seen[p]) continue;
-      const x = p % w;
-      if ((x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) || (p >= w && seen[p - w]) || (p < (h - 1) * w && seen[p + w])) {
-        d[p * 4 + 3] = 128;
+    // 자홍 바탕은 아이 그림에 거의 없는 색이라, 테두리와 떨어진 곳(다리 사이처럼 선에 갇힌 바탕)도 지운다.
+    // 진분홍 그림이 지워지지 않게 이때는 더 가까운 색만 (2026-11-03 다리 사이에 자홍이 남았다)
+    if (r > 200 && b > 200 && g < 80) {
+      for (let p = 0; p < w * h; p++) {
+        if (seen[p]) continue;
+        const i = p * 4;
+        const dr = d[i] - r, dg = d[i + 1] - g, db = d[i + 2] - b;
+        if (dr * dr + dg * dg + db * db < NEAR_ENCLOSED * NEAR_ENCLOSED) seen[p] = 1;
       }
+    }
+    for (let p = 0; p < w * h; p++) if (seen[p]) d[p * 4 + 3] = 0;
+    // 바탕과 맞닿은 두 줄: 압축으로 바탕색이 번져 테두리에 색 띠가 남는다. 바탕색 기운을 빼고, 첫 줄은 반투명으로
+    let ring = seen;
+    for (let band = 1; band <= 2; band++) {
+      const next = new Uint8Array(w * h);
+      for (let p = 0; p < w * h; p++) {
+        if (seen[p]) continue;
+        const x = p % w;
+        if (!((x > 0 && ring[p - 1]) || (x < w - 1 && ring[p + 1]) || (p >= w && ring[p - w]) || (p < (h - 1) * w && ring[p + w]))) continue;
+        next[p] = 1;
+        despill(d, p * 4, r, g, b);
+        if (band === 1) d[p * 4 + 3] = 128;
+      }
+      for (let p = 0; p < w * h; p++) if (next[p]) seen[p] = 2;
+      ring = next;
     }
   }
   let x0 = w, y0 = h, x1 = -1, y1 = -1;
