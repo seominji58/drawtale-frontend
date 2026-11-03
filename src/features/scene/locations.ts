@@ -13,12 +13,12 @@ interface Sub {
 export const LOCATIONS: Record<string, Sub[]> = {
   home: [
     { id: "home", words: [] },
-    { id: "home-living", words: ["living room", "sofa", "couch"] },
+    { id: "home-living", words: ["living room", "sofa", "couch", "hallway", "indoor", "inside the house"] },
     { id: "home-kitchen", words: ["kitchen", "dining", "table"] },
     { id: "home-bedroom", words: ["bedroom", "bed ", "pillow"] },
   ],
   playground: [
-    { id: "playground", words: [] },
+    { id: "playground", words: ["slide", "swing", "sandbox", "seesaw", "jungle gym", "monkey bars"] },
     { id: "playground-path", words: ["path", "bench", "walkway", "park"] },
   ],
   school: [
@@ -48,7 +48,7 @@ export const LOCATIONS: Record<string, Sub[]> = {
   ],
   space: [
     { id: "space", words: [] },
-    { id: "space-ship", words: ["spaceship", "inside the ship", "cockpit", "control panel"] },
+    { id: "space-ship", words: ["spaceship", "inside the ship", "cockpit", "control panel", "corridor", "hallway", "space station"] },
     { id: "space-planet", words: ["planet", "alien"] },
   ],
   cave: [
@@ -61,18 +61,20 @@ export const LOCATIONS: Record<string, Sub[]> = {
 /** 장소 카드 id(`school`)면 그 장소의 장면을 쓸 수 있다. 말로 정한 장소는 없음 */
 export const hasScenes = (place?: string) => !!place && place in LOCATIONS;
 
-/** 이 쪽의 세부 장소 id. scene.location → 배경 문장 낱말 → 앞 쪽 자리 → 장소 기본 */
+/** 이 쪽의 세부 장소 id. scene.location → 배경 문장 낱말 → 앞 쪽 자리 → 장소 기본.
+ *  낱말은 문장에서 **먼저 나온 것**이 이긴다 — 「놀이터 구석의 벤치, 미끄럼틀은 안 보임」처럼 여러 자리 낱말이 섞이면
+ *  배경 문장은 보통 장면의 자리부터 적는다 (카드 이야기 1,024편 8,192쪽으로 확인, 2026-11-03) */
 export function locationFor(place: string, page: BookPage, prev?: string): string {
   const subs = LOCATIONS[place];
   const loc = page.scene?.location;
   if (loc && subs.some((s) => s.id === loc)) return loc;
   const bg = ` ${(page.scene?.background || "").toLowerCase()} `;
-  if (bg.trim()) {
-    const hit = subs.slice(1).find((s) => s.words.some((w) => bg.includes(w)));
-    if (hit) return hit.id;
-    // 기본 자리도 낱말이 있으면 (학교 운동장 등)
-    if (subs[0].words.some((w) => bg.includes(w))) return subs[0].id;
+  let best: string | undefined, at = Infinity;
+  for (const s of subs) for (const w of s.words) {
+    const i = bg.indexOf(w);
+    if (i >= 0 && i < at) { at = i; best = s.id; }
   }
+  if (best) return best;
   return prev && subs.some((s) => s.id === prev) ? prev : subs[0].id;
 }
 
