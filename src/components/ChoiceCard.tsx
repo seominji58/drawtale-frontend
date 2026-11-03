@@ -42,7 +42,8 @@ export default function ChoiceCard({
       )}
       {/* 아이콘을 못 불러오면 깨진 그림 대신 빈 자리를 둔다.
           아이 화면에 깨진 아이콘이 뜨는 것보다 낫고, 원인은 콘솔에 남긴다 */}
-      <img src={choice.iconUrl} alt=""
+      {/* 그림 카드는 위쪽 칸을 꽉 채운다 (ui.css .choice img.art). 이모지(data: SVG)는 가운데 작게 */}
+      <img src={choice.iconUrl} alt="" className={choice.iconUrl.startsWith("data:") ? undefined : "art"}
         onError={(e) => {
           e.currentTarget.style.visibility = "hidden";
           console.warn(`[한칸이야기] 아이콘을 불러오지 못했습니다: ${choice.iconUrl}`);

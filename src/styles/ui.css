@@ -270,6 +270,13 @@
 }
 /* 아이콘은 카드가 작아지면(S-07 말하기 · 적기 줄, 결과 칸 요약 줄) 같이 줄어든다. 고정 크기면 카드 위로 잘린다 */
 .choice img { position: relative; z-index: 1; flex: 0 1 var(--icon); min-height: 0; width: var(--icon); max-width: 100%; height: var(--icon); object-fit: contain; transform: scale(1.1); margin-top: -10px; }
+/* 그림 카드 (B 크레용, 2026-11-03): 그림이 위쪽 베이지 칸을 가장자리까지 채운다 — 흰 바탕도 그림의 일부라 오리지 않는다
+   (사용자 「베이지색 칸을 다 채워야, 흰 부분은 내용이니까 두고」). 이모지 임시 카드는 그대로 가운데 */
+.choice img.art { position: absolute; inset: 0 0 42% 0; width: 100%; height: 58%; flex: none; margin: 0; transform: none;
+  object-fit: cover; object-position: center 45%; border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+/* 글자는 아래 흰 칸 안에만 — 그림 위로 올라오지 않게. 세 줄짜리 카드도 들어가게 조금 작게 */
+.choice:has(img.art) span { position: absolute; left: 8px; right: 8px; top: 58%; bottom: 4px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; font-size: calc(var(--t-button) * .84); line-height: 1.12; }
 .choice span { position: relative; z-index: 1; font-family: var(--font-round); letter-spacing: -.1em; word-break: keep-all; text-align: center; line-height: 1.1; font-size: var(--t-button); color: var(--ink); font-weight: 700; display: var(--show-label); }
 .choice:active { transform: translateY(4px) rotate(0deg); box-shadow: 0 0 0 rgba(58, 46, 38, .12); }
 .choice.on {
@@ -833,3 +840,32 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 /* 캐릭터 동작 영상은 흰 바탕에 렌더된다 (MP4 는 투명이 없다). 곱하기로 겹치면 흰 바탕이
    무대 색에 묻혀 캐릭터만 보인다 — 무대 위에 흰 네모가 뜨던 것 (2026-11-03) */
 .clip-art { mix-blend-mode: multiply; }
+
+/* ───────── S-09 장면 층 (features/scene/SceneStage, 2026-11-03) ─────────
+   배경판 → 하늘 → 뒤 물건 → 밤빛 → 인물 → 주인공 → 앞 물건. 장면은 3:2.
+   밤에는 배경 층(scene-bg)만 어둡고, 인물 · 주인공은 아주 옅은 그늘 (사용자 「옅게와 조금 더 사이」) */
+.scene { position: relative; width: 100%; height: 100%; overflow: hidden; background: #DCE8F3; container-type: size; }
+.scene > *, .scene-sky > * { position: absolute; }
+.scene-plate { inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scene-obj, .scene-hero, .scene-sun, .scene-moon { transform: translateX(-50%); pointer-events: none; user-select: none; }
+.scene-bg { transition: filter 2.6s ease; }
+.scene.night .scene-bg { filter: brightness(.45) saturate(.6); }
+.scene-tint { inset: 0; background: #2C3D72; mix-blend-mode: multiply; opacity: 0; transition: opacity 2.6s ease; pointer-events: none; }
+.scene.night .scene-tint { opacity: .55; }
+.scene-sky { left: 0; top: 0; width: 100%; overflow: hidden; }
+.scene-sun { height: 43%; }
+.scene-moon { height: 40%; }
+.scene-star { fill: #FFE9A6; aspect-ratio: 1; opacity: 0; transition: opacity 1.6s ease 1.4s; }
+.scene.night .scene-star { opacity: .9; }
+.scene-person, .scene-hero { transition: filter 2.6s ease; }
+.scene.night .scene-person, .scene.night .scene-hero { filter: brightness(.78) saturate(.88) sepia(.04); }
+.scene.night .scene-cover { filter: brightness(.5) saturate(.6); }
+/* 「넘어졌어요」 — 살짝 기울어 주저앉은 자세 */
+.scene-hero.fallen { transform: translateX(-50%) translateY(5%) rotate(-9deg); transform-origin: 50% 100%; }
+/* 멈춘 그림으로 옮겨 갈 때 · 인물이 걸어 들어올 때 — 걸음마다 살짝 들썩 */
+.scene-hero.stepping, .scene-person.walking-in { animation: scene-step .32s ease-in-out 8 alternate; }
+@keyframes scene-step { to { translate: 0 -2.5%; } }
+@media (prefers-reduced-motion: reduce) {
+  .scene-bg, .scene-tint, .scene-star, .scene-person, .scene-hero { transition: none; }
+  .scene-hero.stepping, .scene-person.walking-in { animation: none; }
+}
