@@ -5,6 +5,7 @@ import BigButton from "@/components/BigButton";
 import Waiting from "@/components/Waiting";
 import { Pencil } from "@/components/illust";
 import { useSession } from "@/store/session";
+import { firstClip } from "@/features/story/clip";
 import { useGuardianMode, useSettings, useWithAdult } from "@/store/settings";
 import { useLibrary } from "@/store/library";
 import { useAuth } from "@/store/auth";
@@ -84,8 +85,7 @@ export default function S08Generating() {
         setStory(s); add(s);
         // 책장 표지: 아이 그림을 작게 줄여 붙인다. 늦게 끝나도 같은 이야기(storyId)를 덮어쓸 뿐이다.
         // 동작 영상이 있으면 그 첫 장면(배경을 잘라 낸 캐릭터)으로 만든다 — 원본은 사진 배경이 나온다
-        const isClip = (u?: string | null) => !!u && /\.mp4(\?|$)/i.test(u);
-        const clip = [res.animationUrl, ...(res.book?.pages ?? []).map((p) => p.animationUrl)].find(isClip) ?? null;
+        const clip = firstClip(res);
         if (clip || imageUrl) makeCover(clip, imageUrl).then((cover) => { if (cover) add({ ...s, cover }); });
         nav("/story", { replace: true });
       })

@@ -6,6 +6,7 @@ import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { propHeight, propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
+import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { ORDER_GAME, useSettings } from "@/store/settings";
 import { SPEECH_RATES, sentences, speak, speechRate, stopSpeak } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
@@ -336,7 +337,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 움직임이 없는 쪽(대기)은 원본 그림을 그대로 보이면 사진 배경까지 나온다 (2026-11-03 사용자 확인).
   // 이 이야기의 동작 영상 하나를 첫 장면에 멈춰 보인다 — 배경을 잘라 낸 캐릭터가 가만히 선 모습이다.
   // 영상이 하나도 없을 때만 원본 그림을 쓴다
-  const restClip = pages.map((p) => p.animationUrl).find((u) => !!u && /\.mp4(\?|$)/i.test(u)) ?? null;
+  const restClip = firstClip(story);
   /** i 쪽 펼침면. active 는 지금 보고 있는 쪽(소품 장면 · 읽는 중 표시). top 이면 넘어가는 쪽 — 말림 띠 · 귀퉁이를 단다 */
   const spread = (i: number, active: boolean, top = false) => {
     const pgI = pages[i];
@@ -362,7 +363,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
               ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[pgI.action] ?? "idle"} />
               : restClip
                 // #t: 첫 장면을 그리게 한다 (자동 재생 없이 멈춘 채). 서명 주소의 ? 뒤에 붙어도 서버로 가지 않는다
-                ? <video key={`rest-${restClip}`} src={`${restClip}#t=0.001`} muted playsInline preload="auto"
+                ? <video key={`rest-${restClip}`} src={firstFrameSrc(restClip)} muted playsInline preload="auto"
                          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
               : still
                 ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
