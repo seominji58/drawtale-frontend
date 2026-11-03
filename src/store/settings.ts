@@ -14,13 +14,16 @@ export const FIXED_LEVEL: SupportLevel | null = 2;
 export const ORDER_GAME = false;
 const DEFAULTS: Settings = {
   level: 2, muteAll: false, keepOriginal: false, diagnostics: false, voiceInput: false, voiceMode: "narration", protagonistVoice: "girl",
-  photoUpload: false, storyLength: "long", speechRate: 1, guardianNarrator: false,
+  photoUpload: false, storyLength: "long", speechRate: 1, guardianNarrator: false, guardianMode: false,
 };
 
 function load(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
-    const s = raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
+    const saved = raw ? JSON.parse(raw) : {};
+    // 보호자 모드 스위치가 생기기 전(11/3) 설정: 「어른과 함께」를 하나라도 켜 두었으면 켜진 것으로 잇는다
+    if (raw && saved.guardianMode === undefined) saved.guardianMode = !!(saved.photoUpload || saved.voiceInput);
+    const s = { ...DEFAULTS, ...saved };
     return FIXED_LEVEL ? { ...s, level: FIXED_LEVEL } : s;
   } catch { return DEFAULTS; }
 }
@@ -51,15 +54,17 @@ export function useWithAdult() {
   const photoUpload = useSettings((s) => s.photoUpload);
   const voiceInput = useSettings((s) => s.voiceInput);
   const guardianNarrator = useSettings((s) => s.guardianNarrator);
-  return { member, photo: member && photoUpload, voice: member && voiceInput, myVoice: member && guardianNarrator };
+  const guardianMode = useSettings((s) => s.guardianMode);
+  // 보호자 모드를 끄면 「어른과 함께」는 모두 꺼진 것으로 본다 (켜 둔 값은 남는다 — 다시 켜면 그대로)
+  const on = member && guardianMode;
+  return { member, guardian: on, photo: on && photoUpload, voice: on && voiceInput, myVoice: on && guardianNarrator };
 }
 
-/** 보호자 모드 — 로그인한 보호자가 「어른과 함께」(사진 올리기 · 말로 덧붙이기) 중 하나라도 켰을 때.
- *  질문 칸 · 실시간 대본 화면이 생기기 전까지 이것을 보호자 모드로 본다 (2026-10-27).
+/** 보호자 모드 — 로그인한 보호자가 S-13 「보호자 모드」를 켰을 때 (2026-11-03 사용자 「ON, OFF 가능하게」).
+ *  그 전(10/27~)에는 「어른과 함께」(사진 올리기 · 말로 덧붙이기) 중 하나라도 켰을 때였다 — 예전 설정은 그대로 이어진다.
  *  아이가 만든 소품(내 소품)은 보호자 모드에서만 쓴다 — 기본 모드는 미리 만든 저장본 · 기본 소품만 (open-decisions 0-13) */
 export function useGuardianMode() {
-  const { member, photo, voice } = useWithAdult();
-  return member && (photo || voice);
+  return useWithAdult().guardian;
 }
 
 /** 지원 수준별 화면 구성값. 설계서 2.1

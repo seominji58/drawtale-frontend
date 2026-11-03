@@ -75,6 +75,13 @@ export interface BookPage {
   audioUrl?: string | null;
   /** 이 쪽 동작 MP4 (같은 동작이면 같은 파일). 없으면 멈춘 그림 · 목 엔진은 캔버스 */
   animationUrl?: string | null;
+  /** 같은 동작의 바탕이 투명한 프레임 묶음 WebP (정사각 칸 · 가로 8칸, 2026-11-03).
+   *  있으면 S-09 가 장면 배경 · 물건과 층으로 쌓는다(`features/scene`). 없으면 MP4 */
+  spriteUrl?: string | null;
+  /** 프레임 묶음의 장 수와 첫 장의 그림 자리 [left, top, right, bottom] (칸 대비 0~1). 서버가 잰다 */
+  sprite?: { frames: number; box: [number, number, number, number] } | null;
+  /** 대본의 장면 계획 — 세부 장소 id(`school-cafeteria` 등)와 영어 배경 문장. 틀 문장 그림책 · 예전 이야기는 없음 */
+  scene?: { location?: string; background?: string } | null;
 }
 
 export interface Book {
@@ -113,6 +120,9 @@ export interface Settings {
   /** S-13 「내 목소리로 읽어주기」 (2026-11-02). 보호자가 등록한 목소리로 나레이션을 읽는다.
    *  「어른과 함께」 묶음 — 로그인한 보호자가 동의하고 녹음해야 켜진다. 화면에서는 `useWithAdult().myVoice` */
   guardianNarrator: boolean;
+  /** S-13 「보호자 모드」 켜기 · 끄기 (2026-11-03 사용자). 로그인한 보호자만. 끄면 「어른과 함께」 기능이 모두 꺼진 것으로 본다.
+   *  켜면 S-05 에서 관절이 정상이어도 고칠 수 있다. 예전 설정(없음)은 「어른과 함께」를 하나라도 켰으면 켜진 것으로 */
+  guardianMode: boolean;
   /** S-09 「읽어주기 빠르기」 (2026-11-02, 장면 쪽 진행 바 옆에서 고르고 다음 이야기에도 남는다). 이야기 음성 파일 · 브라우저 음성 · 안내 음성 모두에 곱한다.
    *  서버 음성은 다시 만들지 않고 재생 속도만 바꾼다 (ElevenLabs v4 는 speed 를 무시하고, 저장본을 다시 쓰려고) */
   speechRate: number;

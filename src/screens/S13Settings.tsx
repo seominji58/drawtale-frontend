@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import { useSettings, FIXED_LEVEL } from "@/store/settings";
+import { useSettings, useWithAdult, FIXED_LEVEL } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
 import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
@@ -50,6 +50,7 @@ const SECTIONS: [string, string][] = [
 export default function S13Settings() {
   const nav = useNavigate();
   const s = useSettings();
+  const { guardian } = useWithAdult();
   const { mode, account, logout } = useAuth();
   const { stories, remove, rename } = useLibrary();
   /** 제목을 고치는 중인 이야기와 그 글 (로그인한 보호자만) */
@@ -117,7 +118,7 @@ export default function S13Settings() {
         <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
           {/* 로그아웃하면 「어른과 함께」 기능도 끈다. 다음에 들고 있는 사람이 보호자라는 보장이 없다 */}
           <button className="btn link"
-            onClick={mode === "member" ? () => { s.set("photoUpload", false); s.set("voiceInput", false); s.set("guardianNarrator", false); logout(); } : () => nav("/login")}>
+            onClick={mode === "member" ? () => { s.set("guardianMode", false); s.set("photoUpload", false); s.set("voiceInput", false); s.set("guardianNarrator", false); logout(); } : () => nav("/login")}>
             {mode === "member" ? "로그아웃" : "로그인"}
           </button>
         </Row>
@@ -184,9 +185,18 @@ export default function S13Settings() {
             : "로그인한 보호자만 켤 수 있습니다. 로그인하지 않으면 아래 기능은 모두 꺼져 있습니다"}>
           {mode !== "member" && <button className="btn link" onClick={() => nav("/login")}>로그인</button>}
         </Head>
+        {/* 보호자 모드 켜기 · 끄기 (2026-11-03 사용자). 끄면 아래 기능 · 내 소품이 모두 꺼진 것으로 본다(켜 둔 값은 남는다).
+            켜면 S-05 에서 관절이 정상이어도 보호자가 판단해 고칠 수 있다 */}
+        <Row name="보호자 모드"
+          desc={mode !== "member" ? "로그인한 보호자만 켤 수 있습니다"
+            : guardian ? "켜져 있습니다. 아래 기능 · 내 소품을 쓸 수 있고, 캐릭터 확인(S-05)에서 관절을 언제든 고칠 수 있습니다"
+            : "꺼져 있습니다. 아이 혼자 쓰는 기본 화면입니다 — 아래 기능과 내 소품이 보이지 않습니다"}>
+          <input type="checkbox" className="tog" checked={guardian} disabled={mode !== "member"}
+            onChange={(e) => s.set("guardianMode", e.target.checked)} />
+        </Row>
         <Row name="사진으로 그림 올리기"
           desc="종이에 그린 그림을 찍거나 앨범에서 고를 수 있습니다. 사람 사진이나 남이 그린 그림이 올라와도 자동으로 가려내지 못하니, 직접 그린 그림인지 함께 확인해 주세요. 끄면 화면에 그리기만 남습니다">
-          <input type="checkbox" checked={mode === "member" && s.photoUpload} disabled={mode !== "member"}
+          <input type="checkbox" checked={guardian && s.photoUpload} disabled={!guardian}
             onChange={(e) => s.set("photoUpload", e.target.checked)}
             className="tog" />
         </Row>
@@ -195,7 +205,7 @@ export default function S13Settings() {
           desc={voiceSupported()
             ? "이야기를 만들 때 아이가 마이크로 한마디 덧붙일 수 있습니다. 목소리는 이 브라우저의 음성 인식 서버(브라우저 회사)로 보내져 글자로 바뀌고, 그 글자는 이야기를 만드는 외부 AI 로 갑니다. 녹음 파일은 저장하지 않습니다"
             : "이 브라우저는 음성 인식을 지원하지 않습니다. 크롬이나 사파리에서 켤 수 있습니다"}>
-          <input type="checkbox" checked={mode === "member" && s.voiceInput} disabled={mode !== "member" || !voiceSupported()}
+          <input type="checkbox" checked={guardian && s.voiceInput} disabled={!guardian || !voiceSupported()}
             onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>
@@ -209,7 +219,7 @@ export default function S13Settings() {
                 ? "지금은 목소리를 등록할 수 없습니다"
                 : "보호자님이 1~3분 글을 읽어 녹음하면, 이야기 나레이션을 그 목소리로 읽어 드립니다. 등록 전에 동의 내용을 안내합니다"}>
           {mode === "member" && myVoice?.registered
-            ? <input type="checkbox" className="tog" checked={s.guardianNarrator}
+            ? <input type="checkbox" className="tog" checked={guardian && s.guardianNarrator} disabled={!guardian}
                 onChange={(e) => s.set("guardianNarrator", e.target.checked)} />
             : <button className="btn link" disabled={mode !== "member" || !myVoice?.available}
                 onClick={() => nav("/voice")}>등록하기</button>}

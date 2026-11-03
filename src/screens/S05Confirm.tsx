@@ -18,7 +18,7 @@ export default function S05Confirm() {
   const next = "/name";
   const [i, setI] = useState(3);
   // 사진 올리기가 꺼져 있으면(F-SET-06 기본) 그림은 화면에서 그린 것이다
-  const { photo } = useWithAdult();
+  const { photo, guardian } = useWithAdult();
 
   if (!imageUrl || !keypoints) return <Navigate to="/upload" replace />;
   const motion = (level === 1 ? "wave" : MOTIONS[i % MOTIONS.length].id) as MotionId;
@@ -50,14 +50,14 @@ export default function S05Confirm() {
           <figcaption className="hint">점이 몸을 움직이는 자리예요</figcaption>
         </figure>
       </div>
-      {/* S-05-05. AI 가 자신 없어 한 관절이 있거나 검출 점수가 낮을 때만 둔다 (계약 2-3).
-          점수를 모르면(목 엔진, 예전 서버) 늘 둔다 */}
-      {character && needsAdult(character) && (
+      {/* S-05-05. AI 가 자신 없어 한 관절이 있거나 검출 점수가 낮을 때 둔다 (계약 2-3). 점수를 모르면(목 엔진, 예전 서버) 늘 둔다.
+          보호자 모드면 관절이 정상이어도 늘 둔다 — 보호자가 판단해 고친다 (2026-11-03 사용자) */}
+      {character && (needsAdult(character) || guardian) && (
         <div className="aside-links">
-          <span>잘 움직이지 않나요?</span>
+          <span>{needsAdult(character) ? "잘 움직이지 않나요?" : "관절을 바꾸고 싶나요?"}</span>
           {/* 어른 화면으로 가는 길이라 자물쇠를 붙이고, 가서 무엇을 하는지 적는다 (2026-10-28 — 링크가 눈에 띄지 않았다) */}
           <button className="btn link adult-link" onClick={() => nav("/joints")}>
-            <LockIcon />어른에게 도움 받기 · 관절 맞추기
+            <LockIcon />{needsAdult(character) ? "어른에게 도움 받기 · 관절 맞추기" : "관절 고치기"}
           </button>
         </div>
       )}
