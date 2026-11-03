@@ -5,6 +5,7 @@ import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
 import { emailLoginAvailable, finishSocialSignup, signup } from "@/api/auth";
 import SocialButtons from "@/components/SocialButton";
+import Consents from "@/components/Consents";
 import { PROVIDER_NAME } from "@/api/auth";
 import type { SocialProvider } from "@/api/auth";
 
@@ -66,11 +67,9 @@ export default function S16Signup() {
             </div>
           )}
           {/* 동의는 가입 방법과 상관없이 먼저 받는다. 카카오 동의 화면은 카카오가 넘겨주는
-              항목에 대한 것이고, 우리 서비스 약관 동의를 대신하지 않는다 */}
-          <label className="check">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            이용약관과 개인정보 처리방침에 동의합니다
-          </label>
+              항목에 대한 것이고, 우리 서비스 약관 동의를 대신하지 않는다.
+              약관 전문을 「보기」로 열어 보고 항목마다 따로 체크한다 (2026-11-03) */}
+          <Consents onChange={setAgree} />
           {ticket && fromSocial
             ? <BigButton go disabled={!agree || busy} onClick={finishWithTicket}>
                 {busy ? "가입하는 중" : `${PROVIDER_NAME[fromSocial] ?? fromSocial} 계정으로 가입하기`}

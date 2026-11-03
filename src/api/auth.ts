@@ -1,4 +1,5 @@
 import { BASE, ENGINE } from "./index";
+import { LEGAL_VERSION } from "@/legal/LegalDoc";
 
 /* 소셜 로그인은 백엔드 `feat/social-login` 브랜치의 계약 2-7·2-8 을 따른다 (dev 에 합쳐지기 전).
    이메일 로그인(`/auth/login` · `/auth/signup`)은 백엔드에 없다 — 프론트에만 남아 있다.
@@ -152,11 +153,13 @@ async function exchange(p: SocialProvider, params: URLSearchParams, code: string
     return { token: "mock-kakao-token", account: `${PROVIDER_NAME[p]} 계정` };
   }
   // state 는 여기서 확인을 끝냈다. 백엔드에는 보내지 않는다 (백엔드 계약 2-7)
-  return post<AuthResult>(`/auth/${p}`, { code, redirect_uri: redirectUri(p), agreed });
+  return post<AuthResult>(`/auth/${p}`, {
+    code, redirect_uri: redirectUri(p), agreed, consent_version: agreed ? LEGAL_VERSION : undefined,
+  });
 }
 
 /** 처음 온 사람이 S-16 에서 약관에 동의하면 부른다. 카카오 · 구글 화면을 다시 거치지 않는다.
  *  ticket 은 SIGNUP_REQUIRED 응답에 실려 온 가입 확인증이다 (10분) */
 export function finishSocialSignup(ticket: string): Promise<AuthResult> {
-  return post<AuthResult>("/auth/social-signup", { ticket, agreed: true });
+  return post<AuthResult>("/auth/social-signup", { ticket, agreed: true, consent_version: LEGAL_VERSION });
 }
