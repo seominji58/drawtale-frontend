@@ -67,7 +67,7 @@ export default function S09Story() {
   const stage = (
     <FitStage ar={isVideo ? ar : null}>
       {isVideo
-        ? <video src={story.animationUrl!} autoPlay loop muted playsInline onLoadedMetadata={(e) => setAr(videoRatio(e))}
+        ? <video className="clip-art" src={story.animationUrl!} autoPlay loop muted playsInline onLoadedMetadata={(e) => setAr(videoRatio(e))}
                  style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         : ENGINE === "mock" && story.animationUrl
           ? <img src={story.animationUrl} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
@@ -415,7 +415,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
                 ))}
               </div>
             : clipI
-            ? <video key={clipI} src={clipI} autoPlay loop muted playsInline onLoadedMetadata={(e) => setAr(videoRatio(e))}
+            ? <video className="clip-art" key={clipI} src={clipI} autoPlay loop muted playsInline onLoadedMetadata={(e) => setAr(videoRatio(e))}
                      style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             : canvas
               // 목 엔진: 서버 영상이 없으니 캔버스가 그 쪽 동작으로 움직인다
@@ -425,7 +425,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
                 ? <img src={still} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
               : restClip
                 // #t: 첫 장면을 그리게 한다 (자동 재생 없이 멈춘 채). 서명 주소의 ? 뒤에 붙어도 서버로 가지 않는다
-                ? <video key={`rest-${restClip}`} src={firstFrameSrc(restClip)} muted playsInline preload="auto"
+                ? <video className="clip-art" key={`rest-${restClip}`} src={firstFrameSrc(restClip)} muted playsInline preload="auto"
                          onLoadedMetadata={(e) => setAr(videoRatio(e))}
                          style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}

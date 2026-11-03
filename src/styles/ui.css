@@ -829,3 +829,7 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .legal-page-inner > .btn.link { align-self: flex-start; }
 .legal-page-agree { width: 100%; }
 .legal-page-done { text-align: center; font-weight: 700; color: var(--grape); }
+
+/* 캐릭터 동작 영상은 흰 바탕에 렌더된다 (MP4 는 투명이 없다). 곱하기로 겹치면 흰 바탕이
+   무대 색에 묻혀 캐릭터만 보인다 — 무대 위에 흰 네모가 뜨던 것 (2026-11-03) */
+.clip-art { mix-blend-mode: multiply; }

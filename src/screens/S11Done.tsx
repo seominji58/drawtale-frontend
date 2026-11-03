@@ -37,7 +37,7 @@ export default function S11Done() {
             {cutout
               ? <img src={cutout} alt="" className="illust" />
               : clip
-              ? <video src={firstFrameSrc(clip)} muted playsInline preload="auto" className="illust" />
+              ? <video src={firstFrameSrc(clip)} muted playsInline preload="auto" className="illust clip-art" />
               : art ? <img src={art} alt="" className="illust" /> : <Party />}
           </div>
           <span className="confetti" aria-hidden />

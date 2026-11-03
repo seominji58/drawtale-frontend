@@ -37,7 +37,7 @@ export default function CharacterPreview({ motion = "wave" }: { motion?: MotionI
   const art = artOf(character, imageUrl);
 
   if (character?.previewUrl) {
-    return <video key={character.previewUrl} src={character.previewUrl} autoPlay loop muted playsInline
+    return <video className="clip-art" key={character.previewUrl} src={character.previewUrl} autoPlay loop muted playsInline
       style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />;
   }
   if (rendering) {
