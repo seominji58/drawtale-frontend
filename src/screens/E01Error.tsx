@@ -11,7 +11,7 @@ import { isPictureError, pictureFails } from "@/store/retry";
 /** 모달이 아니라 전체 화면으로 띄운다. 배경이 비치면 아이가 혼란스러워한다. */
 export default function E01Error() {
   const nav = useNavigate();
-  const { errorCode, setError, say } = useSession();
+  const { errorCode, setError, say, file, character, picks } = useSession();
   const { photo } = useWithAdult();
   const base = ERROR_TEXT[errorCode ?? "ENGINE_ERROR"] ?? ERROR_TEXT.ENGINE_ERROR;
   // 사진 올리기가 꺼져 있으면(F-SET-06 기본) 그림은 화면에서 그린 것이다. 「찍기」 대신 「그리기」로 말한다
@@ -32,7 +32,16 @@ export default function E01Error() {
       nav("/steps");
       return;
     }
-    nav(fails >= 2 ? "/draw" : errorCode === "ENGINE_ERROR" || errorCode === "BUSY" ? "/" : "/upload");
+    if (fails >= 2) { nav("/draw"); return; }
+    if (errorCode === "ENGINE_ERROR" || errorCode === "BUSY") { nav(retryTo()); return; }
+    nav("/upload");
+  };
+  /** 「다시 시도하기」 — 실패한 단계로. 네 칸을 다 골랐으면 이야기 만들기, 그림만 있으면 분석, 캐릭터가 있으면 카드 고르기 */
+  const retryTo = () => {
+    if (character && STEP_ORDER.every((k) => picks[k])) return "/generating";
+    if (character) return "/steps";
+    if (file) return "/analyzing";
+    return "/upload";
   };
 
   return (

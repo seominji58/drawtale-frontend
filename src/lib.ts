@@ -76,11 +76,12 @@ export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: 
   LOW_CONFIDENCE:      { title: "그림이 잘 안 보여요", hint: "사람을 크게 그려서 밝은 곳에서 찍어 볼까요?", primary: "다시 찍기" },
   UNSUPPORTED_IMAGE:   { title: "이 그림은 열 수 없어요", hint: "다른 그림을 골라 볼까요?", primary: "앨범에서 고르기" },
   ENGINE_TIMEOUT:      { title: "시간이 오래 걸리고 있어요", hint: "잠시 뒤에 다시 해 볼까요?", primary: "다시 하기" },
-  ENGINE_ERROR:        { title: "잠깐 문제가 생겼어요", hint: "처음부터 다시 해 볼까요?", primary: "처음으로" },
+  // 주 버튼은 그 단계를 다시, 옆 버튼은 처음으로 — 둘 다 「처음으로」면 고를 것이 없다 (11/3 사용자)
+  ENGINE_ERROR:        { title: "잠깐 문제가 생겼어요", hint: "한 번 더 해 볼까요?", primary: "다시 시도하기" },
   // pt_docs 05 E-01 표. 검열에 걸린 말을 아이 탓으로 들리지 않게 쓴다 (처음 결정은 open-decisions 0-5)
   CONTENT_BLOCKED:     { title: "이 이야기는 만들 수 없어요", hint: "다른 카드를 골라 볼까요?", primary: "다시 고르기" },
   // 요청이 많거나 오늘 한도를 다 썼을 때. 아이 탓이 아니라 쉬어 가는 것으로 말한다
-  BUSY:                { title: "지금은 잠깐 쉬어 갈게요", hint: "조금 뒤에 다시 해 볼까요?", primary: "처음으로" },
+  BUSY:                { title: "지금은 잠깐 쉬어 갈게요", hint: "조금 뒤에 다시 해 볼까요?", primary: "다시 시도하기" },
 };
 
 /** 사진 올리기가 꺼져 있을 때(F-SET-06 기본, 화면에 그린 그림) 「찍기」 문구를 바꿔 쓴다 */
