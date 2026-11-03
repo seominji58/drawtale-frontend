@@ -302,6 +302,41 @@ export function drawGuide(ctx: CanvasRenderingContext2D, part: Part, drawing: Dr
   ctx.restore();
 }
 
+/** 사람 모양 안내선 하나 — 머리 · 몸 · 팔 · 다리를 합친 바깥 윤곽만 옅은 점선으로 (2026-11-03 사용자
+ *  「주인공 그리는 부분에서 사람 형태 가이드 라인만」). 단계 · 부위 칸은 없다. 그림(PNG)에는 들어가지 않는다.
+ *  겹친 곳의 안쪽 선은 지워서(destination-out) 한 사람의 실루엣으로 보이게 한다 */
+let guideCache: HTMLCanvasElement | null = null;
+export function drawFigureGuide(ctx: CanvasRenderingContext2D) {
+  if (!guideCache) {
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const g = c.getContext("2d")!;
+    const shapes = Object.values(SHAPES);
+    g.strokeStyle = "rgba(115, 134, 245, 0.42)";
+    g.lineWidth = 8;
+    g.setLineDash([20, 16]);
+    g.lineCap = "round";
+    for (const s of shapes) { shapePath(g, s); g.stroke(); }
+    g.globalCompositeOperation = "destination-out";
+    g.setLineDash([]);
+    g.fillStyle = "#000";
+    for (const s of shapes) { shapePath(g, s); g.fill(); }
+    // 안쪽을 아주 옅게 칠해 어디에 그리면 되는지 보이게
+    // (겹친 곳이 진해지지 않게 한 덩어리로 칠한 뒤 한 번에 옅게)
+    const f = document.createElement("canvas");
+    f.width = W; f.height = H;
+    const fg = f.getContext("2d")!;
+    fg.fillStyle = "rgb(115, 134, 245)";
+    for (const s of shapes) { shapePath(fg, s); fg.fill(); }
+    g.globalCompositeOperation = "destination-over";
+    g.globalAlpha = 0.06;
+    g.drawImage(f, 0, 0);
+    g.globalAlpha = 1;
+    guideCache = c;
+  }
+  ctx.drawImage(guideCache, 0, 0, W, H);
+}
+
 const SCALE = 0.25;
 const SW = W * SCALE, SH = H * SCALE;
 

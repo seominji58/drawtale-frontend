@@ -8,7 +8,7 @@ import { useSession } from "@/store/session";
 import { useGuardianMode } from "@/store/settings";
 import ConfirmCard from "@/components/ConfirmCard";
 import {
-  ERASER_SCALE, H, PARTS, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, hasLoosePieces, toPngFile,
+  ERASER_SCALE, H, PARTS, PEN_COLORS, PEN_WIDTHS, W, drawFigureGuide, drawLayer, emptyDrawing, hasLoosePieces, toPngFile,
 } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
 
@@ -18,7 +18,7 @@ import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
  *  2026-10-28: 색은 아이 모드 12색, 보호자 모드 24색 + 색 만들기 (사용자 결정).
  *  2026-11-03: 머리 → 몸 → 팔 → 다리 단계 · 점선 안내를 없애고 한 장에 통으로 자유롭게 (사용자
  *  「점선 따라 그리세요 말고 자유롭게」 · 「몸, 머리, 팔, 다리 선택 없이 통으로」). 전체 지우기 (확인 카드).
- *  떨어진 조각은 막지 않고 알려만 준다. 그린 것은 drawing.body 한 칸에 모은다(예전 단계 그림도 그대로 그려진다).
+ *  사람 모양 안내선 하나만 옅게 깐다(같은 날 사용자 「사람 형태 가이드 라인만」). 떨어진 조각은 막지 않고 알려만 준다. 그린 것은 drawing.body 한 칸에 모은다(예전 단계 그림도 그대로 그려진다).
  *  예전 도장 그림 데이터는 drawing.ts 에 남아 있어 그대로 그려진다. */
 
 /** 넓은 화면에서 종이 양옆이 차지하는 폭: 색 세 칸(보호자 팔레트도 같은 폭) + 도구 세 칸 + 사이 간격 */
@@ -76,6 +76,7 @@ export default function S03Draw() {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, c.width, c.height);
     ctx.setTransform((box.w * dpr) / W, 0, 0, (box.h * dpr) / H, 0, 0);
+    drawFigureGuide(ctx);   // 사람 모양 안내선 (그림 PNG 에는 안 들어간다)
     drawLayer(ctx, drawing, live.current ?? undefined);
   }, [box, drawing]);
 
@@ -144,7 +145,7 @@ export default function S03Draw() {
         </>
       }>
       <h2 className="question">{QUESTION}</h2>
-      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "머리 · 몸 · 팔 · 다리를 붙여서 그리면 더 잘 움직여요"}</p>
+      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "선을 따라 그려도, 내 마음대로 그려도 돼요 · 팔다리를 몸에 붙이면 더 잘 움직여요"}</p>
 
       {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기는 오른쪽에 종이와 붙여 둔다
           (기준 화면이 가로 1024×768). 좁으면 종이 아래로 내려간다 */}
