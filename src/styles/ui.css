@@ -274,9 +274,18 @@
    (사용자 「베이지색 칸을 다 채워야, 흰 부분은 내용이니까 두고」). 이모지 임시 카드는 그대로 가운데 */
 .choice img.art { position: absolute; inset: 0 0 42% 0; width: 100%; height: 58%; flex: none; margin: 0; transform: none;
   object-fit: cover; object-position: center 45%; border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-/* 글자는 아래 흰 칸 안에만 — 그림 위로 올라오지 않게. 세 줄짜리 카드도 들어가게 조금 작게 */
-.choice:has(img.art) span { position: absolute; left: 8px; right: 8px; top: 58%; bottom: 4px; z-index: 1;
-  display: flex; align-items: center; justify-content: center; font-size: calc(var(--t-button) * .84); line-height: 1.12; }
+/* 글자는 아래 흰 칸 안에만 — 그림 위로 올라오지 않게. 핀(.choice-pin)은 건드리지 않는다 (상단 가운데 그대로) */
+.choice:has(img.art) > span:not(.choice-pin) { position: absolute; left: 10px; right: 10px; top: 58%; bottom: 6px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; font-size: calc(var(--t-button) * .9); line-height: 1.12; }
+/* 그림 카드는 덜 길쭉하게 — 남는 가로 폭을 써서 카드가 커지고 글자 칸이 넉넉해진다 (11/3 사용자 「카드 크기를 전체적으로 키워서」) */
+.choice:has(img.art) { aspect-ratio: 9 / 10; }
+/* 휴대폰: 한 줄에 하나씩 네 줄이면 높이에 눌려 아주 작아진다 — 두 칸씩 */
+@media (max-width: 767px) {
+  /* 휴대폰: 카드 크기를 높이가 아니라 폭에 맞춘다 — 높이에 맞추면 한 줄에 하나씩 네 줄로 눌려 아주 작아졌다 */
+  .pick-area:has(img.art) { flex: 1 0 auto; }
+  .choices:has(img.art), .choices[data-count]:has(img.art) { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; width: 100%; }
+  .choices:has(img.art) .choice { width: 100%; height: auto; }
+}
 .choice span { position: relative; z-index: 1; font-family: var(--font-round); letter-spacing: -.1em; word-break: keep-all; text-align: center; line-height: 1.1; font-size: var(--t-button); color: var(--ink); font-weight: 700; display: var(--show-label); }
 .choice:active { transform: translateY(4px) rotate(0deg); box-shadow: 0 0 0 rgba(58, 46, 38, .12); }
 .choice.on {
