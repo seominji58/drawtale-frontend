@@ -19,22 +19,19 @@ const icon = (label: string) =>
     </svg>`
   )}`;
 
-/** public/icons/{kind}/{id}.png 를 넣은 뒤 true 로 바꾼다 (docs/art-direction.md) */
-const USE_REAL_ICONS = true;
-
-/** 카드 그림이 있는 카드. 없는 카드는 이모지로 보인다.
- *  2026-10-28 확인: public/icons 의 행동 · 결과 그림과 problem/lost · alone · hungry · rain 은 모두 같은 사람 실루엣
- *  자리표시라 카드끼리 구분이 안 된다 — 쓰지 않는다. 진짜 그림은 장소 6장과 문제 둘(넘어졌어요 · 어두워졌어요)뿐이다
- *  (나머지 그림은 docs/image-replacement-plan.md) */
-const ICON_FILE: Record<string, string> = {
-  "place/school": "place/school", "place/town": "place/town", "place/forest": "place/forest",
-  "place/sea": "place/sea", "place/space": "place/space", "place/cave": "place/cave",
-  "problem/fall": "problem/fall", "problem/dark": "problem/dark",
+/** 카드 그림 (2026-11-03 B 크레용 화풍으로 전부 다시 그림 — 생성 · 오리기는 `tools/art/`).
+ *  장소 카드는 장면 배경판 + 물건을 쌓아 만든 것이다(`public/scenes/{장소}`). 그림이 없는 카드(말로 정한 문제일 때
+ *  쓰는 임시 행동 · 결과)만 이모지로 보인다 */
+const ICON_IDS: Record<string, string[]> = {
+  place: ["home", "playground", "school", "town", "forest", "sea", "space", "cave"],
+  problem: ["fall", "crying", "lost", "dark"],
+  action: ["fall_run", "call_adult", "walk_again", "fall_rest", "help_friend", "wave_smile", "run_adult", "wait_beside",
+    "stay_wait", "ask_adult", "look_walk", "run_sign", "hide", "run_light", "tiptoe", "still_wait"],
+  result: ["okay", "smile", "got_there", "new_friend", "tears_stop", "thanked", "best_friend", "party_friend",
+    "found_way", "adult_took", "relief", "party_lost", "sun", "brave", "sleep", "back_safe"],
 };
-const iconOf = (kind: string, id: string, emoji: string) => {
-  const f = ICON_FILE[`${kind}/${id}`];
-  return USE_REAL_ICONS && f ? `${import.meta.env.BASE_URL}icons/${f}.png` : icon(emoji);
-};
+const iconOf = (kind: string, id: string, emoji: string) =>
+  ICON_IDS[kind]?.includes(id) ? `${import.meta.env.BASE_URL}icons/${kind}/${id}.webp` : icon(emoji);
 
 /** 칸마다 보여 주는 카드 수. 2026-10-27 사용자 「지원 수준 안 남기고 고정, 8 4 4 4」 —
  *  장소 8 · 문제 4 · 행동 4(고른 문제마다) · 결과 4(고른 문제마다).
