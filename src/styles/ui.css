@@ -2,9 +2,10 @@
 .screen { display: flex; flex-direction: column; height: 100%; padding: var(--pad); gap: var(--gap); }
 
 .rail { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; min-height: var(--tap); }
-.rail-side { flex: 0 0 var(--tap); }
-.rail-side.end { display: flex; justify-content: flex-end; }
-.rail-mid { flex: 1; display: flex; justify-content: center; align-items: center; }
+.rail-side { flex: 1 1 0; min-width: max-content; display: flex; align-items: center; gap: 14px; }
+.rail-side.end { justify-content: flex-end; }
+.adult-key { position: relative; display: inline-flex; }
+.rail-mid { flex: 0 1 auto; min-width: 0; display: flex; justify-content: center; align-items: center; }
 .rail-title { font-size: var(--t-title); }
 
 .round {

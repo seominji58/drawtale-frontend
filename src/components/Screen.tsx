@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import type { Segment } from "@/types/story";
 import { useSettings, LEVEL_CONFIG } from "@/store/settings";
 import { speak, stopSpeak } from "@/lib";
+import AdultKey from "./AdultKey";
 
 interface Props {
   /** C-01 되돌리기가 갈 곳. null 이면 숨긴다 */
@@ -19,6 +20,8 @@ interface Props {
   autoSpeak?: boolean;
   /** 레일 오른쪽에 다시 듣기 대신 둘 것 (S-01 설정 버튼) */
   railEnd?: ReactNode;
+  /** 어른 설정 자물쇠(3초 길게). 아이 화면은 기본으로 있다 — 만드는 중(S-04 · S-08)처럼 떠나면 안 되는 화면만 끈다 */
+  adultKey?: boolean;
   acts?: ReactNode;
   children: ReactNode;
 }
@@ -52,7 +55,7 @@ export function LockIcon() {
 
 export default function Screen({
   back = null, speech = null, segment = null, title,
-  audience = "child", autoSpeak = true, railEnd, acts, children,
+  audience = "child", autoSpeak = true, railEnd, acts, children, adultKey = audience === "child",
 }: Props) {
   const nav = useNavigate();
   const { level, muteAll } = useSettings();
@@ -86,6 +89,7 @@ export default function Screen({
               )}
         </div>
         <div className="rail-side end">
+          {adultKey && <AdultKey />}
           {railEnd ?? (speech !== null && (
             <button className="round" onClick={() => speak(speech, muteAll)} aria-label="다시 듣기">
               <SoundIcon />

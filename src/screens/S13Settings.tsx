@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
@@ -49,6 +49,9 @@ const SECTIONS: [string, string][] = [
 
 export default function S13Settings() {
   const nav = useNavigate();
+  // 아이 화면 어디서든 자물쇠로 들어온다(components/AdultKey) — 닫으면 그 화면으로 돌아간다. 없으면 처음 화면
+  const from = (useLocation().state as { from?: string } | null)?.from;
+  const close = () => nav(from && from !== "/settings" ? from : "/");
   const s = useSettings();
   const { guardian } = useWithAdult();
   const { mode, account, logout } = useAuth();
@@ -127,8 +130,8 @@ export default function S13Settings() {
   };
 
   return (
-    <Screen back="/" speech={null} title="어른 설정" audience="adult" autoSpeak={false}
-      acts={<BigButton onClick={() => nav("/")}>닫기</BigButton>}>
+    <Screen back={close} speech={null} title="어른 설정" audience="adult" autoSpeak={false}
+      acts={<BigButton onClick={close}>닫기</BigButton>}>
       <nav className="set-nav" aria-label="설정 묶음 바로가기">
         {SECTIONS.filter(([id]) => id !== "mine" || stories.length > 0).map(([id, label]) => (
           <button key={id} className={current === id ? "on" : ""} aria-current={current === id} onClick={() => jump(id)}>{label}</button>

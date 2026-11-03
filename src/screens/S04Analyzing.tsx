@@ -88,7 +88,7 @@ export default function S04Analyzing() {
   const stop = () => { cancelAnalysis(); nav("/upload"); };
 
   return (
-    <Screen back={stop} speech="친구를 만들고 있어요" segment={2}
+    <Screen back={stop} speech="친구를 만들고 있어요" segment={2} adultKey={false}
       acts={showStop ? <BigButton onClick={stop}>그만하기</BigButton> : undefined}>
       <Waiting message="친구를 만들고 있어요" steps={3} current={step}
                diagnostics={diagnostics ? diag : null} art={<Friend wave />} />

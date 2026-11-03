@@ -105,7 +105,7 @@ export default function S08Generating() {
   const stop = () => { cancelStory(); nav("/steps"); };
 
   return (
-    <Screen back={stop} speech="이야기를 쓰고 있어요" segment={3}
+    <Screen back={stop} speech="이야기를 쓰고 있어요" segment={3} adultKey={false}
       acts={showStop ? <BigButton onClick={stop}>그만하기</BigButton> : undefined}>
       <Waiting message="이야기를 쓰고 있어요" steps={3} current={step}
                diagnostics={diagnostics ? diag : null} art={<Pencil />} />
