@@ -65,7 +65,7 @@ interface ServerCharacter {
   joints: ServerJoint[] | null;
   joints_corrected: boolean;
   /** AI 가 처음 짚은 관절 (보정해도 변하지 않음, 계약 2-3) */
-  analysis: { joints: ServerJoint[]; confidence?: number | null } | null;
+  analysis: { joints: ServerJoint[]; confidence?: number | null; cutout_url?: string | null } | null;
 }
 interface ServerStory {
   id: string;
@@ -184,6 +184,7 @@ function toCharacter(c: ServerCharacter): Character {
     confidence: c.analysis?.confidence ?? undefined,
     previewUrl: c.preview_url ?? null,
     previewStatus: c.preview_status ?? null,
+    cutoutUrl: c.analysis?.cutout_url ?? null,
   };
 }
 

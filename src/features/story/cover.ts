@@ -41,12 +41,14 @@ async function firstFrame(clipUrl: string): Promise<string | null> {
 
 async function fromImage(url: string): Promise<string | null> {
   const img = new Image();
+  // 잘라 낸 그림은 API 주소에 있다. 캔버스에서 꺼내려면 CORS 로 받는다 (서버가 허용한다)
+  if (/^https?:/i.test(url)) img.crossOrigin = "anonymous";
   img.src = url;
   await img.decode();
   return toCover(img, img.naturalWidth, img.naturalHeight);
 }
 
-/** clipUrl(이야기 동작 영상)이 있으면 그 첫 장면, 아니면 imageUrl(원본 그림) */
+/** clipUrl(이야기 동작 영상)이 있으면 그 첫 장면, 아니면 imageUrl(잘라 낸 그림 또는 원본) */
 export async function makeCover(clipUrl: string | null, imageUrl: string | null): Promise<string | null> {
   if (clipUrl) {
     try {

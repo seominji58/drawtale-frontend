@@ -6,7 +6,9 @@ import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { propHeight, propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
+import { ENGINE } from "@/api";
 import { firstClip, firstFrameSrc } from "@/features/story/clip";
+import { artOf } from "@/features/character/art";
 import { ORDER_GAME, useSettings } from "@/store/settings";
 import { SPEECH_RATES, sentences, speak, speechRate, stopSpeak } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
@@ -17,7 +19,7 @@ import type { Keypoints } from "@/types/character";
  *  긴 이야기(`story.book`)면 쪽을 넘기며 본다 — `BookView` */
 export default function S09Story() {
   const nav = useNavigate();
-  const { story, imageUrl, keypoints } = useSession();
+  const { story, imageUrl: upload, keypoints, character } = useSession();
   const muteAll = useSettings((s) => s.muteAll);
   const [at, setAt] = useState<number | null>(null);
   const [loop, setLoop] = useState(false);
@@ -58,13 +60,15 @@ export default function S09Story() {
   };
 
   // 목 AI 는 animation_url 에 원본 그림을 넣어 보낸다. MP4 가 아니면 그림으로 보여준다
+  // 원본(사진 배경까지)은 보이지 않는다 — 배경을 잘라 낸 그림만, 그 이야기의 캐릭터일 때만 (2026-11-03)
+  const imageUrl = artOf(character && story && character.id === story.characterId ? character : null, upload);
   const isVideo = !!story.animationUrl && /\.mp4(\?|$)/i.test(story.animationUrl);
   const stage = (
     <div className="stage">
       {isVideo
         ? <video src={story.animationUrl!} autoPlay loop muted playsInline
                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-        : story.animationUrl
+        : ENGINE === "mock" && story.animationUrl
           ? <img src={story.animationUrl} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
           : imageUrl && keypoints
             ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion="wave" />
@@ -333,11 +337,13 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const t = setTimeout(() => setPropPhase(false), PROP_MS);
     return () => clearTimeout(t);
   }, [pg, shownKey]);
-  const still = story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
+  // imageUrl 은 배경을 잘라 낸 그림이다 (원본이 아니다, 위 S09Story). 목 엔진만 animation_url 의 원본 그림을 쓴다
+  const still = ENGINE === "mock" && story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
   // 움직임이 없는 쪽(대기)은 원본 그림을 그대로 보이면 사진 배경까지 나온다 (2026-11-03 사용자 확인).
   // 이 이야기의 동작 영상 하나를 첫 장면에 멈춰 보인다 — 배경을 잘라 낸 캐릭터가 가만히 선 모습이다.
   // 영상이 하나도 없을 때만 원본 그림을 쓴다
   const restClip = firstClip(story);
+
   /** i 쪽 펼침면. active 는 지금 보고 있는 쪽(소품 장면 · 읽는 중 표시). top 이면 넘어가는 쪽 — 말림 띠 · 귀퉁이를 단다 */
   const spread = (i: number, active: boolean, top = false) => {
     const pgI = pages[i];
@@ -361,12 +367,13 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
             : !perPage && !story.animationUrl && imageUrl && keypoints
               // 목 엔진: 서버 영상이 없으니 캔버스가 그 쪽 동작으로 움직인다
               ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[pgI.action] ?? "idle"} />
+              // 가만히 있는 쪽은 잘라 낸 정지 그림이 먼저다 — 영상 첫 장면은 동작 도중 자세일 수 있다
+              : still
+                ? <img src={still} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
               : restClip
                 // #t: 첫 장면을 그리게 한다 (자동 재생 없이 멈춘 채). 서명 주소의 ? 뒤에 붙어도 서버로 가지 않는다
                 ? <video key={`rest-${restClip}`} src={firstFrameSrc(restClip)} muted playsInline preload="auto"
                          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-              : still
-                ? <img src={still} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}
         </div>
         <div className="spread-text">

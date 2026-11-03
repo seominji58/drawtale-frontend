@@ -4,8 +4,9 @@ import { ORDER_GAME } from "@/store/settings";
 import BigButton from "@/components/BigButton";
 import { Party } from "@/components/illust";
 import { useSession } from "@/store/session";
+import { ENGINE } from "@/api";
 import { useLibrary } from "@/store/library";
-import { firstClip, firstFrameSrc } from "@/features/story/clip";
+import { cutoutFor, firstClip, firstFrameSrc } from "@/features/story/clip";
 
 export default function S11Done() {
   const nav = useNavigate();
@@ -13,10 +14,12 @@ export default function S11Done() {
   const story = useSession((s) => s.story);
   const imageUrl = useSession((s) => s.imageUrl);
   const saved = useLibrary((l) => l.stories.find((x) => x.storyId === story?.storyId));
-  // 주인공 그림: 동작 영상의 첫 장면(배경을 잘라 낸 캐릭터). 없으면 책장 표지, 그다음 올린 그림.
+  // 주인공 그림: 배경을 잘라 낸 정지 그림 → 동작 영상의 첫 장면 → 책장 표지 → 올린 그림 순서.
   // 올린 그림을 먼저 쓰면 사진 배경까지 나왔다 (2026-11-03 사용자 확인)
   const clip = firstClip(story);
-  const art = saved?.cover ?? imageUrl ?? null;
+  const cutout = cutoutFor(story, useSession.getState().character);
+  // 원본(imageUrl)은 쓰지 않는다 — 사진 배경까지 나온다 (2026-11-03 「통이미지는 안 된다」)
+  const art = saved?.cover ?? (ENGINE === "mock" ? imageUrl : null);
 
   return (
     <Screen back={ORDER_GAME ? "/order" : "/story"} speech="다 했어요!" segment={4}
@@ -31,7 +34,9 @@ export default function S11Done() {
       <div className="hero">
         <div className="stage hero-sheet done">
           <div className="illust-wrap">
-            {clip
+            {cutout
+              ? <img src={cutout} alt="" className="illust" />
+              : clip
               ? <video src={firstFrameSrc(clip)} muted playsInline preload="auto" className="illust" />
               : art ? <img src={art} alt="" className="illust" /> : <Party />}
           </div>

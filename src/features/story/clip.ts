@@ -10,5 +10,14 @@ export function firstClip(story: Pick<Story, "animationUrl" | "book"> | null | u
     ?? (isClip(story.animationUrl) ? story.animationUrl : null);
 }
 
+/** 이 이야기 캐릭터의, 배경을 잘라 낸 정지 그림. 지금 세션의 캐릭터가 그 이야기의 것일 때만
+ *  (책장에서 예전 이야기를 열면 다른 캐릭터일 수 있다) */
+export function cutoutFor(
+  story: Pick<Story, "characterId"> | null | undefined,
+  character: { id: string; cutoutUrl?: string | null } | null | undefined,
+): string | null {
+  return story && character && character.id === story.characterId ? character.cutoutUrl ?? null : null;
+}
+
 /** 영상 첫 장면을 멈춘 채로 그리게 하는 주소 (#t 는 서버로 가지 않는다) */
 export const firstFrameSrc = (clip: string) => `${clip}#t=0.001`;

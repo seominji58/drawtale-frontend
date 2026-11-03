@@ -86,7 +86,13 @@ export default function S08Generating() {
         // 책장 표지: 아이 그림을 작게 줄여 붙인다. 늦게 끝나도 같은 이야기(storyId)를 덮어쓸 뿐이다.
         // 동작 영상이 있으면 그 첫 장면(배경을 잘라 낸 캐릭터)으로 만든다 — 원본은 사진 배경이 나온다
         const clip = firstClip(res);
-        if (clip || imageUrl) makeCover(clip, imageUrl).then((cover) => { if (cover) add({ ...s, cover }); });
+        // 배경을 잘라 낸 정지 그림이 있으면 그것으로 (2026-11-03)
+        const cutout = character?.cutoutUrl ?? null;
+        // 원본은 쓰지 않는다 — 사진 배경까지 나온다. 목 엔진만 원본으로 (잘라 낸 그림이 없다)
+        const still = cutout ?? (ENGINE === "mock" ? imageUrl : null);
+        if (still || clip) {
+          makeCover(still ? null : clip, still).then((cover) => { if (cover) add({ ...s, cover }); });
+        }
         nav("/story", { replace: true });
       })
       .catch((e) => {

@@ -38,6 +38,9 @@ export interface Character {
   previewUrl?: string | null;
   /** rendering 이면 서버가 만드는 중이라 다시 묻는다 */
   previewStatus?: "rendering" | "ready" | "failed" | null;
+  /** 배경을 투명하게 잘라 낸 캐릭터 PNG (계약 2-3, 2026-11-03). 영상 대신 정지 그림을 보일 때
+   *  원본(imageUrl) 대신 쓴다 — 원본은 사진 배경까지 나온다. 없으면 원본 */
+  cutoutUrl?: string | null;
 }
 
 /** 이 점수보다 낮은 관절은 S-06 에서 따로 표시한다 (계약 2-3) */

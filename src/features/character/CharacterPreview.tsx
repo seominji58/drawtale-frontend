@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import CharacterCanvas from "./CharacterCanvas";
+import { artOf } from "./art";
 import { useSession } from "@/store/session";
 import { fetchCharacter } from "@/api";
 import type { MotionId } from "@/types/story";
@@ -32,6 +33,8 @@ export default function CharacterPreview({ motion = "wave" }: { motion?: MotionI
   }, [rendering, id, setCharacter]);
 
   if (!imageUrl || !keypoints) return null;
+  // 원본(사진 배경까지)은 보이지 않는다. 배경을 잘라 낸 그림만 (features/character/art.ts)
+  const art = artOf(character, imageUrl);
 
   if (character?.previewUrl) {
     return <video key={character.previewUrl} src={character.previewUrl} autoPlay loop muted playsInline
@@ -40,10 +43,14 @@ export default function CharacterPreview({ motion = "wave" }: { motion?: MotionI
   if (rendering) {
     return (
       <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <img src={imageUrl} alt="" style={{ flex: 1, minHeight: 0, maxWidth: "100%", objectFit: "contain" }} />
+        {/* 영상을 만드는 동안은 배경을 잘라 낸 정지 그림 — 원본은 사진 배경까지 나왔다 (2026-11-03) */}
+        {art
+          ? <img src={art} alt="" style={{ flex: 1, minHeight: 0, maxWidth: "100%", objectFit: "contain" }} />
+          : <div style={{ flex: 1 }} />}
         <p className="hint">움직일 준비를 하고 있어요</p>
       </div>
     );
   }
-  return <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={motion} />;
+  if (!art) return <p className="hint">움직일 준비를 하고 있어요</p>;
+  return <CharacterCanvas imageUrl={art} keypoints={keypoints} motion={motion} />;
 }
