@@ -10,6 +10,8 @@ import { ENGINE } from "@/api";
 import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
+import SceneStage from "@/features/scene/SceneStage";
+import { planPages } from "@/features/scene/plan";
 import { ORDER_GAME, useSettings } from "@/store/settings";
 import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
@@ -349,9 +351,19 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const restClip = firstClip(story);
   // 고른 장소를 장면 칸에 깐다 (2026-11-03). 장소 그림 비율(3:2)이 칸 비율이 된다. 장소를 못 읽으면 예전처럼 빈 무대
   const layout = usePlaceLayout(ENGINE === "mock" ? null : placeOf(story));
+  // 투명 프레임 묶음이 있는 이야기는 장면 층으로 (2026-11-03 「나」 — features/scene): 세부 장소 · 밤낮 · 인물 · 움직임.
+  // 묶음이 없는(예전 AI · 예전 이야기) 이야기는 위의 장소 배경 + 영상 바탕 지우기(PlaceScene)
+  const scenes = useMemo(
+    () => (pages.some((p) => p.sprite) ? planPages(pages, { ...story.picks, place: placeOf(story) }, book.characterSheet) : null),
+    [pages, story],
+  );
+  // 들어온 쪽과 그 앞에 보던 쪽 — 앞으로 넘겨 들어왔을 때만 움직인다
+  const [entered, setEntered] = useState<{ pg: number; from: number | null }>({ pg: 0, from: null });
+  useEffect(() => { setEntered((e) => (e.pg === pg ? e : { pg, from: e.pg })); }, [pg]);
   // 장면 칸 비율은 이 이야기의 장면 영상 비율 — 첫 쪽이 정지 그림이어도 처음부터 같은 크기 칸이 되게 미리 읽어 둔다
   const [ar, setAr] = useState<number | null>(null);
-  const stageAr = layout ? layout.size[0] / layout.size[1] : ar;
+  // 장면 층은 비율 상자가 아니라 왼쪽 칸을 꽉 채운다 (11/3 사용자 「장면 크기는 기존 크기 유지, 한 쪽 꽉 채우는 식」)
+  const stageAr = scenes ? null : layout ? layout.size[0] / layout.size[1] : ar;
   // 글자 크기: 기본은 크게(38px), 긴 쪽만 글 칸에 들어갈 때까지 줄인다(최소 26px). 쪽마다 한 번 재서 기억한다 —
   // 넘기는 동안 그려지는 사본도 같은 크기로. 화면 크기가 바뀌면 다시 잰다
   const textRef = useRef<HTMLDivElement>(null);
@@ -398,6 +410,17 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     v.src = restClip;
   }, [restClip]);
 
+  /** 펼침면 오른쪽 글 칸 */
+  const pageText = (i: number, active: boolean, top: boolean) => (
+    <div className="spread-text" ref={active && !top ? textRef : undefined}
+         style={fitSize[i] ? ({ "--said": `${fitSize[i]}px`, "--lh": `${Math.round(fitSize[i] * 1.47)}px` } as CSSProperties) : undefined}>
+      <span className="hint">{book.title} · {i + 1} / {pages.length}쪽</span>
+      {/* 형광펜 없이 큰 글자로 (2026-11-03 사용자 「하이라이팅 효과가 아예 없는 게 낫고 글자 크기를 키워」) */}
+      <span className="said"><span className="mark">{pages[i].text}</span></span>
+      {pages[i].childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
+    </div>
+  );
+
   /** i 쪽 펼침면. active 는 지금 보고 있는 쪽(소품 장면 · 읽는 중 표시). top 이면 넘어가는 쪽 — 말림 띠 · 귀퉁이를 단다 */
   const spread = (i: number, active: boolean, top = false) => {
     const pgI = pages[i];
@@ -406,6 +429,27 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const canvas = !perPage && !story.animationUrl && imageUrl && keypoints;
     // 영상 쪽이든 정지 그림 쪽이든 같은 칸 — 쪽마다 칸 크기가 바뀌지 않게. 캔버스(목 엔진) · 소품 장면만 칸을 다 쓴다
     const fit = !props && (!!clipI || !canvas);
+    // 장면 층: 넘기는 동안 밑에 깔린 도착할 쪽은 시작 모습으로 기다리고, 넘긴 뒤 이어서 움직인다
+    const forward = turn ? turn.dir > 0 : entered.from === null || entered.from < i;
+    const sceneMode: "play" | "start" | "end" =
+      active && !top ? (forward && entered.pg === i ? "play" : "end")
+      : !top && turn && turn.dir > 0 && i === turn.to ? "start" : "end";
+    const prevEnv = scenes && i > 0 ? scenes[forward ? i - 1 : i].env : null;
+    if (scenes && !props) {
+      return (
+        <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
+          <FitStage ar={null}>
+            <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode}
+              sprite={pgI.sprite && pgI.spriteUrl ? { url: pgI.spriteUrl, ...pgI.sprite } : null} still={still} />
+          </FitStage>
+          {pageText(i, active, top)}
+          {top && <>
+            <div className="turn-wedge" ref={wedgeRef} />
+            <div className="turn-ear-fold" ref={earRef} />
+          </>}
+        </div>
+      );
+    }
     return (
       <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
         <FitStage ar={layout && !canvas ? stageAr : fit ? ar : null} onClick={props ? () => setPropPhase(false) : undefined}>
@@ -449,13 +493,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
                          style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}
         </FitStage>
-        <div className="spread-text" ref={active && !top ? textRef : undefined}
-             style={fitSize[i] ? ({ "--said": `${fitSize[i]}px`, "--lh": `${Math.round(fitSize[i] * 1.47)}px` } as CSSProperties) : undefined}>
-          <span className="hint">{book.title} · {i + 1} / {pages.length}쪽</span>
-          {/* 형광펜 없이 큰 글자로 (2026-11-03 사용자 「하이라이팅 효과가 아예 없는 게 낫고 글자 크기를 키워」) */}
-          <span className="said"><span className="mark">{pgI.text}</span></span>
-          {pgI.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
-        </div>
+        {pageText(i, active, top)}
         {top && <>
           <div className="turn-wedge" ref={wedgeRef} />
           <div className="turn-ear-fold" ref={earRef} />

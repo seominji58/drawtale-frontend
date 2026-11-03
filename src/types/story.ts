@@ -81,7 +81,7 @@ export interface BookPage {
   /** 프레임 묶음의 장 수와 첫 장의 그림 자리 [left, top, right, bottom] (칸 대비 0~1). 서버가 잰다 */
   sprite?: { frames: number; box: [number, number, number, number] } | null;
   /** 대본의 장면 계획 — 세부 장소 id(`school-cafeteria` 등)와 영어 배경 문장. 틀 문장 그림책 · 예전 이야기는 없음 */
-  scene?: { location?: string; background?: string } | null;
+  scene?: { location?: string; background?: string; characters?: { name: string; slot: string }[] } | null;
 }
 
 export interface Book {
@@ -89,6 +89,8 @@ export interface Book {
   pages: BookPage[];
   /** S-10 순서 맞추기에 쓸 쪽 번호. 장소 · 문제 · 행동 · 결과 순 */
   orderPages: number[];
+  /** 대본에 나오는 인물 이름 → 영어 생김새. 장면 층이 어른 · 아이 그림을 고르는 데 쓴다 */
+  characterSheet?: Record<string, string>;
 }
 
 /** S-13 「이야기 길이」. short: 네 칸 → 네 문장 · long: 네 칸을 뼈대로 쪽 단위 그림책 (서버 `length`) */

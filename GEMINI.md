@@ -51,6 +51,7 @@
 - 10/20: 그 실험 `shape_rig.py` 를 **아무 그림 파일 · 폴더로** 돌릴 수 있게 함 (`python shape_rig.py 내그림.jpg --out 결과`, 이 PC 경로 의존 삭제, 가장자리에 닿은 그림 처리). 실제 아이 그림 사진은 아직
 - 10/20: **네발 동물 전용 걷기** `experiments/animal-monster/quadruped.py` (코드 변경 없음). 배 아래 다리 찾기 + 네발 걷기 순서, 꼬리는 있을 때만, 네발 아니면 일반 방식으로. 경우의 수 11장 + 카톡 그림 2장 모두 맞음. 다리 곡선은 CMU 사람 걷기 mocap 에서 뽑은 모양(`--gait cmu`)
 - 11/2: **보안** — 백엔드 분당 · 동시 제한(서민지 님) + 하루 한도(429 · 503 → E-01 BUSY, 429 는 Retry-After 60초 이하면 기다렸다 다시), 파일 주소 서명(책장에서 다시 열면 `refreshStory`), `POST /auth/logout`, 배포 헤더(`public/staticwebapp.config.json` CSP), Pillow 13
+- 11/3: **S-09 장면 층**(`features/scene/` — locations · plan · sprite · SceneStage, 쪽에 `spriteUrl` · `sprite` · `scene`, 세부 장소 `public/scenes/{세부}`) — 로컬, push 전
 - 11/3: **보호자 모드 스위치**(`settings.guardianMode`, `useWithAdult().guardian` — 끄면 어른과 함께 전부 꺼진 것으로) · S-05 보호자면 늘 관절 고치기 · E-01 다시 시도하기 · S-07 그림 카드 `.choice img.art`
 - 11/3: **목업 그림 B 크레용으로 전부** — `public/icons/*/*.webp`(`choices.ts` `ICON_IDS`), `public/illust/`, `public/guide/`, `public/scenes/{장소}/layout.json`(S-09 에는 아직 안 씀), 스크립트 `tools/art/`
 - 11/3: **S-09 이야기책 형광펜 없앰 · 글자 38px**(긴 쪽은 `fitSize` 로 칸에 맞춰 줄임)
