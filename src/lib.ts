@@ -8,8 +8,8 @@ export const SPEECH_RATES = [["천천히", 0.8], ["보통", 1], ["빠르게", 1.
 /** 지금 읽어주기 빠르기 (S-09 에서 고름, 설정에 남는다). 음성 파일은 `playbackRate`, 브라우저 음성은 `rate` 에 곱한다 */
 export const speechRate = () => useSettings.getState().speechRate || 1;
 
-/** 만들어 둔 음성 파일을 브라우저가 늘리는 배율. 0.8배로 늘리면 소리가 깨져서(11/3 사용자) 늘리는 것은 0.9배까지만.
- *  안내 음성은 「천천히」 판을 따로 만들어 두었다(`public/voice/guide/slow/`, 처음부터 느리게 읽은 것) */
+/** 만들어 둔 음성 파일(안내 · 이야기)을 브라우저가 늘리는 배율. 0.8배로 늘리면 소리가 깨져서(11/3 사용자) 0.9배까지만.
+ *  (ElevenLabs 에 처음부터 느리게 읽히려 했으나 eleven_v4_turbo 는 voice_settings.speed 를 무시했다 — 길이가 같았다) */
 export const fileRate = (r = speechRate()) => (r < 1 ? Math.max(r, 0.9) : r);
 
 /** 화면 안내 · 카드 이름처럼 정해진 문장은 이야기 나레이터 목소리로 미리 만들어 둔 파일을 튼다
@@ -22,9 +22,8 @@ export function speak(text: string, mute: boolean, onEnd?: () => void) {
   stopSpeak();
   const file = (GUIDE_VOICE as Record<string, string>)[text.trim()];
   if (!file) return tts(text, onEnd);
-  const slow = speechRate() < 1;
-  const a = new Audio(`${import.meta.env.BASE_URL}voice/guide/${slow ? "slow/" : ""}${file}`);
-  a.playbackRate = slow ? 1 : speechRate();
+  const a = new Audio(`${import.meta.env.BASE_URL}voice/guide/${file}`);
+  a.playbackRate = fileRate();
   clip = a;
   a.onended = () => { if (clip === a) { clip = null; onEnd?.(); } };
   // 파일을 못 받거나 재생이 막히면 브라우저 TTS 로
