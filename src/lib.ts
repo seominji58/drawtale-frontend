@@ -16,6 +16,31 @@ export const fileRate = (r = speechRate()) => (r < 1 ? Math.max(r, 0.9) : r);
  *  (2026-11-03, 95문장 — 문장 → `public/voice/guide/` 파일). 아이가 적거나 말한 문장처럼 목록에 없는 것만 브라우저 TTS */
 let clip: HTMLAudioElement | null = null;
 
+/** 소리 크기 (위 줄 소리 버튼, 설정에 남는다). 파일은 `volume`, 브라우저 음성은 utterance.volume */
+export const volume = () => { const v = useSettings.getState().volume; return typeof v === "number" ? Math.min(1, Math.max(0, v)) : 1; };
+/** 화면들이 직접 만든 음성(이야기 쪽 음성 등). 소리 크기를 바꾸거나 소리를 끄면 바로 따라간다 */
+const live = new Set<HTMLAudioElement>();
+export function trackAudio(a: HTMLAudioElement): HTMLAudioElement {
+  a.volume = volume();
+  live.add(a);
+  const drop = () => live.delete(a);
+  a.addEventListener("ended", drop); a.addEventListener("pause", drop);
+  a.addEventListener("play", () => live.add(a));
+  return a;
+}
+/** 소리 크기를 바꾼 즉시 지금 나는 소리에도 */
+export function applyVolume() {
+  const v = volume();
+  if (clip) clip.volume = v;
+  for (const a of live) a.volume = v;
+}
+/** 소리 끄기를 누르면 지금 나는 소리를 멈춘다 */
+export function silenceAll() {
+  stopSpeak();
+  for (const a of [...live]) a.pause();
+  live.clear();
+}
+
 /** C-02 다시 듣기. 음성 파일이 없을 때는 브라우저 TTS 로 대신 읽는다. */
 export function speak(text: string, mute: boolean, onEnd?: () => void) {
   if (mute) return;
@@ -24,6 +49,7 @@ export function speak(text: string, mute: boolean, onEnd?: () => void) {
   if (!file) return tts(text, onEnd);
   const a = new Audio(`${import.meta.env.BASE_URL}voice/guide/${file}`);
   a.playbackRate = fileRate();
+  a.volume = volume();
   clip = a;
   a.onended = () => { if (clip === a) { clip = null; onEnd?.(); } };
   // 파일을 못 받거나 재생이 막히면 브라우저 TTS 로
@@ -35,6 +61,7 @@ function tts(text: string, onEnd?: () => void) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "ko-KR";
   u.rate = 0.95 * speechRate();
+  u.volume = volume();
   if (onEnd) u.onend = onEnd;
   window.speechSynthesis.speak(u);
 }

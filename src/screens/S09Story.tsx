@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import Screen, { SoundIcon } from "@/components/Screen";
+import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
@@ -13,7 +13,7 @@ import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/Plac
 import SceneStage from "@/features/scene/SceneStage";
 import { planPages } from "@/features/scene/plan";
 import { ORDER_GAME, useSettings } from "@/store/settings";
-import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak } from "@/lib";
+import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak, trackAudio } from "@/lib";
 import type { MotionId, Story } from "@/types/story";
 import type { Keypoints } from "@/types/character";
 
@@ -49,7 +49,7 @@ export default function S09Story() {
   const play = () => {
     if (at !== null) { stop(); return; }
     if (story.audioUrl) {
-      const a = audio.current ?? new Audio(story.audioUrl);
+      const a = audio.current ?? trackAudio(new Audio(story.audioUrl));
       audio.current = a;
       a.loop = loop;
       a.playbackRate = fileRate();
@@ -270,7 +270,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       const url = pages[pg].audioUrl;
       if (muteAll) { fill(est); return; }
       if (url) {
-        const a = new Audio(url);
+        const a = trackAudio(new Audio(url));
         a.playbackRate = fileRate();
         audio.current = a;
         a.ontimeupdate = () => { if (a.duration) setFrac(a.currentTime / a.duration); };
@@ -278,7 +278,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         a.onerror = tts;
         void a.play().catch(() => fill(est));
       } else if (!perPage && story.audioUrl) {
-        const a = audio.current && audio.current.src.includes(story.audioUrl.split("?")[0]) ? audio.current : new Audio(story.audioUrl);
+        const a = audio.current && audio.current.src.includes(story.audioUrl.split("?")[0]) ? audio.current : trackAudio(new Audio(story.audioUrl));
         audio.current = a;
         const from = pg === 0 ? 0 : ends[pg - 1], to = ends[pg];
         a.playbackRate = fileRate();
@@ -487,7 +487,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   return (
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
       // C-02 다시 듣기: 이 쪽을 처음부터 다시 읽는다 (쪽 음성 파일이 있으면 그 목소리로 — 브라우저 음성과 겹치지 않게)
-      railEnd={<button className="round" onClick={() => setReplay((r) => r + 1)} aria-label="다시 듣기"><SoundIcon /></button>}>
+      onReplay={() => setReplay((r) => r + 1)}>
       {/* 가로 화면: 장면이 높이를 거의 다 쓰고, 오른쪽 좁은 칸에 글 + 조작 (2026-11-03 사용자 「대본을 작게, 장면이 커야」).
           조작 줄은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 두고, 가로 화면에서는 글 칸 아래에 겹쳐 놓는다 (ui.css .book-area) */}
       <div className={`book-area ${stageAr ? "fit" : ""}`} ref={areaRef}

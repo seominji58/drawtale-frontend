@@ -14,7 +14,7 @@ export const FIXED_LEVEL: SupportLevel | null = 2;
 export const ORDER_GAME = false;
 const DEFAULTS: Settings = {
   level: 2, muteAll: false, keepOriginal: false, diagnostics: false, voiceInput: false, voiceMode: "narration", protagonistVoice: "girl",
-  photoUpload: false, storyLength: "long", speechRate: 1, guardianNarrator: false, guardianMode: false,
+  photoUpload: false, storyLength: "long", speechRate: 1, guardianNarrator: false, guardianMode: false, volume: 1,
 };
 
 function load(): Settings {
