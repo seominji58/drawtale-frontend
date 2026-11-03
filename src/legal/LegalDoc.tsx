@@ -4,7 +4,7 @@ import privacy from "./privacy.md?raw";
 
 /** 가입할 때 서버에 함께 보내 어느 판에 동의했는지 남긴다 (백엔드 users.consent_version).
  *  terms.md · privacy.md 를 고치면 이 값도 바꾼다. 원본 초안은 pt_docs legal/ 에 있다 */
-export const LEGAL_VERSION = "2026-11-03-draft2";
+export const LEGAL_VERSION = "2026-11-03-draft3";
 
 export type LegalKind = "terms" | "privacy";
 
