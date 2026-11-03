@@ -74,6 +74,7 @@ interface ServerStory {
   text: string | null;
   audio_url: string | null;
   animation_url: string | null;
+  still_url?: string | null;
   created_at: string;
   /** 긴 이야기일 때만 (계약 2-6 `book`) */
   book?: {
@@ -197,6 +198,7 @@ function toStory(s: ServerStory): Story {
     text: s.text ?? "",
     audioUrl: s.audio_url,
     animationUrl: s.animation_url,
+    stillUrl: s.still_url ?? null,
     book: s.book ? {
       title: s.book.title,
       pages: s.book.pages.map((p) => ({

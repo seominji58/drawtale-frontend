@@ -17,7 +17,7 @@ export default function S11Done() {
   // 주인공 그림: 배경을 잘라 낸 정지 그림 → 동작 영상의 첫 장면 → 책장 표지 → 올린 그림 순서.
   // 올린 그림을 먼저 쓰면 사진 배경까지 나왔다 (2026-11-03 사용자 확인)
   const clip = firstClip(story);
-  const cutout = cutoutFor(story, useSession.getState().character);
+  const cutout = story?.stillUrl ?? cutoutFor(story, useSession.getState().character);
   // 원본(imageUrl)은 쓰지 않는다 — 사진 배경까지 나온다 (2026-11-03 「통이미지는 안 된다」)
   const art = saved?.cover ?? (ENGINE === "mock" ? imageUrl : null);
 

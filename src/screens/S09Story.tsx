@@ -339,7 +339,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     return () => clearTimeout(t);
   }, [pg, shownKey]);
   // imageUrl 은 배경을 잘라 낸 그림이다 (원본이 아니다, 위 S09Story). 목 엔진만 animation_url 의 원본 그림을 쓴다
-  const still = ENGINE === "mock" && story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl;
+  // 이야기가 가진 정지 그림(서버 사본)이 먼저 — 새로고침 · 책장에서 다시 열어도 있다 (2026-11-03)
+  const still = story.stillUrl
+    ?? (ENGINE === "mock" && story.animationUrl && !/\.mp4(\?|$)/i.test(story.animationUrl) ? story.animationUrl : imageUrl);
   // 움직임이 없는 쪽(대기)은 원본 그림을 그대로 보이면 사진 배경까지 나온다 (2026-11-03 사용자 확인).
   // 이 이야기의 동작 영상 하나를 첫 장면에 멈춰 보인다 — 배경을 잘라 낸 캐릭터가 가만히 선 모습이다.
   // 영상이 하나도 없을 때만 원본 그림을 쓴다

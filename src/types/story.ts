@@ -47,6 +47,9 @@ export interface Story {
   audioUrl: string | null;
   /** 서버가 렌더한 MP4. 목 AI 에서는 원본 그림 URL 이 오고, 목 엔진에서는 null 이다 */
   animationUrl: string | null;
+  /** 배경을 잘라 낸 캐릭터 정지 그림 — 이 이야기의 사본 (서버 still_url, 2026-11-03).
+   *  영상이 없는 쪽 · 완료 화면 · 표지에 쓴다. 새로고침 · 책장에서 다시 열어도 있다 */
+  stillUrl?: string | null;
   /** 긴 이야기(S-13 「이야기 길이: 길게」)일 때만. 네 칸을 뼈대로 한 쪽 단위 그림책 (서버 `book`) */
   book?: Book | null;
   /** 이 이야기를 만들 때 고른 카드 id (프론트만, 서버에는 없다). 내 소품을 어느 쪽에 얹을지 정한다 (open-decisions 0-13) */
