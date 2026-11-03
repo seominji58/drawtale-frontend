@@ -346,7 +346,15 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 이 이야기의 동작 영상 하나를 첫 장면에 멈춰 보인다 — 배경을 잘라 낸 캐릭터가 가만히 선 모습이다.
   // 영상이 하나도 없을 때만 원본 그림을 쓴다
   const restClip = firstClip(story);
+  // 장면 칸 비율은 이 이야기의 장면 영상 비율 — 첫 쪽이 정지 그림이어도 처음부터 같은 크기 칸이 되게 미리 읽어 둔다
   const [ar, setAr] = useState<number | null>(null);
+  useEffect(() => {
+    if (!restClip) return;
+    const v = document.createElement("video");
+    v.preload = "metadata"; v.muted = true;
+    v.onloadedmetadata = () => { if (v.videoWidth && v.videoHeight) setAr(v.videoWidth / v.videoHeight); v.removeAttribute("src"); v.load(); };
+    v.src = restClip;
+  }, [restClip]);
 
   /** i 쪽 펼침면. active 는 지금 보고 있는 쪽(소품 장면 · 읽는 중 표시). top 이면 넘어가는 쪽 — 말림 띠 · 귀퉁이를 단다 */
   const spread = (i: number, active: boolean, top = false) => {
@@ -354,10 +362,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const clipI = pgI.animationUrl && /\.mp4(\?|$)/i.test(pgI.animationUrl) ? pgI.animationUrl : null;
     const props = active && propPhase && shown.length > 0;
     const canvas = !perPage && !story.animationUrl && imageUrl && keypoints;
-    const video = !props && (clipI || (!canvas && !still && restClip));
+    // 영상 쪽이든 정지 그림 쪽이든 같은 칸 — 쪽마다 칸 크기가 바뀌지 않게. 캔버스(목 엔진) · 소품 장면만 칸을 다 쓴다
+    const fit = !props && !canvas;
     return (
       <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
-        <FitStage ar={video ? ar : null} onClick={props ? () => setPropPhase(false) : undefined}>
+        <FitStage ar={fit ? ar : null} onClick={props ? () => setPropPhase(false) : undefined}>
           {props
             // 소품들을 나란히. 그린 곳만 잘라 두었으니 아이가 그린 크기 · 모양과 상관없이 고른 크기(작게 · 보통 · 크게) 상자에
             // 비율을 지켜 맞춰 들어간다. 여럿이면 한 개가 차지할 폭도 줄인다
