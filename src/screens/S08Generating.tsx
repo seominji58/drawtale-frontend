@@ -82,8 +82,11 @@ export default function S08Generating() {
         // 고른 카드를 이야기에 붙여 둔다 — 내 이야기(S-12)에서 다시 볼 때도 소품을 얹을 수 있게
         const s = { ...res, guardian, picks: { place: picks.place, problem: picks.problem, action: picks.action, result: picks.result } };
         setStory(s); add(s);
-        // 책장 표지: 아이 그림을 작게 줄여 붙인다. 늦게 끝나도 같은 이야기(storyId)를 덮어쓸 뿐이다
-        if (imageUrl) makeCover(imageUrl).then((cover) => { if (cover) add({ ...s, cover }); });
+        // 책장 표지: 아이 그림을 작게 줄여 붙인다. 늦게 끝나도 같은 이야기(storyId)를 덮어쓸 뿐이다.
+        // 동작 영상이 있으면 그 첫 장면(배경을 잘라 낸 캐릭터)으로 만든다 — 원본은 사진 배경이 나온다
+        const isClip = (u?: string | null) => !!u && /\.mp4(\?|$)/i.test(u);
+        const clip = [res.animationUrl, ...(res.book?.pages ?? []).map((p) => p.animationUrl)].find(isClip) ?? null;
+        if (clip || imageUrl) makeCover(clip, imageUrl).then((cover) => { if (cover) add({ ...s, cover }); });
         nav("/story", { replace: true });
       })
       .catch((e) => {

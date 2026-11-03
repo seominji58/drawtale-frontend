@@ -78,13 +78,17 @@ export default function S05Name() {
       acts={<BigButton go disabled={!name} onClick={() => go(true)}>이 이름으로 할래요</BigButton>}>
       <h2 className="question">어떤 이름이 좋을까요?</h2>
 
-      <div className="stage" style={{ flexDirection: "column", gap: 12 }}>
+      {/* 무대는 넘치는 것을 잘라 내므로 아래 여백을 두어 이름표가 잘리지 않게 한다 (2026-11-03) */}
+      <div className="stage" style={{ flexDirection: "column", gap: 12, padding: "16px 16px 20px" }}>
         <div style={{ flex: 1, minHeight: 0, width: "100%", display: "flex", justifyContent: "center" }}>
           <CharacterPreview />
         </div>
         {name && (
-          <button className="said now" onClick={() => speak(name, muteAll)}
-            style={{ border: 0, fontFamily: "inherit", fontSize: "var(--t-question)", padding: "10px 32px", cursor: "pointer" }}>
+          // 이름표는 고른 이름 카드처럼 노란 알약을 통째로 칠한다. 읽는 문장의 형광펜(.said.now)은
+          // 아래 절반만 칠해서 둥근 모양과 겹치면 반쪽 알약처럼 보였다
+          <button className="said" onClick={() => speak(name, muteAll)}
+            style={{ flex: "0 0 auto", border: 0, fontFamily: "inherit", fontSize: "var(--t-question)", lineHeight: 1.3,
+              padding: "10px 36px", cursor: "pointer", background: "var(--butter)" }}>
             {name}
           </button>
         )}
