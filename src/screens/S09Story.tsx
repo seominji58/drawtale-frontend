@@ -285,9 +285,12 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       };
       tick();
     };
+    // 음성 파일이 없는 쪽(서버가 그 쪽 음성을 끝내 못 만듦)은 브라우저 기계 음성으로 대신 읽지 않는다 — 나레이터 목소리
+    // 사이에 다른 목소리가 끼었다 (11/3 사용자 「중간에 가끔 다른 tts 나올 때 있는데 막아줘」). 바만 찬다.
+    // 서버가 없는 목 엔진만 브라우저 음성
     const tts = () => {
       if (!alive) return;
-      if (muteAll) { fill(est); return; }
+      if (muteAll || ENGINE !== "mock") { fill(est); return; }
       trackTts(text);
       speak(text, muteAll, () => { if (alive) { stopTts(); setFrac(1); } });
     };

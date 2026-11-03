@@ -12,7 +12,7 @@ import { needsAdult } from "@/types/character";
 
 export default function S05Confirm() {
   const nav = useNavigate();
-  const { imageUrl, keypoints, character } = useSession();
+  const { imageUrl, keypoints, character, setFile } = useSession();
   const level = useSettings((s) => s.level);
   // 다음은 늘 이름 짓기 (S05Name). 읽어주기 판과 상관없이 묻고, 지을지 말지는 아이가 고른다 (2026-11-02 사용자)
   const next = "/name";
@@ -27,7 +27,8 @@ export default function S05Confirm() {
     <Screen back="/upload" speech="내 친구가 움직여요" segment={2}
       acts={
         <>
-          <BigButton onClick={() => nav("/upload")}>{photo ? "다시 찍기" : "다시 그리기"}</BigButton>
+          {/* 그림을 비우고 S-03 고르기(화면에 그리기 · 그림 찍기 · 앨범)로 — 그림이 남아 있으면 「이 그림으로」 화면이 떴다 (11/3 사용자) */}
+          <BigButton onClick={() => { setFile(null); nav("/upload"); }}>{photo ? "다시 찍기" : "다시 그리기"}</BigButton>
           <BigButton go onClick={() => nav(next)}>이 친구로 할래요</BigButton>
         </>
       }>

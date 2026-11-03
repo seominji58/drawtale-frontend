@@ -61,13 +61,14 @@ export default function Screen({
   audience = "child", autoSpeak = true, railEnd, acts, children, adultKey = audience === "child", onReplay,
 }: Props) {
   const nav = useNavigate();
-  const { level, muteAll } = useSettings();
+  const level = useSettings((s) => s.level);
   const cfg = LEVEL_CONFIG[level];
 
+  // 소리 켜기 · 끄기로는 다시 돌지 않는다 — 돌면 끄는 순간 멈춰 둔 소리까지 지워 다시 켜도 이어지지 않았다 (11/3)
   useEffect(() => {
-    if (speech && autoSpeak && cfg.autoSpeak && audience === "child") speak(speech, muteAll);
+    if (speech && autoSpeak && cfg.autoSpeak && audience === "child") speak(speech, useSettings.getState().muteAll);
     return stopSpeak;
-  }, [speech, autoSpeak, cfg.autoSpeak, muteAll, audience]);
+  }, [speech, autoSpeak, cfg.autoSpeak, audience]);
 
   const onBack = () => {
     if (typeof back === "function") back();
@@ -96,7 +97,8 @@ export default function Screen({
           {/* C-02 소리: 누르면 다시 듣기 · 소리 끄기 · 소리 크기 목록 (components/SoundMenu). 아이 화면은 읽을 문장이 없어도
               소리 끄기 · 크기는 있다 */}
           {railEnd ?? ((speech !== null || onReplay || audience === "child") && (
-            <SoundMenu onReplay={onReplay ?? (speech !== null ? () => speak(speech, muteAll) : undefined)} />
+            // 소리 설정은 누르는 그때 값으로 (켠 직후 다시 읽을 때 끄기 전 값을 들고 있으면 조용했다)
+            <SoundMenu onReplay={onReplay ?? (speech !== null ? () => speak(speech, useSettings.getState().muteAll) : undefined)} />
           ))}
         </div>
       </div>

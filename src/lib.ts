@@ -34,11 +34,21 @@ export function applyVolume() {
   if (clip) clip.volume = v;
   for (const a of live) a.volume = v;
 }
-/** 소리 끄기를 누르면 지금 나는 소리를 멈춘다 */
+/** 소리 끄기로 멈춰 둔 것 — 다시 켜면 그 자리부터 이어서 (11/3 사용자 「처음부터 말고 이어서」). 쪽을 넘기거나 화면을 떠나면(stopSpeak) 버린다 */
+const held = new Set<HTMLAudioElement>();
+let ttsHeld = false;
+/** 소리 끄기를 누르면 지금 나는 소리를 멈춘다 (끝내지 않고 멈춤 — resumeAll 로 이어서) */
 export function silenceAll() {
-  stopSpeak();
-  for (const a of [...live]) a.pause();
-  live.clear();
+  for (const a of [...live, ...(clip ? [clip] : [])]) { if (!a.paused) { a.pause(); held.add(a); } }
+  if ("speechSynthesis" in window && window.speechSynthesis.speaking) { window.speechSynthesis.pause(); ttsHeld = true; }
+}
+/** 소리를 다시 켜면 멈춘 자리부터. 이어 틀 것이 없으면(다 읽은 뒤) 조용하다 — 처음부터는 「다시 듣기」 */
+export function resumeAll() {
+  const v = volume();
+  for (const a of held) { a.volume = v; void a.play().catch(() => {}); }
+  held.clear();
+  if (ttsHeld && "speechSynthesis" in window) window.speechSynthesis.resume();
+  ttsHeld = false;
 }
 
 /** C-02 다시 듣기. 음성 파일이 없을 때는 브라우저 TTS 로 대신 읽는다. */
@@ -75,6 +85,7 @@ export function sentences(text: string): string[] {
 }
 
 export function stopSpeak() {
+  held.clear(); ttsHeld = false;
   if (clip) { clip.onended = null; clip.pause(); clip = null; }
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }

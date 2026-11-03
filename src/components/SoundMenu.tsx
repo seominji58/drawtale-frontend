@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSettings } from "@/store/settings";
-import { applyVolume, silenceAll } from "@/lib";
+import { applyVolume, resumeAll, silenceAll } from "@/lib";
 import { SoundIcon } from "./Screen";
 
 /** 소리 크기 세 가지 (아이 화면이라 쉬운 말로) */
@@ -58,7 +58,14 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
             </button>
           )}
           <button className="btn sound-row" role="menuitemcheckbox" aria-checked={muteAll}
-            onClick={() => { const next = !muteAll; set("muteAll", next); if (next) silenceAll(); }}>
+            onClick={() => {
+              const next = !muteAll;
+              set("muteAll", next);
+              // 끄면 지금 소리를 멈추고, 다시 켜면 멈춘 자리부터 이어서 (11/3 사용자 「다시 누르면 소리가 나와야」 ·
+              // 「처음부터 말고 이어서」). 처음부터는 「다시 듣기」
+              if (next) silenceAll();
+              else resumeAll();
+            }}>
             {muteAll ? <><SoundIcon /> 소리 켜기</> : <><MuteIcon /> 소리 끄기</>}
           </button>
           <div className="sound-vol" role="group" aria-label="소리 크기">
