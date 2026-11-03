@@ -27,6 +27,8 @@ export default function S11Done() {
       acts={
         <>
           <BigButton onClick={() => nav("/story")}>다시 보기</BigButton>
+          {/* 방금 꽂은 책을 책장에서 보러 간다 (11/3 사용자 「다 했어요 페이지에서 책장으로 갈 수 있는 버튼」) */}
+          <BigButton onClick={() => nav("/stories")}>내 책장</BigButton>
           <BigButton go onClick={() => { resetStory(); nav("/steps"); }}>새 이야기 만들기</BigButton>
           <BigButton onClick={() => nav("/")}>처음으로</BigButton>
         </>

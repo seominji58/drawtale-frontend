@@ -149,6 +149,9 @@
   .bar-row > .seg button { flex: 1; }
   /* S-09 아래 단추 셋(앞 쪽 · 들려주기 · 다음 쪽)이 두 줄로 깨지지 않게 */
   .row > .btn, .ctl-btns > .btn { font-size: 20px; padding-inline: 6px; white-space: nowrap; }
+  /* 아래 줄 버튼이 셋 넘으면(S-11 다시 보기 · 내 책장 · 새 이야기 · 처음으로) 두 줄로 — 옆으로 밀리지 않게 (11/3) */
+  .acts { flex-wrap: wrap; }
+  .acts > * { flex: 1 1 calc(50% - var(--gap)); min-width: 0; }
 }
 .progress > i { display: block; height: 100%; border-radius: inherit; background: var(--progress-fill, var(--mint)); }
 

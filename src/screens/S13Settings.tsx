@@ -105,27 +105,49 @@ export default function S13Settings() {
   };
 
   // 지금 보고 있는 묶음을 칩에 표시한다: 목록 맨 위를 지난 마지막 머리.
-  // 머리가 위에 붙어 있어(sticky) IntersectionObserver 로는 늘 「보이는」 것으로 나와 스크롤 위치로 센다
+  // 머리가 위에 붙어 있어(sticky) IntersectionObserver 로는 늘 「보이는」 것으로 나와 스크롤 위치로 센다.
+  // 칩을 눌러 가는 동안은 누른 칩만 켜 둔다 — 지나가는 묶음 칩이 차례로 깜빡였다 (11/3 사용자 「카테고리 버튼이 이상하게」)
+  const jumping = useRef<number>(0);
+  const spacer = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = listRef.current;
     if (!root) return;
     const onScroll = () => {
+      if (jumping.current) return;
       const heads = [...root.querySelectorAll<HTMLElement>("[data-section]")];
       const top = root.scrollTop + 12;
-      const atEnd = root.scrollTop + root.clientHeight >= root.scrollHeight - 4;
       const passed = heads.filter((h) => h.offsetTop <= top);
-      const now = atEnd ? heads[heads.length - 1] : passed[passed.length - 1] ?? heads[0];
+      const now = passed[passed.length - 1] ?? heads[0];
       if (now) setCurrent(now.dataset.section!);
     };
-    onScroll();
+    // 마지막 묶음도 맨 위까지 올라오게 끝에 빈 칸을 둔다 — 없으면 끝 근처 묶음(기록 · 안내)은 위로 못 와서
+    // 그 칩을 눌러도 · 휠로 내려도 다른 칩이 켜졌다
+    const fit = () => {
+      const sp = spacer.current, heads = root.querySelectorAll<HTMLElement>("[data-section]");
+      const last = heads[heads.length - 1];
+      if (!sp || !last) return;
+      sp.style.height = "0px";
+      const tail = root.scrollHeight - last.offsetTop;
+      sp.style.height = `${Math.max(0, root.clientHeight - tail)}px`;
+      onScroll();
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(root);
     root.addEventListener("scroll", onScroll, { passive: true });
-    return () => root.removeEventListener("scroll", onScroll);
+    return () => { ro.disconnect(); root.removeEventListener("scroll", onScroll); };
   }, [stories.length]);
 
   const jump = (id: string) => {
     const root = listRef.current, el = document.getElementById(`set-${id}`);
     if (!root || !el) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setCurrent(id);
+    // 다 갈 때까지 스크롤 표시를 멈춘다 (scrollend 가 없는 브라우저는 잠깐 뒤)
+    window.clearTimeout(jumping.current);
+    jumping.current = window.setTimeout(() => { jumping.current = 0; }, reduce ? 50 : 900);
+    const done = () => { window.clearTimeout(jumping.current); jumping.current = 0; root.removeEventListener("scrollend", done); };
+    root.addEventListener("scrollend", done);
     root.scrollTo({ top: el.offsetTop, behavior: reduce ? "auto" : "smooth" });
   };
 
@@ -323,6 +345,8 @@ export default function S13Settings() {
                 )}
               </Row>
         ))}
+        {/* 마지막 묶음도 맨 위까지 올라오게 하는 빈 칸 (높이는 위 fit) */}
+        <div ref={spacer} aria-hidden />
       </div>
     </Screen>
   );
