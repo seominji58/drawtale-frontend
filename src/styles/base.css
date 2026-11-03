@@ -15,6 +15,12 @@ body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  /* 글자를 누르면 깜빡이는 커서 · 글자 고르기가 뜨던 것 (11/3 사용자 「입력 깜빡이는 것들 없애줘」) — 아이 화면은 누르는 앱이라
+     글자를 고를 일이 없다. 적는 칸(input · textarea)과 약관 본문만 아래에서 다시 켠다 */
+  -webkit-user-select: none;
+  user-select: none;
+  caret-color: transparent;
+  -webkit-touch-callout: none;
   /* 한글을 낱말 단위로 줄바꿈 (11/2 휴대폰 폭 점검 — 「좋을까/요?」처럼 낱말 중간에서 끊기던 것). 긴 낱말은 넘치지 않게 끊는다 */
   word-break: keep-all;
   overflow-wrap: break-word;
@@ -45,4 +51,12 @@ h1, h2, .question, .said, .rail-title, .wait .msg, .btn, .choice span, .slot b {
   0% { transform: scale(1); }
   45% { transform: scale(1.08); }
   100% { transform: scale(1.03); }
+}
+
+/* 적는 칸 · 약관은 커서 · 고르기 그대로 (위 body 에서 끈 것을 다시) */
+input, textarea, [contenteditable="true"], .legal-page-inner {
+  -webkit-user-select: text;
+  user-select: text;
+  caret-color: auto;
+  -webkit-touch-callout: default;
 }
