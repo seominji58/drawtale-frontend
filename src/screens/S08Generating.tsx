@@ -7,7 +7,7 @@ import { Pencil } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { useGuardianMode, useSettings, useWithAdult } from "@/store/settings";
 import { useLibrary } from "@/store/library";
-import { useAuth, consumeTrial } from "@/store/auth";
+import { useAuth } from "@/store/auth";
 import { generateStory, ApiError, ENGINE } from "@/api";
 import { makeCover } from "@/features/story/cover";
 import type { JobStatus } from "@/types/character";
@@ -84,7 +84,6 @@ export default function S08Generating() {
         setStory(s); add(s);
         // 책장 표지: 아이 그림을 작게 줄여 붙인다. 늦게 끝나도 같은 이야기(storyId)를 덮어쓸 뿐이다
         if (imageUrl) makeCover(imageUrl).then((cover) => { if (cover) add({ ...s, cover }); });
-        if (mode === "guest") consumeTrial();
         nav("/story", { replace: true });
       })
       .catch((e) => {

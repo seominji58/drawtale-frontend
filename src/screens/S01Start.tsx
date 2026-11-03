@@ -6,7 +6,6 @@ import BigButton from "@/components/BigButton";
 import { Friend } from "@/components/illust";
 import { useLibrary } from "@/store/library";
 import { useSession } from "@/store/session";
-import { useAuth, trialLeft } from "@/store/auth";
 import { useSettings } from "@/store/settings";
 import { speak } from "@/lib";
 
@@ -14,7 +13,6 @@ export default function S01Start() {
   const nav = useNavigate();
   const { stories, load } = useLibrary();
   const resetAll = useSession((s) => s.resetAll);
-  const mode = useAuth((a) => a.mode);
   const muteAll = useSettings((v) => v.muteAll);
   const [held, setHeld] = useState(0);
   const [hint, setHint] = useState(false);
@@ -48,7 +46,7 @@ export default function S01Start() {
     setHeld(0);
   };
 
-  const start = () => nav(mode === "guest" && trialLeft() === 0 ? "/welcome" : "/guide");
+  const start = () => nav("/guide");
 
   return (
     <Screen

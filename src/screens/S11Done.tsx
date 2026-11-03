@@ -5,7 +5,6 @@ import BigButton from "@/components/BigButton";
 import { Party } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { useLibrary } from "@/store/library";
-import { useAuth, trialLeft } from "@/store/auth";
 
 export default function S11Done() {
   const nav = useNavigate();
@@ -15,9 +14,6 @@ export default function S11Done() {
   const saved = useLibrary((l) => l.stories.find((x) => x.storyId === story?.storyId));
   // 주인공 그림: 이번에 올린 그림, 없으면 책장 표지
   const art = imageUrl ?? saved?.cover ?? null;
-  const { mode, guestNoticeShown, markGuestNotice } = useAuth();
-  const left = trialLeft();
-  const showNotice = mode === "guest" && !guestNoticeShown;
 
   return (
     <Screen back={ORDER_GAME ? "/order" : "/story"} speech="다 했어요!" segment={4}
@@ -39,19 +35,6 @@ export default function S11Done() {
           <p className="hero-sub">{story ? `「${story.title}」을 내 책장에 꽂아 두었어요` : "멋진 이야기를 만들었어요"}</p>
         </div>
       </div>
-
-      {showNotice && (
-        <div className="box warn inline">
-          <span>
-            {left > 0
-              ? `로그인하면 이야기를 보관할 수 있어요. 체험은 ${left}편 남았어요`
-              : "체험을 다 썼어요. 로그인하면 계속 만들 수 있어요"}
-          </span>
-          <button className="btn link" onClick={() => { markGuestNotice(); nav("/login"); }}>
-            로그인
-          </button>
-        </div>
-      )}
     </Screen>
   );
 }

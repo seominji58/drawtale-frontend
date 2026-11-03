@@ -6,7 +6,6 @@ import BigButton from "@/components/BigButton";
 import { useLibrary } from "@/store/library";
 import { refreshStory } from "@/api";
 import { useSession } from "@/store/session";
-import { useAuth } from "@/store/auth";
 import { useGuardianMode } from "@/store/settings";
 import type { Story } from "@/types/story";
 
@@ -92,7 +91,6 @@ export default function S12Stories() {
   const nav = useNavigate();
   const { stories, load } = useLibrary();
   const setStory = useSession((s) => s.setStory);
-  const mode = useAuth((s) => s.mode);
   const guardian = useGuardianMode();
   const per = usePerShelf();
   // 펼치는 중인 책: 선반에서의 자리 · 생김새를 들고 화면 가운데로 떠오른 뒤 표지를 넘긴다 (2026-10-28 사용자)
@@ -137,10 +135,6 @@ export default function S12Stories() {
 
   return (
     <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}>
-      {mode === "guest" && (
-        <div className="box warn">앱을 닫으면 이야기가 사라져요</div>
-      )}
-
       {/* 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 보호자 모드에서만. 곁들이는 길이라 글자 줄로 */}
       {guardian && (
         <div className="aside-links">

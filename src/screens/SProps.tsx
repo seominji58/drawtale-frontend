@@ -50,7 +50,6 @@ export default function SProps() {
       }>
       <h2 className="question">내 소품</h2>
       <p className="hint">내가 만든 물건이 이야기에 나와요</p>
-      {mode === "guest" && <div className="box warn">앱을 닫으면 소품이 사라져요</div>}
       {failed && <div className="box warn">그림을 찾지 못했어요. 흰 종이에 그린 그림을 밝은 곳에서 찍어 주세요.</div>}
       {full && <div className="box warn">소품은 {MAX_PROPS}개까지 넣을 수 있어요</div>}
       <input ref={file} type="file" accept="image/*" hidden

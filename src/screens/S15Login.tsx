@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import { useAuth, trialLeft } from "@/store/auth";
+import { useAuth } from "@/store/auth";
 import { emailLoginAvailable, login } from "@/api/auth";
 import SocialButtons from "@/components/SocialButton";
 
@@ -13,7 +13,6 @@ export default function S15Login() {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState(false);
   const [busy, setBusy] = useState(false);
-  const left = trialLeft();
 
   const submit = async () => {
     setBusy(true); setErr(false);
@@ -61,14 +60,6 @@ export default function S15Login() {
           <div className="aside-links">
             <span>계정이 없으신가요?</span>
             <button type="button" className="btn link" onClick={() => nav("/signup")}>회원가입</button>
-            {left > 0 && (
-              <>
-                <span className="sep">·</span>
-                <button type="button" className="btn link" onClick={() => { auth.startGuest(); nav("/"); }}>
-                  로그인 없이 시작
-                </button>
-              </>
-            )}
           </div>
           <div className="auth-legal">
             <button type="button" className="btn link" onClick={() => nav("/terms")}>이용약관</button>

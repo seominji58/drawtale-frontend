@@ -3,6 +3,7 @@ import type { Character, ErrorCode, JobStatus, JointName, Keypoints } from "@/ty
 import type { AskKind, ProtagonistVoice, StepChoice, StepKind, Story, StoryLength, VoiceMode } from "@/types/story";
 import { MAX_SAID, choicesFor, labelOf } from "@/features/story/choices";
 import { mockAnalyze, mockGenerate } from "./mock/engine";
+import { useAuth } from "@/store/auth";
 
 /* 백엔드 계약: drawtale-backend `docs/api-contract.md` (초안 v0.1, 2026-09-28).
    서버와 주고받는 모양은 이 파일 안에만 있다. 화면은 `@/types` 의 모양만 본다. */
@@ -93,8 +94,8 @@ interface ServerStory {
   } | null;
 }
 
-/** 로그인한 보호자의 토큰 (store/auth.ts 가 둔다). 보호자 목소리 · 이야기 만들기에만 싣는다 —
- *  그림 올리기에 실으면 그림에 주인이 생겨 예전 흐름(토큰 없이 다시 묻기)이 404 가 된다 (계약 1-3) */
+/** 로그인한 보호자의 토큰 (store/auth.ts 가 둔다). **모든 요청에 싣는다** — 가입 없이는 쓸 수 없게
+ *  바뀌어(03 F-ACC-03 · 04, 2026-11-03) 서버가 토큰 없는 요청을 401 로 막는다 */
 function authHeader(): Record<string, string> {
   const t = localStorage.getItem("storyblanks.token");
   return t ? { Authorization: `Bearer ${t}` } : {};
@@ -104,7 +105,9 @@ function authHeader(): Record<string, string> {
 const RATE_LIMIT_RETRIES = 2;
 
 async function call<T>(path: string, init?: RequestInit, retries = RATE_LIMIT_RETRIES): Promise<T> {
-  const r = await fetch(BASE + path, init);
+  const r = await fetch(BASE + path, { ...init, headers: { ...authHeader(), ...(init?.headers as Record<string, string>) } });
+  // 토큰이 만료됐거나 서버에서 지워졌다. 기기에서도 로그아웃해 로그인 화면으로 보낸다
+  if (r.status === 401) useAuth.getState().logout();
   // 하루 한도처럼 몇 시간 뒤라고 하면 기다리지 않고 바로 안내한다(E-01 BUSY) — 2026-11-02
   const retryAfter = Number(r.headers.get("Retry-After")) || 5;
   if (r.status === 429 && retries > 0 && retryAfter <= 60) {
@@ -233,7 +236,7 @@ export async function fetchCharacter(id: string, signal?: AbortSignal): Promise<
  *  탭을 닫는 중에도 끝나도록 keepalive 로 보내고, 실패해도 서버가 보관 시간 뒤 지우므로 넘어간다 */
 export function releaseOriginal(characterId: string): void {
   if (useMock) return;
-  fetch(`${BASE}/characters/${characterId}/original`, { method: "DELETE", keepalive: true })
+  fetch(`${BASE}/characters/${characterId}/original`, { method: "DELETE", headers: authHeader(), keepalive: true })
     .catch(() => {});
 }
 
@@ -246,7 +249,7 @@ export function recordActivity(
   if (useMock) return;
   fetch(`${BASE}/stories/${storyId}/activity`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({
       attempts: a.attempts, completed: a.completed, card_count: a.cardCount, level: a.level,
     }),
