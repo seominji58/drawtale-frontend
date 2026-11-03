@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import CharacterCanvas from "@/features/character/CharacterCanvas";
+import CharacterPreview from "@/features/character/CharacterPreview";
 import { useSession } from "@/store/session";
 import { saveJoints } from "@/api";
 import { PARENT } from "@/features/character/skeleton";
@@ -94,18 +94,27 @@ export default function S06Joints() {
   const state = (n: JointName) => (moved.has(n) ? "moved" : low.has(n) ? "low" : "");
   const at = (n: JointName) => ({ x: box.l + keypoints[n].x * box.w, y: box.t + keypoints[n].y * box.h });
 
-  // 계약 2-4: 끈 관절이 없으면 저장하지 않는다. 끈 것이 있으면 15개 전부를 보낸다
-  const done = async () => {
-    if (moved.size === 0) { nav("/confirm"); return; }
+  // 계약 2-4: 서버에 저장된 관절과 다른 게 없으면 저장하지 않는다. 다르면 15개 전부를 보낸다
+  const dirty = JOINT_ORDER.some((n) => !same(keypoints, character.keypoints, n));
+  const save = async (): Promise<boolean> => {
+    if (!dirty) return true;
     setSaving(true); setFailed(false);
     try {
       setCharacter(await saveJoints(character, keypoints));
-      nav("/confirm");
+      return true;
     } catch {
       setFailed(true);
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+  const done = async () => { if (await save()) nav("/confirm"); };
+  // 움직여 보기: 지금 관절을 저장하면 서버가 그 관절로 영상을 다시 만든다 — 그 영상을 보인다 (CharacterPreview).
+  // 전에는 브라우저가 사진 원본을 뼈마다 네모로 잘라 돌려서 종이째 조각으로 흩어져 보였다 (2026-11-03)
+  const togglePreview = async () => {
+    if (preview) { setPreview(false); return; }
+    if (await save()) setPreview(true);
   };
 
   return (
@@ -114,14 +123,14 @@ export default function S06Joints() {
       speech={null} title="어른이 맞춰 주세요" audience="adult"
       acts={
         <>
-          <BigButton onClick={() => setPreview((v) => !v)}>{preview ? "관절 보기" : "움직여 보기"}</BigButton>
+          <BigButton disabled={saving} onClick={togglePreview}>{preview ? "관절 보기" : "움직여 보기"}</BigButton>
           <BigButton go disabled={saving} onClick={done}>다 했어요</BigButton>
         </>
       }>
       <div className="joints">
         <div className="stage">
           {preview
-            ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion="wave" />
+            ? <CharacterPreview />
             : <div ref={wrap} className="joint-stage"
                    onPointerMove={move} onPointerUp={() => (drag.current = null)}
                    onPointerCancel={() => (drag.current = null)}>
