@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
@@ -63,17 +63,18 @@ export default function S09Story() {
   // 원본(사진 배경까지)은 보이지 않는다 — 배경을 잘라 낸 그림만, 그 이야기의 캐릭터일 때만 (2026-11-03)
   const imageUrl = artOf(character && story && character.id === story.characterId ? character : null, upload);
   const isVideo = !!story.animationUrl && /\.mp4(\?|$)/i.test(story.animationUrl);
+  const [ar, setAr] = useState<number | null>(null);
   const stage = (
-    <div className="stage">
+    <FitStage ar={isVideo ? ar : null}>
       {isVideo
-        ? <video src={story.animationUrl!} autoPlay loop muted playsInline
-                 style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+        ? <video src={story.animationUrl!} autoPlay loop muted playsInline onLoadedMetadata={(e) => setAr(videoRatio(e))}
+                 style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         : ENGINE === "mock" && story.animationUrl
           ? <img src={story.animationUrl} alt="" style={{ maxHeight: "100%", objectFit: "contain" }} />
           : imageUrl && keypoints
             ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion="wave" />
             : <div className="illust-wrap"><Scene n={0} /></div>}
-    </div>
+    </FitStage>
   );
 
   if (story.book && story.book.pages.length) {
@@ -90,7 +91,7 @@ export default function S09Story() {
         {stage}
         <div className="spread-text">
           {lines.map((line, n) => (
-            <span key={n} className={`said ${at === n ? "now" : ""}`}>{line}</span>
+            <span key={n} className={`said ${at === n ? "now" : ""}`}><span className="mark">{line}</span></span>
           ))}
         </div>
       </div>
@@ -343,15 +344,18 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 이 이야기의 동작 영상 하나를 첫 장면에 멈춰 보인다 — 배경을 잘라 낸 캐릭터가 가만히 선 모습이다.
   // 영상이 하나도 없을 때만 원본 그림을 쓴다
   const restClip = firstClip(story);
+  const [ar, setAr] = useState<number | null>(null);
 
   /** i 쪽 펼침면. active 는 지금 보고 있는 쪽(소품 장면 · 읽는 중 표시). top 이면 넘어가는 쪽 — 말림 띠 · 귀퉁이를 단다 */
   const spread = (i: number, active: boolean, top = false) => {
     const pgI = pages[i];
     const clipI = pgI.animationUrl && /\.mp4(\?|$)/i.test(pgI.animationUrl) ? pgI.animationUrl : null;
     const props = active && propPhase && shown.length > 0;
+    const canvas = !perPage && !story.animationUrl && imageUrl && keypoints;
+    const video = !props && (clipI || (!canvas && !still && restClip));
     return (
       <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
-        <div className="stage" onClick={props ? () => setPropPhase(false) : undefined}>
+        <FitStage ar={video ? ar : null} onClick={props ? () => setPropPhase(false) : undefined}>
           {props
             // 소품들을 나란히. 그린 곳만 잘라 두었으니 아이가 그린 크기 · 모양과 상관없이 고른 크기(작게 · 보통 · 크게) 상자에
             // 비율을 지켜 맞춰 들어간다. 여럿이면 한 개가 차지할 폭도 줄인다
@@ -362,9 +366,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
                 ))}
               </div>
             : clipI
-            ? <video key={clipI} src={clipI} autoPlay loop muted playsInline
-                     style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-            : !perPage && !story.animationUrl && imageUrl && keypoints
+            ? <video key={clipI} src={clipI} autoPlay loop muted playsInline onLoadedMetadata={(e) => setAr(videoRatio(e))}
+                     style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            : canvas
               // 목 엔진: 서버 영상이 없으니 캔버스가 그 쪽 동작으로 움직인다
               ? <CharacterCanvas imageUrl={imageUrl} keypoints={keypoints} motion={CANVAS_MOTION[pgI.action] ?? "idle"} />
               // 가만히 있는 쪽은 잘라 낸 정지 그림이 먼저다 — 영상 첫 장면은 동작 도중 자세일 수 있다
@@ -373,12 +377,13 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
               : restClip
                 // #t: 첫 장면을 그리게 한다 (자동 재생 없이 멈춘 채). 서명 주소의 ? 뒤에 붙어도 서버로 가지 않는다
                 ? <video key={`rest-${restClip}`} src={firstFrameSrc(restClip)} muted playsInline preload="auto"
-                         style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                         onLoadedMetadata={(e) => setAr(videoRatio(e))}
+                         style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}
-        </div>
+        </FitStage>
         <div className="spread-text">
           <span className="hint">{book.title} · {i + 1} / {pages.length}쪽</span>
-          <span className={`said ${active && reading ? "now" : ""}`}>{pgI.text}</span>
+          <span className={`said ${active && reading ? "now" : ""}`}><span className="mark">{pgI.text}</span></span>
           {pgI.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
         </div>
         {top && <>
@@ -466,3 +471,21 @@ const CANVAS_MOTION: Record<string, MotionId> = {
 export function AiNotice() {
   return <span className="hint" style={{ opacity: 0.75 }}>이 이야기는 컴퓨터가 함께 만들었어요</span>;
 }
+
+/** 장면 칸을 장면 영상(배경까지 그려진 한 장)의 비율에 맞춘다 — 정사각 영상(500×500)이 넓은 칸 가운데에 떠
+ *  양옆이 비던 것 (2026-11-03 사용자 「배경 이미지 사이즈에 맞춰」). 비율을 모를 때(캔버스 · 소품 · 삽화)는 칸을 다 쓴다 */
+function FitStage({ ar, onClick, children }: { ar: number | null; onClick?: () => void; children: React.ReactNode }) {
+  return (
+    <div className="stage-cell">
+      <div className={`stage ${ar ? "fit" : ""}`} onClick={onClick}
+           style={ar ? ({ "--ar": ar } as CSSProperties) : undefined}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const videoRatio = (e: SyntheticEvent<HTMLVideoElement>) => {
+  const v = e.currentTarget;
+  return v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : null;
+};

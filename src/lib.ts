@@ -1,5 +1,6 @@
 /** 화면 어디서나 쓰는 작은 도구들 */
 import { useSettings } from "@/store/settings";
+import GUIDE_VOICE from "@/features/voice/guide.json";
 
 /** S-09 「읽어주기 빠르기」에서 고르는 값. 보통(1)이 기본. 아이 화면이라 쉬운 말로 */
 export const SPEECH_RATES = [["천천히", 0.8], ["보통", 1], ["빠르게", 1.15]] as const;
@@ -7,10 +8,26 @@ export const SPEECH_RATES = [["천천히", 0.8], ["보통", 1], ["빠르게", 1.
 /** 지금 읽어주기 빠르기 (S-09 에서 고름, 설정에 남는다). 음성 파일은 `playbackRate`, 브라우저 음성은 `rate` 에 곱한다 */
 export const speechRate = () => useSettings.getState().speechRate || 1;
 
+/** 화면 안내 · 카드 이름처럼 정해진 문장은 이야기 나레이터 목소리로 미리 만들어 둔 파일을 튼다
+ *  (2026-11-03, 95문장 — 문장 → `public/voice/guide/` 파일). 아이가 적거나 말한 문장처럼 목록에 없는 것만 브라우저 TTS */
+let clip: HTMLAudioElement | null = null;
+
 /** C-02 다시 듣기. 음성 파일이 없을 때는 브라우저 TTS 로 대신 읽는다. */
 export function speak(text: string, mute: boolean, onEnd?: () => void) {
-  if (mute || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
+  if (mute) return;
+  stopSpeak();
+  const file = (GUIDE_VOICE as Record<string, string>)[text.trim()];
+  if (!file) return tts(text, onEnd);
+  const a = new Audio(`${import.meta.env.BASE_URL}voice/guide/${file}`);
+  a.playbackRate = speechRate();
+  clip = a;
+  a.onended = () => { if (clip === a) { clip = null; onEnd?.(); } };
+  // 파일을 못 받거나 재생이 막히면 브라우저 TTS 로
+  a.play().catch(() => { if (clip === a) { clip = null; tts(text, onEnd); } });
+}
+
+function tts(text: string, onEnd?: () => void) {
+  if (!("speechSynthesis" in window)) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "ko-KR";
   u.rate = 0.95 * speechRate();
@@ -27,6 +44,7 @@ export function sentences(text: string): string[] {
 }
 
 export function stopSpeak() {
+  if (clip) { clip.onended = null; clip.pause(); clip = null; }
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
