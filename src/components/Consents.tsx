@@ -18,8 +18,20 @@ const AGREE_LABEL: Record<LegalKind, string> = {
 type Agreed = Record<LegalKind, boolean>;
 
 /** 둘 다 동의하면 onChange(true) */
+// 소셜 가입은 제공자 화면으로 떠났다 돌아온다. 뒤로 와서 화면이 새로 열리면 동의가 풀려 소셜 버튼이 잠겨 보였다
+// (11/3 사용자) — 같은 탭 안에서는 동의한 것을 기억한다 (탭을 닫으면 사라진다)
+const KEY = "storyblanks.consents";
+function remembered(): Agreed {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(KEY) ?? "null");
+    if (v && typeof v.terms === "boolean" && typeof v.privacy === "boolean") return v;
+  } catch { /* 없으면 처음부터 */ }
+  return { terms: false, privacy: false };
+}
+
 export default function Consents({ onChange }: { onChange: (all: boolean) => void }) {
-  const [agreed, setAgreed] = useState<Agreed>({ terms: false, privacy: false });
+  const [agreed, setAgreed] = useState<Agreed>(remembered);
+  useEffect(() => { try { sessionStorage.setItem(KEY, JSON.stringify(agreed)); } catch { /* 저장 못 해도 된다 */ } }, [agreed]);
   const [open, setOpen] = useState<LegalKind | null>(null);
 
   useEffect(() => {

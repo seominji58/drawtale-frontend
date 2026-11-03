@@ -5,7 +5,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useSettings, useWithAdult, FIXED_LEVEL } from "@/store/settings";
 import { useAuth } from "@/store/auth";
-import { useLibrary } from "@/store/library";
+import { TITLE_MAX, useLibrary } from "@/store/library";
 import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
 import { deleteMyVoice, getMyVoice } from "@/api";
@@ -40,7 +40,6 @@ function Head({ id, name, desc, children }: { id: string; name: string; desc?: s
 }
 
 /** 이야기 제목 길이 (책장 책등에 들어가는 만큼) */
-const TITLE_MAX = 20;
 
 /** 바로가기 칩. 설정이 길어 폰 · 태블릿 · 컴퓨터 어디서든 원하는 묶음으로 바로 간다 (10/28 사용자 「스크롤 방식 고민」) */
 const SECTIONS: [string, string][] = [

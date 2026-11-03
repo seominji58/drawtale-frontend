@@ -17,12 +17,15 @@ function write(list: Story[]) {
   try { store.setItem(KEY, JSON.stringify(list)); } catch { /* 저장 실패는 무시 */ }
 }
 
+/** 이야기 제목 글자 수 상한 (S-12 · S-13 제목 바꾸기) */
+export const TITLE_MAX = 20;
+
 interface LibraryState {
   stories: Story[];
   load: () => void;
   add: (s: Story) => void;
   remove: (id: string) => void;
-  /** 제목 고치기 (S-13, 로그인한 보호자). 책장 · S-09 쪽 머리에 함께 보인다 */
+  /** 제목 고치기 (보호자 — S-12 책장 · S-13). 책장 · S-09 쪽 머리에 함께 보인다 */
   rename: (id: string, title: string) => void;
   clearGuest: () => void;
 }

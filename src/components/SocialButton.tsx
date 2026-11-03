@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { PROVIDERS, socialAvailable, startSocialLogin } from "@/api/auth";
 import type { SocialIntent, SocialProvider } from "@/api/auth";
 
@@ -20,12 +20,22 @@ export default function SocialButtons({
   intent, disabled = false,
 }: { intent: SocialIntent; disabled?: boolean }) {
   const lock = useRef(false);
+  // 제공자 화면에서 뒤로 오면 브라우저가 떠나기 전 화면을 그대로 되살린다(bfcache) — 잠금도 그대로라 버튼이
+  // 안 눌렸다 (11/3 사용자). 되살아나면 · 다시 보이면 · 떠나지 못하고 3초가 지나면 푼다
+  useEffect(() => {
+    const unlock = () => { lock.current = false; };
+    const onVisible = () => { if (document.visibilityState === "visible") unlock(); };
+    window.addEventListener("pageshow", unlock);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { window.removeEventListener("pageshow", unlock); document.removeEventListener("visibilitychange", onVisible); };
+  }, []);
   const shown = PROVIDERS.filter(socialAvailable);
   if (shown.length === 0) return null;
 
   const go = (p: SocialProvider) => {
     if (disabled || lock.current) return;   // 떠나는 동안 두 번 눌러도 한 번만
     lock.current = true;
+    window.setTimeout(() => { lock.current = false; }, 3000);
     startSocialLogin(p, intent);
   };
 

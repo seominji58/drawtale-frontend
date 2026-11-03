@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
+import ConfirmCard, { eulReul } from "@/components/ConfirmCard";
 import { MAX_PROPS, paperToSticker, useProps } from "@/features/props/props";
 import { useAuth } from "@/store/auth";
 import { useGuardianMode, useWithAdult } from "@/store/settings";
@@ -12,6 +13,10 @@ import { useGuardianMode, useWithAdult } from "@/store/settings";
 export default function SProps() {
   const nav = useNavigate();
   const mine = useProps((s) => s.mine);
+  const remove = useProps((s) => s.remove);
+  // 지우기 (11/3 사용자 「소품 그리는 기능에서 삭제 기능 추가」): 켜면 소품을 눌렀을 때 열지 않고 지울지 묻는다
+  const [deleting, setDeleting] = useState(false);
+  const [target, setTarget] = useState<{ id: string; name: string } | null>(null);
   const reload = useProps((s) => s.reload);
   const mode = useAuth((s) => s.mode);
   // 보호자 모드에서만 연다 (open-decisions 0-13)
@@ -40,16 +45,23 @@ export default function SProps() {
 
   return (
     <Screen back="/stories" speech="내 소품이에요" title="내 소품"
-      acts={
-        <>
+      acts={deleting
+        ? <BigButton go onClick={() => setDeleting(false)}>다 지웠어요</BigButton>
+        : <>
+          {mine.length > 0 && <BigButton onClick={() => setDeleting(true)}>지우기</BigButton>}
           {photoOn && (
             <BigButton disabled={full} onClick={() => file.current?.click()}>그림 올리기</BigButton>
           )}
           <BigButton go disabled={full} onClick={() => nav("/props/new")}>소품 그리기</BigButton>
-        </>
-      }>
+        </>}>
       <h2 className="question">내 소품</h2>
-      <p className="hint">내가 만든 물건이 이야기에 나와요</p>
+      <p className="hint">{deleting ? "지울 소품을 눌러 주세요" : "내가 만든 물건이 이야기에 나와요"}</p>
+      {target && (
+        <ConfirmCard title={`「${target.name}」${eulReul(target.name)} 지울까요?`} yes="지우기"
+          onYes={() => { remove(target.id); setTarget(null); if (mine.length <= 1) setDeleting(false); }} onNo={() => setTarget(null)}>
+          <p className="hint">지우면 다시 그려야 해요. 이미 만든 이야기에서도 더는 나오지 않아요</p>
+        </ConfirmCard>
+      )}
       {failed && <div className="box warn">그림을 찾지 못했어요. 흰 종이에 그린 그림을 밝은 곳에서 찍어 주세요.</div>}
       {full && <div className="box warn">소품은 {MAX_PROPS}개까지 넣을 수 있어요</div>}
       <input ref={file} type="file" accept="image/*" hidden
@@ -61,7 +73,8 @@ export default function SProps() {
         }}>
           {mine.map((p) => (
             // 카드 모양은 S-07 카드와 같고, 높이는 칸 폭에서 정한다 (목록이 길어지면 아래로 스크롤)
-            <button key={p.id} className="choice" aria-label={p.name} onClick={() => nav(`/props/${p.id}`)}
+            <button key={p.id} className={`choice ${deleting ? "pick" : ""}`} aria-label={deleting ? `${p.name} 지우기` : p.name}
+              onClick={() => deleting ? setTarget({ id: p.id, name: p.name }) : nav(`/props/${p.id}`)}
               style={{ height: "auto", width: "100%", justifyContent: "center" }}>
               <img src={p.png} alt="" style={{ width: "75%", height: "auto", flex: "0 0 auto", aspectRatio: "1 / 1" }} />
               <span>{p.name}</span>

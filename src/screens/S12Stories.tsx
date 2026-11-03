@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import { useLibrary } from "@/store/library";
+import { TITLE_MAX, useLibrary } from "@/store/library";
 import { refreshStory } from "@/api";
 import { useSession } from "@/store/session";
 import { useGuardianMode } from "@/store/settings";
@@ -89,9 +89,18 @@ function usePerShelf() {
 
 export default function S12Stories() {
   const nav = useNavigate();
-  const { stories, load } = useLibrary();
+  const { stories, load, rename } = useLibrary();
   const setStory = useSession((s) => s.setStory);
   const guardian = useGuardianMode();
+  // 제목 바꾸기 (보호자 모드, 11/3 사용자 「책장에서 제목 변경 가능하게」). 켜면 책을 눌렀을 때 펼치지 않고 제목 칸이 뜬다
+  const [renaming, setRenaming] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
+  useEffect(() => { if (!guardian) { setRenaming(false); setEditing(null); } }, [guardian]);
+  const saveTitle = () => {
+    const t = editing?.title.trim().slice(0, TITLE_MAX);
+    if (editing && t) rename(editing.id, t);
+    setEditing(null);
+  };
   const per = usePerShelf();
   // 펼치는 중인 책: 선반에서의 자리 · 생김새를 들고 화면 가운데로 떠오른 뒤 표지를 넘긴다 (2026-10-28 사용자)
   const [opening, setOpening] = useState<{ st: Story; rect: DOMRect; style: CSSProperties; long: boolean } | null>(null);
@@ -137,7 +146,13 @@ export default function S12Stories() {
     <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}
       // 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 보호자 모드에서만.
       // 글자 링크는 눈에 안 띄어(11/3 사용자) 아래 줄 버튼으로. 이 화면의 주된 행동은 책 고르기라 강조색은 쓰지 않는다
-      acts={guardian ? <BigButton onClick={() => nav("/props")}>내 소품 그리기</BigButton> : undefined}>
+      acts={!guardian ? undefined
+        : renaming ? <BigButton go onClick={() => setRenaming(false)}>다 바꿨어요</BigButton>
+        : <>
+            <BigButton onClick={() => nav("/props")}>내 소품 그리기</BigButton>
+            {stories.length > 0 && <BigButton onClick={() => setRenaming(true)}>제목 바꾸기</BigButton>}
+          </>}>
+      {renaming && <p className="hint shelf-hint">제목을 바꿀 책을 눌러 주세요</p>}
 
       {stories.length > 0 ? (
         <div className="shelf">
@@ -149,9 +164,9 @@ export default function S12Stories() {
                 {row.map((st, j) => {
                   const { style, tabs, long } = look(st, r * per + j);
                   return (
-                    <button key={st.storyId} className={`book ${long ? "long" : "short"} ${opening?.st.storyId === st.storyId ? "lifted" : ""}`} style={style}
-                      aria-label={`${st.title}, ${long ? "긴 이야기" : "짧은 이야기"}, ${st.createdAt}`}
-                      onClick={(e) => open(st, e.currentTarget, style, long)}>
+                    <button key={st.storyId} className={`book ${long ? "long" : "short"} ${opening?.st.storyId === st.storyId ? "lifted" : ""} ${renaming ? "pick" : ""}`} style={style}
+                      aria-label={renaming ? `${st.title} 제목 바꾸기` : `${st.title}, ${long ? "긴 이야기" : "짧은 이야기"}, ${st.createdAt}`}
+                      onClick={(e) => renaming ? setEditing({ id: st.storyId, title: st.title }) : open(st, e.currentTarget, style, long)}>
                       <span className="book-pages" aria-hidden />
                       {tabs.map((t, k) => (
                         <span key={k} className="book-tab" aria-hidden
@@ -173,6 +188,19 @@ export default function S12Stories() {
           <div style={{ width: 280 }}>
             <BigButton go onClick={() => nav("/guide")}>이야기 만들기</BigButton>
           </div>
+        </div>
+      )}
+      {editing && (
+        <div className="rename-layer" data-audience="adult" onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
+          <form className="paper-card rename-card" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
+            <label className="rename-label" htmlFor="rename-input">이야기 제목</label>
+            <input id="rename-input" className="title-input" value={editing.title} maxLength={TITLE_MAX} autoFocus
+              onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+            <div className="rename-acts">
+              <BigButton onClick={() => setEditing(null)}>그대로 두기</BigButton>
+              <BigButton go disabled={!editing.title.trim()} onClick={saveTitle}>바꾸기</BigButton>
+            </div>
+          </form>
         </div>
       )}
       {/* 펼쳐지는 책: 선반의 책 자리에서 떠올라 가운데로 오며 커지고, 표지가 책등을 축으로 넘어가 첫 장(제목 · 그림)이 보인다 */}

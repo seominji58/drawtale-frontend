@@ -17,8 +17,16 @@ const COVERS: [RegExp, string, number][] = [
   [/상자|박스|포대|궤짝/, "props/box.webp", 0.36],
   [/덤불|수풀|풀숲|나무(?= ?(?:뒤|뿌리|밑|아래|사이|옆))|화분|잎/, "props/bush.webp", 0.38],
   [/바위|돌멩이|돌 /, "cave-entrance/rocks.webp", 0.3],
+  [/틈|돌벽|굴 벽/, "cave/rocks.webp", 0.3],
   [/통나무/, "forest-trail/log.webp", 0.22],
   [/고깃배|보트|배 (?:뒤|안|밑|옆)/, "sea-pier/boat.webp", 0.26],
+  // 장소 그림에 이미 있는 물건을 앞에 하나 더 (11/3 「대본에 들어갔는데 실제로 없는 오브젝트」)
+  [/미끄럼틀/, "playground/slide.webp", 0.5],
+  [/파라솔/, "sea/parasol.webp", 0.48],
+  [/사물함/, "school-hallway/lockers.webp", 0.48],
+  [/책장/, "school-library/shelf.webp", 0.38],
+  [/책상/, "school-classroom/desks.webp", 0.32],
+  [/식탁|탁자/, "home-kitchen/table.webp", 0.34],
 ];
 export function coverFor(text: string): { src: string; h: number } | null {
   let best: { src: string; h: number } | null = null, at = Infinity;
