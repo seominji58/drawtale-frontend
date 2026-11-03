@@ -11,6 +11,10 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import type { Env, PagePlan, PropId } from "./plan";
 import { isIndoor, isPerson } from "./plan";
 import { sceneBase } from "./locations";
+import AR from "./props-ar.json";
+
+/** 오린 그림의 가로 ÷ 세로 (없으면 기본값) */
+const arOf = (src: string, fallback: number) => (AR as Record<string, number>)[src] ?? fallback;
 import { drawFrame, loadSprite, type Sprite } from "./sprite";
 
 interface Spot { src: string; x: number; foot?: number; top?: number; h: number; layer?: string }
@@ -34,10 +38,18 @@ function loadLayout(id: string): Promise<Layout> {
 }
 
 /** 장소 layout 에 없는 인물 그림(대본 인물 9가지, 11/3)의 키 · 폭. 자리는 대본이 정한다(x) */
-const PEOPLE: Record<string, { h: number; w: number }> = {
+const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
   friend: { h: 0.46, w: 0.45 }, adult: { h: 0.58, w: 0.42 }, friend2: { h: 0.46, w: 0.45 },
   grandma: { h: 0.54, w: 0.4 }, grandpa: { h: 0.57, w: 0.4 }, mom: { h: 0.58, w: 0.38 }, dad: { h: 0.6, w: 0.38 },
   teacher: { h: 0.58, w: 0.42 }, baby: { h: 0.28, w: 0.62 }, dog: { h: 0.24, w: 0.9 }, cat: { h: 0.24, w: 0.72 },
+  // 11/3 밤 — 직업 남녀 · 동물 · 외계인 · 반 친구들 (폭은 오린 그림에서 잰 비율, plan.ts props-ar.json)
+  ...Object.fromEntries((["caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper", "keeper", "police", "cook", "mail"] as const)
+    .flatMap((k) => (["m", "f"] as const).map((g) => [`${k}-${g}`, { h: k === "astronaut" ? 0.6 : 0.58, w: arOf(`props/${k}-${g}.webp`, 0.42) }]))),
+  nurse: { h: 0.58, w: arOf("props/nurse.webp", 0.42) }, busdriver: { h: 0.58, w: arOf("props/busdriver.webp", 0.42) },
+  classmates: { h: 0.46, w: arOf("props/classmates.webp", 1.2) }, alien: { h: 0.34, w: arOf("props/alien.webp", 0.8) },
+  rabbit: { h: 0.2, w: arOf("props/rabbit.webp", 0.8) }, squirrel: { h: 0.2, w: arOf("props/squirrel.webp", 0.8) },
+  // 날아다니는 것은 공중에
+  bat: { h: 0.16, w: arOf("props/bat.webp", 1.4), foot: 0.5 }, bird: { h: 0.14, w: arOf("props/bird.webp", 0.9), foot: 0.6 },
 };
 
 const REDUCE = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -186,7 +198,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease`;
 
   const prop = (id: PropId): Spot | undefined => layout.props[id]
-    ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: 0.93, h: PEOPLE[id].h } : undefined);
+    ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: PEOPLE[id].foot ?? 0.93, h: PEOPLE[id].h } : undefined);
   // 주인공 폭의 절반 (화면 너비 대비). 팔을 넓게 벌린 그림이면 옆 인물을 그만큼 바깥으로 민다 (겹치지 않게)
   const heroHalf = spr ? ((spr.box[2] - spr.box[0]) * (H.h / Math.max(0.05, spr.box[3] - spr.box[1])) / aspect) / 2
     : stillAr ? (H.h * stillAr / aspect) / 2 : 0.1;
@@ -262,7 +274,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
       {thingSpots.map((t, k) => (
         <img key={`thing-${k}-${t.src.slice(0, 40)}`} className="scene-obj scene-thing" alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
-             style={spotStyle({ src: t.src, x: t.x, foot: 0.95, h: t.h })} />
+             style={spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
+               : { src: t.src, x: t.x, foot: t.spot === "air" ? 0.45 : 0.95, h: t.h })} />
       ))}
       {spr
         ? <canvas ref={canvas} width={384} height={384} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}
