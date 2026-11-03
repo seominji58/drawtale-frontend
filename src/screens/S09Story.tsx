@@ -348,13 +348,41 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const restClip = firstClip(story);
   // 장면 칸 비율은 이 이야기의 장면 영상 비율 — 첫 쪽이 정지 그림이어도 처음부터 같은 크기 칸이 되게 미리 읽어 둔다
   const [ar, setAr] = useState<number | null>(null);
+  // 글자 크기: 기본은 크게(38px), 긴 쪽만 글 칸에 들어갈 때까지 줄인다(최소 26px). 쪽마다 한 번 재서 기억한다 —
+  // 넘기는 동안 그려지는 사본도 같은 크기로. 화면 크기가 바뀌면 다시 잰다
+  const textRef = useRef<HTMLDivElement>(null);
+  const [fitSize, setFitSize] = useState<Record<number, number>>({});
+  useEffect(() => {
+    const reset = () => setFitSize({});
+    window.addEventListener("resize", reset);
+    return () => window.removeEventListener("resize", reset);
+  }, []);
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (turn || !el || fitSize[pg]) return;
+    el.style.removeProperty("--said"); el.style.removeProperty("--lh");
+    let size = parseFloat(getComputedStyle(el.querySelector(".said") ?? el).fontSize);
+    const start = size;
+    while (el.scrollHeight > el.clientHeight + 1 && size > 26) {
+      size -= 2;
+      el.style.setProperty("--said", `${size}px`);
+      el.style.setProperty("--lh", `${Math.round(size * 1.47)}px`);
+    }
+    if (size !== start) setFitSize((m) => ({ ...m, [pg]: size }));
+  }, [pg, turn, fitSize]);
+
   // 조작 칸 높이 → 글 칸이 그만큼 아래를 비운다 (가로 화면에서 조작 칸이 글 칸 아래에 겹치므로)
   const areaRef = useRef<HTMLDivElement>(null);
   const ctlRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const area = areaRef.current, ctl = ctlRef.current;
     if (!area || !ctl) return;
-    const ro = new ResizeObserver(() => area.style.setProperty("--ctl-h", `${ctl.offsetHeight}px`));
+    const ro = new ResizeObserver(() => {
+      const h = `${ctl.offsetHeight}px`;
+      if (area.style.getPropertyValue("--ctl-h") === h) return;
+      area.style.setProperty("--ctl-h", h);
+      setFitSize({});   // 글 칸 높이가 바뀌었으니 글자 크기를 다시 잰다
+    });
     ro.observe(ctl);
     return () => ro.disconnect();
   }, []);
@@ -402,9 +430,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
                          style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 : <div className="illust-wrap"><Scene n={0} /></div>}
         </FitStage>
-        <div className="spread-text">
+        <div className="spread-text" ref={active && !top ? textRef : undefined}
+             style={fitSize[i] ? ({ "--said": `${fitSize[i]}px`, "--lh": `${Math.round(fitSize[i] * 1.47)}px` } as CSSProperties) : undefined}>
           <span className="hint">{book.title} · {i + 1} / {pages.length}쪽</span>
-          <span className={`said ${active && reading ? "now" : ""}`}><span className="mark">{pgI.text}</span></span>
+          {/* 형광펜 없이 큰 글자로 (2026-11-03 사용자 「하이라이팅 효과가 아예 없는 게 낫고 글자 크기를 키워」) */}
+          <span className="said"><span className="mark">{pgI.text}</span></span>
           {pgI.childWords && <span className="hint">★ 내가 말한 부분이에요</span>}
         </div>
         {top && <>

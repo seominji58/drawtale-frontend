@@ -75,20 +75,23 @@
    조작 칸은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 있고, 글 칸이 그 높이(--ctl-h)만큼 아래를 비운다 */
 @media (min-width: 1024px) {
   .book-area { container-type: size; gap: 0;
-    --stage-w: calc((100cqw - 14px) * 2.3 / 3.3); }
-  .book-area.fit { --stage-w: min(100cqw - 360px, 100cqh * var(--ar)); }
+    --stage-w: calc(100cqw - 474px); }
+  .book-area.fit { --stage-w: min(100cqw - 460px, 100cqh * var(--ar)); }
   .book-area > .turn { flex: 1 1 auto; }
   .book-area .spread, .book-area .spread:has(.stage.fit) { container-type: normal; grid-template-columns: var(--stage-w) minmax(0, 1fr); }
   .book-area .spread > .stage-cell { container-type: normal; }
   .book-area .spread > .stage-cell > .stage.fit { width: 100%; }
   .book-area .spread-text { margin-bottom: calc(var(--ctl-h, 240px) + 12px); justify-content: flex-start; }
   .book-ctl { position: absolute; right: 0; bottom: 0; z-index: 3; width: calc(100cqw - var(--stage-w) - 14px); }
-  /* 들려주기는 한 줄을 다 쓰고, 앞 쪽 · 다음 쪽(마지막 쪽은 다 봤어요)이 그 아래 */
-  .ctl-btns { grid-template-columns: 1fr 1fr; grid-template-areas: "play play" "prev next"; }
-  .ctl-btns > .prev { grid-area: prev; } .ctl-btns > .play { grid-area: play; } .ctl-btns > .next { grid-area: next; }
-  .book-ctl .bar-row > .seg { margin-left: 0; width: 100%; justify-content: space-between; }
-  .book-ctl .bar-row > .seg button { flex: 1; }
-  .book-ctl .bar-row > .progress { flex-basis: 100%; }
+  /* 조작은 두 줄: 진행 바 + 빠르기 / 앞 쪽 · 들려주기 · 다음 쪽 — 글 칸이 세로로 길어지게 */
+  .book-ctl .bar-row { flex-wrap: nowrap; }
+  .book-ctl .bar-row > .progress { flex: 1 1 auto; min-width: 80px; }
+  .book-ctl .bar-row > .seg { margin-left: 0; }
+  .book-ctl .bar-row > .seg button { min-height: 44px; padding: 6px 12px; }
+  .ctl-btns > .btn { font-size: 28px; padding-inline: 6px; white-space: nowrap; }
+  /* 글: 한 쪽은 보통 76자(카드 이야기 2,048편, 90% 가 93자 이하) — 38px 로 칸에 들어간다. 공책 줄 간격도 글 줄에 맞춘다 */
+  .book-area .spread-text { background-image: repeating-linear-gradient(transparent 0 calc(var(--lh, 56px) - 2px), rgba(79, 143, 214, .14) calc(var(--lh, 56px) - 2px) var(--lh, 56px)); }
+  .book-area .spread-text .said { font-size: var(--said, 38px); line-height: var(--lh, 56px); padding: 4px 6px; }
 }
 /* 가로 화면: 비율 상자 바로 옆에 글 칸이 붙고, 남는 폭은 글 칸이 쓴다 (장면은 많아야 폭의 70%) */
 @media (min-width: 1024px) {
@@ -155,6 +158,7 @@
   .spread { grid-template-columns: 1fr; grid-template-rows: 2.4fr auto; }
   .spread-text { background-image: none; }
   .spread-text .said, .spread-text .hint { text-align: center; }
+  .book-area .spread-text .said { font-size: var(--said, 24px); line-height: var(--lh, 36px); }
 }
 
 /* ───────── 글 ───────── */
