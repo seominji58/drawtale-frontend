@@ -15,6 +15,8 @@ type Kind = Exclude<PersonId, `${Gendered}-${"m" | "f"}`> | Gendered;
 export type PropId = PersonId | "cover" | "sign";
 /** 사람 · 동물 (옆에 서는 것). 숨을 것 · 표지판은 아니다 */
 export const isPerson = (id: PropId) => id !== "cover" && id !== "sign";
+/** 카드의 기본 「어른」 자리를 대신하지 않는 대본 인물 — 아이 · 동물 */
+const CAST_NOT_ADULT = new Set<PersonId>(["friend", "friend2", "classmates", "baby", "dog", "cat", "bat", "bird", "rabbit", "squirrel", "alien"]);
 
 /** 「숨었어요」에서 주인공 앞을 가리는 물건 — 대본 글에 나온 숨는 곳으로 고른다 (11/3 사용자 「우주에서 박스에 숨는데 대본은 잠자리 주머니」).
  *  [낱말, 그림(public/scenes/ 기준), 화면 높이 대비 키]. 글에서 먼저 나온 것. 맞는 그림이 없으면(담요 · 잠자리 주머니 · 틈 …)
@@ -278,6 +280,14 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   const stageIdx = (s: string) => ["place", "problem", "action", "result"].indexOf(s);
   // 숨는 곳은 행동 쪽들의 글에서 한 번 정해 쪽이 바뀌어도 같은 물건
   const cover = coverFor(pages.filter((p) => p.stage === "action").map((p) => p.text).join(" "));
+  // 카드 때문에 세우는 기본 「어른」 · 「친구」는 대본에 나온 그 역할 인물 그림으로 (11/4 사용자 — 7쪽은 대본의 우주 대원,
+  // 대본 인물이 없는 8쪽은 결과 카드의 기본 어른(남자 어른)이 나와 같은 사람이 바뀐 것처럼 보였다)
+  const cast = pages.flatMap((p) => p.scene?.characters ?? [])
+    .map((c) => ({ name: c.name, kind: personKind(sheet[c.name] ?? "", c.name) }))
+    .filter((v): v is { name: string; kind: PersonId } => !!v.kind);
+  const castFriend = cast.find((v) => v.kind === "friend" || v.kind === "friend2");
+  const castAdult = cast.find((v) => !CAST_NOT_ADULT.has(v.kind));
+  const stand = (id: "adult" | "friend") => (id === "adult" ? castAdult : castFriend);
   for (const p of pages) {
     loc = locationFor(place, p, loc);
     const st = stageIdx(p.stage);
@@ -290,12 +300,16 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const props: PropPlan[] = [];
     const actionProp = picks.action ? ACTION_PROP[picks.action] : undefined;
     const prevProps = out.length ? out[out.length - 1].props.map((q) => q.id) : [];
-    const keep = (id: PropId, enter: "left" | "right") =>
-      props.push(prevProps.includes(id) ? { id } : { id, enter });
-    if (picks.problem === "crying" && st >= 1 && st <= 2) props.push({ id: "friend" });
+    const keep = (base: "adult" | "friend", enter: "left" | "right") => {
+      const who = stand(base), id = who?.kind ?? base;
+      props.push({ id, ...(who ? { name: who.name } : {}), ...(prevProps.includes(id) ? {} : { enter }) });
+    };
+    if (picks.problem === "crying" && st >= 1 && st <= 2) {
+      props.push(castFriend ? { id: castFriend.kind, name: castFriend.name } : { id: "friend" });
+    }
     if (p.stage === "action" && actionProp) {
       if (actionProp === "adult") keep("adult", "left");
-      if (actionProp === "friend" && !props.some((q) => q.id === "friend")) keep("friend", "right");
+      if (actionProp === "friend" && !props.some((q) => q.id === (castFriend?.kind ?? "friend"))) keep("friend", "right");
       if (actionProp === "sign") props.push({ id: "sign" });
       if (actionProp === "cover" && cover) props.push({ id: "cover", ...cover });
     }
