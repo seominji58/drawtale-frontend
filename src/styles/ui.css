@@ -880,6 +880,20 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .w-rain { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='120'%3E%3Cg stroke='%23EAF2FF' stroke-width='1.6' stroke-linecap='round' opacity='.85'%3E%3Cpath d='M12 4l-4 14'/%3E%3Cpath d='M52 30l-4 14'/%3E%3Cpath d='M80 8l-4 14'/%3E%3Cpath d='M30 70l-4 14'/%3E%3Cpath d='M70 82l-4 14'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='120'%3E%3Cg stroke='%23EAF2FF' stroke-width='1.6' stroke-linecap='round' opacity='.85'%3E%3Cpath d='M12 4l-4 14'/%3E%3Cpath d='M52 30l-4 14'/%3E%3Cpath d='M80 8l-4 14'/%3E%3Cpath d='M30 70l-4 14'/%3E%3Cpath d='M70 82l-4 14'/%3E%3C/g%3E%3C/svg%3E"); background-size: 90px 120px, 130px 170px;
   opacity: .55; animation: scene-rain .9s linear infinite; }
 @keyframes scene-rain { to { background-position: -32px 120px, -46px 170px; } }
+.w-storm { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='110'%3E%3Cg stroke='%23E4ECF8' stroke-width='2' stroke-linecap='round' opacity='.9'%3E%3Cpath d='M14 2l-8 22'/%3E%3Cpath d='M46 20l-8 22'/%3E%3Cpath d='M74 6l-8 22'/%3E%3Cpath d='M28 58l-8 22'/%3E%3Cpath d='M62 70l-8 22'/%3E%3Cpath d='M8 88l-8 22'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='110'%3E%3Cg stroke='%23E4ECF8' stroke-width='2' stroke-linecap='round' opacity='.9'%3E%3Cpath d='M14 2l-8 22'/%3E%3Cpath d='M46 20l-8 22'/%3E%3Cpath d='M74 6l-8 22'/%3E%3Cpath d='M28 58l-8 22'/%3E%3Cpath d='M62 70l-8 22'/%3E%3Cpath d='M8 88l-8 22'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='110'%3E%3Cg stroke='%23E4ECF8' stroke-width='2' stroke-linecap='round' opacity='.9'%3E%3Cpath d='M14 2l-8 22'/%3E%3Cpath d='M46 20l-8 22'/%3E%3Cpath d='M74 6l-8 22'/%3E%3Cpath d='M28 58l-8 22'/%3E%3Cpath d='M62 70l-8 22'/%3E%3Cpath d='M8 88l-8 22'/%3E%3C/g%3E%3C/svg%3E"); background-size: 80px 110px, 110px 150px, 150px 200px;
+  opacity: .55; animation: scene-storm .6s linear infinite; }
+@keyframes scene-storm { to { background-position: -40px 110px, -55px 150px, -75px 200px; } }
+/* 폭풍: 비보다 확실히 어둡고(먹구름 · 어두운 하늘), 빗줄기가 굵고 빠르다 — 번쩍임 없이 차이를 만든다 */
+.scene.stormy .scene-bg { filter: brightness(.84) saturate(.75); }
+.scene.stormy:not(.night) .scene-tint { opacity: .28; }
+.scene-storm-clouds { position: absolute; inset: 0 -20% 45% -20%; opacity: .85;
+  background: radial-gradient(ellipse 22% 55% at 12% 20%, #6E7486 0 55%, transparent 72%),
+    radial-gradient(ellipse 26% 60% at 38% 12%, #5F6577 0 55%, transparent 72%),
+    radial-gradient(ellipse 24% 55% at 63% 22%, #6A7083 0 55%, transparent 72%),
+    radial-gradient(ellipse 26% 60% at 88% 14%, #5C6274 0 55%, transparent 72%),
+    linear-gradient(to bottom, rgba(80,86,104,.6), rgba(80,86,104,0));
+  animation: scene-clouds 18s ease-in-out infinite alternate; }
+@keyframes scene-clouds { to { transform: translateX(9%); } }
 .w-snow { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cg fill='%23FFFFFF' opacity='.9'%3E%3Ccircle cx='14' cy='12' r='2.6'/%3E%3Ccircle cx='62' cy='36' r='2'/%3E%3Ccircle cx='96' cy='18' r='2.8'/%3E%3Ccircle cx='34' cy='78' r='2.2'/%3E%3Ccircle cx='84' cy='92' r='2.5'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cg fill='%23FFFFFF' opacity='.9'%3E%3Ccircle cx='14' cy='12' r='2.6'/%3E%3Ccircle cx='62' cy='36' r='2'/%3E%3Ccircle cx='96' cy='18' r='2.8'/%3E%3Ccircle cx='34' cy='78' r='2.2'/%3E%3Ccircle cx='84' cy='92' r='2.5'/%3E%3C/g%3E%3C/svg%3E"); background-size: 110px 110px, 170px 170px;
   opacity: .85; animation: scene-snow 9s linear infinite; }
 @keyframes scene-snow { to { background-position: 30px 110px, -40px 170px; } }
@@ -913,7 +927,7 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 @media (prefers-reduced-motion: reduce) {
   .scene-bg, .scene-tint, .scene-star, .scene-person, .scene-hero { transition: none; }
   .scene-hero.stepping, .scene-person.walking-in { animation: none; }
-  .w-rain, .w-snow, .w-fog::before, .scene-rainbow { animation: none; }
+  .w-rain, .w-storm, .w-snow, .w-fog::before, .scene-rainbow, .scene-storm-clouds { animation: none; }
   .scene-rainbow { opacity: 1; }
   .scene-leaf, .scene-flash { display: none; }
 }

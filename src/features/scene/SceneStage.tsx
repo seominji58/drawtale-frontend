@@ -247,7 +247,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   return (
-    <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" || weather === "storm" ? "gloomy" : ""}`} aria-hidden ref={root}>
+    <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" ? "gloomy" : ""} ${weather === "storm" ? "stormy" : ""}`} aria-hidden ref={root}>
       <img className="scene-plate scene-bg" src={base + layout.plate} alt="" />
       <div className="scene-tint" />
       {!indoor && (
@@ -260,6 +260,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
           </>}
           {weather === "rainbow" && <div className="scene-rainbow" />}
           {/* 번개: 쪽에 들어올 때 하늘만 한 번 천천히 살짝 밝아진다 (번쩍임 · 되풀이 없음, 천둥 소리 없음) */}
+          {weather === "storm" && <div className="scene-storm-clouds" />}
           {weather === "storm" && play && <div className="scene-flash" />}
           {STARS.map(([x, y, s], k) => (
             <svg key={k} className="scene-star" viewBox="0 0 20 20" style={{ left: `${x}%`, top: `${y}%`, width: `${s}%` }}>
@@ -300,7 +301,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
                  onLoad={(e) => setStillAr(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight))} />
           : null}
       {weather && weather !== "rainbow" && (
-        <div className={`scene-weather w-${weather === "storm" ? "rain" : weather}`}>
+        <div className={`scene-weather w-${weather}`}>
           {weather === "wind" && LEAVES.map(([top, delay, color], k) => (
             <span key={k} className="scene-leaf" style={{ top: `${top}%`, animationDelay: `${delay}s`, background: color }} />
           ))}
