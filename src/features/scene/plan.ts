@@ -73,7 +73,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/모자/, "props/hat.webp", 0.08, "ground"],
   [/블록|블럭/, "props/blocks.webp", 0.14, "ground"],
   [/그림책|동화책|공책|책을|책이|책 한|책장을 넘/, "props/books.webp", 0.1, "ground"],
-  [/갈매기/, "props/seagull.webp", 0.12, "air"],
+  [/갈매기/, "props/seagull.webp", 0.07, "air"],   // 11/4 나는 모습(가로로 긴 그림)이라 키를 낮춤
   [/우주선/, "props/spaceship.webp", 0.36, "ground"],
   [/양동이|삽으로|삽을|모래 삽/, "props/sandtoys.webp", 0.12, "ground"],
   [/우유|코코아|보리차|컵/, "props/milk.webp", 0.08, "ground"],
