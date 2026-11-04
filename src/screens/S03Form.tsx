@@ -41,7 +41,7 @@ export default function S03Form() {
     <Screen back={other ? () => setOther(false) : "/upload"} segment={1}
       speech={other ? "어떤 친구예요?" : "누구를 그렸어요?"}>
       <div className="pick-area">
-        <div className="choices" data-count={other ? nonhumanoid.length : step1.length}>
+        <div className="choices form-choices" data-count={other ? nonhumanoid.length : step1.length}>
           {(other ? nonhumanoid.map(card) : step1).map((c) => (
             <ChoiceCard key={c.id} choice={c}
               onPick={(id) => (id === "__other" ? setOther(true) : choose(id))} />
