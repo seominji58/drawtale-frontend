@@ -143,14 +143,17 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
 
   const timing = moveTiming(plan.hero.move, Math.abs(plan.hero.to - plan.hero.from), layout?.hero.h ?? 0.45, aspect);
 
-  // 주인공 프레임: 옮겨 가는 동안은 계속, 제자리 동작은 loops 번, 그다음 첫 장에서 멈춘다
+  // 주인공 프레임: 옮겨 가는 동안은 계속, 제자리 동작은 loops 번, 그다음 첫 장에서 멈춘다.
+  // 「애니메이션 줄이기」(Windows 애니메이션 효과 끔도 이것)에서도 돈다 — 그림이 움직이는 것이 이 책의 내용이라서.
+  // 그때는 옮겨 가지 않고(위 phase · heroTransition) 그 자리에서 같은 시간만큼 걷는다
+  // (11/4 사용자 PC 가 이 설정이라 모든 쪽이 첫 장에서 멈췄다. 학교 · 기관 기기도 흔하다)
   useEffect(() => {
     const c = canvas.current;
     if (!c || !spr) return;
     const g = c.getContext("2d")!;
     const moving = plan.hero.move !== "none";
     const fps = moving ? timing.fps : FPS;
-    const total = !play || REDUCE ? 0
+    const total = !play ? 0
       : moving ? Math.ceil((timing.ms / 1000) * fps)
       : plan.hero.loops * spr.frames;
     let i = 0, last = 0, raf = 0;
