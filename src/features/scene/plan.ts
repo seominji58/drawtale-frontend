@@ -342,6 +342,12 @@ const CHILD = /\b(?:(?:little|small|young) (?:girl|boy)|girl|boy|child|kid|toddl
 const GROWN = /\b(?:adult|man|woman|mother|father|grand\w*|teacher|officer|owner)\b/;
 const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "cat", "baby", "classmates", "friend", "friend2"]);
 
+/** 이름에서 빼고 보는 호칭 (「경찰관 아저씨」의 「아저씨」) */
+const TITLES = new Set(["아저씨", "아주머니", "아줌마", "선생님", "언니", "오빠", "누나", "할머니", "할아버지", "삼촌", "이모", "고모"]);
+/** 그림의 성별 (호칭으로 이어 쓸 때) */
+const personSex = (k: PersonId): "m" | "f" | null =>
+  /-f$/.test(k) || k === "mom" || k === "grandma" || k === "nurse" ? "f" : /-m$/.test(k) || k === "dad" || k === "grandpa" ? "m" : null;
+
 /** 대본 자리 → 가로 자리. 주인공은 왼쪽 가운데라 인물은 오른쪽 */
 const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0.66 };
 
@@ -360,6 +366,24 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   // 카드로 사람(어른 · 친구)을 세우는 것은 장면 계획이 없는 예전 이야기만 (11/4 사용자 — 주인공 혼자 로켓 창밖을 보는
   // 마지막 쪽에 결과 카드 때문에 남자 어른이 섰다)
   const planned = pages.some((p) => Array.isArray(p.scene?.characters));
+  // 인물 이름 → 그림. 대본이 같은 사람을 쪽마다 다르게 적으면(「우주 경찰관」 → 「경찰관 아저씨」 · 「아저씨」) 뒤의 이름은
+  // 생김새 설명이 없어 호칭만으로 평범한 아저씨 그림이 섰다 (11/4 팀원 시험 — 우주 경찰관 이야기 마지막 쪽).
+  // 설명이 없는 이름은 ① 이름 낱말이 겹치는 인물 ② 호칭뿐이면 앞에 나온 같은 성별 인물의 그림을 이어 쓴다
+  const sheetKey = (n: string) => Object.keys(sheet).find((k) => k.replace(/\s+/g, "") === n.replace(/\s+/g, ""));
+  const seenKinds: { name: string; kind: PersonId }[] = [];
+  const kindOfName = (name: string): PersonId | null => {
+    const key = sheetKey(name);
+    if (key) return personKind(sheet[key], name);
+    const core = name.split(/\s+/).map((w) => w.replace(/님$/, "")).filter((w) => w.length >= 2 && !TITLES.has(w));
+    const byWord = Object.keys(sheet).find((k) => core.some((w) => k.includes(w)));
+    if (byWord) return personKind(sheet[byWord], byWord);
+    const sex = /아저씨|할아버지|삼촌|형|오빠/.test(name) ? "m" : /아주머니|아줌마|할머니|이모|고모|언니|누나/.test(name) ? "f" : null;
+    if (!core.length && sex) {
+      const prev = [...seenKinds].reverse().find((v) => personSex(v.kind) === sex);
+      if (prev) return prev.kind;
+    }
+    return personKind("", name);
+  };
   for (const p of pages) {
     loc = locationFor(place, p, loc);
     const st = stageIdx(p.stage);
@@ -392,8 +416,9 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     }
     // 대본 인물이 있으면 사람은 그것으로 바꾼다 (표지판 · 숨을 것은 카드대로 둔다)
     const scripted = (p.scene?.characters ?? [])
-      .map((c) => ({ c, kind: personKind(sheet[c.name] ?? "", c.name) }))
+      .map((c) => ({ c, kind: kindOfName(c.name) }))
       .filter((v): v is { c: { name: string; slot: string }; kind: PersonId } => !!v.kind);
+    for (const v of scripted) if (!seenKinds.some((q) => q.name === v.c.name)) seenKinds.push({ name: v.c.name, kind: v.kind });
     // 같은 그림이 한 쪽에 둘이면 다른 친구 그림으로 (친구 둘)
     const usedKinds = new Set<PersonId>();
     for (const v of scripted) {
