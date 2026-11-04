@@ -281,16 +281,20 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
         const x = phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
         const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
         return (
-          <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person ${phase === 0 || !p.enter ? "" : "walking-in"}`}
+          <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person ${phase === 0 || !p.enter ? "" : "walking-in"} ${p.id === "bird" || p.id === "bat" ? "m-float" : ""}`}
                src={base + s.src} alt=""
                style={{ ...spotStyle({ ...sb, x }), transition: REDUCE || !play ? "none" : "left 2.4s cubic-bezier(.35,.1,.35,1), filter 2.6s ease" }} />
         );
       })}
       {thingSpots.map((t, k) => (
-        <img key={`thing-${k}-${t.src.slice(0, 40)}`} className="scene-obj scene-thing" alt={t.name ? `내가 그린 ${t.name}` : ""}
+        <img key={`thing-${k}-${t.src.slice(0, 40)}`}
+             className={`scene-obj scene-thing ${t.motion && (t.motion !== "roll" || play) ? `m-${t.motion}` : ""}`}
+             alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
-             style={spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
-               : { src: t.src, x: t.x, foot: t.spot === "air" ? 0.45 : 0.95, h: t.h })} />
+             style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
+               : { src: t.src, x: t.x, foot: t.spot === "air" ? 0.45 : 0.95, h: t.h }),
+               // 공은 주인공 반대쪽으로 굴러간다 (주인공과 부딪치지 않게)
+               ["--roll" as string]: t.x < hero.to ? -1 : 1 }} />
       ))}
       {spr
         ? <canvas ref={canvas} width={384} height={384} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}

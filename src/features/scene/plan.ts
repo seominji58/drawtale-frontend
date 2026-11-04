@@ -136,6 +136,25 @@ export interface ThingPlan {
   spot?: Spot;
   /** 내 소품이면 그 이름 (그림 설명) */
   name?: string;
+  /** 소품 움직임 (thingMotion) — 없으면 가만히 */
+  motion?: ThingMotion;
+}
+
+/** 소품 움직임 (11/4 사용자 시안 https://claude.ai/artifact/FJL8Cu7vPSt9YzPdbxJBTw 「이렇게 진행해」).
+ *  하늘 소품은 놓이면 늘 천천히, 공은 쪽 글에 굴렸어요 · 찼어요 · 던졌어요가 있을 때 한 번, 깃발 · 우산 · 나뭇잎은 바람 부는 쪽만.
+ *  의자 · 상자 · 바위처럼 움직이지 않는 물건은 가만히 */
+export type ThingMotion = "flutter" | "float" | "glide" | "sway" | "swim" | "drift" | "roll" | "wind";
+const ALWAYS_MOVING: Record<string, ThingMotion> = {
+  "props/butterfly.webp": "flutter", "props/bird.webp": "float", "props/bat.webp": "float", "props/seagull.webp": "glide",
+  "props/balloons.webp": "sway", "props/fish.webp": "swim", "props/planet.webp": "drift", "props/earth.webp": "drift",
+};
+const WIND_MOVING = new Set(["props/flag.webp", "props/umbrella.webp", "props/leaves.webp"]);
+const BALL_MOVES = /굴렸|굴러|굴리|데굴|찼어|차서|뻥 찼|던졌|던져/;
+function thingMotion(src: string, text: string, weather: Weather | null): ThingMotion | undefined {
+  if (ALWAYS_MOVING[src]) return ALWAYS_MOVING[src];
+  if (src === "props/ball.webp" && BALL_MOVES.test(text)) return "roll";
+  if (weather === "wind" && WIND_MOVING.has(src)) return "wind";
+  return undefined;
 }
 
 /** 내 소품 이름이 쪽 글에 나오나 — 이름 그대로(띄어쓰기 무시) 또는 마지막 낱말(「노란 우산」 → 「우산」) */
@@ -399,9 +418,10 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const hiding = p.stage === "action" && picks.action === "hide";
     const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
     if (hiding) { from = to = SLOT; }
+    const weather = weatherFor(p.text, p.scene?.background ?? "", loc);
     out.push({
       location: loc,
-      env: { night, sun, weather: weatherFor(p.text, p.scene?.background ?? "", loc) },
+      env: { night, sun, weather },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다
@@ -409,7 +429,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
         : thingsFor(p.text, mine, isIndoor(loc), new Set([
           ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
           ...(loc === "space-ship" ? ["props/spaceship.webp"] : []),
-        ])),
+        ])).map((t) => ({ ...t, motion: thingMotion(t.src, p.text, weather) })),
     });
     x = to;
   }

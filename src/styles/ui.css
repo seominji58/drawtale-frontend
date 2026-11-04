@@ -914,6 +914,25 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 @keyframes scene-fade-in { to { opacity: 1; } }
 .scene-flash { position: absolute; inset: 0; background: #FFFBE6; opacity: 0; animation: scene-flash 1.6s ease-out .8s 1 both; }
 @keyframes scene-flash { 0% { opacity: 0; } 25% { opacity: .22; } 100% { opacity: 0; } }
+/* 소품 움직임 (11/4 시안 FJL8Cu7vPSt9YzPdbxJBTw, plan.ts thingMotion). 느리고 작게, 화면 밖으로 나가지 않게.
+   transform 은 자리 잡기(translateX(-50%))가 쓰므로 움직임은 translate · rotate 로 (나비 날갯짓만 transform 에 이어 씀) */
+.scene .m-flutter { animation: thing-flutter 5s ease-in-out infinite, thing-flap .32s ease-in-out infinite alternate; }
+@keyframes thing-flutter { 0%, 100% { translate: 0 0; } 25% { translate: -14% -18%; } 50% { translate: -4% -6%; } 75% { translate: 10% -14%; } }
+@keyframes thing-flap { from { transform: translateX(-50%) scaleX(1); } to { transform: translateX(-50%) scaleX(.62); } }
+.scene .m-float { animation: thing-float 3.2s ease-in-out infinite alternate; }
+@keyframes thing-float { from { translate: 0 0; rotate: -3deg; } to { translate: 0 -14%; rotate: 3deg; } }
+.scene .m-glide { animation: thing-glide 6s ease-in-out infinite alternate; }
+@keyframes thing-glide { from { translate: 12% 0; rotate: 4deg; } to { translate: -30% -12%; rotate: -4deg; } }
+.scene .m-sway { transform-origin: 50% 100%; animation: thing-sway 3.4s ease-in-out infinite alternate; }
+@keyframes thing-sway { from { rotate: -4deg; } to { rotate: 4deg; } }
+.scene .m-swim { animation: thing-swim 4s ease-in-out infinite alternate; }
+@keyframes thing-swim { from { translate: 18% 6%; rotate: 8deg; } to { translate: -22% -6%; rotate: -8deg; } }
+.scene .m-drift { animation: thing-float 6s ease-in-out infinite alternate; }
+/* 공: 쪽에 들어올 때 한 번, 주인공 반대쪽(--roll)으로 */
+.scene .m-roll { animation: thing-roll 1.8s cubic-bezier(.25,.6,.4,1) .4s 1 both; }
+@keyframes thing-roll { from { translate: 0 0; rotate: 0deg; } to { translate: calc(var(--roll, 1) * 160%) 0; rotate: calc(var(--roll, 1) * 420deg); } }
+.scene .m-wind { transform-origin: 50% 100%; animation: thing-wind 2s ease-in-out infinite alternate; }
+@keyframes thing-wind { from { rotate: -2deg; } to { rotate: 3.5deg; } }
 /* 우주는 낮에도 별 (pt_docs 18 D — 우주 바깥은 밝은 하늘이 아니다) */
 .scene.starry .scene-star { opacity: .9; }
 .scene-person, .scene-hero { transition: filter 2.6s ease; }
@@ -930,6 +949,7 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .w-rain, .w-storm, .w-snow, .w-fog::before, .scene-rainbow, .scene-storm-clouds { animation: none; }
   .scene-rainbow { opacity: 1; }
   .scene-leaf, .scene-flash { display: none; }
+  .scene .m-flutter, .scene .m-float, .scene .m-glide, .scene .m-sway, .scene .m-swim, .scene .m-drift, .scene .m-roll, .scene .m-wind { animation: none; }
 }
 
 /* S-12 제목 바꾸기 (보호자 모드, 2026-11-03) — 고를 책에 점선, 누르면 가운데 종이 카드 */
