@@ -255,7 +255,7 @@ const LOOP_ACTIONS: Record<string, number> = { wave: 3, jump: 2, dance: 2 };
 /** 그 밖의 동작(2026-11-04 새 동작 9개 — 숨쉬기 · 헤엄 · 만세 …)은 쪽에 있는 동안 계속. 0 이면 첫 장에서 멈춘다 */
 const KEEP_LOOPING = 1000;
 const INDOOR = new Set(["cave", "home-living", "home-kitchen", "home-bedroom", "school-classroom", "school-cafeteria",
-  "school-hallway", "school-music", "school-library", "space-ship", "cave-lake"]);
+  "school-hallway", "school-music", "school-library", "space-ship", "cave-lake", "sea-lighthouse"]);
 
 export const isIndoor = (location: string) => INDOOR.has(location);
 /** 해 · 달을 띄우는 곳 — 바깥이고, 하늘이 따로 그려진 곳(바닷속 빛줄기 · 우주 별 · 행성의 달)은 뺀다 */

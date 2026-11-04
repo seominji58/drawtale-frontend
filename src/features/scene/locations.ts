@@ -48,6 +48,8 @@ export const LOCATIONS: Record<string, Sub[]> = {
     { id: "sea", words: ["모래사장", "바닷가"] },
     { id: "sea-underwater", words: ["underwater", "under the sea", "coral", "seabed", "sea floor", "바닷속", "물속"] },
     { id: "sea-pier", words: ["pier", "dock", "boat", "harbor", "lighthouse", "등대", "선착장", "부두", "배를 타"] },
+    // 11/4 등대 안 (둥근 창 · 나선 계단, tools/art gen_places 와 같은 방식)
+    { id: "sea-lighthouse", words: ["inside the lighthouse", "inside a lighthouse", "room inside the lighthouse", "lighthouse room", "spiral stair", "등대 안", "등대 속", "등대 계단"] },
   ],
   space: [
     { id: "space", words: ["달 표면"] },
@@ -76,7 +78,9 @@ export function locationFor(place: string, page: BookPage, prev?: string): strin
   const bg = ` ${(page.scene?.background || "").toLowerCase()} | ${page.text ?? ""} `;
   // 등대가 나오는 바다 쪽은 등대가 그려진 부두 배경 — 「바닷가에 등대가」처럼 다른 낱말이 먼저 나오면 등대 없는 모래사장이었다 (11/4).
   // 바닷속(물속)은 그대로
-  if (place === "sea" && /lighthouse|등대/.test(bg) && !/underwater|under the sea|바닷속|물속/.test(bg)) return "sea-pier";
+  if (place === "sea" && /lighthouse|등대/.test(bg) && !/underwater|under the sea|바닷속|물속/.test(bg)) {
+    return /inside (?:the |a )?lighthouse|lighthouse room|spiral stair|등대 (?:안|속|계단)/.test(bg) ? "sea-lighthouse" : "sea-pier";
+  }
   let best: string | undefined, at = Infinity;
   for (const s of subs) for (const w of s.words) {
     const i = bg.indexOf(w);
