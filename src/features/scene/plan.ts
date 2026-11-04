@@ -7,10 +7,11 @@ import { LOCATIONS, locationFor } from "./locations";
 import AR from "./props-ar.json";
 
 /** 남녀 그림이 따로 있는 직업 (2026-11-03 사용자 「인물 묶음별로 남녀 그림」) — 그림 이름은 `${종류}-m` · `${종류}-f` */
-const GENDERED = ["caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper", "keeper", "police", "cook", "mail"] as const;
+const GENDERED = ["caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper", "keeper", "police", "cook", "mail",
+  "spacepolice", "spacekid"] as const;
 type Gendered = (typeof GENDERED)[number];
 export type PersonId = "friend" | "friend2" | "adult" | "grandma" | "grandpa" | "mom" | "dad" | "teacher" | "baby" | "dog" | "cat"
-  | `${Gendered}-${"m" | "f"}` | "nurse" | "busdriver" | "classmates" | "bat" | "bird" | "rabbit" | "squirrel" | "alien";
+  | `${Gendered}-${"m" | "f"}` | "nurse" | "busdriver" | "classmates" | "bat" | "bird" | "rabbit" | "squirrel" | "alien" | "aunt";
 type Kind = Exclude<PersonId, `${Gendered}-${"m" | "f"}`> | Gendered;
 export type PropId = PersonId | "cover" | "sign";
 /** 사람 · 동물 (옆에 서는 것). 숨을 것 · 표지판은 아니다 */
@@ -293,7 +294,8 @@ const KINDS: [Kind, RegExp, RegExp][] = [
   ["rabbit", /\b(rabbits?|bunny|bunnies)\b/, /토끼/],
   ["squirrel", /\bsquirrels?\b/, /다람쥐/],
   ["alien", /\baliens?\b/, /외계인/],
-  // 직업 (「우주 경찰관」은 우주 대원, 「숲 해설가 선생님」은 숲 지킴이 — 더 좁은 것이 먼저)
+  // 직업 (「숲 해설가 선생님」은 숲 지킴이 — 더 좁은 것이 먼저). 우주 경찰관은 11/4 부터 따로 그림(별 배지 우주복)
+  ["spacepolice", /\b(space police|police\b.*\b(space|helmet))\b/, /우주 ?경찰/],
   ["astronaut", /\b(astronaut|spacesuit|space suit|space police|space guide|spaceship captain|space station|space explorer|moon base)\b/, /우주|선장|대장/],
   ["ranger", /\b(forest ranger|ranger|forest guide)\b/, /숲 지킴이|숲 해설|숲 선생/],
   ["lifeguard", /\blifeguard\b/, /안전 ?요원|바다 지킴이|바닷가 지킴이|해변 지킴이|구조대/],
@@ -313,7 +315,9 @@ const KINDS: [Kind, RegExp, RegExp][] = [
   ["baby", /\b(baby|toddler|infant)\b/, /아기/],
   ["dog", /\b(dog|puppy)\b/, /강아지|멍멍/],
   ["cat", /\b(cat|kitten)\b/, /고양이|야옹/],
-  ["mom", /\b(mother|mom|mommy|aunt|woman|lady)\b/, /엄마|어머니|이모|고모|아주머니|아줌마/],
+  // 이모 · 고모는 엄마와 다른 그림 (11/4 — 엄마 + 이모가 똑같은 엄마 그림으로 나란히 섰다)
+  ["aunt", /\baunt\b/, /이모|고모/],
+  ["mom", /\b(mother|mom|mommy|woman|lady)\b/, /엄마|어머니|아주머니|아줌마/],
   ["dad", /\b(father|dad|daddy|uncle|man)\b/, /아빠|아버지|삼촌|아저씨/],
   ["adult", /\b(adult|grown-?up|doctor|driver|farmer|guard|staff|worker|clerk)\b/, /어른|의사|직원/],
   ["friend2", /\b(girl|sister)\b/, /여자\s*아이|언니|누나|여동생/],
@@ -335,10 +339,12 @@ export function personKind(desc: string, name = ""): PersonId | null {
   if (!k) return null;
   // 아이 친구는 옷차림(우주복 · 구명조끼 …)보다 아이 그림이 먼저 — 우주 이야기의 「친구」(a little girl … space suit) 15명이
   // 어른 우주비행사 그림으로 섰다 (11/4 대본 검사). 외계인 · 동물은 그대로
-  if (CHILD.test(d) && !GROWN.test(d) && !NOT_KID.has(k)) return "friend";
+  // 우주복 입은 아이는 아이 우주복 그림 (11/4)
+  if (CHILD.test(d) && !GROWN.test(d) && !NOT_KID.has(k)) return SPACE_SUIT.test(d) ? `spacekid-${genderOf(d, name)}` : "friend";
   return (GENDERED as readonly string[]).includes(k) ? (`${k}-${genderOf(d, name)}` as PersonId) : (k as PersonId);
 }
 const CHILD = /\b(?:(?:little|small|young) (?:girl|boy)|girl|boy|child|kid|toddler)\b/;
+const SPACE_SUIT = /\b(space ?suit|spacesuit|astronaut)\b/;
 const GROWN = /\b(?:adult|man|woman|mother|father|grand\w*|teacher|officer|owner)\b/;
 const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "cat", "baby", "classmates", "friend", "friend2"]);
 
@@ -346,7 +352,7 @@ const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "c
 const TITLES = new Set(["아저씨", "아주머니", "아줌마", "선생님", "언니", "오빠", "누나", "할머니", "할아버지", "삼촌", "이모", "고모"]);
 /** 그림의 성별 (호칭으로 이어 쓸 때) */
 const personSex = (k: PersonId): "m" | "f" | null =>
-  /-f$/.test(k) || k === "mom" || k === "grandma" || k === "nurse" ? "f" : /-m$/.test(k) || k === "dad" || k === "grandpa" ? "m" : null;
+  /-f$/.test(k) || k === "mom" || k === "aunt" || k === "grandma" || k === "nurse" ? "f" : /-m$/.test(k) || k === "dad" || k === "grandpa" ? "m" : null;
 
 /** 대본 자리 → 가로 자리. 주인공은 왼쪽 가운데라 인물은 오른쪽 */
 const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0.66 };
@@ -422,7 +428,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     // 같은 그림이 한 쪽에 둘이면 다른 친구 그림으로 (친구 둘)
     const usedKinds = new Set<PersonId>();
     for (const v of scripted) {
-      if (usedKinds.has(v.kind)) v.kind = v.kind === "friend" ? "friend2" : v.kind === "friend2" ? "friend" : v.kind;
+      if (usedKinds.has(v.kind)) v.kind = v.kind === "friend" ? "friend2" : v.kind === "friend2" ? "friend" : v.kind === "mom" ? "aunt" : v.kind === "teacher" ? "adult" : v.kind;
       usedKinds.add(v.kind);
     }
     if (scripted.length) {

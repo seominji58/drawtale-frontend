@@ -43,8 +43,11 @@ const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
   grandma: { h: 0.54, w: 0.4 }, grandpa: { h: 0.57, w: 0.4 }, mom: { h: 0.58, w: 0.38 }, dad: { h: 0.6, w: 0.38 },
   teacher: { h: 0.58, w: 0.42 }, baby: { h: 0.28, w: 0.62 }, dog: { h: 0.24, w: 0.9 }, cat: { h: 0.24, w: 0.72 },
   // 11/3 밤 — 직업 남녀 · 동물 · 외계인 · 반 친구들 (폭은 오린 그림에서 잰 비율, plan.ts props-ar.json)
-  ...Object.fromEntries((["caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper", "keeper", "police", "cook", "mail"] as const)
+  ...Object.fromEntries((["caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper", "keeper", "police", "cook", "mail", "spacepolice"] as const)
     .flatMap((k) => (["m", "f"] as const).map((g) => [`${k}-${g}`, { h: k === "astronaut" ? 0.6 : 0.58, w: arOf(`props/${k}-${g}.webp`, 0.42) }]))),
+  // 11/4 — 아이 우주복(아이 키) · 이모
+  "spacekid-m": { h: 0.46, w: arOf("props/spacekid-m.webp", 0.5) }, "spacekid-f": { h: 0.46, w: arOf("props/spacekid-f.webp", 0.5) },
+  aunt: { h: 0.58, w: arOf("props/aunt.webp", 0.32) },
   nurse: { h: 0.58, w: arOf("props/nurse.webp", 0.42) }, busdriver: { h: 0.58, w: arOf("props/busdriver.webp", 0.42) },
   classmates: { h: 0.46, w: arOf("props/classmates.webp", 1.2) }, alien: { h: 0.34, w: arOf("props/alien.webp", 0.8) },
   rabbit: { h: 0.2, w: arOf("props/rabbit.webp", 0.8) }, squirrel: { h: 0.2, w: arOf("props/squirrel.webp", 0.8) },
