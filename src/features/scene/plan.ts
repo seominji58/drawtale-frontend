@@ -201,6 +201,8 @@ const SLOT = 0.52;
 const FRIEND_RESULTS = new Set(["new_friend", "tears_stop", "thanked", "best_friend", "party_friend"]);
 const ADULT_RESULTS = new Set(["adult_took", "party_lost", "party_friend"]);
 const LOOP_ACTIONS: Record<string, number> = { wave: 3, jump: 2, dance: 2 };
+/** 그 밖의 동작(2026-11-04 새 동작 9개 — 숨쉬기 · 헤엄 · 만세 …)은 쪽에 있는 동안 계속. 0 이면 첫 장에서 멈춘다 */
+const KEEP_LOOPING = 1000;
 const INDOOR = new Set(["cave", "home-living", "home-kitchen", "home-bedroom", "school-classroom", "school-cafeteria",
   "school-hallway", "school-music", "school-library", "space-ship", "cave-lake"]);
 
@@ -339,7 +341,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     out.push({
       location: loc,
       env: { night, sun },
-      hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? 0, fallen: p.stage === "problem" && picks.problem === "fall", hide },
+      hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다
       things: p.stage === "action" && picks.action === "hide" ? []
