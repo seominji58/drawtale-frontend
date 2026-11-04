@@ -208,7 +208,8 @@ export interface HeroPlan {
 
 export interface Env {
   night: boolean;
-  /** 해가 떠 있는지 (「해가 떴어요」 쪽만 — 평소 낮에는 해를 그리지 않는다, 해는 그 카드의 소품) */
+  /** 해가 떠 있는지 — 낮이면 늘 (11/4 사용자 「해나 달이 떠오르고 지는 그 부분들이 없는거 같은데」. 전에는 「해가 떴어요」
+   *  카드 쪽에만 그려 대부분의 이야기에 해 · 달이 없었고, 밤이 되어도 해가 지는 장면이 없었다) */
   sun: boolean;
 }
 
@@ -233,6 +234,12 @@ const INDOOR = new Set(["cave", "home-living", "home-kitchen", "home-bedroom", "
   "school-hallway", "school-music", "school-library", "space-ship", "cave-lake"]);
 
 export const isIndoor = (location: string) => INDOOR.has(location);
+/** 해 · 달을 띄우는 곳 — 바깥이고, 하늘이 따로 그려진 곳(바닷속 빛줄기 · 우주 별 · 행성의 달)은 뺀다 */
+const NO_SKY_BODIES = new Set(["sea-underwater", "space", "space-planet"]);
+export const hasSkyBodies = (location: string) => !INDOOR.has(location) && !NO_SKY_BODIES.has(location);
+/** 쪽 글로 밤 · 아침 (「돌아왔어요」처럼 엉뚱한 말이 걸리지 않게 말 덩어리로) */
+const NIGHT_TEXT = /밤이 (?:되|깊|왔)|캄캄해|깜깜해|어두워졌|해가 (?:졌|지|저물|뉘엿)|노을|저녁이 (?:되|왔)|달이 (?:떴|떠올|휘영)|별이 (?:떴|반짝)/;
+const MORNING_TEXT = /아침이 (?:밝|됐|되|왔)|해가 (?:떴|떠올|뜨|솟)|날이 밝/;
 
 /** 대본 인물의 생김새(영어) · 이름(한국어)으로 그림을 고른다 (2026-11-03 — public/scenes/props).
  *  위에서부터 먼저 맞는 것, 생김새가 먼저. 영어는 낱말 단위로 ("woman" 의 man, "location" 의 cat 이 걸리지 않게).
@@ -311,11 +318,14 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   for (const p of pages) {
     loc = locationFor(place, p, loc);
     const st = stageIdx(p.stage);
-    // 밤: 「어두워졌어요」부터 이어진다. 결과 「해가 떴어요」에서 밝아지고, 「잠이 들었어요」는 밤
+    // 밤: 「어두워졌어요」부터 이어진다. 결과 「해가 떴어요」에서 밝아지고, 「잠이 들었어요」는 밤.
+    // 카드가 아니어도 쪽 글에 밤이 되거나(해가 졌어요 · 밤이 되었어요) 아침이 오면(해가 떴어요) 그 쪽부터 바꾼다 (11/4)
     if (picks.problem === "dark" && st >= 1) night = true;
-    let sun = false;
-    if (p.stage === "result" && picks.result === "sun") { night = false; sun = true; }
+    if (NIGHT_TEXT.test(p.text)) night = true;
+    if (MORNING_TEXT.test(p.text)) night = false;
+    if (p.stage === "result" && picks.result === "sun") night = false;
     if (p.stage === "result" && picks.result === "sleep") night = true;
+    const sun = !night;
 
     const props: PropPlan[] = [];
     const actionProp = picks.action ? ACTION_PROP[picks.action] : undefined;

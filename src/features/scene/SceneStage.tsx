@@ -9,7 +9,7 @@
  *         end: 끝 모습 그대로 (떠나는 쪽 · 뒤로 넘긴 쪽) */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Env, PagePlan, PropId } from "./plan";
-import { isIndoor, isPerson } from "./plan";
+import { hasSkyBodies, isIndoor, isPerson } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
 
@@ -110,6 +110,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     return () => ro.disconnect();
   }, []);
   const indoor = isIndoor(plan.location);
+  const bodies = hasSkyBodies(plan.location);
   const base = sceneBase(plan.location);
 
   useEffect(() => { let live = true; loadLayout(plan.location).then((l) => live && setLayout(l)).catch(() => {}); return () => { live = false; }; }, [plan.location]);
@@ -248,10 +249,12 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
       <div className="scene-tint" />
       {!indoor && (
         <div className="scene-sky" style={{ height: `${(layout.ground ?? 0.556) * 100}%` }}>
-          <img className="scene-sun" src={`${sceneBase("props")}sun.webp`} alt=""
-               style={{ left: `${sunPos[0]}%`, top: `${sunPos[1]}%`, transition: skyMove(env.sun) }} />
-          <img className="scene-moon" src={`${sceneBase("props")}moon.webp`} alt=""
-               style={{ left: `${moonPos[0]}%`, top: `${moonPos[1]}%`, transition: skyMove(night) }} />
+          {bodies && <>
+            <img className="scene-sun" src={`${sceneBase("props")}sun.webp`} alt=""
+                 style={{ left: `${sunPos[0]}%`, top: `${sunPos[1]}%`, transition: skyMove(env.sun) }} />
+            <img className="scene-moon" src={`${sceneBase("props")}moon.webp`} alt=""
+                 style={{ left: `${moonPos[0]}%`, top: `${moonPos[1]}%`, transition: skyMove(night) }} />
+          </>}
           {STARS.map(([x, y, s], k) => (
             <svg key={k} className="scene-star" viewBox="0 0 20 20" style={{ left: `${x}%`, top: `${y}%`, width: `${s}%` }}>
               <path d="M10 1l2.4 6.2L19 8l-5 4.3L15.5 19 10 15.5 4.5 19 6 12.3 1 8l6.6-.8z" />
