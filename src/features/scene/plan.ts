@@ -68,7 +68,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/대문/, "props/gate.webp", 0.32, "ground"],
   [/조개|불가사리/, "props/shells.webp", 0.07, "ground"],
   [/웅덩이/, "props/puddle.webp", 0.05, "ground"],
-  [/계단/, "props/stairs.webp", 0.22, "ground"],
+  [/^(?!.*등대).*계단/s, "props/stairs.webp", 0.22, "ground"],   // 등대 돌계단 · 등대 안 계단에 장난감 계단이 섰다 (11/4)
   [/가방|배낭/, "props/backpack.webp", 0.14, "ground"],
   [/시계/, "props/clock.webp", 0.13, "wall"],
   [/모자/, "props/hat.webp", 0.08, "ground"],
@@ -106,7 +106,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/바위/, "cave/rocks.webp", 0.2, "ground"],
   [/꽃(?!게)/, "forest-flowers/flowers.webp", 0.12, "ground"],
   [/식탁/, "home-kitchen/table.webp", 0.26, "ground"],
-  [/등대/, "sea-pier/lighthouse.webp", 0.5, "ground"],
+  // 등대는 소품으로 세우지 않는다 — 주인공 옆 땅에 아이 키만 한 등대가 장난감처럼 섰다 (11/4 사용자). 등대는 부두 배경(sea-pier)에 크게 있다
   [/버섯/, "forest/mushroom.webp", 0.1, "ground"],
   // C. 새로 그린 12장 (tools/art/gen_scene_props.py)
   [/나뭇잎|낙엽/, "props/leaves.webp", 0.07, "ground"],

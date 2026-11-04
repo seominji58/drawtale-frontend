@@ -74,6 +74,9 @@ export function locationFor(place: string, page: BookPage, prev?: string): strin
   // 영어 배경 문장이 먼저, 그다음 쪽 한국어 글 — 짧은 이야기 · 예전 이야기는 배경 문장이 없다 (11/3).
   // 한 줄로 이어 붙여 「먼저 나온 낱말」이 배경 문장 쪽에서 먼저 잡히게
   const bg = ` ${(page.scene?.background || "").toLowerCase()} | ${page.text ?? ""} `;
+  // 등대가 나오는 바다 쪽은 등대가 그려진 부두 배경 — 「바닷가에 등대가」처럼 다른 낱말이 먼저 나오면 등대 없는 모래사장이었다 (11/4).
+  // 바닷속(물속)은 그대로
+  if (place === "sea" && /lighthouse|등대/.test(bg) && !/underwater|under the sea|바닷속|물속/.test(bg)) return "sea-pier";
   let best: string | undefined, at = Infinity;
   for (const s of subs) for (const w of s.words) {
     const i = bg.indexOf(w);
