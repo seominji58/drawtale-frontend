@@ -881,12 +881,12 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   opacity: .55; animation: scene-rain .9s linear infinite; }
 @keyframes scene-rain { to { background-position: -32px 120px, -46px 170px; } }
 .w-storm { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='110'%3E%3Cg stroke='%23E4ECF8' stroke-width='2' stroke-linecap='round' opacity='.9'%3E%3Cpath d='M14 2l-8 22'/%3E%3Cpath d='M46 20l-8 22'/%3E%3Cpath d='M74 6l-8 22'/%3E%3Cpath d='M28 58l-8 22'/%3E%3Cpath d='M62 70l-8 22'/%3E%3Cpath d='M8 88l-8 22'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='110'%3E%3Cg stroke='%23E4ECF8' stroke-width='2' stroke-linecap='round' opacity='.9'%3E%3Cpath d='M14 2l-8 22'/%3E%3Cpath d='M46 20l-8 22'/%3E%3Cpath d='M74 6l-8 22'/%3E%3Cpath d='M28 58l-8 22'/%3E%3Cpath d='M62 70l-8 22'/%3E%3Cpath d='M8 88l-8 22'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='110'%3E%3Cg stroke='%23E4ECF8' stroke-width='2' stroke-linecap='round' opacity='.9'%3E%3Cpath d='M14 2l-8 22'/%3E%3Cpath d='M46 20l-8 22'/%3E%3Cpath d='M74 6l-8 22'/%3E%3Cpath d='M28 58l-8 22'/%3E%3Cpath d='M62 70l-8 22'/%3E%3Cpath d='M8 88l-8 22'/%3E%3C/g%3E%3C/svg%3E"); background-size: 80px 110px, 110px 150px, 150px 200px;
-  opacity: .55; animation: scene-storm .6s linear infinite; }
+  opacity: .42; animation: scene-storm .65s linear infinite; }
 @keyframes scene-storm { to { background-position: -40px 110px, -55px 150px, -75px 200px; } }
 /* 폭풍: 비보다 확실히 어둡고(먹구름 · 어두운 하늘), 빗줄기가 굵고 빠르다 — 번쩍임 없이 차이를 만든다 */
-.scene.stormy .scene-bg { filter: brightness(.84) saturate(.75); }
-.scene.stormy:not(.night) .scene-tint { opacity: .28; }
-.scene-storm-clouds { position: absolute; inset: 0 -20% 45% -20%; opacity: .85;
+.scene.stormy .scene-bg { filter: brightness(.9) saturate(.82); }
+.scene.stormy:not(.night) .scene-tint { opacity: .22; }
+.scene-storm-clouds { position: absolute; inset: 0 -20% 45% -20%; opacity: .62;
   background: radial-gradient(ellipse 22% 55% at 12% 20%, #6E7486 0 55%, transparent 72%),
     radial-gradient(ellipse 26% 60% at 38% 12%, #5F6577 0 55%, transparent 72%),
     radial-gradient(ellipse 24% 55% at 63% 22%, #6A7083 0 55%, transparent 72%),
