@@ -85,7 +85,7 @@ export default function S08Generating() {
     // 결과를 받기 전에 화면을 떠나도(시간 초과 · 탭 닫힘) 책장이 나중에 찾도록 기억해 둔다
     const run = startStory(key, (onStatus, signal, onCreated) =>
       generateStory(character.id, picks, said, onStatus, signal, voice, storyLength, onCreated),
-      (ids) => addPending({ ...ids, picks: kept, guardian, at: Date.now() }));
+      (ids) => addPending({ ...ids, picks: kept, guardian, form: character.form, at: Date.now() }));
     let live = true;   // 이 화면이 아직 붙어 있는지 — 떨어진 화면은 결과로 이동하지 않는다
     run.listen = (s) => {
       if (!live) return;
@@ -99,7 +99,7 @@ export default function S08Generating() {
         // 고른 카드를 이야기에 붙여 둔다 — 내 이야기(S-12)에서 다시 볼 때도 소품을 얹을 수 있게.
         // 배경을 잘라 낸 정지 그림이 있으면 그것으로 표지 (2026-11-03). 목 엔진만 원본으로 (잘라 낸 그림이 없다)
         const cutout = res.stillUrl ?? character?.cutoutUrl ?? null;
-        setStory(shelve(res, { guardian, picks: kept }, cutout ?? (ENGINE === "mock" ? imageUrl : null), add));
+        setStory(shelve(res, { guardian, picks: kept, form: character.form }, cutout ?? (ENGINE === "mock" ? imageUrl : null), add));
         nav("/story", { replace: true });
       })
       .catch((e) => {

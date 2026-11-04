@@ -5,25 +5,9 @@ import BigButton from "@/components/BigButton";
 import CharacterPreview from "@/features/character/CharacterPreview";
 import { useSession } from "@/store/session";
 import { saveJoints } from "@/api";
-import { PARENT } from "@/features/character/skeleton";
-import { JOINT_ORDER, lowJoints } from "@/types/character";
-import type { JointName, Keypoints } from "@/types/character";
-
-/** S-06-03 관절 목록. hand·foot 은 모델 이름이고 실제로는 손목·발목이다 (open-decisions 3번).
- *  neck 은 Meta 모델에서 얼굴 가운데라서 「얼굴」로 적는다 */
-const NAMES: Record<JointName, string> = {
-  neck: "얼굴", torso: "몸통", hip: "엉덩이",
-  right_shoulder: "오른쪽 어깨", right_elbow: "오른쪽 팔꿈치", right_hand: "오른쪽 손목",
-  left_shoulder: "왼쪽 어깨", left_elbow: "왼쪽 팔꿈치", left_hand: "왼쪽 손목",
-  right_hip: "오른쪽 골반", right_knee: "오른쪽 무릎", right_foot: "오른쪽 발목",
-  left_hip: "왼쪽 골반", left_knee: "왼쪽 무릎", left_foot: "왼쪽 발목",
-};
-
-/** 점을 잇는 뼈. 어디가 어디에 붙었는지 보여야 어긋난 관절이 눈에 띈다 (2026-10-28) */
-const BONES = JOINT_ORDER.flatMap((n) => {
-  const p = PARENT[n];
-  return p && p !== "root" ? [[p as JointName, n] as const] : [];
-});
+import { bonesOf, labelOf, orderOf, useForm } from "@/features/character/forms";
+import { lowJoints } from "@/types/character";
+import type { Keypoints } from "@/types/character";
 
 export default function S06Joints() {
   const nav = useNavigate();
@@ -31,14 +15,14 @@ export default function S06Joints() {
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [moved, setMoved] = useState<Set<JointName>>(new Set());
+  const [moved, setMoved] = useState<Set<string>>(new Set());
   /** 지금 고른 관절. 점을 잡거나 목록을 누르면 바뀌고, 점과 목록 줄이 함께 밝아진다 */
-  const [picked, setPicked] = useState<JointName | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
   /** 「처음 자리로」 확인 상자. 브라우저 confirm() 은 화면 밖 모양이라 쓰지 않는다 */
   const [asking, setAsking] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
-  const rows = useRef<Partial<Record<JointName, HTMLButtonElement | null>>>({});
-  const drag = useRef<JointName | null>(null);
+  const rows = useRef<Partial<Record<string, HTMLButtonElement | null>>>({});
+  const drag = useRef<string | null>(null);
   // 그림은 object-fit: contain 으로 여백을 두고 그려진다. 점은 무대 전체가 아니라
   // 그림이 실제로 그려진 칸을 기준으로 놓아야 저장되는 좌표가 맞는다
   const [box, setBox] = useState({ l: 0, t: 0, w: 1, h: 1 });
@@ -58,9 +42,15 @@ export default function S06Joints() {
     return () => ro.disconnect();
   }, [character, preview]);
 
+  // 관절 이름 · 뼈 · 화면 이름 · 안내는 캐릭터 형태의 정의로 (2족형 · 4족형 — pt_docs 19, 계약 2-13)
+  const form = useForm(character?.form);
   if (!imageUrl || !character || !keypoints) return <Navigate to="/upload" replace />;
+  const ORDER = orderOf(form).filter((n) => keypoints[n]);
+  const BONES = bonesOf(form).filter(([a, b]) => keypoints[a] && keypoints[b]);
+  // AI 가 관절을 못 찾아 기본 뼈대를 놓았다 — 처음부터 모두 맞춰야 한다 (S-04 가 바로 이 화면으로 보낸다)
+  const template = character.jointsFound === false && !character.corrected;
 
-  const pick = (name: JointName) => {
+  const pick = (name: string) => {
     setPicked(name);
     rows.current[name]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
@@ -78,24 +68,25 @@ export default function S06Joints() {
   // S-06-07 처음 자리로: AI 가 처음 짚은 관절로 되돌린다. 확인을 한 번 받는다 (설계서 v0.2 S-06-02).
   // 저장된 관절과 달라지는 것은 「옮김」으로 두어, 「다 했어요」가 서버에 AI 값을 다시 저장한다
   const ai = character.aiKeypoints;
-  const same = (a: Keypoints, b: Keypoints, n: JointName) =>
+  const same = (a: Keypoints, b: Keypoints, n: string) =>
     Math.abs(a[n].x - b[n].x) < 1e-6 && Math.abs(a[n].y - b[n].y) < 1e-6;
-  const atAi = !ai || JOINT_ORDER.every((n) => same(keypoints, ai, n));
+  const atAi = !ai || ORDER.every((n) => same(keypoints, ai, n));
   const resetToAi = () => {
     setAsking(false);
     if (!ai) return;
     setKeypoints({ ...ai });
-    setMoved(new Set(JOINT_ORDER.filter((n) => !same(ai, character.keypoints, n))));
+    setMoved(new Set(ORDER.filter((n) => !same(ai, character.keypoints, n))));
   };
 
   // AI 가 자신 없어 한 관절 (score < 0.4, 계약 2-3). 빨간 점으로 두고, 어른이 옮기면 확인한 것으로 센다
   const low = new Set(lowJoints(character));
   const unchecked = [...low].filter((n) => !moved.has(n)).length;
-  const state = (n: JointName) => (moved.has(n) ? "moved" : low.has(n) ? "low" : "");
-  const at = (n: JointName) => ({ x: box.l + keypoints[n].x * box.w, y: box.t + keypoints[n].y * box.h });
+  const state = (n: string) => (moved.has(n) ? "moved" : low.has(n) ? "low" : "");
+  const at = (n: string) => ({ x: box.l + keypoints[n].x * box.w, y: box.t + keypoints[n].y * box.h });
 
   // 계약 2-4: 서버에 저장된 관절과 다른 게 없으면 저장하지 않는다. 다르면 15개 전부를 보낸다
-  const dirty = JOINT_ORDER.some((n) => !same(keypoints, character.keypoints, n));
+  // 기본 뼈대는 옮기지 않았어도 한 번 저장한다 — 「확인했다」는 표시(corrected)가 남아 다시 이 화면으로 보내지 않는다
+  const dirty = template || ORDER.some((n) => !same(keypoints, character.keypoints, n));
   const save = async (): Promise<boolean> => {
     if (!dirty) return true;
     setSaving(true); setFailed(false);
@@ -120,7 +111,8 @@ export default function S06Joints() {
   return (
     // 되돌리기는 저장하지 않은 보정을 버린다. 서버 렌더는 저장된 관절만 쓰기 때문이다
     <Screen back={() => { setKeypoints(character.keypoints); nav("/confirm"); }}
-      speech={null} title="어른이 맞춰 주세요" audience="adult"
+      // 기본 · 보호자 모드 모두 연다 (11/4 사용자). 어려우면 어른을 부르도록 권하기만 한다
+      speech={null} title={template ? "점을 몸에 맞게 옮겨 주세요" : "관절을 맞춰 주세요"} audience="adult"
       acts={
         <>
           <BigButton disabled={saving} onClick={togglePreview}>{preview ? "관절 보기" : "움직여 보기"}</BigButton>
@@ -141,10 +133,10 @@ export default function S06Joints() {
                     return <line key={b} x1={p.x} y1={p.y} x2={q.x} y2={q.y} />;
                   })}
                 </svg>
-                {JOINT_ORDER.map((name) => {
+                {ORDER.map((name) => {
                   const p = at(name);
                   return (
-                    <span key={name} role="button" aria-label={NAMES[name]}
+                    <span key={name} role="button" aria-label={labelOf(form, name)}
                       className={`joint ${state(name)} ${picked === name ? "on" : ""}`}
                       style={{ left: p.x, top: p.y }}
                       onPointerDown={(e) => {
@@ -152,7 +144,7 @@ export default function S06Joints() {
                         pick(name);
                         e.currentTarget.setPointerCapture(e.pointerId);
                       }}>
-                      {picked === name && <span className="joint-name">{NAMES[name]}</span>}
+                      {picked === name && <span className="joint-name">{labelOf(form, name)}</span>}
                     </span>
                   );
                 })}
@@ -166,20 +158,22 @@ export default function S06Joints() {
             <span><i className="joint-dot moved" />옮김</span>
           </div>
           <div className="list scroll">
-            {JOINT_ORDER.map((name) => (
+            {ORDER.map((name) => (
               <button key={name} ref={(el) => { rows.current[name] = el; }}
                 className={`item joint-row ${picked === name ? "on" : ""}`}
                 aria-pressed={picked === name} onClick={() => pick(name)}>
                 <i className={`joint-dot ${state(name)}`} aria-hidden="true" />
-                <span className="grow">{NAMES[name]}</span>
+                <span className="grow">{labelOf(form, name)}</span>
                 {moved.has(name)
                   ? <span style={{ color: "var(--ink-soft)" }}>옮김</span>
                   : low.has(name) && <span style={{ color: "var(--berry)", fontWeight: 700 }}>확인해 주세요</span>}
               </button>
             ))}
           </div>
-          {/* 05 S-06: right · left 는 그림 속 캐릭터 기준이다 */}
-          <p className="joint-note">오른쪽 · 왼쪽은 그림 속 친구 기준이에요. 친구의 오른손은 화면 왼쪽에 있어요.</p>
+          {/* 05 S-06: right · left 는 그림 속 캐릭터 기준이다 (사람만 — 4족형은 앞 · 뒷다리로 부른다) */}
+          {form.id === "biped"
+            ? <p className="joint-note">오른쪽 · 왼쪽은 그림 속 친구 기준이에요. 친구의 오른손은 화면 왼쪽에 있어요.</p>
+            : form.guide?.slice(0, -1).map((g) => <p key={g} className="joint-note">{g}</p>)}
         </div>
       </div>
 
@@ -193,7 +187,9 @@ export default function S06Joints() {
             </div>
           : unchecked > 0
             ? <div className="box warn">AI가 자신 없는 관절이 {unchecked}개 있어요. 빨간 점부터 맞춰 주세요</div>
-            : <div className="box">점을 끌어서 그림의 관절 자리에 맞춰 주세요. 목록을 누르면 그 점이 커져요</div>}
+            : template
+              ? <div className="box warn">관절을 찾지 못해 기본 자리에 놓았어요. 점을 몸에 맞게 옮겨 주세요 · 어려우면 어른에게 도와 달라고 해요</div>
+              : <div className="box">{form.guide?.[form.guide.length - 1] ?? "점을 끌어서 그림의 관절 자리에 맞춰 주세요"}</div>}
       {!atAi && !preview && !asking && (
         <div className="aside-links">
           <span>잘못 옮겼나요?</span>

@@ -1,13 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { PARENT } from "@/features/character/skeleton";
-import { JOINT_ORDER, lowJoints } from "@/types/character";
-import type { Character, JointName, Keypoints } from "@/types/character";
-
-/** 점을 잇는 뼈 (S-06 과 같다) */
-const BONES = JOINT_ORDER.flatMap((n) => {
-  const p = PARENT[n];
-  return p && p !== "root" ? [[p as JointName, n] as const] : [];
-});
+import { bonesOf, orderOf, useForm } from "@/features/character/forms";
+import { lowJoints } from "@/types/character";
+import type { Character, Keypoints } from "@/types/character";
 
 /** 관절이 찍힌 그림 — 보기만 한다 (S-05, 2026-11-02 사용자 「관절도 사전에 볼 수 있게」).
  *  고치는 것은 S-06(어른). AI 가 자신 없어 한 관절(score < 0.4)은 S-06 처럼 빨간 점 */
@@ -33,19 +27,22 @@ export default function JointView({ imageUrl, character, keypoints }: {
     return () => ro.disconnect();
   }, [character]);
 
+  // 관절 · 뼈는 캐릭터 형태의 정의로 (2족형 · 4족형 — pt_docs 19). 점은 그 형태에 있는 것만
+  const form = useForm(character.form);
   const low = new Set(lowJoints(character));
-  const at = (n: JointName) => ({ x: box.l + keypoints[n].x * box.w, y: box.t + keypoints[n].y * box.h });
+  const names = orderOf(form).filter((n) => keypoints[n]);
+  const at = (n: string) => ({ x: box.l + keypoints[n].x * box.w, y: box.t + keypoints[n].y * box.h });
 
   return (
     <div ref={wrap} className="joint-stage view" aria-label="관절 자리">
       <img src={imageUrl} alt="" draggable={false} />
       <svg className="joint-bones" aria-hidden="true">
-        {BONES.map(([a, b]) => {
+        {bonesOf(form).filter(([a, b]) => keypoints[a] && keypoints[b]).map(([a, b]) => {
           const p = at(a), q = at(b);
           return <line key={b} x1={p.x} y1={p.y} x2={q.x} y2={q.y} />;
         })}
       </svg>
-      {JOINT_ORDER.map((name) => {
+      {names.map((name) => {
         const p = at(name);
         return <span key={name} className={`joint ${low.has(name) ? "low" : ""}`} style={{ left: p.x, top: p.y }} aria-hidden="true" />;
       })}

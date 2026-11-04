@@ -24,6 +24,7 @@ export interface PendingStory {
   jobId: string;
   picks?: Story["picks"];
   guardian?: boolean;
+  form?: string;
   /** 만들기 시작한 때 (ms). 하루가 지나면 더 찾지 않는다 */
   at: number;
 }

@@ -5,11 +5,13 @@ import { useAuth } from "@/store/auth";
 import { useSettings, ORDER_GAME } from "@/store/settings";
 import { watchOriginals } from "@/features/character/originals";
 import { onRouteChange, watchUpdates } from "@/features/app/update";
+import { useForms } from "@/features/character/forms";
 
 import S01Start from "@/screens/S01Start";
 import S02Guide from "@/screens/S02Guide";
 import S03Upload from "@/screens/S03Upload";
 import S03Draw from "@/screens/S03Draw";
+import S03Form from "@/screens/S03Form";
 import S04Analyzing from "@/screens/S04Analyzing";
 import S05Confirm from "@/screens/S05Confirm";
 import S05Name from "@/screens/S05Name";
@@ -45,6 +47,8 @@ export default function App() {
   // 새 버전이 배포되면 만들던 것이 없는 화면에서 새로고침한다 (features/app/update.ts)
   const { pathname } = useLocation();
   useEffect(() => watchUpdates(), []);
+  // 형태 목록 (pt_docs 19) — 관절 화면을 새로고침으로 바로 열어도 그 형태의 관절을 그린다
+  useEffect(() => { void useForms.getState().load(); }, []);
   useEffect(() => onRouteChange(), [pathname]);
 
   /* 비회원 데이터를 지우는 pagehide 핸들러는 두지 않는다 (설계서 11.1).
@@ -74,6 +78,7 @@ export default function App() {
             <Route path="/guide" element={<S02Guide />} />
             <Route path="/upload" element={<S03Upload />} />
             <Route path="/draw" element={<S03Draw />} />
+            <Route path="/form" element={<S03Form />} />
             <Route path="/analyzing" element={<S04Analyzing />} />
             <Route path="/confirm" element={<S05Confirm />} />
             <Route path="/name" element={<S05Name />} />

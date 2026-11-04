@@ -17,6 +17,7 @@ const LIMIT_MS = 30_000;
 
 interface Run {
   file: File;
+  form: string;
   started: number;
   ctrl: AbortController;
   promise: Promise<Character>;
@@ -28,12 +29,12 @@ interface Run {
  *  서버에 분석이 두 개 겹쳐 느려지고 30초 한도를 넘겼다 (2026-10-29 실제 앱 시험) */
 let running: Run | null = null;
 
-function startAnalysis(file: File, keepOriginal: boolean): Run {
-  if (running && running.file === file) return running;
+function startAnalysis(file: File, keepOriginal: boolean, form: string): Run {
+  if (running && running.file === file && running.form === form) return running;
   running?.ctrl.abort();
   const ctrl = new AbortController();
-  const run = { file, started: performance.now(), ctrl, listen: () => {} } as unknown as Run;
-  run.promise = analyzeCharacter(file, (s) => run.listen(s), ctrl.signal, keepOriginal);
+  const run = { file, form, started: performance.now(), ctrl, listen: () => {} } as unknown as Run;
+  run.promise = analyzeCharacter(file, (s) => run.listen(s), ctrl.signal, keepOriginal, form);
   const clear = () => { if (running === run) running = null; };
   run.promise.then(clear, clear);
   running = run;
@@ -48,7 +49,7 @@ function cancelAnalysis() {
 
 export default function S04Analyzing() {
   const nav = useNavigate();
-  const { file, setCharacter, setError } = useSession();
+  const { file, form, setCharacter, setError } = useSession();
   const diagnostics = useSettings((s) => s.diagnostics);
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
@@ -56,7 +57,7 @@ export default function S04Analyzing() {
 
   useEffect(() => {
     if (!file) { nav("/upload", { replace: true }); return; }
-    const run = startAnalysis(file, useSettings.getState().keepOriginal);
+    const run = startAnalysis(file, useSettings.getState().keepOriginal, form);
     let live = true;   // 이 화면이 아직 붙어 있는지 — 떨어진 화면은 결과로 이동하지 않는다
     const t = setTimeout(() => setShowStop(true), 3000);
     const timeout = setTimeout(() => {
@@ -74,7 +75,8 @@ export default function S04Analyzing() {
         if (!live) return;
         countAnalysis(null);
         setCharacter(c);
-        nav("/confirm", { replace: true });
+        // 관절을 못 찾아 기본 뼈대를 놓았으면 바로 관절 고치기로 — 그대로 움직이면 몸이 엉뚱하게 휜다 (pt_docs 19 7장 ②)
+        nav(c.jointsFound === false ? "/joints" : "/confirm", { replace: true });
       })
       .catch((e) => {
         if (!live || (e as Error).name === "AbortError") return;
@@ -83,7 +85,7 @@ export default function S04Analyzing() {
       });
 
     return () => { live = false; clearTimeout(t); clearTimeout(timeout); };
-  }, [file, nav, setCharacter, setError]);
+  }, [file, form, nav, setCharacter, setError]);
 
   const stop = () => { cancelAnalysis(); nav("/upload"); };
 

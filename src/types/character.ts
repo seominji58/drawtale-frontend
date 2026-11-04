@@ -18,7 +18,8 @@ export type RigJoint = JointName | "root" | "head";
 
 /** 이미지 너비·높이로 나눈 0~1 값 */
 export interface Point { x: number; y: number }
-export type Keypoints = Record<JointName, Point>;
+/** 관절 이름 → 자리. 이름은 형태마다 다르다 (2족형은 JOINT_ORDER, 4족형은 right_hip_b … — features/character/forms) */
+export type Keypoints = Record<string, Point>;
 
 export interface Character {
   id: string;
@@ -31,7 +32,7 @@ export interface Character {
   /** AI 가 처음 짚은 관절. S-06 「처음 자리로」가 쓴다. 서버가 주지 않으면 없다 */
   aiKeypoints?: Keypoints;
   /** AI 가 관절마다 얼마나 확신하는지 (0~1, 계약 2-3). 서버가 주지 않으면 없다 */
-  aiScores?: Partial<Record<JointName, number>>;
+  aiScores?: Partial<Record<string, number>>;
   /** 캐릭터 검출 점수 (0~1). 없으면 모른다 */
   confidence?: number;
   /** S-05 미리보기 MP4 (서버가 Meta 로 렌더, 계약 2-3). 없으면 브라우저 애니메이션으로 대신한다 */
@@ -41,6 +42,10 @@ export interface Character {
   /** 배경을 투명하게 잘라 낸 캐릭터 PNG (계약 2-3, 2026-11-03). 영상 대신 정지 그림을 보일 때
    *  원본(imageUrl) 대신 쓴다 — 원본은 사진 배경까지 나온다. 없으면 원본 */
   cutoutUrl?: string | null;
+  /** 형태 — 그림의 몸 구조 (계약 2-3 `form`, pt_docs 19). 예전 서버면 biped */
+  form: string;
+  /** AI 가 관절을 실제로 찾았나. false 면 형태의 기본 뼈대라 관절 고치기로 보낸다. 모르면 null */
+  jointsFound: boolean | null;
 }
 
 /** 이 점수보다 낮은 관절은 S-06 에서 따로 표시한다 (계약 2-3) */
@@ -49,8 +54,8 @@ export const LOW_JOINT_SCORE = 0.4;
 export const LOW_DETECTION = 0.6;
 
 /** AI 가 자신 없어 한 관절 */
-export const lowJoints = (c: Character): JointName[] =>
-  JOINT_ORDER.filter((n) => (c.aiScores?.[n] ?? 1) < LOW_JOINT_SCORE);
+export const lowJoints = (c: Character): string[] =>
+  Object.keys(c.keypoints).filter((n) => (c.aiScores?.[n] ?? 1) < LOW_JOINT_SCORE);
 
 /** S-05-05 「어른에게 도움 받기」를 보일지. 점수를 모르면(목 엔진, 예전 서버) 늘 보인다 */
 export const needsAdult = (c: Character): boolean =>

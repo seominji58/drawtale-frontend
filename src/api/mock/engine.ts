@@ -30,6 +30,8 @@ export async function mockAnalyze(
     height: size.height,
     keypoints: { ...REST_KEYPOINTS },
     corrected: false,
+    form: "biped",           // 목 엔진은 사람만 (형태는 서버가 안다)
+    jointsFound: true,
     aiKeypoints: { ...REST_KEYPOINTS },
     // 실서버처럼 점수를 준다. 왼팔 두 관절을 자신 없게 두어 S-05-05 링크와 S-06 빨간 점이 보이게 한다
     aiScores: Object.fromEntries(Object.keys(REST_KEYPOINTS).map((n) =>

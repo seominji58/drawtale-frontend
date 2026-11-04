@@ -7,7 +7,7 @@ import { makeCover } from "./cover";
  *  표지는 늦게 끝나도 같은 이야기(storyId)를 덮어쓸 뿐이다.
  *  still: 배경을 잘라 낸 정지 그림. 없으면 동작 영상의 첫 장면으로 — 원본은 사진 배경까지 나와서 쓰지 않는다 */
 export function shelve(
-  res: Story, extra: Pick<Story, "picks" | "guardian">, still: string | null, add: (s: Story) => void,
+  res: Story, extra: Pick<Story, "picks" | "guardian" | "form">, still: string | null, add: (s: Story) => void,
 ): Story {
   const s = { ...res, ...extra };
   add(s);

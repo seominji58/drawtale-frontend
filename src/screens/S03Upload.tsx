@@ -65,7 +65,8 @@ export default function S03Upload() {
           <BigButton onClick={() => { setOrig(null); setTurn(0); setFile(null); }}>다시 고르기</BigButton>
           {/* 누운 그림을 바르게 (pt_docs 19 7-1) — 사람 · 동물 모두 머리가 위, 다리가 아래로 */}
           <BigButton disabled={busy} onClick={rotate}>돌리기 ↻</BigButton>
-          <BigButton go disabled={busy} onClick={() => nav("/analyzing")}>이 그림으로</BigButton>
+          {/* 다음은 「누구를 그렸어요?」 — 그림의 몸 구조를 고른다 (S03Form, pt_docs 19) */}
+          <BigButton go disabled={busy} onClick={() => nav("/form")}>이 그림으로</BigButton>
         </>
       ) : (
         <>
