@@ -67,6 +67,8 @@ export interface Story {
   guardian?: boolean;
   /** 주인공 그림의 형태 (pt_docs 19). 장면에 세울 크기 기준(hero.fit)을 고른다. 서버에는 캐릭터에 있다 — 화면이 이야기에 붙여 둔다 */
   form?: string;
+  /** 옆모습 주인공의 머리 쪽 (서버 hero_facing, 11/4). 렌더는 머리 쪽으로 걷는다 — 반대쪽으로 옮겨 갈 때 장면이 뒤집는다 */
+  heroFacing?: "left" | "right" | null;
   /** 책장(S-12) 표지에 쓸 아이 그림 작은 사본 (data URL, 프론트만 · 서버에 보내지 않음). 없으면 고른 장소 그림 */
   cover?: string;
 }

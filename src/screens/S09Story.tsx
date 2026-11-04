@@ -363,9 +363,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 주인공 크기 기준 — 4족형처럼 옆으로 긴 몸은 몸길이로 (형태 정의 hero.fit, pt_docs 19)
   const heroForm = formOf(story.form ?? useSession.getState().character?.form);
   const heroFit = heroForm.hero?.fit ?? "height";
-  // 옆모습 형태의 머리 방향 — 관절에서 목이 엉덩이보다 왼쪽이면 왼쪽. 관절을 모르면(책장에서 다시 연 이야기) 뒤집지 않는다
-  const heroFacing: -1 | 0 | 1 = heroForm.hero?.facing === "auto" && keypoints?.neck && keypoints?.hip
-    ? (keypoints.neck.x < keypoints.hip.x ? -1 : 1) : 0;
+  // 옆모습 형태의 머리 방향 — 서버가 알려 준 쪽(hero_facing). 예전 서버면 세션 관절에서 목이 엉덩이보다 왼쪽이면 왼쪽.
+  // 세션 관절만 보던 때는 새로고침 · 책장에서 연 이야기가 머리 반대쪽으로 갈 때 뒤집지 못해 뒷걸음질했다 (11/4 운영)
+  const heroFacing: -1 | 0 | 1 = heroForm.hero?.facing !== "auto" ? 0
+    : story.heroFacing ? (story.heroFacing === "left" ? -1 : 1)
+    : keypoints?.neck && keypoints?.hip ? (keypoints.neck.x < keypoints.hip.x ? -1 : 1) : 0;
   const scenes = useMemo(
     // 내 소품은 보호자 모드 이야기에서만 (팀원 의견). 쪽 글에 이름이 나오면 그 쪽 장면 안 주인공 옆에 (11/3 사용자 추천안 —
     // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게

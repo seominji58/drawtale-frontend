@@ -78,6 +78,8 @@ interface ServerStory {
   animation_url: string | null;
   still_url?: string | null;
   still_hands?: { l: number[]; r: number[] } | null;
+  hero_form?: string | null;
+  hero_facing?: "left" | "right" | null;
   sprite_url?: string | null; sprite_frames?: number | null; sprite_box?: [number, number, number, number] | null; action_motion?: string;
   created_at: string;
   /** 긴 이야기일 때만 (계약 2-6 `book`) */
@@ -211,6 +213,9 @@ function toStory(s: ServerStory): Story {
     animationUrl: s.animation_url,
     stillUrl: s.still_url ?? null,
     stillHands: s.still_hands ?? null,
+    // 서버가 아는 형태 · 머리 쪽 (계약 — 이야기 응답 hero_form · hero_facing). 예전 서버면 화면이 붙여 둔 것을 쓴다
+    ...(s.hero_form ? { form: s.hero_form } : {}),
+    heroFacing: s.hero_facing ?? null,
     spriteUrl: s.sprite_url ?? null,
     sprite: s.sprite_url && s.sprite_frames ? { frames: s.sprite_frames, box: s.sprite_box ?? [0, 0, 1, 1] } : null,
     actionMotion: s.action_motion ?? "wave",
