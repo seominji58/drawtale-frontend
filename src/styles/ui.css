@@ -204,6 +204,8 @@
 }
 .btn.link:active { transform: none; box-shadow: none; opacity: .6; }
 
+/* S-05 「얼굴이 반대쪽이에요」 — 옆모습 형태만, 관절 그림 바로 아래 (11/4) */
+.preview-pair .turn-face { display: block; margin: 6px auto 0; font-size: 15px; }
 .aside-links {
   display: flex; justify-content: center; align-items: center;
   gap: 8px; flex-wrap: wrap;

@@ -9,10 +9,22 @@ import { useSettings, useWithAdult } from "@/store/settings";
 import { MOTIONS } from "@/features/character/skeleton";
 import type { MotionId } from "@/types/story";
 import { needsAdult } from "@/types/character";
+import { useForm } from "@/features/character/forms";
+import { turnCharacter } from "@/api";
 
 export default function S05Confirm() {
   const nav = useNavigate();
-  const { imageUrl, keypoints, character, setFile } = useSession();
+  const { imageUrl, keypoints, character, setFile, setCharacter } = useSession();
+  // 옆모습 형태(4족형)는 AI 가 머리 쪽을 틀리면(꼬리가 굵은 악어) 점이 모두 뒤집힌다 — 한 번에 바로잡는 버튼 (11/4 사용자)
+  const side = useForm(character?.form).hero?.facing === "auto";
+  const [turning, setTurning] = useState(false);
+  const turn = async () => {
+    if (!character || turning) return;
+    setTurning(true);
+    try { setCharacter(await turnCharacter(character.id)); }
+    catch (e) { console.warn("[한칸이야기] 얼굴 방향을 바꾸지 못했습니다", e); }
+    finally { setTurning(false); }
+  };
   const level = useSettings((s) => s.level);
   // 다음은 늘 이름 짓기 (S05Name). 읽어주기 판과 상관없이 묻고, 지을지 말지는 아이가 고른다 (2026-11-02 사용자)
   const next = "/name";
@@ -48,7 +60,11 @@ export default function S05Confirm() {
               ? <JointView imageUrl={imageUrl} character={character} keypoints={keypoints} />
               : <img src={imageUrl} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />}
           </div>
-          <figcaption className="hint">점이 몸을 움직이는 자리예요</figcaption>
+          {side && character
+            ? <button className="btn link turn-face" onClick={turn} disabled={turning}>
+                {turning ? "돌리는 중이에요…" : "얼굴이 반대쪽이에요 ⇄"}
+              </button>
+            : <figcaption className="hint">점이 몸을 움직이는 자리예요</figcaption>}
         </figure>
       </div>
       {/* S-05-05. AI 가 자신 없어 한 관절이 있거나 검출 점수가 낮을 때 둔다 (계약 2-3). 점수를 모르면(목 엔진, 예전 서버) 늘 둔다.

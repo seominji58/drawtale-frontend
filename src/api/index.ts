@@ -250,6 +250,13 @@ export async function analyzeCharacter(
   return toCharacter(await call<ServerCharacter>(`/characters/${character_id}`, { signal }));
 }
 
+/** 얼굴 방향 바꾸기 (계약 2-14) — 옆모습 형태를 머리 쪽만 반대로 다시 분석한다. 고친 관절은 지워지고 미리보기를 다시 만든다 */
+export async function turnCharacter(id: string, signal?: AbortSignal): Promise<Character> {
+  const { job_id } = await call<{ job_id: string }>(`/characters/${id}/turn`, { method: "POST", signal });
+  await waitJob(job_id, ANALYZE_LIMIT_MS, () => undefined, signal);
+  return fetchCharacter(id, signal);
+}
+
 /** 형태 목록 (계약 2-13). 준비된 것만 온다. 목 엔진 · 예전 서버면 2족형만 */
 export async function fetchForms(): Promise<FormDef[]> {
   if (useMock) return [BIPED];
