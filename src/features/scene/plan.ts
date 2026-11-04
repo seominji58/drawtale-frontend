@@ -211,7 +211,11 @@ export interface Env {
   /** 해가 떠 있는지 — 낮이면 늘 (11/4 사용자 「해나 달이 떠오르고 지는 그 부분들이 없는거 같은데」. 전에는 「해가 떴어요」
    *  카드 쪽에만 그려 대부분의 이야기에 해 · 달이 없었고, 밤이 되어도 해가 지는 장면이 없었다) */
   sun: boolean;
+  /** 그 쪽의 날씨 효과 (쪽 글 · 배경 설명에 나올 때만, 바깥 장소만 — weatherFor) */
+  weather: Weather | null;
 }
+
+export type Weather = "rain" | "storm" | "snow" | "fog" | "wind" | "rainbow";
 
 export interface PagePlan {
   location: string;
@@ -240,6 +244,22 @@ export const hasSkyBodies = (location: string) => !INDOOR.has(location) && !NO_S
 /** 쪽 글로 밤 · 아침 (「돌아왔어요」처럼 엉뚱한 말이 걸리지 않게 말 덩어리로) */
 const NIGHT_TEXT = /밤이 (?:되|깊|왔)|캄캄해|깜깜해|어두워졌|해가 (?:졌|지|저물|뉘엿)|노을|저녁이 (?:되|왔)|달이 (?:떴|떠올|휘영)|별이 (?:떴|반짝)/;
 const MORNING_TEXT = /아침이 (?:밝|됐|되|왔)|해가 (?:떴|떠올|뜨|솟)|날이 밝/;
+/** 날씨 — [종류, 쪽 글, 배경 설명(영어)]. 앞에 있는 것이 먼저 (폭풍이면 비도 함께 그린다).
+ *  「눈이 반짝」(사람 눈) · 「비가 그쳤어요」 · rainbow 속 rain 은 걸리지 않게 (11/4 사용자 「민감하지 않은 선에서만」) */
+const WEATHER: [Weather, RegExp, RegExp][] = [
+  ["storm", /천둥|번개|우르릉/, /\b(thunder\w*|lightning|thunderstorm)\b/i],
+  ["rain", /비가 (?:와|오|내|쏟|주룩|후두둑|뚝)|빗방울|소나기|장대비|빗소리|보슬비|이슬비/, /\b(rain|rainy|raining|raindrops?|drizzl\w*)\b/i],
+  ["snow", /눈이 (?:와|오|내|펑펑|소복)|눈송이|함박눈|눈사람|눈밭/, /\b(snow\w*)\b/i],
+  ["fog", /안개/, /\b(fog|foggy|mist|misty)\b/i],
+  ["wind", /바람이 (?:세|쌩|휭|불|휘|몰|솔솔|씽)|강풍|회오리/, /\b(windy|gusty|gusts?|breezy|blowing wind)\b/i],
+  ["rainbow", /무지개/, /\brainbows?\b/i],
+];
+/** 그 쪽의 날씨. 실내 · 바닷속 · 우주 · 행성은 늘 없음 */
+export function weatherFor(text: string, background: string, location: string): Weather | null {
+  if (!hasSkyBodies(location)) return null;
+  for (const [w, ko, en] of WEATHER) if (ko.test(text) || en.test(background)) return w;
+  return null;
+}
 
 /** 대본 인물의 생김새(영어) · 이름(한국어)으로 그림을 고른다 (2026-11-03 — public/scenes/props).
  *  위에서부터 먼저 맞는 것, 생김새가 먼저. 영어는 낱말 단위로 ("woman" 의 man, "location" 의 cat 이 걸리지 않게).
@@ -381,7 +401,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     if (hiding) { from = to = SLOT; }
     out.push({
       location: loc,
-      env: { night, sun },
+      env: { night, sun, weather: weatherFor(p.text, p.scene?.background ?? "", loc) },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다

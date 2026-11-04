@@ -870,9 +870,36 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene.night .scene-tint { opacity: .55; }
 .scene-sky { left: 0; top: 0; width: 100%; overflow: hidden; }
 .scene-sun { height: 43%; }
+.scene-sun.hidden { opacity: 0; }
 .scene-moon { height: 40%; }
 .scene-star { fill: #FFE9A6; aspect-ratio: 1; opacity: 0; transition: opacity 1.6s ease 1.4s; }
 .scene.night .scene-star { opacity: .9; }
+/* 날씨 (11/4, plan.ts weatherFor — 바깥 장소만). 민감하지 않게: 옅게, 주인공을 가리지 않게, 번쩍임 없이 */
+.scene-weather { inset: 0; pointer-events: none; overflow: hidden; }
+.scene.gloomy:not(.night) .scene-tint { opacity: .18; }
+.w-rain { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='120'%3E%3Cg stroke='%23EAF2FF' stroke-width='1.6' stroke-linecap='round' opacity='.85'%3E%3Cpath d='M12 4l-4 14'/%3E%3Cpath d='M52 30l-4 14'/%3E%3Cpath d='M80 8l-4 14'/%3E%3Cpath d='M30 70l-4 14'/%3E%3Cpath d='M70 82l-4 14'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='120'%3E%3Cg stroke='%23EAF2FF' stroke-width='1.6' stroke-linecap='round' opacity='.85'%3E%3Cpath d='M12 4l-4 14'/%3E%3Cpath d='M52 30l-4 14'/%3E%3Cpath d='M80 8l-4 14'/%3E%3Cpath d='M30 70l-4 14'/%3E%3Cpath d='M70 82l-4 14'/%3E%3C/g%3E%3C/svg%3E"); background-size: 90px 120px, 130px 170px;
+  opacity: .55; animation: scene-rain .9s linear infinite; }
+@keyframes scene-rain { to { background-position: -32px 120px, -46px 170px; } }
+.w-snow { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cg fill='%23FFFFFF' opacity='.9'%3E%3Ccircle cx='14' cy='12' r='2.6'/%3E%3Ccircle cx='62' cy='36' r='2'/%3E%3Ccircle cx='96' cy='18' r='2.8'/%3E%3Ccircle cx='34' cy='78' r='2.2'/%3E%3Ccircle cx='84' cy='92' r='2.5'/%3E%3C/g%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Cg fill='%23FFFFFF' opacity='.9'%3E%3Ccircle cx='14' cy='12' r='2.6'/%3E%3Ccircle cx='62' cy='36' r='2'/%3E%3Ccircle cx='96' cy='18' r='2.8'/%3E%3Ccircle cx='34' cy='78' r='2.2'/%3E%3Ccircle cx='84' cy='92' r='2.5'/%3E%3C/g%3E%3C/svg%3E"); background-size: 110px 110px, 170px 170px;
+  opacity: .85; animation: scene-snow 9s linear infinite; }
+@keyframes scene-snow { to { background-position: 30px 110px, -40px 170px; } }
+.w-fog { background: linear-gradient(to top, rgba(255,255,255,.5), rgba(255,255,255,.12) 55%, rgba(255,255,255,0) 80%); }
+.w-fog::before { content: ""; position: absolute; inset: 30% -30% 0; background:
+  radial-gradient(ellipse 30% 22% at 25% 60%, rgba(255,255,255,.55), transparent 70%),
+  radial-gradient(ellipse 34% 20% at 70% 70%, rgba(255,255,255,.5), transparent 70%);
+  animation: scene-fog 26s ease-in-out infinite alternate; }
+@keyframes scene-fog { to { transform: translateX(18%); } }
+.scene-leaf { position: absolute; left: -6%; width: 3.6%; aspect-ratio: 1.6; border-radius: 0 100% 0 100%; opacity: .9;
+  animation: scene-leaf 6.5s linear infinite both; }
+@keyframes scene-leaf { 0% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(55cqw, 6cqh) rotate(220deg); }
+  100% { transform: translate(112cqw, -2cqh) rotate(430deg); } }
+.scene-rainbow { position: absolute; left: 18%; top: 12%; width: 64%; aspect-ratio: 2; opacity: 0; border-radius: 999px 999px 0 0;
+  background: radial-gradient(circle at 50% 100%, transparent 58%, rgba(214,90,59,.55) 59% 62%, rgba(240,178,60,.55) 62% 65%,
+    rgba(250,226,110,.55) 65% 68%, rgba(120,190,110,.55) 68% 71%, rgba(90,150,220,.55) 71% 74%, rgba(150,110,200,.5) 74% 77%, transparent 78%);
+  animation: scene-fade-in 2.4s ease .6s forwards; }
+@keyframes scene-fade-in { to { opacity: 1; } }
+.scene-flash { position: absolute; inset: 0; background: #FFFBE6; opacity: 0; animation: scene-flash 1.6s ease-out .8s 1 both; }
+@keyframes scene-flash { 0% { opacity: 0; } 25% { opacity: .22; } 100% { opacity: 0; } }
 /* 우주는 낮에도 별 (pt_docs 18 D — 우주 바깥은 밝은 하늘이 아니다) */
 .scene.starry .scene-star { opacity: .9; }
 .scene-person, .scene-hero { transition: filter 2.6s ease; }
@@ -886,6 +913,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 @media (prefers-reduced-motion: reduce) {
   .scene-bg, .scene-tint, .scene-star, .scene-person, .scene-hero { transition: none; }
   .scene-hero.stepping, .scene-person.walking-in { animation: none; }
+  .w-rain, .w-snow, .w-fog::before, .scene-rainbow { animation: none; }
+  .scene-rainbow { opacity: 1; }
+  .scene-leaf, .scene-flash { display: none; }
 }
 
 /* S-12 제목 바꾸기 (보호자 모드, 2026-11-03) — 고를 책에 점선, 누르면 가운데 종이 카드 */

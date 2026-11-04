@@ -111,6 +111,9 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   }, []);
   const indoor = isIndoor(plan.location);
   const bodies = hasSkyBodies(plan.location);
+  const weather = plan.env.weather ?? null;
+  // 비 · 폭풍 · 눈 · 안개면 해는 구름 뒤 (숨긴다)
+  const cloudy = weather === "rain" || weather === "storm" || weather === "snow" || weather === "fog";
   const base = sceneBase(plan.location);
 
   useEffect(() => { let live = true; loadLayout(plan.location).then((l) => live && setLayout(l)).catch(() => {}); return () => { live = false; }; }, [plan.location]);
@@ -244,17 +247,20 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   return (
-    <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""}`} aria-hidden ref={root}>
+    <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" || weather === "storm" ? "gloomy" : ""}`} aria-hidden ref={root}>
       <img className="scene-plate scene-bg" src={base + layout.plate} alt="" />
       <div className="scene-tint" />
       {!indoor && (
         <div className="scene-sky" style={{ height: `${(layout.ground ?? 0.556) * 100}%` }}>
           {bodies && <>
-            <img className="scene-sun" src={`${sceneBase("props")}sun.webp`} alt=""
-                 style={{ left: `${sunPos[0]}%`, top: `${sunPos[1]}%`, transition: skyMove(env.sun) }} />
+            <img className={`scene-sun ${cloudy ? "hidden" : ""}`} src={`${sceneBase("props")}sun.webp`} alt=""
+                 style={{ left: `${sunPos[0]}%`, top: `${sunPos[1]}%`, transition: REDUCE ? "none" : `${skyMove(env.sun)}, opacity 1.2s ease` }} />
             <img className="scene-moon" src={`${sceneBase("props")}moon.webp`} alt=""
                  style={{ left: `${moonPos[0]}%`, top: `${moonPos[1]}%`, transition: skyMove(night) }} />
           </>}
+          {weather === "rainbow" && <div className="scene-rainbow" />}
+          {/* 번개: 쪽에 들어올 때 하늘만 한 번 천천히 살짝 밝아진다 (번쩍임 · 되풀이 없음, 천둥 소리 없음) */}
+          {weather === "storm" && play && <div className="scene-flash" />}
           {STARS.map(([x, y, s], k) => (
             <svg key={k} className="scene-star" viewBox="0 0 20 20" style={{ left: `${x}%`, top: `${y}%`, width: `${s}%` }}>
               <path d="M10 1l2.4 6.2L19 8l-5 4.3L15.5 19 10 15.5 4.5 19 6 12.3 1 8l6.6-.8z" />
@@ -293,6 +299,13 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
                  src={still} alt="" style={{ ...heroStyle, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
                  onLoad={(e) => setStillAr(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight))} />
           : null}
+      {weather && weather !== "rainbow" && (
+        <div className={`scene-weather w-${weather === "storm" ? "rain" : weather}`}>
+          {weather === "wind" && LEAVES.map(([top, delay, color], k) => (
+            <span key={k} className="scene-leaf" style={{ top: `${top}%`, animationDelay: `${delay}s`, background: color }} />
+          ))}
+        </div>
+      )}
       {front.map((p) => (
         <img key={p.src} className="scene-obj scene-cover" src={`${sceneBase(p.src!.split("/")[0])}${p.src!.split("/")[1]}`} alt=""
              style={spotStyle({ src: p.src!, x: 0.52, foot: 0.96, h: p.h ?? 0.36 })} />
@@ -306,4 +319,7 @@ const kindOf = (src: string) => {
   const name = src.split("/").pop()?.replace(/\.webp$/, "") ?? src;
   return name === "flowerbed" ? "flowers" : name;
 };
+/** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */
+const LEAVES: [number, number, string][] = [[20, 0, "#E8A33C"], [46, 1.1, "#8DBA5A"], [34, 2.2, "#D9663B"], [60, 3.3, "#B9C94A"],
+  [28, 4.4, "#E2B04A"], [54, 5.5, "#7FAE4E"]];
 const STARS: [number, number, number][] = [[14, 14, 2.2], [30, 30, 1.6], [82, 18, 2.2], [92, 44, 1.5], [48, 8, 1.7], [64, 34, 1.4]];

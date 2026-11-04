@@ -54,6 +54,7 @@
 - 11/2: **보안** — 백엔드 분당 · 동시 제한(서민지 님) + 하루 한도(429 · 503 → E-01 BUSY, 429 는 Retry-After 60초 이하면 기다렸다 다시), 파일 주소 서명(책장에서 다시 열면 `refreshStory`), `POST /auth/logout`, 배포 헤더(`public/staticwebapp.config.json` CSP), Pillow 13
 - 11/3: **S-09 장면 층**(`features/scene/` — locations · plan · sprite · SceneStage, 쪽에 `spriteUrl` · `sprite` · `scene`, 세부 장소 `public/scenes/{세부}`) — 로컬, push 전
 - 11/4: **장면 소품 보강**(pt_docs 18) — `plan.ts` THINGS 에 A 5 · B 6 · C 12 더함, `SceneStage` 가 배경에 이미 있는 물건은 빼고(`kindOf`), 우주는 낮에도 별. 그림 `tools/art/gen_scene_props.py`
+- 11/4: **해 · 달 · 날씨** — 낮이면 늘 해, 밤 · 아침은 카드 + 쪽 글(`NIGHT_TEXT` · `MORNING_TEXT`), 날씨 `weatherFor`(바깥만, `hasSkyBodies`). 번개는 하늘만 한 번 살짝(번쩍임 없음)
 - 11/3: **AI 마스크 · 동작 고침** — 팔 · 머리카락에 갇힌 종이 빼기(`analyzer.drop_pockets`, 흰 종이만), 걷기 · 뛰기 다리 정면 투영 + 무릎 굽힘, 점프 웅크림 줄임(`runtime/tools/make_soft_motions.py`, 이름 `walk` · `run` · `jumping_gentle` 그대로, 원래 판 `*_orig`)
 - 11/3: **보호자 모드 스위치**(`settings.guardianMode`, `useWithAdult().guardian` — 끄면 어른과 함께 전부 꺼진 것으로) · S-05 보호자면 늘 관절 고치기 · E-01 다시 시도하기 · S-07 그림 카드 `.choice img.art`
 - 11/3: **목업 그림 B 크레용으로 전부** — `public/icons/*/*.webp`(`choices.ts` `ICON_IDS`), `public/illust/`, `public/guide/`, `public/scenes/{장소}/layout.json`(S-09 에는 아직 안 씀), 스크립트 `tools/art/`
