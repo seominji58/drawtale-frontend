@@ -873,6 +873,8 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-moon { height: 40%; }
 .scene-star { fill: #FFE9A6; aspect-ratio: 1; opacity: 0; transition: opacity 1.6s ease 1.4s; }
 .scene.night .scene-star { opacity: .9; }
+/* 우주는 낮에도 별 (pt_docs 18 D — 우주 바깥은 밝은 하늘이 아니다) */
+.scene.starry .scene-star { opacity: .9; }
 .scene-person, .scene-hero { transition: filter 2.6s ease; }
 .scene.night .scene-person, .scene.night .scene-hero { filter: brightness(.78) saturate(.88) sepia(.04); }
 .scene.night .scene-cover { filter: brightness(.5) saturate(.6); }

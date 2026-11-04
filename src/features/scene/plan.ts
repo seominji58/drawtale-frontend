@@ -94,6 +94,32 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/박쥐/, "props/bat.webp", 0.14, "air"],
   [/토끼/, "props/rabbit.webp", 0.16, "ground"],
   [/다람쥐/, "props/squirrel.webp", 0.16, "ground"],
+  // pt_docs 18 「장면 소품 보강」 (11/4) — A. 숨는 곳 그림을 옆에 놓인 물건으로도 (가림막보다 작게)
+  [/담요|이불/, "props/blanket.webp", 0.12, "ground"],
+  [/상자|박스/, "props/box.webp", 0.16, "ground"],
+  [/모래 언덕/, "props/dune.webp", 0.16, "ground"],   // 「언덕」만이면 뒷산 언덕도 걸린다
+  [/시소/, "props/seesaw.webp", 0.2, "ground"],
+  [/텐트/, "props/tent.webp", 0.34, "ground"],
+  // B. 장소 배경에만 있던 그림을 다른 장소에서도 (배경에 이미 있으면 SceneStage 가 또 놓지 않는다)
+  [/돌멩이|돌들|작은 돌|돌을 |돌이 |돌 위|돌탑/, "forest-stream/rocks.webp", 0.09, "ground"],   // 「돌았어요」 · 「돌아왔어요」 빼고
+  [/바위/, "cave/rocks.webp", 0.2, "ground"],
+  [/꽃(?!게)/, "forest-flowers/flowers.webp", 0.12, "ground"],
+  [/식탁/, "home-kitchen/table.webp", 0.26, "ground"],
+  [/등대/, "sea-pier/lighthouse.webp", 0.5, "ground"],
+  [/버섯/, "forest/mushroom.webp", 0.1, "ground"],
+  // C. 새로 그린 12장 (tools/art/gen_scene_props.py)
+  [/나뭇잎|낙엽/, "props/leaves.webp", 0.07, "ground"],
+  [/운동화|신발/, "props/sneakers.webp", 0.07, "ground"],
+  [W1("나비"), "props/butterfly.webp", 0.08, "air"],
+  [/발자국/, "props/footprints.webp", 0.04, "ground"],
+  [/화살표/, "props/arrow.webp", 0.22, "ground"],
+  [/모래성/, "props/sandcastle.webp", 0.13, "ground"],
+  [/행성/, "props/planet.webp", 0.14, "air"],
+  [W1("지구"), "props/earth.webp", 0.14, "air"],
+  [/종이 울|종을 |종소리|종이 땡/, "props/bell.webp", 0.1, "ground"],   // 「종이」 · 「하루 종일」 빼고
+  [/바구니/, "props/basket.webp", 0.1, "ground"],
+  [W1("지도"), "props/map.webp", 0.07, "ground"],
+  [/물고기/, "props/fish.webp", 0.08, "air"],
 ];
 /** 오린 그림의 가로 ÷ 세로 (tools/art/process_cast2.py 가 잰다). 없으면 1 */
 const ar = (src: string) => (AR as Record<string, number>)[src] ?? 1;

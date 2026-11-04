@@ -37,8 +37,18 @@ def main() -> None:
         name = full.split("-", 1)[1]
         im.save(OUT / f"{name}.webp", "WEBP", quality=82, method=6)
         print("ok", name, im.size)
+    write_ar()
+
+
+# 장면 물건으로도 쓰는 장소 배경 그림 (plan.ts THINGS, pt_docs 18 B)
+EXTRA = ["town-park/bench.webp", "cave/rocks.webp", "forest-stream/rocks.webp", "forest-flowers/flowers.webp",
+         "home-kitchen/table.webp", "sea-pier/lighthouse.webp", "forest/mushroom.webp"]
+
+
+def write_ar() -> None:
+    """props 전체와 EXTRA 의 가로세로 비율 → src/features/scene/props-ar.json"""
     ar = {}
-    for f in sorted(list(OUT.glob("*.webp")) + [SCENES / "town-park" / "bench.webp"]):
+    for f in sorted(list(OUT.glob("*.webp")) + [SCENES / e for e in EXTRA]):
         im = Image.open(f)
         bb = im.getbbox() or (0, 0, im.width, im.height)
         ar[str(f.relative_to(SCENES)).replace("\\", "/")] = round((bb[2] - bb[0]) / max(1, bb[3] - bb[1]), 3)

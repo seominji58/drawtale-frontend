@@ -225,7 +225,9 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   };
   const behind = plan.props.filter((p) => isPerson(p.id) || p.id === "sign");
   // 쪽 글에 나온 물건 · 내 소품: 주인공 옆 땅에 (인물 자리를 먼저 잡은 뒤 남는 곳). 쪽 안 움직임 없이 처음부터 놓여 있다
-  const thingSpots = (plan.things ?? []).map((t, k) => {
+  // 배경 그림에 이미 같은 물건이 있으면 또 놓지 않는다 (pt_docs 18 — 동굴에서 「돌」이 나와도 동굴엔 바위가 있다)
+  const bgKinds = new Set(layout.objects.map((o) => kindOf(o.src)));
+  const thingSpots = (plan.things ?? []).filter((t) => !bgKinds.has(kindOf(t.src))).map((t, k) => {
     const half = (t.h * t.ar / aspect) / 2;
     const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
     const tries: number[] = [];
@@ -241,7 +243,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   return (
-    <div className={`scene ${night ? "night" : ""}`} aria-hidden ref={root}>
+    <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""}`} aria-hidden ref={root}>
       <img className="scene-plate scene-bg" src={base + layout.plate} alt="" />
       <div className="scene-tint" />
       {!indoor && (
@@ -296,4 +298,9 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   );
 }
 
+/** 그림 이름으로 본 물건 종류 — 꽃밭 그림이 둘(flowers · flowerbed)이라 하나로 */
+const kindOf = (src: string) => {
+  const name = src.split("/").pop()?.replace(/\.webp$/, "") ?? src;
+  return name === "flowerbed" ? "flowers" : name;
+};
 const STARS: [number, number, number][] = [[14, 14, 2.2], [30, 30, 1.6], [82, 18, 2.2], [92, 44, 1.5], [48, 8, 1.7], [64, 34, 1.4]];
