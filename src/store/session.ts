@@ -8,6 +8,8 @@ interface SessionState {
   /** S-03 에서 고른 원본 파일과 표시용 URL */
   file: File | null;
   imageUrl: string | null;
+  /** 「누구를 그렸어요?」(S03Form)에서 고른 형태 (pt_docs 19). 분석에 함께 보낸다 */
+  form: string;
   /** S-04 결과. S-06 에서 보정을 저장하면 서버가 돌려준 값으로 바뀐다 */
   character: Character | null;
   /** 화면에 펴는 관절. S-06 에서 끄는 동안은 저장 전 값이다 */
@@ -24,6 +26,7 @@ interface SessionState {
   errorCode: string | null;
 
   setFile: (f: File | null) => void;
+  setForm: (form: string) => void;
   setCharacter: (c: Character | null) => void;
   setKeypoints: (k: Keypoints | null) => void;
   setName: (n: string | null) => void;
@@ -38,6 +41,7 @@ interface SessionState {
 export const useSession = create<SessionState>((set, get) => ({
   file: null,
   imageUrl: null,
+  form: "biped",
   character: null,
   keypoints: null,
   name: null,
@@ -51,6 +55,7 @@ export const useSession = create<SessionState>((set, get) => ({
     if (prev) URL.revokeObjectURL(prev);
     set({ file: f, imageUrl: f ? URL.createObjectURL(f) : null, name: null });
   },
+  setForm: (form) => set({ form }),
   setCharacter: (c) => set({ character: c, keypoints: c ? c.keypoints : null }),
   setKeypoints: (k) => set({ keypoints: k }),
   setName: (n) => set({ name: n }),
@@ -79,7 +84,7 @@ export const useSession = create<SessionState>((set, get) => ({
   resetAll: () => {
     const prev = get().imageUrl;
     if (prev) URL.revokeObjectURL(prev);
-    set({ file: null, imageUrl: null, character: null, keypoints: null, name: null,
+    set({ file: null, imageUrl: null, form: "biped", character: null, keypoints: null, name: null,
           picks: {}, said: {}, story: null, errorCode: null });
   },
 }));

@@ -53,5 +53,9 @@ export default function CharacterPreview({ motion = "wave" }: { motion?: MotionI
     );
   }
   if (!art) return <p className="hint">움직일 준비를 하고 있어요</p>;
+  // 브라우저 조각 애니메이션은 사람(2족형) 뼈대만 안다 — 다른 형태는 멈춘 그림 (서버 영상이 오면 위에서 그것을)
+  if (character && character.form !== "biped") {
+    return <img src={art} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />;
+  }
   return <CharacterCanvas imageUrl={art} keypoints={keypoints} motion={motion} />;
 }

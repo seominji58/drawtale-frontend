@@ -1,4 +1,4 @@
-import type { Keypoints, RigJoint } from "@/types/character";
+import type { JointName, Keypoints, RigJoint } from "@/types/character";
 import type { MotionId } from "@/types/story";
 
 const TAU = Math.PI * 2;
@@ -45,7 +45,8 @@ const HEAD_EXTEND = 0.5;
  *  서버는 관절 15개만 준다. root 와 head 는 여기서 만든다 (open-decisions 1번 A안) */
 export function toPixels(k: Keypoints, w: number, h: number): Pose {
   const out = {} as Pose;
-  (Object.keys(k) as (keyof Keypoints)[]).forEach((name) => {
+  // 브라우저 캔버스 애니메이션은 사람(2족형) 관절만 — 목 엔진 · 미리보기 대신 (다른 형태는 서버 렌더만)
+  (Object.keys(k) as JointName[]).forEach((name) => {
     out[name] = { x: k[name].x * w, y: k[name].y * h };
   });
   out.root = { ...out.hip };

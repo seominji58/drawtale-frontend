@@ -92,9 +92,16 @@ interface Props {
   /** 정지 그림 안 주인공 손 위치 (서버 still_hands) — 대본에서 주인공이 든 소품을 손에 */
   heroHands?: { l: number[]; r: number[] } | null;
   mode: "play" | "start" | "end";
+  /** 주인공 크기 기준 — 키(height, 사람) / 몸길이(width, 4족형처럼 옆으로 긴 몸). 형태 정의의 hero.fit (pt_docs 19) */
+  fit?: "height" | "width";
+  /** 옆모습 그림의 머리 방향 (-1 왼쪽 · 1 오른쪽 · 0 모름/정면). 머리 반대쪽으로 옮겨 갈 때 좌우로 뒤집는다 */
+  facing?: -1 | 0 | 1;
 }
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands }: Props) {
+/** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
+const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
+
+export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, fit = "height", facing = 0 }: Props) {
   const play = mode === "play";
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
@@ -195,9 +202,14 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   // 주인공 크기: 첫 장의 그림 키가 hero.h 가 되게 칸을 키우고, 발끝을 foot 에 맞춘다
   const H = layout.hero;
   let heroStyle: CSSProperties;
+  // 프레임 칸 높이(화면 높이 대비). 칸은 정사각이라 그림 폭 w · 키 h(칸 대비)에 칸 높이를 곱하면 화면 높이 단위가 된다.
+  // 키 기준이면 그림 키가 hero.h, 몸길이 기준이면 몸길이가 hero.h × WIDE_LEN (키는 hero.h × WIDE_MAX_H 까지)
+  const scaleFor = (w: number, h: number) => (fit === "width"
+    ? Math.min((H.h * WIDE_LEN) / Math.max(0.05, w), (H.h * WIDE_MAX_H) / Math.max(0.05, h))
+    : H.h / Math.max(0.05, h));
   if (spr) {
     const [l, t, r, b] = spr.box;
-    const cellH = H.h / Math.max(0.05, b - t);          // 칸 높이 (화면 높이 대비)
+    const cellH = scaleFor(r - l, b - t);               // 칸 높이 (화면 높이 대비)
     const cellW = cellH / aspect;                        // 칸 너비 (화면 너비 대비)
     heroStyle = {
       height: `${cellH * 100}%`, aspectRatio: "1",
@@ -205,16 +217,23 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
       bottom: `${((1 - H.foot) - (1 - b) * cellH) * 100}%`,
     };
   } else {
-    heroStyle = { height: `${H.h * 100}%`, left: `${heroX * 100}%`, bottom: `${(1 - H.foot) * 100}%` };
+    // 멈춘 그림: 몸길이 기준이면 가로세로 비율로 높이를 정한다 (비율을 모르면 키 기준)
+    const stillH = fit === "width" && stillAr ? Math.min((H.h * WIDE_LEN) / stillAr, H.h * WIDE_MAX_H) : H.h;
+    heroStyle = { height: `${stillH * 100}%`, left: `${heroX * 100}%`, bottom: `${(1 - H.foot) * 100}%` };
   }
+  // 옆모습(4족형)은 렌더가 머리 쪽으로 걷는다 — 머리 반대쪽으로 옮겨 가면 뒤로 걷는 것처럼 보여 좌우로 뒤집는다
+  // (11/4 사용자 「얼굴 방향에 따라 < 인지 > 인지」). transform 은 넘어짐(.fallen)이 쓰니 scale 로
+  const goes = Math.sign(hero.to - hero.from);
+  const flip = facing !== 0 && hero.move !== "none" && goes !== 0 && goes !== facing;
+  if (flip) heroStyle = { ...heroStyle, scale: "-1 1" };
   // 같은 빠르기로 (속도가 바뀌면 걸음과 어긋나 발이 미끄러진다)
   const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease`;
 
   const prop = (id: PropId): Spot | undefined => layout.props[id]
     ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: PEOPLE[id].foot ?? 0.93, h: PEOPLE[id].h } : undefined);
   // 주인공 폭의 절반 (화면 너비 대비). 팔을 넓게 벌린 그림이면 옆 인물을 그만큼 바깥으로 민다 (겹치지 않게)
-  const heroHalf = spr ? ((spr.box[2] - spr.box[0]) * (H.h / Math.max(0.05, spr.box[3] - spr.box[1])) / aspect) / 2
-    : stillAr ? (H.h * stillAr / aspect) / 2 : 0.1;
+  const heroHalf = spr ? ((spr.box[2] - spr.box[0]) * scaleFor(spr.box[2] - spr.box[0], spr.box[3] - spr.box[1]) / aspect) / 2
+    : stillAr ? ((fit === "width" ? Math.min(H.h * WIDE_LEN, H.h * WIDE_MAX_H * stillAr) : H.h * stillAr) / aspect) / 2 : 0.1;
   // 옆에 서는 것들(인물 · 표지판)의 자리: 주인공과 서로를 피해, 칸 안에서. 원하는 쪽이 꽉 차면 반대쪽으로
   const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf]];
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);

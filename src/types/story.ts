@@ -65,6 +65,8 @@ export interface Story {
   picks?: Partial<Record<StepKind, string>>;
   /** 보호자 모드에서 만든 이야기인지 (프론트만). 아이가 만든 소품은 이런 이야기에만 나온다 (open-decisions 0-13) */
   guardian?: boolean;
+  /** 주인공 그림의 형태 (pt_docs 19). 장면에 세울 크기 기준(hero.fit)을 고른다. 서버에는 캐릭터에 있다 — 화면이 이야기에 붙여 둔다 */
+  form?: string;
   /** 책장(S-12) 표지에 쓸 아이 그림 작은 사본 (data URL, 프론트만 · 서버에 보내지 않음). 없으면 고른 장소 그림 */
   cover?: string;
 }

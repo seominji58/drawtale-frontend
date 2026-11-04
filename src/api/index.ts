@@ -1,5 +1,5 @@
-import { JOINT_ORDER } from "@/types/character";
-import type { Character, ErrorCode, JobStatus, JointName, Keypoints } from "@/types/character";
+import type { Character, ErrorCode, JobStatus, Keypoints } from "@/types/character";
+import { BIPED, type FormDef } from "@/features/character/forms";
 import type { AskKind, ProtagonistVoice, StepChoice, StepKind, Story, StoryLength, VoiceMode } from "@/types/story";
 import { MAX_SAID, choicesFor, labelOf } from "@/features/story/choices";
 import { mockAnalyze, mockGenerate } from "./mock/engine";
@@ -53,7 +53,7 @@ const toErrorCode = (serverCode?: string): ErrorCode =>
 // ─── 서버 응답 모양 (계약 2절) ───
 
 /** score 는 analysis.joints 에만 있다 (계약 2-3) */
-interface ServerJoint { name: JointName; x: number; y: number; score?: number | null }
+interface ServerJoint { name: string; x: number; y: number; score?: number | null }
 interface ServerError { code: string; message: string }
 interface ServerJob { id: string; status: JobStatus; error: ServerError | null }
 interface ServerCharacter {
@@ -64,6 +64,8 @@ interface ServerCharacter {
   image_height: number;
   joints: ServerJoint[] | null;
   joints_corrected: boolean;
+  /** 형태 · 관절을 찾았나 (계약 2-3, 2026-11-04). 예전 서버는 보내지 않는다 */
+  form?: string; joints_found?: boolean | null;
   /** AI 가 처음 짚은 관절 (보정해도 변하지 않음, 계약 2-3) */
   analysis: { joints: ServerJoint[]; confidence?: number | null; cutout_url?: string | null } | null;
 }
@@ -180,7 +182,7 @@ function toCharacter(c: ServerCharacter): Character {
     for (const j of joints) k[j.name] = { x: j.x / c.image_width, y: j.y / c.image_height };
     return k;
   };
-  const ai = c.analysis?.joints?.length === JOINT_ORDER.length ? c.analysis.joints : undefined;
+  const ai = c.analysis?.joints?.length === c.joints.length ? c.analysis.joints : undefined;
   // 점수는 15개가 다 있을 때만 믿는다. 하나라도 없으면 예전 서버로 보고 모른다고 둔다
   const scored = ai?.every((j) => typeof j.score === "number");
   return {
@@ -192,6 +194,8 @@ function toCharacter(c: ServerCharacter): Character {
     previewUrl: c.preview_url ?? null,
     previewStatus: c.preview_status ?? null,
     cutoutUrl: c.analysis?.cutout_url ?? null,
+    form: c.form ?? "biped",
+    jointsFound: c.joints_found ?? null,
   };
 }
 
@@ -231,18 +235,38 @@ export async function analyzeCharacter(
   file: File,
   onStatus: (s: JobStatus) => void,
   signal?: AbortSignal,
-  keepOriginal = false
+  keepOriginal = false,
+  /** 「누구를 그렸어요?」에서 고른 형태 (계약 2-1 `form`). 사람이면 보내지 않는다 — 예전 서버도 그대로 */
+  shape = "biped",
 ): Promise<Character> {
   if (useMock) return mockAnalyze(file, onStatus, signal);
 
   const form = new FormData();
   form.append("image", file);
   form.append("keep_original", String(keepOriginal));
+  if (shape !== "biped") form.append("form", shape);
   const { character_id, job_id } = await call<{ character_id: string; job_id: string }>(
     "/characters", { method: "POST", body: form, signal });
   onStatus("pending");
   await waitJob(job_id, ANALYZE_LIMIT_MS, onStatus, signal);
   return toCharacter(await call<ServerCharacter>(`/characters/${character_id}`, { signal }));
+}
+
+/** 얼굴 방향 바꾸기 (계약 2-14) — 옆모습 형태를 머리 쪽만 반대로 다시 분석한다. 고친 관절은 지워지고 미리보기를 다시 만든다 */
+export async function turnCharacter(id: string, signal?: AbortSignal): Promise<Character> {
+  const { job_id } = await call<{ job_id: string }>(`/characters/${id}/turn`, { method: "POST", signal });
+  await waitJob(job_id, ANALYZE_LIMIT_MS, () => undefined, signal);
+  return fetchCharacter(id, signal);
+}
+
+/** 형태 목록 (계약 2-13). 준비된 것만 온다. 목 엔진 · 예전 서버면 2족형만 */
+export async function fetchForms(): Promise<FormDef[]> {
+  if (useMock) return [BIPED];
+  try {
+    return (await call<{ forms: FormDef[] }>("/forms")).forms;
+  } catch {
+    return [BIPED];
+  }
 }
 
 /** 캐릭터를 다시 읽는다. S-05 가 미리보기가 다 만들어졌는지 물을 때 쓴다 (계약 2-3) */
@@ -278,7 +302,7 @@ export function recordActivity(
 /** S-06 관절 보정 저장 (계약 2-4). 15개 전부를 원본 픽셀 좌표로 보낸다 */
 export async function saveJoints(character: Character, keypoints: Keypoints): Promise<Character> {
   if (useMock) return { ...character, keypoints, corrected: true };
-  const joints = JOINT_ORDER.map((name) => ({
+  const joints = Object.keys(keypoints).map((name) => ({
     name,
     x: Math.round(keypoints[name].x * character.width * 10) / 10,
     y: Math.round(keypoints[name].y * character.height * 10) / 10,

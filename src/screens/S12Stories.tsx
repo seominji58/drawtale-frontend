@@ -151,7 +151,7 @@ export default function S12Stories() {
       for (const p of useLibrary.getState().pending) {
         const r = await findStory(p.storyId, p.jobId);
         if (!live) return;
-        if (r.state === "done") shelve(r.story, { picks: p.picks, guardian: p.guardian }, r.story.stillUrl ?? null, add);
+        if (r.state === "done") shelve(r.story, { picks: p.picks, guardian: p.guardian, form: p.form }, r.story.stillUrl ?? null, add);
         if (r.state !== "waiting") removePending(p.storyId);
       }
     };
