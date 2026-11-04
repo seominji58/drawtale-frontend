@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { TITLE_MAX, useLibrary } from "@/store/library";
-import { refreshStory } from "@/api";
+import { findStory, refreshStory } from "@/api";
+import { shelve } from "@/features/story/shelve";
 import { useSession } from "@/store/session";
 import { useGuardianMode } from "@/store/settings";
 import type { Story } from "@/types/story";
@@ -89,7 +90,7 @@ function usePerShelf() {
 
 export default function S12Stories() {
   const nav = useNavigate();
-  const { stories, load, rename } = useLibrary();
+  const { stories, load, rename, add, pending, removePending } = useLibrary();
   const setStory = useSession((s) => s.setStory);
   const guardian = useGuardianMode();
   // 제목 바꾸기 (보호자 모드, 11/3 사용자 「책장에서 제목 변경 가능하게」). 켜면 책을 눌렀을 때 펼치지 않고 제목 칸이 뜬다
@@ -140,6 +141,24 @@ export default function S12Stories() {
   })();
 
   useEffect(() => { load(); }, [load]);
+  // 만들다 화면이 놓친 이야기(시간 초과 · 탭 닫힘, 2026-11-04): 서버에서 끝났으면 꽂고, 실패했으면 잊는다.
+  // 아직 만드는 중이면 이 화면에 있는 동안 10초마다 다시 본다
+  const ids = pending.map((p) => p.storyId).join(",");
+  useEffect(() => {
+    if (!ids) return;
+    let live = true;
+    const check = async () => {
+      for (const p of useLibrary.getState().pending) {
+        const r = await findStory(p.storyId, p.jobId);
+        if (!live) return;
+        if (r.state === "done") shelve(r.story, { picks: p.picks, guardian: p.guardian }, r.story.stillUrl ?? null, add);
+        if (r.state !== "waiting") removePending(p.storyId);
+      }
+    };
+    void check();
+    const t = window.setInterval(() => void check(), 10_000);
+    return () => { live = false; clearInterval(t); };
+  }, [ids, add, removePending]);
   const shelves = Array.from({ length: Math.ceil(stories.length / per) }, (_, r) => stories.slice(r * per, r * per + per));
 
   return (
@@ -153,6 +172,7 @@ export default function S12Stories() {
             {stories.length > 0 && <BigButton onClick={() => setRenaming(true)}>제목 바꾸기</BigButton>}
           </>}>
       {renaming && <p className="hint shelf-hint">제목을 바꿀 책을 눌러 주세요</p>}
+      {pending.length > 0 && !renaming && <p className="hint shelf-hint">만들고 있는 이야기가 있어요. 다 되면 여기에 꽂혀요</p>}
 
       {stories.length > 0 ? (
         <div className="shelf">

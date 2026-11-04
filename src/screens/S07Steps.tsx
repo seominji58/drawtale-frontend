@@ -26,7 +26,10 @@ const HEARD_ERROR: Record<ListenError, string> = {
 
 export default function S07Steps() {
   const nav = useNavigate();
-  const { picks, pick, said, say, setError } = useSession();
+  const { picks, pick, said, say, setError, character } = useSession();
+  // 캐릭터 없이 들어오면 카드를 고르기 전에 그림 화면으로 (11/4 — 책장에서 연 이야기 → 「새 이야기 만들기」면
+  // 처음 화면이 캐릭터를 비운 뒤라, 네 칸을 다 고른 다음에야 S-08 이 그림 화면으로 튕겼다)
+  useEffect(() => { if (!character) nav("/upload", { replace: true }); }, [character, nav]);
   const level = useSettings((s) => s.level);
   const muteAll = useSettings((s) => s.muteAll);
   // 「어른과 함께」에서 로그인한 보호자가 켜야만 말하기 · 적기 칸이 보인다 (F-SET-06).

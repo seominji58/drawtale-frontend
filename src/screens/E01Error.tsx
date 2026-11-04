@@ -32,8 +32,10 @@ export default function E01Error() {
       nav("/steps");
       return;
     }
+    if (errorCode === "STORY_LATER") { nav("/stories"); return; }
     if (fails >= 2) { nav("/draw"); return; }
-    if (errorCode === "ENGINE_ERROR" || errorCode === "BUSY") { nav(retryTo()); return; }
+    // 이야기를 기다리다 시간이 넘으면(ENGINE_TIMEOUT) 그림이 아니라 그 단계를 다시 (11/4 — 전에는 그림 올리기로 갔다)
+    if (errorCode === "ENGINE_ERROR" || errorCode === "BUSY" || errorCode === "ENGINE_TIMEOUT") { nav(retryTo()); return; }
     nav("/upload");
   };
   /** 「다시 시도하기」 — 실패한 단계로. 네 칸을 다 골랐으면 이야기 만들기, 그림만 있으면 분석, 캐릭터가 있으면 카드 고르기 */

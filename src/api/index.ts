@@ -306,7 +306,9 @@ export async function generateStory(
   voice: { mode: VoiceMode; protagonist: ProtagonistVoice; name?: string | null; guardian?: boolean } = {
     mode: "narration", protagonist: "girl",
   },
-  length: StoryLength = "short"
+  length: StoryLength = "short",
+  /** 서버가 이야기 번호를 정하자마자 — 화면이 「만들던 이야기」로 기억해 두고, 그만두기 · 늦게 끝난 이야기 찾기에 쓴다 */
+  onCreated?: (ids: { storyId: string; jobId: string }) => void,
 ): Promise<Story> {
   const text = (k: StepKind) => said[k]?.slice(0, MAX_SAID) || labelOf(k, picks[k], picks.problem);
   const labels = {
@@ -343,6 +345,7 @@ export async function generateStory(
     }),
     signal,
   });
+  onCreated?.({ storyId: story_id, jobId: job_id });
   onStatus("pending");
   await waitJob(job_id, STORY_LIMIT_MS, onStatus, signal);
   return toStory(await call<ServerStory>(`/stories/${story_id}`, { signal }));
@@ -404,6 +407,29 @@ export async function deleteAccount(): Promise<void> {
   if (useMock) return;
   const r = await fetch(BASE + "/auth/me", { method: "DELETE", headers: authHeader() });
   if (!r.ok && r.status !== 204) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
+}
+
+/** S-08 「그만하기」 — 서버 작업도 멈추게 한다 (계약 2-5 그만두기, 2026-11-04). 전에는 화면만 떠나서 서버가 끝까지 돌았고,
+ *  그동안 같은 계정은 새 이야기가 「쉬어 갈게요」(BUSY)로 막혔다. 실패해도 화면은 그냥 떠난다 */
+export async function cancelStoryJob(storyId: string): Promise<void> {
+  if (useMock) return;
+  try {
+    await fetch(BASE + `/stories/${storyId}/cancel`, { method: "POST", headers: authHeader(), keepalive: true });
+  } catch { /* 서버가 끝까지 돌 뿐이다 */ }
+}
+
+/** 화면이 기다리다 놓친 이야기(시간 초과 · 탭 닫힘)가 서버에서 끝났는지. 끝났으면 이야기를 받아 온다 (2026-11-04) */
+export async function findStory(storyId: string, jobId: string): Promise<{ state: "done"; story: Story } | { state: "failed" | "waiting" }> {
+  if (useMock) return { state: "failed" };
+  try {
+    const job = await call<ServerJob>(`/jobs/${jobId}`);
+    if (job.status === "failed") return { state: "failed" };
+    if (job.status !== "succeeded") return { state: "waiting" };
+    return { state: "done", story: toStory(await call<ServerStory>(`/stories/${storyId}`)) };
+  } catch (e) {
+    // 지워졌거나 남의 것(404)이면 더 찾지 않는다. 서버가 잠깐 안 되면 다음에 다시
+    return e instanceof ApiError && /NOT_FOUND|HTTP_404/.test(e.serverCode ?? "") ? { state: "failed" } : { state: "waiting" };
+  }
 }
 
 /** 책장(S-12)에서 다시 연 이야기를 서버에서 새로 받는다 (2026-11-02 보안).

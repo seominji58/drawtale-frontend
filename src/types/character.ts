@@ -66,4 +66,6 @@ export type ErrorCode =
   /** 이야기 입력(카드·아이 말)이나 만든 문장이 검열에 걸렸다 (백엔드 moderation) */
   | "CONTENT_BLOCKED"
   /** 요청이 너무 많거나(429 RATE_LIMITED) 오늘 한도를 다 썼다(503 DAILY_LIMIT) — 2026-11-02 보안 */
-  | "BUSY";
+  | "BUSY"
+  /** 이야기가 오래 걸려 화면이 기다리기를 그만뒀다. 서버는 계속 만들고 책장이 나중에 꽂는다 (2026-11-04) */
+  | "STORY_LATER";

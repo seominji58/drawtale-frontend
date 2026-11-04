@@ -120,6 +120,8 @@ export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: 
   CONTENT_BLOCKED:     { title: "이 이야기는 만들 수 없어요", hint: "다른 카드를 골라 볼까요?", primary: "다시 고르기" },
   // 요청이 많거나 오늘 한도를 다 썼을 때. 아이 탓이 아니라 쉬어 가는 것으로 말한다
   BUSY:                { title: "지금은 잠깐 쉬어 갈게요", hint: "조금 뒤에 다시 해 볼까요?", primary: "다시 시도하기" },
+  // 다시 만들게 하면 같은 이야기를 두 번 만들고 BUSY 에 걸린다 — 책장에서 기다린다
+  STORY_LATER:         { title: "이야기를 아직 만들고 있어요", hint: "다 되면 내 책장에 꽂아 둘게요", primary: "내 책장 보기" },
 };
 
 /** 사진 올리기가 꺼져 있을 때(F-SET-06 기본, 화면에 그린 그림) 「찍기」 문구를 바꿔 쓴다 */
