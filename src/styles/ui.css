@@ -928,6 +928,19 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene .m-swim { animation: thing-swim 4s ease-in-out infinite alternate; }
 @keyframes thing-swim { from { translate: 18% 6%; rotate: 8deg; } to { translate: -22% -6%; rotate: -8deg; } }
 .scene .m-drift { animation: thing-float 6s ease-in-out infinite alternate; }
+/* 대본이 말한 자리 (plan.ts thingPose, 11/4 시안 Fe8gN919XC7rDqUaxHEAw4) — 떠내려감 · 날아감은 쪽에 들어올 때 한 번 */
+.scene .m-drift-away { animation: thing-drift-away 7s ease-in-out .4s 1 both; }
+@keyframes thing-drift-away { 0% { translate: 0 0; rotate: -6deg; } 25% { translate: calc(var(--drift, 1) * 40%) -10%; rotate: 6deg; }
+  50% { translate: calc(var(--drift, 1) * 80%) 0; rotate: -6deg; } 75% { translate: calc(var(--drift, 1) * 120%) -10%; rotate: 6deg; }
+  100% { translate: calc(var(--drift, 1) * 160%) 0; rotate: -3deg; scale: .85; } }
+.scene .m-blow { animation: thing-blow 2.6s cubic-bezier(.3,.1,.4,1) .5s 1 both; }
+@keyframes thing-blow { 0% { translate: 0 0; rotate: 0deg; opacity: 1; } 70% { translate: 220% -260%; rotate: 220deg; opacity: 1; }
+  100% { translate: 300% -380%; rotate: 300deg; opacity: 0; } }
+.scene .m-gone { opacity: 0; }
+.scene .m-stuck { transform-origin: 50% 100%; animation: thing-sway 2.6s ease-in-out infinite alternate; }
+.scene .m-drop { animation: thing-drop 1.4s cubic-bezier(.5,0,.75,0) .3s 1 both; }
+@keyframes thing-drop { 0% { translate: 0 -260%; } 60% { translate: 0 0; animation-timing-function: ease-out; } 80% { translate: 0 -30%; animation-timing-function: ease-in; }
+  100% { translate: 0 0; } }
 /* 공: 쪽에 들어올 때 한 번, 주인공 반대쪽(--roll)으로 */
 .scene .m-roll { animation: thing-roll 1.8s cubic-bezier(.25,.6,.4,1) .4s 1 both; }
 @keyframes thing-roll { from { translate: 0 0; rotate: 0deg; } to { translate: calc(var(--roll, 1) * 160%) 0; rotate: calc(var(--roll, 1) * 420deg); } }
@@ -949,7 +962,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .w-rain, .w-storm, .w-snow, .w-fog::before, .scene-rainbow, .scene-storm-clouds { animation: none; }
   .scene-rainbow { opacity: 1; }
   .scene-leaf, .scene-flash { display: none; }
-  .scene .m-flutter, .scene .m-float, .scene .m-glide, .scene .m-sway, .scene .m-swim, .scene .m-drift, .scene .m-roll, .scene .m-wind { animation: none; }
+  .scene .m-flutter, .scene .m-float, .scene .m-glide, .scene .m-sway, .scene .m-swim, .scene .m-drift, .scene .m-roll, .scene .m-wind,
+  .scene .m-drift-away, .scene .m-stuck, .scene .m-drop { animation: none; }
+  .scene .m-blow { animation: none; opacity: 0; }
 }
 
 /* S-12 제목 바꾸기 (보호자 모드, 2026-11-03) — 고를 책에 점선, 누르면 가운데 종이 카드 */

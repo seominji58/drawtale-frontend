@@ -139,6 +139,46 @@ export interface ThingPlan {
   name?: string;
   /** 소품 움직임 (thingMotion) — 없으면 가만히 */
   motion?: ThingMotion;
+  /** 대본 문장이 말한 자리 · 움직임 (thingPose) — 없으면 주인공 옆 땅 */
+  pose?: ThingPose;
+  /** 손에 듦 · 머리에 씀이면 그 사람 — "hero" 또는 그 쪽 인물 이름(PropPlan.name) · 그림(PropPlan.id) */
+  holder?: string;
+  /** 문장에서 소품 앞의 주어 (planPages 가 holder 로 바꾼다) */
+  subject?: string;
+}
+
+/** 소품이 문장에서 어디 있나 · 어떻게 움직이나 (11/4 사용자 시안 https://claude.ai/artifact/Fe8gN919XC7rDqUaxHEAw4 「그렇게 진행하자」).
+ *  water 바다에 떠내려감 · blown 바람에 날아감 · high 나무에 걸림 · fall 떨어짐 · head 머리에 씀 · hand 손에 듦 */
+export type ThingPose = "water" | "blown" | "high" | "fall" | "head" | "hand";
+// 소품 낱말 바로 뒤에 조사(이 · 가 · 을 · 를 · 은 · 는 · 도)가 붙고 그 뒤에 오는 동사만 본다 — 「물방울이 바위 위로 떨어졌어요」의
+// 바위 · 「벤치에 앉아 공을 안았어요」의 벤치처럼 그 동사의 주인이 아닌 소품이 걸리지 않게 (씨앗 문장 14,154개로 시험)
+const POSES: [ThingPose, RegExp][] = [
+  ["water", /떠내려|둥둥 떠|물에 떠|바다에 떠|파도에 (?:밀|쓸)|물결에 (?:밀|흔들)|물에 빠|바다에 빠|개울에 빠/],
+  // 「바람에 날아가 나뭇가지에 걸렸대요」는 마지막 모습(걸림)이 먼저
+  ["high", /(?:나무|나뭇가지|가지)에 (?:걸|매달|대롱)|나무 위에 (?:걸|있|매달)/],
+  ["blown", /바람에 날아|날아가 버|날아갔|날려 갔|휙 날아|훨훨 날아/],
+  ["fall", /떨어졌|떨어뜨|툭 떨어|뚝 떨어/],
+  ["head", /머리에 (?:쓰|썼|얹)|^\s*(?:(?:꾹|푹|눌러|살짝)\s*)*(?:쓰고|썼|써)/],
+  ["hand", /손에 (?:들|쥐|꼭)|(?:들고|쥐고) |품에 (?:안|꼭)|꼭 안|껴안|안고 /],
+];
+function thingPose(text: string, at: number, end: number, spot: Spot): { pose?: ThingPose; subject?: string } {
+  const from = Math.max(text.lastIndexOf(".", at), text.lastIndexOf("!", at), text.lastIndexOf("?", at), text.lastIndexOf("”", at)) + 1;
+  const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, end)).filter((i) => i >= 0);
+  const sentence = text.slice(from, ends.length ? Math.min(...ends) + 1 : text.length);
+  const after = text.slice(end, from + sentence.length);
+  const lead = /^[가-힣]{0,3}?(?:이|가|을|를|은|는|도)(?=[\s,]|$)|^(?:이|가|을|를|은|는|도)/.exec(after);
+  if (!lead) return {};
+  const rest = after.slice(lead[0].length);
+  let pose = POSES.find(([, rx]) => rx.test(rest))?.[0];
+  if (!pose) return {};
+  if (spot === "air" && (pose === "water" || pose === "blown")) return {};   // 행성 · 새는 원래 떠 있고 날아다닌다
+  if (pose === "head" && !/모자|왕관|나뭇잎|화관/.test(text.slice(at, end))) return {};
+  // 주어: 소품 앞에서 마지막으로 「…이/가/은/는」 붙은 말. 「내 손에 쥐여 주었어요」면 주인공
+  const before = text.slice(from, at);
+  const subj = [...before.matchAll(/([가-힣{}:]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|께서)\s/g)].pop()?.[1];
+  const subject = /내 손|나에게|내게/.test(rest) || !subj || /^(?:나|내가|\{이름\})/.test(subj) ? "hero" : subj;
+  if (pose === "hand" || pose === "head") return { pose, subject };
+  return { pose };
 }
 
 /** 소품 움직임 (11/4 사용자 시안 https://claude.ai/artifact/FJL8Cu7vPSt9YzPdbxJBTw 「이렇게 진행해」).
@@ -186,7 +226,7 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     if (skip.has(src)) continue;
     // 내 소품이 같은 낱말이면 장면 그림은 빼고 내가 그린 것만
     if (hits.some((x) => m[0].includes(x.key) || x.key.includes(m[0].replace(/[^가-힣]/g, "").slice(0, 3)))) continue;
-    hits.push({ at: m.index, t: { src, h, ar: ar(src), spot }, key: m[0] });
+    hits.push({ at: m.index, t: { src, h, ar: ar(src), spot, ...thingPose(text, m.index, m.index + m[0].length, spot) }, key: m[0] });
   }
   return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
 }
@@ -348,6 +388,22 @@ const SPACE_SUIT = /\b(space ?suit|spacesuit|astronaut)\b/;
 const GROWN = /\b(?:adult|man|woman|mother|father|grand\w*|teacher|officer|owner)\b/;
 const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "cat", "baby", "classmates", "friend", "friend2"]);
 
+/** 손에 듦 · 머리에 씀: 문장의 주어를 그 쪽에 선 인물로 (이름 낱말이 겹치거나 같은 그림 종류). 못 찾으면 자리 없이 땅에 */
+function holderOf(t: ThingPlan, props: PropPlan[]): Partial<ThingPlan> {
+  if (t.pose !== "hand" && t.pose !== "head") return {};
+  if (t.subject === "hero") return { holder: "hero", subject: undefined };
+  const subj = (t.subject ?? "").replace(/\s+/g, "");
+  const words = (t.subject ?? "").split(/\s+/).map((w) => w.replace(/님$/, "")).filter((w) => w.length >= 2 && !TITLES.has(w));
+  const kind = personKind("", t.subject ?? "");
+  const who = props.filter((q) => isPerson(q.id)).find((q) => {
+    const n = (q.name ?? "").replace(/\s+/g, "");
+    return (n && (n.includes(subj) || subj.includes(n) || words.some((w) => n.includes(w))))
+      || (kind && (q.id === kind || q.id.split("-")[0] === kind.split("-")[0]))
+      || (/친구/.test(subj) && /^(?:friend|friend2|spacekid)/.test(q.id));
+  });
+  return who ? { holder: who.name ?? who.id, subject: undefined } : { pose: undefined, subject: undefined };
+}
+
 /** 장소 카드 → 카드로 세우는 어른 그림 (* 는 이야기마다 남 · 여) */
 const PLACE_ADULT: Record<string, string> = {
   home: "mom", playground: "keeper-*", school: "teacher", town: "police-*", forest: "ranger-*", sea: "lifeguard-*",
@@ -498,7 +554,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
         : thingsFor(p.text, mine, isIndoor(loc), new Set([
           ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
           ...(loc === "space-ship" ? ["props/spaceship.webp"] : []),
-        ])).map((t) => ({ ...t, motion: thingMotion(t.src, p.text, weather) })),
+        ])).map((t) => ({ ...t, motion: thingMotion(t.src, p.text, weather), ...holderOf(t, props) })),
     });
     x = to;
   }

@@ -12,6 +12,7 @@ import type { Env, PagePlan, PropId } from "./plan";
 import { hasSkyBodies, isIndoor, isPerson } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
+import HANDS from "./hands.json";
 
 /** 오린 그림의 가로 ÷ 세로 (없으면 기본값) */
 const arOf = (src: string, fallback: number) => (AR as Record<string, number>)[src] ?? fallback;
@@ -235,13 +236,80 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
     return { x: bx, back: true };
   };
   const behind = plan.props.filter((p) => isPerson(p.id) || p.id === "sign");
+  // 인물 자리는 미리 잡는다 — 대본에서 그 사람이 든 · 쓴 소품을 손 · 머리에 놓으려면 자리를 알아야 한다 (11/4)
+  const people = behind.map((p) => {
+    const base0 = prop(p.id);
+    if (!base0) return null;
+    const s = p.x !== undefined ? { ...base0, x: p.x } : base0;
+    const spot = personX(s.x, s.h, p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45, p.id === "sign");
+    const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
+    return { p, s, spot, sb };
+  });
   // 쪽 글에 나온 물건 · 내 소품: 주인공 옆 땅에 (인물 자리를 먼저 잡은 뒤 남는 곳). 쪽 안 움직임 없이 처음부터 놓여 있다
   // 배경 그림에 이미 같은 물건이 있으면 또 놓지 않는다 (pt_docs 18 — 동굴에서 「돌」이 나와도 동굴엔 바위가 있다)
   const bgKinds = new Set(layout.objects.map((o) => kindOf(o.src)));
   // 공중 소품(나비 · 새 · 행성 …)은 사람 머리 위 높이라 땅의 사람 · 물건과는 겹치지 않는다 — 공중 소품끼리만 피한다.
   // 전에는 땅과 같은 줄에서 자리를 다퉈 괜히 빠졌고, 머리 높이(0.45)라 사람 머리와 겹칠 수 있었다 (11/4 자리 검사)
   const airPlaced: [number, number][] = [];
-  const thingSpots = (plan.things ?? []).filter((t) => !bgKinds.has(kindOf(t.src))).map((t, k) => {
+  // 대본이 말한 자리 (pose): 물에 떠내려감 · 바람에 날아감 · 나무에 걸림 · 머리에 씀 · 손에 듦. 놓을 수 없으면 아래 보통 자리로
+  const posed = (t: NonNullable<typeof plan.things>[number]): { x: number; style: CSSProperties; cls: string; top?: boolean } | null => {
+    const thingW = (h: number) => h * t.ar / aspect;
+    const holder = t.holder ? people.find((v) => v && (v.p.name === t.holder || v.p.id === t.holder)) : null;
+    switch (t.pose) {
+      case "water": {
+        const foot = WATER[plan.location];
+        if (foot === undefined) return null;
+        // 물결 띠가 사람 가슴 높이라, 사람 몸과 겹치면 목에 두른 것처럼 보였다 — 주인공 · 인물 사이 가장 넓게 빈 틈의 물 위에
+        const edges = [...placed].sort((a, b) => a[0] - b[0]);
+        let gap: [number, number] = [0.06, 0.94], best = -1, from = 0.06;
+        for (const [l, r] of [...edges, [0.94, 0.94] as [number, number]]) {
+          if (l - from > best) { best = l - from; gap = [from, l]; }
+          from = Math.max(from, r);
+        }
+        const x = (gap[0] + gap[1]) / 2, h = t.h;
+        // 틈 안에서만 떠내려간다 (틈이 좁으면 조금만)
+        const room = Math.max(0, (gap[1] - gap[0]) / 2 - thingW(h) / 2) / Math.max(0.01, thingW(h));
+        return { x, cls: "m-drift-away", style: { ...spotStyle({ src: t.src, x, foot, h }), ["--drift" as string]: (x > 0.5 ? 1 : -1) * Math.min(1, room / 1.6) } };
+      }
+      case "blown": {   // 머리 높이에서 날아올라 화면 밖으로 (한 번)
+        const x = Math.min(0.9, hero.to + heroHalf + thingW(t.h) / 2);
+        return { x, cls: play ? "m-blow" : "m-gone", style: spotStyle({ src: t.src, x, foot: H.foot - H.h * 0.85, h: t.h }) };
+      }
+      case "high": {   // 배경 나무 꼭대기에 걸림
+        const tree = layout.objects.find((o) => /tree|pine/.test(o.src));
+        if (!tree || tree.foot === undefined) return null;
+        const h = Math.min(t.h * 1.2, tree.h * 0.38), top = tree.foot - tree.h + tree.h * 0.08;
+        return { x: tree.x, cls: "m-stuck", style: spotStyle({ src: t.src, x: tree.x + 0.03, top, h }) };
+      }
+      case "head": {   // 그 사람 머리 위
+        if (t.holder === "hero") {
+          const h = H.h * 0.16;
+          return { x: hero.to, cls: "", top: true, style: spotStyle({ src: t.src, x: heroX, foot: H.foot - H.h + h * 0.55, h }) };
+        }
+        if (!holder) return null;
+        const h = holder.sb.h * 0.16, foot = (holder.sb.foot ?? 0.93) - holder.sb.h + h * 0.62;
+        return { x: holder.spot.x, cls: "", style: spotStyle({ src: t.src, x: holder.spot.x, foot, h }) };
+      }
+      case "hand": {   // 그 사람 손끝에 소품 손잡이를 (손 위치는 그림마다 잰 값, hands.json). 주인공 손은 아직 — 보통 자리
+        if (!holder) return null;
+        const hand = (HANDS as Record<string, { l: number[]; r: number[] }>)[holder.p.id];
+        if (!hand) return null;
+        const outer = holder.spot.x >= hero.to ? "r" : "l";   // 주인공과 먼 쪽 손
+        const pw = holder.sb.h * arOf(`props/${holder.p.id}.webp`, 0.4) / aspect;
+        const hx = holder.spot.x + (hand[outer][0] - 0.5) * pw;
+        const hy = (holder.sb.foot ?? 0.93) - holder.sb.h + hand[outer][1] * holder.sb.h;   // 위에서부터
+        const h = Math.min(t.h, holder.sb.h * (SIDE_GRIP.has(t.src) ? 0.1 : 0.2)), w = thingW(h);
+        if (SIDE_GRIP.has(t.src)) {   // 손전등처럼 옆으로 쥐는 것 — 손잡이를 손에, 빛은 바깥으로 (그림은 빛이 왼쪽)
+          const x = hx + (outer === "r" ? 0.4 : -0.4) * w;
+          return { x, cls: "", style: { ...spotStyle({ src: t.src, x, foot: hy + h / 2, h }), ...(outer === "r" ? { transform: "translateX(-50%) scaleX(-1)" } : {}) } };
+        }
+        return { x: hx, cls: "", style: spotStyle({ src: t.src, x: hx, foot: hy - h * 0.08 + h, h }) };   // 윗부분을 쥐고 매단 모양
+      }
+      default: return null;
+    }
+  };
+  const posedSpots = (plan.things ?? []).filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }));
+  const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
     const air = t.spot === "air";
     const list = air ? airPlaced : placed;
     const open = (a: number, b: number) => list.every(([l, r]) => b <= l || a >= r);
@@ -289,23 +357,24 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
       {layout.objects.map((o, k) => (
         <img key={k} className="scene-obj scene-bg" src={base + o.src} alt="" style={spotStyle(o)} />
       ))}
-      {behind.map((p, k) => {
-        const base0 = prop(p.id);
-        if (!base0) return null;
-        const s = p.x !== undefined ? { ...base0, x: p.x } : base0;
+      {people.map((v, k) => {
+        if (!v) return null;
+        const { p, s, spot, sb } = v;
         // 걸어 들어오는 인물: 처음엔 화면 밖, 끝 모습에서 제자리
-        const spot = personX(s.x, s.h, p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45, p.id === "sign");
         const x = phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
-        const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
         return (
           <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person ${phase === 0 || !p.enter ? "" : "walking-in"} ${p.id === "bird" || p.id === "bat" ? "m-float" : ""}`}
                src={base + s.src} alt=""
                style={{ ...spotStyle({ ...sb, x }), transition: REDUCE || !play ? "none" : "left 2.4s cubic-bezier(.35,.1,.35,1), filter 2.6s ease" }} />
         );
       })}
+      {posedSpots.filter((v) => v.at && !v.at.top).map(({ t, at }, k) => (
+        <img key={`posed-${k}-${t.src.slice(0, 40)}`} className={`scene-obj scene-thing ${at!.cls}`} alt=""
+             src={`${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`} style={at!.style} />
+      ))}
       {thingSpots.map((t, k) => (
         <img key={`thing-${k}-${t.src.slice(0, 40)}`}
-             className={`scene-obj scene-thing ${t.motion && (t.motion !== "roll" || play) ? `m-${t.motion}` : ""}`}
+             className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (t.motion !== "roll" || play) ? `m-${t.motion}` : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
              style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
@@ -328,6 +397,11 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
           ))}
         </div>
       )}
+      {/* 주인공 머리에 쓴 것은 주인공 위에 */}
+      {posedSpots.filter((v) => v.at?.top).map(({ t, at }, k) => (
+        <img key={`posed-top-${k}`} className="scene-obj scene-thing" alt=""
+             src={`${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`} style={at!.style} />
+      ))}
       {front.map((p) => (
         <img key={p.src} className="scene-obj scene-cover" src={`${sceneBase(p.src!.split("/")[0])}${p.src!.split("/")[1]}`} alt=""
              style={spotStyle({ src: p.src!, x: 0.52, foot: 0.96, h: p.h ?? 0.36 })} />
@@ -336,6 +410,10 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   );
 }
 
+/** 물에 뜨는 소품의 발끝 높이 — 바다 물결 띠(배경판에서 잰 55~60%). 물이 뚜렷한 배경만 */
+const WATER: Record<string, number> = { sea: 0.6 };
+/** 옆으로 쥐는 소품 (손잡이를 손에) — 나머지는 윗부분을 쥐고 매단다 */
+const SIDE_GRIP = new Set(["props/flashlight.webp"]);
 /** 그림 이름으로 본 물건 종류 — 꽃밭 그림이 둘(flowers · flowerbed)이라 하나로 */
 const kindOf = (src: string) => {
   const name = src.split("/").pop()?.replace(/\.webp$/, "") ?? src;
