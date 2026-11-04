@@ -25,6 +25,8 @@ interface Layout {
   hero: { x: number; foot: number; h: number };
   objects: Spot[];
   props: Record<string, Spot>;
+  /** 배경 그림에 그려진 창 (등대 안 둥근 창 · 우주선 창) — 창밖 소품 자리. 창문 그림(window.webp)이 따로 있으면 그것 */
+  window?: { x: number; y: number; h: number };
 }
 
 const layouts = new Map<string, Promise<Layout>>();
@@ -340,10 +342,18 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         }
         return { x: hx, cls: "", style: spotStyle({ src: t.src, x: hx, foot: hy - h * 0.08 + h, h }) };   // 윗부분을 쥐고 매단 모양
       }
+      case "window": {   // 창 안 하늘쪽에 작게 (창이 없는 방이면 놓지 않는다 — 아래에서 뺀다)
+        const w = layout.objects.find((o) => /window/.test(o.src));
+        const win = w && w.top !== undefined ? { x: w.x, y: w.top + w.h * 0.4, h: w.h } : layout.window;
+        if (!win) return null;
+        const h = Math.min(t.h, win.h * 0.3);
+        return { x: win.x, cls: t.motion ? `m-${t.motion}` : "", style: spotStyle({ src: t.src, x: win.x, foot: win.y + h / 2, h }) };
+      }
       default: return null;
     }
   };
-  const posedSpots = (plan.things ?? []).filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }));
+  const posedSpots = (plan.things ?? []).filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }))
+    .filter((v) => v.t.pose !== "window" || v.at);   // 창밖 소품은 창이 없으면 방 안에 놓지 않는다
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
     const air = t.spot === "air";
     const list = air ? airPlaced : placed;

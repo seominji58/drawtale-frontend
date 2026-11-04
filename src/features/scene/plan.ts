@@ -73,7 +73,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/시계/, "props/clock.webp", 0.13, "wall"],
   [/모자/, "props/hat.webp", 0.08, "ground"],
   [/블록|블럭/, "props/blocks.webp", 0.14, "ground"],
-  [/그림책|동화책|공책|책을|책이|책 한|책장을 넘/, "props/books.webp", 0.1, "ground"],
+  // 「책도 · 책들 · 책은」도 (11/4 「책을 떨어트렸어요」에 책이 안 나왔다). 「산책을」 · 「책상」 · 「책장」 빼고
+  [/그림책|동화책|공책|(?<!산)책(?=을|이|도|들|은|는|과|만|한 권| 한)|책장을 넘/, "props/books.webp", 0.1, "ground"],
   [/갈매기/, "props/seagull.webp", 0.07, "air"],   // 11/4 나는 모습(가로로 긴 그림)이라 키를 낮춤
   [/우주선/, "props/spaceship.webp", 0.36, "ground"],
   [/양동이|삽으로|삽을|모래 삽/, "props/sandtoys.webp", 0.12, "ground"],
@@ -91,7 +92,9 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/기차/, "props/toytrain.webp", 0.1, "ground"],
   [/화분/, "props/flowerpot.webp", 0.16, "ground"],
   // 대본 인물로 나오지 않고 글에만 나오는 작은 동물 (인물로 나오면 인물 그림이 선다)
-  [W1("새"), "props/bird.webp", 0.12, "air"],
+  // 「새 책 · 새 친구 · 새 둥지」의 새(new)는 빼고 — 조사가 붙거나 「작은 새」처럼 꾸밈말이 앞에 올 때만 (11/4, 씨앗 문장 120개가 잘못 걸렸다)
+  [/(?:^|[^가-힣])새(?:를|가|는|도|들|한 마리|와|랑|의|야|에게)(?=[^가-힣]|$)|(?:작은|아기|파랑|파란|예쁜|노란|빨간|하얀|조그만|귀여운|어미|엄마|아빠|산|바다) ?새(?=[^가-힣]|$)/,
+    "props/bird.webp", 0.12, "air"],
   [/박쥐/, "props/bat.webp", 0.14, "air"],
   [/토끼/, "props/rabbit.webp", 0.16, "ground"],
   [/다람쥐/, "props/squirrel.webp", 0.16, "ground"],
@@ -148,8 +151,11 @@ export interface ThingPlan {
 }
 
 /** 소품이 문장에서 어디 있나 · 어떻게 움직이나 (11/4 사용자 시안 https://claude.ai/artifact/Fe8gN919XC7rDqUaxHEAw4 「그렇게 진행하자」).
- *  water 바다에 떠내려감 · blown 바람에 날아감 · high 나무에 걸림 · fall 떨어짐 · head 머리에 씀 · hand 손에 듦 */
-export type ThingPose = "water" | "blown" | "high" | "fall" | "head" | "hand";
+ *  water 바다에 떠내려감 · blown 바람에 날아감 · high 나무에 걸림 · fall 떨어짐 · head 머리에 씀 · hand 손에 듦
+ *  window 실내에서 창밖에 보임 (새 · 나비 · 행성) — 창문 그림 안에만, 창문이 없는 방이면 놓지 않는다 */
+export type ThingPose = "water" | "blown" | "high" | "fall" | "head" | "hand" | "window";
+/** 「창밖에 작은 새가」 — 실내 장면에서 공중 소품이 방 안을 날지 않게 (11/4 사용자) */
+const WINDOW_TEXT = /창\s?밖|창문\s?밖|창문 너머|유리창|창가|창문으로|창문에|창문을/;
 // 소품 낱말 바로 뒤에 조사(이 · 가 · 을 · 를 · 은 · 는 · 도)가 붙고 그 뒤에 오는 동사만 본다 — 「물방울이 바위 위로 떨어졌어요」의
 // 바위 · 「벤치에 앉아 공을 안았어요」의 벤치처럼 그 동사의 주인이 아닌 소품이 걸리지 않게 (씨앗 문장 14,154개로 시험)
 const POSES: [ThingPose, RegExp][] = [
@@ -157,14 +163,15 @@ const POSES: [ThingPose, RegExp][] = [
   // 「바람에 날아가 나뭇가지에 걸렸대요」는 마지막 모습(걸림)이 먼저
   ["high", /(?:나무|나뭇가지|가지)에 (?:걸|매달|대롱)|나무 위에 (?:걸|있|매달)/],
   ["blown", /바람에 날아|날아가 버|날아갔|날려 갔|휙 날아|훨훨 날아/],
-  ["fall", /떨어졌|떨어뜨|툭 떨어|뚝 떨어/],
+  ["fall", /떨어졌|떨어뜨|떨어트|툭 떨어|뚝 떨어/],
   ["head", /머리에 (?:쓰|썼|얹)|^\s*(?:(?:꾹|푹|눌러|살짝)\s*)*(?:쓰고|썼|써)/],
   ["hand", /손에 (?:들|쥐|꼭)|(?:들고|쥐고) |품에 (?:안|꼭)|꼭 안|껴안|안고 /],
 ];
-function thingPose(text: string, at: number, end: number, spot: Spot): { pose?: ThingPose; subject?: string } {
+function thingPose(text: string, at: number, end: number, spot: Spot, indoor = false): { pose?: ThingPose; subject?: string } {
   const from = Math.max(text.lastIndexOf(".", at), text.lastIndexOf("!", at), text.lastIndexOf("?", at), text.lastIndexOf("”", at)) + 1;
   const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, end)).filter((i) => i >= 0);
   const sentence = text.slice(from, ends.length ? Math.min(...ends) + 1 : text.length);
+  if (indoor && spot === "air" && WINDOW_TEXT.test(sentence)) return { pose: "window" };
   const after = text.slice(end, from + sentence.length);
   const lead = /^[가-힣]{0,3}?(?:이|가|을|를|은|는|도)(?=[\s,]|$)|^(?:이|가|을|를|은|는|도)/.exec(after);
   if (!lead) return {};
@@ -226,7 +233,7 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     if (skip.has(src)) continue;
     // 내 소품이 같은 낱말이면 장면 그림은 빼고 내가 그린 것만
     if (hits.some((x) => m[0].includes(x.key) || x.key.includes(m[0].replace(/[^가-힣]/g, "").slice(0, 3)))) continue;
-    hits.push({ at: m.index, t: { src, h, ar: ar(src), spot, ...thingPose(text, m.index, m.index + m[0].length, spot) }, key: m[0] });
+    hits.push({ at: m.index, t: { src, h, ar: ar(src), spot, ...thingPose(text, m.index, m.index + m[0].length, spot, indoor) }, key: m[0] });
   }
   return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
 }
