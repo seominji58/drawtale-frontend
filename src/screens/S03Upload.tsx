@@ -4,7 +4,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Paper } from "@/components/illust";
 import { useSession } from "@/store/session";
-import { shrink, speak } from "@/lib";
+import { rotateFile, shrink, speak } from "@/lib";
 import { useSettings, useWithAdult } from "@/store/settings";
 import { ENGINE } from "@/api";
 import { makeSampleDrawing } from "@/api/mock/sample";
@@ -14,7 +14,17 @@ const REJECTED = "이 그림은 열 수 없어요. 다른 그림을 골라 볼�
 
 export default function S03Upload() {
   const nav = useNavigate();
-  const { imageUrl, setFile } = useSession();
+  const { imageUrl, file, setFile } = useSession();
+  /** 「돌리기」: 고른 원본과 돌린 횟수(시계 방향 90도씩). 누를 때마다 원본에서 새로 돌려 보인다 — 돌린 그림을 또 돌리면 화질이 준다 */
+  const [orig, setOrig] = useState<File | null>(null);
+  const [turn, setTurn] = useState(0);
+  const rotate = async () => {
+    const base = orig ?? file;
+    if (!base) return;
+    const t = (turn + 1) % 4;
+    setBusy(true);
+    try { setFile(await rotateFile(base, t)); setOrig(base); setTurn(t); } finally { setBusy(false); }
+  };
   const camera = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -35,6 +45,7 @@ export default function S03Upload() {
       return;
     }
     setRejected(false);
+    setOrig(null); setTurn(0);
     setBusy(true);
     try {
       setFile(await shrink(f));         // 긴 변 1600px, JPEG 0.85 로 줄여서 보낸다
@@ -48,10 +59,12 @@ export default function S03Upload() {
 
   return (
     <Screen back="/guide" segment={1}
-      speech={imageUrl ? "이 그림으로 할까요?" : photo ? "그림을 찍어 볼까요?" : "화면에 그려 볼까요?"}
+      speech={imageUrl ? "머리가 위로 오게 돌려 주세요. 이 그림으로 할까요?" : photo ? "그림을 찍어 볼까요?" : "화면에 그려 볼까요?"}
       acts={imageUrl ? (
         <>
-          <BigButton onClick={() => setFile(null)}>다시 고르기</BigButton>
+          <BigButton onClick={() => { setOrig(null); setTurn(0); setFile(null); }}>다시 고르기</BigButton>
+          {/* 누운 그림을 바르게 (pt_docs 19 7-1) — 사람 · 동물 모두 머리가 위, 다리가 아래로 */}
+          <BigButton disabled={busy} onClick={rotate}>돌리기 ↻</BigButton>
           <BigButton go disabled={busy} onClick={() => nav("/analyzing")}>이 그림으로</BigButton>
         </>
       ) : (

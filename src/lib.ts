@@ -90,6 +90,25 @@ export function stopSpeak() {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
+/** S-03 「돌리기」 — 시계 방향으로 90도 × quarter 만큼 돌린 새 그림 (2026-11-04, pt_docs 19 7-1).
+ *  아이는 종이를 돌려 가며 그리고 사진도 돌아가 찍힌다. 사람 관절 모델은 똑바로 선 그림으로 배워서 누운 사진은
+ *  거절하거나 엉뚱하게 찍는다. 휴대폰 사진의 방향 정보(EXIF)는 createImageBitmap 이 먼저 반영한다 — 보이는 그대로 돌린다 */
+export async function rotateFile(file: File, quarter: number, quality = 0.9): Promise<File> {
+  const q = ((quarter % 4) + 4) % 4;
+  if (q === 0) return file;
+  const bitmap = await createImageBitmap(file);
+  const c = document.createElement("canvas");
+  c.width = q % 2 ? bitmap.height : bitmap.width;
+  c.height = q % 2 ? bitmap.width : bitmap.height;
+  const g = c.getContext("2d")!;
+  g.translate(c.width / 2, c.height / 2);
+  g.rotate((q * Math.PI) / 2);
+  g.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+  const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", quality));
+  if (!blob) return file;
+  return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+}
+
 /** S-03 클라이언트 리사이즈. 긴 변 1600px, JPEG 0.85.
  *  백엔드는 PNG·JPG 만 받으므로(계약 1-4 INVALID_IMAGE) 그 밖의 형식은 크기와 상관없이 JPEG 로 바꾼다 */
 export async function shrink(file: File, max = 1600, quality = 0.85): Promise<File> {
@@ -111,7 +130,8 @@ export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: 
   NO_CHARACTER:        { title: "그림에서 친구를 못 찾았어요", hint: "지금은 두 발로 선 친구만 움직일 수 있어요", primary: "다시 찍기" },
   MULTIPLE_CHARACTERS: { title: "친구가 여러 명이에요", hint: "한 명만 나오게 찍어 볼까요?", primary: "다시 찍기" },
   // AI 는 흐린 사진보다 낙서·도형처럼 사람 모양이 아닌 그림에서 이 code 를 낸다 (너무 흐리면 NO_CHARACTER)
-  LOW_CONFIDENCE:      { title: "그림이 잘 안 보여요", hint: "사람을 크게 그려서 밝은 곳에서 찍어 볼까요?", primary: "다시 찍기" },
+  // 누운 사진도 이 code 가 난다 — 다시 찍기 화면(S-03)에 같은 그림과 「돌리기」가 있다 (11/4)
+  LOW_CONFIDENCE:      { title: "그림이 잘 안 보여요", hint: "그림이 누워 있으면 돌려 주세요. 밝은 곳에서 크게 찍으면 더 좋아요", primary: "다시 찍기" },
   UNSUPPORTED_IMAGE:   { title: "이 그림은 열 수 없어요", hint: "다른 그림을 골라 볼까요?", primary: "앨범에서 고르기" },
   ENGINE_TIMEOUT:      { title: "시간이 오래 걸리고 있어요", hint: "잠시 뒤에 다시 해 볼까요?", primary: "다시 하기" },
   // 주 버튼은 그 단계를 다시, 옆 버튼은 처음으로 — 둘 다 「처음으로」면 고를 것이 없다 (11/3 사용자)
