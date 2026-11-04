@@ -791,6 +791,12 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .hero-side { display: flex; flex-direction: column; gap: 14px; max-width: 460px; }
 .hero-title { font-size: 56px; line-height: 1.08; }
 .hero-sub { font-size: 20px; color: var(--ink-soft); line-height: 1.6; }
+/* S-11 책 제목 정하기 */
+.done-title { display: flex; flex-direction: column; gap: 8px; width: 420px; max-width: 100%; }
+.done-title .hint { margin: 0; text-align: left; }
+.done-title-row { display: flex; gap: 12px; align-items: center; }
+.done-title-row .title-input { flex: 1 1 auto; width: 100%; }
+.done-title-row .btn { flex: 0 0 auto; width: auto; min-width: 0; padding-inline: 24px; }
 .hero-tips { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .hero-tips li { display: flex; align-items: center; gap: 10px; font-size: 18px; }
 .hero-tips li::before { content: ""; flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%; background: var(--mint); border: 2px solid var(--line); }

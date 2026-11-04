@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import { ORDER_GAME } from "@/store/settings";
@@ -5,7 +6,7 @@ import BigButton from "@/components/BigButton";
 import { Party } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { ENGINE } from "@/api";
-import { useLibrary } from "@/store/library";
+import { TITLE_MAX, useLibrary } from "@/store/library";
 import { cutoutFor, firstClip } from "@/features/story/clip";
 import KeyedClip from "@/features/story/KeyedClip";
 
@@ -15,6 +16,20 @@ export default function S11Done() {
   const story = useSession((s) => s.story);
   const imageUrl = useSession((s) => s.imageUrl);
   const saved = useLibrary((l) => l.stories.find((x) => x.storyId === story?.storyId));
+  const rename = useLibrary((l) => l.rename);
+  const setStory = useSession((s) => s.setStory);
+  // 책 제목 정하기 (11/4 사용자 「책 다 했어요 누르면 거기서 제목 입력도」). 책장(S-12)의 제목 바꾸기와 같은 저장 — 이 기기에만
+  const title = saved?.title ?? story?.title ?? "";
+  const [draft, setDraft] = useState(title);
+  const [savedNote, setSavedNote] = useState(false);
+  useEffect(() => setDraft(title), [title]);
+  const saveTitle = () => {
+    const t = draft.trim().slice(0, TITLE_MAX);
+    if (!story || !t || t === title) { setDraft(title); return; }
+    rename(story.storyId, t);
+    setStory({ ...story, title: t, ...(story.book ? { book: { ...story.book, title: t } } : {}) });
+    setSavedNote(true);
+  };
   // 주인공 그림: 배경을 잘라 낸 정지 그림 → 동작 영상의 첫 장면 → 책장 표지 → 올린 그림 순서.
   // 올린 그림을 먼저 쓰면 사진 배경까지 나왔다 (2026-11-03 사용자 확인)
   const clip = firstClip(story);
@@ -47,7 +62,18 @@ export default function S11Done() {
         </div>
         <div className="hero-side">
           <h2 className="hero-title">다 했어요!</h2>
-          <p className="hero-sub">{story ? `「${story.title}」을 내 책장에 꽂아 두었어요` : "멋진 이야기를 만들었어요"}</p>
+          <p className="hero-sub">{story ? `「${title}」을 내 책장에 꽂아 두었어요` : "멋진 이야기를 만들었어요"}</p>
+          {story && (
+            <form className="done-title" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
+              <label className="rename-label" htmlFor="done-title-input">책 제목</label>
+              <div className="done-title-row">
+                <input id="done-title-input" className="title-input" value={draft} maxLength={TITLE_MAX}
+                  enterKeyHint="done" onChange={(e) => { setDraft(e.target.value); setSavedNote(false); }} onBlur={saveTitle} />
+                <BigButton go disabled={!draft.trim() || draft.trim() === title} nudgeOnDisabled={false} onClick={saveTitle}>정하기</BigButton>
+              </div>
+              {savedNote && <p className="hint" role="status">제목을 바꿨어요</p>}
+            </form>
+          )}
         </div>
       </div>
     </Screen>
