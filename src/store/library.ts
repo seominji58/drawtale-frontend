@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Story } from "@/types/story";
 import { useAuth } from "./auth";
+import { saveStoryTitle } from "@/api";
 
 const KEY = "storyblanks.stories";
 
@@ -50,7 +51,7 @@ interface LibraryState {
   load: () => void;
   add: (s: Story) => void;
   remove: (id: string) => void;
-  /** 제목 고치기 (보호자 — S-12 책장 · S-13). 책장 · S-09 쪽 머리에 함께 보인다 */
+  /** 제목 고치기 (S-11 · 보호자 S-12 책장 · S-13). 책장 · S-09 쪽 머리에 함께 보인다. 서버에도 보낸다 (계약 2-15) */
   rename: (id: string, title: string) => void;
   clearGuest: () => void;
   pending: PendingStory[];
@@ -76,6 +77,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       x.storyId === id ? { ...x, title, ...(x.book ? { book: { ...x.book, title } } : {}) } : x);
     write(next);
     set({ stories: next });
+    void saveStoryTitle(id, title);
   },
   clearGuest: () => {
     sessionStorage.removeItem(KEY);

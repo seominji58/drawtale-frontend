@@ -78,6 +78,8 @@ interface ServerStory {
   animation_url: string | null;
   still_url?: string | null;
   still_hands?: { l: number[]; r: number[] } | null;
+  /** 아이 · 보호자가 정한 책 제목 (계약 2-15). 없으면 null */
+  title?: string | null;
   sprite_url?: string | null; sprite_frames?: number | null; sprite_box?: [number, number, number, number] | null; action_motion?: string;
   created_at: string;
   /** 긴 이야기일 때만 (계약 2-6 `book`) */
@@ -203,7 +205,7 @@ function toStory(s: ServerStory): Story {
   return {
     storyId: s.id,
     characterId: s.character_id,
-    title: s.book?.title || `${s.place}에 간 날`,
+    title: s.title || s.book?.title || `${s.place}에 간 날`,
     createdAt: s.created_at.slice(0, 10),
     place: s.place,
     text: s.text ?? "",
@@ -458,18 +460,39 @@ export async function findStory(storyId: string, jobId: string): Promise<{ state
   }
 }
 
+/** 책 제목 바꾸기 (계약 2-15, 2026-11-04) — S-11 「다 했어요」 · S-12 책장 · S-13. 전에는 기기에만 있었다.
+ *  기기 책장은 먼저 바꿔 두고(useLibrary.rename) 서버에는 뒤에서 보낸다. 실패하면 다음에 책장에서 열 때 다시 보낸다(refreshStory) */
+export async function saveStoryTitle(storyId: string, title: string): Promise<boolean> {
+  if (useMock) return true;
+  try {
+    const r = await fetch(`${BASE}/stories/${storyId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ title }),
+      keepalive: true,
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** 책장(S-12)에서 다시 연 이야기를 서버에서 새로 받는다 (2026-11-02 보안).
  *  음성 · 영상 주소에는 기한이 있어서(로컬 서명 24시간 · Azure SAS 2시간) 저장해 둔 주소는 곧 열리지 않는다.
- *  기기에만 있는 것(고친 제목 · 표지 · 고른 카드 · 보호자 모드)은 그대로 둔다. 못 받으면 저장본 그대로 */
+ *  기기에만 있는 것(표지 · 고른 카드 · 보호자 모드)은 그대로 둔다. 제목은 서버에 정한 제목이 있으면 그것(다른 기기에서 바꿨을 수 있다),
+ *  없는데 이 기기에서 고친 제목이 있으면(예전에 고쳤거나 보내기 실패) 서버로 보낸다. 못 받으면 저장본 그대로 */
 export async function refreshStory(st: Story): Promise<Story> {
   if (useMock) return st;
   try {
-    const fresh = toStory(await call<ServerStory>(`/stories/${st.storyId}`, { headers: authHeader() }));
+    const raw = await call<ServerStory>(`/stories/${st.storyId}`, { headers: authHeader() });
+    const fresh = toStory(raw);
+    const title = raw.title || st.title;
+    if (!raw.title && st.title && st.title !== fresh.title) void saveStoryTitle(st.storyId, st.title);
     return {
       ...fresh,
-      title: st.title,
+      title,
       createdAt: st.createdAt,
-      book: fresh.book ? { ...fresh.book, title: st.title } : fresh.book,
+      book: fresh.book ? { ...fresh.book, title } : fresh.book,
       cover: st.cover, picks: st.picks, guardian: st.guardian,
     };
   } catch {
