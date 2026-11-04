@@ -348,6 +348,11 @@ const SPACE_SUIT = /\b(space ?suit|spacesuit|astronaut)\b/;
 const GROWN = /\b(?:adult|man|woman|mother|father|grand\w*|teacher|officer|owner)\b/;
 const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "cat", "baby", "classmates", "friend", "friend2"]);
 
+/** 장소 카드 → 카드로 세우는 어른 그림 (* 는 이야기마다 남 · 여) */
+const PLACE_ADULT: Record<string, string> = {
+  home: "mom", playground: "keeper-*", school: "teacher", town: "police-*", forest: "ranger-*", sea: "lifeguard-*",
+  space: "spacepolice-*", cave: "caveguide-*",
+};
 /** 이름에서 빼고 보는 호칭 (「경찰관 아저씨」의 「아저씨」) */
 const TITLES = new Set(["아저씨", "아주머니", "아줌마", "선생님", "언니", "오빠", "누나", "할머니", "할아버지", "삼촌", "이모", "고모"]);
 /** 그림의 성별 (호칭으로 이어 쓸 때) */
@@ -377,6 +382,12 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   // 설명이 없는 이름은 ① 이름 낱말이 겹치는 인물 ② 호칭뿐이면 앞에 나온 같은 성별 인물의 그림을 이어 쓴다
   const sheetKey = (n: string) => Object.keys(sheet).find((k) => k.replace(/\s+/g, "") === n.replace(/\s+/g, ""));
   const seenKinds: { name: string; kind: PersonId }[] = [];
+  const renamed = new Map<string, PersonId>();
+  // 카드로 세우는 어른 · 친구(장면 계획이 없는 짧은 이야기 · 예전 이야기)는 장소에 맞는 그림 — 우주에서 「어른에게 물어봤어요」면
+  // 평범한 어른이 아니라 우주 경찰관 (11/4). 남녀는 이야기 첫 글로 정해 한 이야기 안에서는 같다
+  const sex: "m" | "f" = [...(pages[0]?.text ?? "")].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 2 ? "f" : "m";
+  const cardAdult = (PLACE_ADULT[place]?.replace("*", sex) ?? "adult") as PersonId;
+  const cardFriend = (place === "space" ? `spacekid-${sex}` : "friend") as PersonId;
   const kindOfName = (name: string): PersonId | null => {
     const key = sheetKey(name);
     if (key) return personKind(sheet[key], name);
@@ -390,6 +401,19 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     }
     return personKind("", name);
   };
+  // 미리 한 번 훑어, 한 쪽에 같은 그림이 둘 서는 이름은 이야기 전체에서 다른 그림으로 정해 둔다
+  for (const p of pages) {
+    const used = new Set<PersonId>();
+    for (const c of p.scene?.characters ?? []) {
+      let k = renamed.get(c.name) ?? kindOfName(c.name);
+      if (!k) continue;
+      if (used.has(k)) {
+        k = k === "friend" ? "friend2" : k === "friend2" ? "friend" : k === "mom" ? "aunt" : k === "teacher" ? "adult" : k;
+        if (!renamed.has(c.name)) renamed.set(c.name, k);
+      }
+      used.add(k);
+    }
+  }
   for (const p of pages) {
     loc = locationFor(place, p, loc);
     const st = stageIdx(p.stage);
@@ -405,13 +429,14 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const props: PropPlan[] = [];
     const actionProp = picks.action ? ACTION_PROP[picks.action] : undefined;
     const prevProps = out.length ? out[out.length - 1].props.map((q) => q.id) : [];
-    const keep = (id: "adult" | "friend", enter: "left" | "right") => {
+    const keep = (card: "adult" | "friend", enter: "left" | "right") => {
+      const id = card === "adult" ? cardAdult : cardFriend;
       if (!planned) props.push(prevProps.includes(id) ? { id } : { id, enter });
     };
-    if (!planned && picks.problem === "crying" && st >= 1 && st <= 2) props.push({ id: "friend" });
+    if (!planned && picks.problem === "crying" && st >= 1 && st <= 2) props.push({ id: cardFriend });
     if (p.stage === "action" && actionProp) {
       if (actionProp === "adult") keep("adult", "left");
-      if (actionProp === "friend" && !props.some((q) => q.id === "friend")) keep("friend", "right");
+      if (actionProp === "friend" && !props.some((q) => q.id === cardFriend)) keep("friend", "right");
       if (actionProp === "sign") props.push({ id: "sign" });
       if (actionProp === "cover" && cover) props.push({ id: "cover", ...cover });
     }
@@ -426,9 +451,14 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       .filter((v): v is { c: { name: string; slot: string }; kind: PersonId } => !!v.kind);
     for (const v of scripted) if (!seenKinds.some((q) => q.name === v.c.name)) seenKinds.push({ name: v.c.name, kind: v.kind });
     // 같은 그림이 한 쪽에 둘이면 다른 친구 그림으로 (친구 둘)
+    // 한 번 바꾼 이름은 이야기 전체에서 그 그림 (11/4 — 사서 선생님이 혼자일 때는 선생님, 담임과 함께일 때는 다른 어른 그림이었다)
+    for (const v of scripted) if (renamed.has(v.c.name)) v.kind = renamed.get(v.c.name)!;
     const usedKinds = new Set<PersonId>();
     for (const v of scripted) {
-      if (usedKinds.has(v.kind)) v.kind = v.kind === "friend" ? "friend2" : v.kind === "friend2" ? "friend" : v.kind === "mom" ? "aunt" : v.kind === "teacher" ? "adult" : v.kind;
+      if (usedKinds.has(v.kind)) {
+        v.kind = v.kind === "friend" ? "friend2" : v.kind === "friend2" ? "friend" : v.kind === "mom" ? "aunt" : v.kind === "teacher" ? "adult" : v.kind;
+        renamed.set(v.c.name, v.kind);
+      }
       usedKinds.add(v.kind);
     }
     if (scripted.length) {
