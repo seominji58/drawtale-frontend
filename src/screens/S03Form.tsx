@@ -6,9 +6,13 @@ import { useSession } from "@/store/session";
 import { useForms, type FormDef } from "@/features/character/forms";
 import type { StepChoice } from "@/types/story";
 
-/** 형태 카드 그림 — 장면 층의 인물 · 동물 그림을 다시 쓴다. 없는 형태는 고양이 */
-const ICON: Record<string, string> = { biped: "friend", quadruped: "dog", nonhumanoid: "cat" };
-const icon = (key: string) => `${import.meta.env.BASE_URL}scenes/props/${ICON[key] ?? "cat"}.webp`;
+/** 형태 카드 그림 (public/forms, 11/4 사용자). 형태는 특정 동물이 아니라 몸 모양 안내선으로 —
+ *  정면 강아지 그림은 「옆모습 · 다리 아래로」 그려야 하는 4족형과 맞지 않았다. 「다른 모습」은 새 · 나비 · 물고기 ·
+ *  강아지 · 고양이 모음(장면 그림을 합친 것)으로 사람이 아닌 친구 전부를 뜻한다. 그림이 없는 형태는 물음표 */
+const ICON: Record<string, string> = {
+  biped: "biped.svg", quadruped: "quadruped.svg", nonhumanoid: "others.webp", none: "none.svg",
+};
+const icon = (key: string) => `${import.meta.env.BASE_URL}forms/${ICON[key] ?? "none.svg"}`;
 const card = (f: FormDef): StepChoice => ({ id: f.id, iconUrl: icon(f.id), label: f.kid_label });
 
 /** S-03 「이 그림으로」 다음 — 「누구를 그렸어요?」 (pt_docs 19 5장, 2026-11-04).
@@ -20,6 +24,8 @@ export default function S03Form() {
   const { file, setForm } = useSession();
   const { forms, load } = useForms();
   const [other, setOther] = useState(false);
+  // 2단계 「여기에 없어요」를 눌렀다 — 아직 준비 안 된 모양(물고기 · 새 …). 1단계로 돌아가 두 발 친구를 권한다
+  const [missing, setMissing] = useState(false);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (!file) nav("/upload", { replace: true }); }, [file, nav]);
 
@@ -36,15 +42,19 @@ export default function S03Form() {
     ...humanoid.slice(0, 1).map(card),
     { id: "__other", iconUrl: icon("nonhumanoid"), label: "다른 모습 친구" },
   ];
+  const step2: StepChoice[] = [...nonhumanoid.map(card), { id: "__none", iconUrl: icon("none"), label: "여기에 없어요" }];
 
   return (
     <Screen back={other ? () => setOther(false) : "/upload"} segment={1}
-      speech={other ? "어떤 친구예요?" : "누구를 그렸어요?"}>
+      speech={other ? "어떤 친구예요?" : missing ? "아직 준비 중인 모양이에요. 두 발 친구로 해 볼까요?" : "누구를 그렸어요?"}>
+      {/* 소리를 꺼 둔 아이도 보게 — 「여기에 없어요」 다음에만 글로 */}
+      {missing && !other && <h2 className="question">아직 준비 중인 모양이에요. 두 발 친구로 해 볼까요?</h2>}
       <div className="pick-area">
-        <div className="choices form-choices" data-count={other ? nonhumanoid.length : step1.length}>
-          {(other ? nonhumanoid.map(card) : step1).map((c) => (
+        <div className="choices form-choices" data-count={other ? step2.length : step1.length}>
+          {(other ? step2 : step1).map((c) => (
             <ChoiceCard key={c.id} choice={c}
-              onPick={(id) => (id === "__other" ? setOther(true) : choose(id))} />
+              onPick={(id) => (id === "__other" ? setOther(true)
+                : id === "__none" ? (setMissing(true), setOther(false)) : choose(id))} />
           ))}
         </div>
       </div>
