@@ -1,14 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
-  <!-- 「네 발로 걷는 친구」 형태 카드 (S-03, 11/4) — 어떤 동물인지 말하지 않는 옆모습 안내선. 다리가 아래, 머리 · 꼬리가 양옆 -->
+  <!-- 「네 발로 걷는 친구」 형태 카드 (S-03, 11/4) — 어떤 동물인지 말하지 않는 옆모습 안내선. 몸통 · 다리 넷 · 얼굴형만 (귀 · 꼬리 같은 꾸밈 없이, 사용자) -->
   <g fill="#F2DDBF" stroke="#8B6B4E" stroke-width="5" stroke-dasharray="11 8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M58 98 C38 84 30 60 40 44" fill="none"/>
-    <rect x="70" y="92" width="62" height="96" rx="20"/>
+    <rect x="70" y="92" width="34" height="112" rx="15"/>
     <rect x="98" y="100" width="34" height="104" rx="15"/>
     <rect x="186" y="100" width="34" height="104" rx="15"/>
     <rect x="214" y="92" width="34" height="112" rx="15"/>
     <path d="M60 116 C60 84 92 76 160 76 C222 76 252 80 254 112 C256 144 226 150 160 150 C94 150 60 148 60 116 Z"/>
     <path d="M228 92 C228 52 248 34 272 34 C296 34 306 54 304 74 C302 96 284 106 262 104 C246 102 236 98 228 92 Z"/>
-    <path d="M256 40 L262 14 L278 34" />
   </g>
-  <circle cx="282" cy="62" r="5" fill="#8B6B4E"/>
 </svg>
