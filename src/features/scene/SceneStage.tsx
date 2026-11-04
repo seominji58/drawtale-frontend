@@ -89,10 +89,12 @@ interface Props {
   sprite?: { url: string; frames: number; box: [number, number, number, number] } | null;
   /** 배경을 잘라 낸 주인공 정지 그림 */
   still?: string | null;
+  /** 정지 그림 안 주인공 손 위치 (서버 still_hands) — 대본에서 주인공이 든 소품을 손에 */
+  heroHands?: { l: number[]; r: number[] } | null;
   mode: "play" | "start" | "end";
 }
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands }: Props) {
   const play = mode === "play";
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
@@ -290,15 +292,29 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
         const h = holder.sb.h * 0.16, foot = (holder.sb.foot ?? 0.93) - holder.sb.h + h * 0.62;
         return { x: holder.spot.x, cls: "", style: spotStyle({ src: t.src, x: holder.spot.x, foot, h }) };
       }
-      case "hand": {   // 그 사람 손끝에 소품 손잡이를 (손 위치는 그림마다 잰 값, hands.json). 주인공 손은 아직 — 보통 자리
-        if (!holder) return null;
-        const hand = (HANDS as Record<string, { l: number[]; r: number[] }>)[holder.p.id];
-        if (!hand) return null;
-        const outer = holder.spot.x >= hero.to ? "r" : "l";   // 주인공과 먼 쪽 손
-        const pw = holder.sb.h * arOf(`props/${holder.p.id}.webp`, 0.4) / aspect;
-        const hx = holder.spot.x + (hand[outer][0] - 0.5) * pw;
-        const hy = (holder.sb.foot ?? 0.93) - holder.sb.h + hand[outer][1] * holder.sb.h;   // 위에서부터
-        const h = Math.min(t.h, holder.sb.h * (SIDE_GRIP.has(t.src) ? 0.1 : 0.2)), w = thingW(h);
+      case "hand": {   // 그 사람 손끝에 소품 손잡이를 (인물은 그림마다 잰 값 hands.json, 주인공은 AI 손 관절 still_hands)
+        let hx: number, hy: number, outer: "l" | "r", bodyH: number;
+        if (t.holder === "hero") {
+          // 주인공은 가만히 있는 쪽만 — 걷거나 팔이 움직이면 손에서 떨어져 보인다
+          const drawW = spr ? (spr.box[2] - spr.box[0]) * (H.h / Math.max(0.05, spr.box[3] - spr.box[1])) / aspect
+            : stillAr ? H.h * stillAr / aspect : 0;
+          if (!heroHands || !hero.calm || !drawW) return null;
+          // 사람이 서 있지 않은 쪽 손 (둘 다 비었으면 그림 오른쪽 손)
+          outer = people.some((v) => v && v.spot.x > hero.to) && !people.some((v) => v && v.spot.x < hero.to) ? "l" : "r";
+          hx = heroX + (heroHands[outer][0] - 0.5) * drawW;
+          hy = H.foot - H.h + heroHands[outer][1] * H.h;
+          bodyH = H.h;
+        } else {
+          if (!holder) return null;
+          const hand = (HANDS as Record<string, { l: number[]; r: number[] }>)[holder.p.id];
+          if (!hand) return null;
+          outer = holder.spot.x >= hero.to ? "r" : "l";   // 주인공과 먼 쪽 손
+          const pw = holder.sb.h * arOf(`props/${holder.p.id}.webp`, 0.4) / aspect;
+          hx = holder.spot.x + (hand[outer][0] - 0.5) * pw;
+          hy = (holder.sb.foot ?? 0.93) - holder.sb.h + hand[outer][1] * holder.sb.h;   // 위에서부터
+          bodyH = holder.sb.h;
+        }
+        const h = Math.min(t.h, bodyH * (SIDE_GRIP.has(t.src) ? 0.1 : 0.2)), w = thingW(h);
         if (SIDE_GRIP.has(t.src)) {   // 손전등처럼 옆으로 쥐는 것 — 손잡이를 손에, 빛은 바깥으로 (그림은 빛이 왼쪽)
           const x = hx + (outer === "r" ? 0.4 : -0.4) * w;
           return { x, cls: "", style: { ...spotStyle({ src: t.src, x, foot: hy + h / 2, h }), ...(outer === "r" ? { transform: "translateX(-50%) scaleX(-1)" } : {}) } };

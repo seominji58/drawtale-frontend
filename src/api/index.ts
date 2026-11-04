@@ -75,6 +75,7 @@ interface ServerStory {
   audio_url: string | null;
   animation_url: string | null;
   still_url?: string | null;
+  still_hands?: { l: number[]; r: number[] } | null;
   sprite_url?: string | null; sprite_frames?: number | null; sprite_box?: [number, number, number, number] | null; action_motion?: string;
   created_at: string;
   /** 긴 이야기일 때만 (계약 2-6 `book`) */
@@ -205,6 +206,7 @@ function toStory(s: ServerStory): Story {
     audioUrl: s.audio_url,
     animationUrl: s.animation_url,
     stillUrl: s.still_url ?? null,
+    stillHands: s.still_hands ?? null,
     spriteUrl: s.sprite_url ?? null,
     sprite: s.sprite_url && s.sprite_frames ? { frames: s.sprite_frames, box: s.sprite_box ?? [0, 0, 1, 1] } : null,
     actionMotion: s.action_motion ?? "wave",

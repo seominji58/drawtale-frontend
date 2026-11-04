@@ -261,6 +261,8 @@ export interface HeroPlan {
   loops: number;
   /** 「넘어졌어요」 — 살짝 기울어 주저앉은 자세 */
   fallen: boolean;
+  /** 손이 거의 안 움직이는 쪽 (가만히 · 숨쉬기 · 떨기) — 대본에서 주인공이 든 소품을 손에 쥐여 줄 수 있다 */
+  calm: boolean;
   /** 「숨었어요」 — out: 이 쪽에서 앞 물건 뒤로 천천히 사라지고 그대로 숨어 있다, gone: 이미 숨어 있다(행동 단계 다음 쪽).
    *  다시 나타나지 않는다 (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 「2초 뒤 다시 나타난다」와 다름) */
   hide: "out" | "gone" | null;
@@ -403,6 +405,9 @@ function holderOf(t: ThingPlan, props: PropPlan[]): Partial<ThingPlan> {
   });
   return who ? { holder: who.name ?? who.id, subject: undefined } : { pose: undefined, subject: undefined };
 }
+
+/** 손이 거의 안 움직이는 쪽 동작 — 주인공이 든 소품은 이때만 손에 (손 흔들기 · 춤처럼 팔이 움직이면 소품이 손에서 떨어져 보인다) */
+const CALM_ACTIONS = new Set(["idle", "breathe", "shiver"]);
 
 /** 장소 카드 → 카드로 세우는 어른 그림 (* 는 이야기마다 남 · 여) */
 const PLACE_ADULT: Record<string, string> = {
@@ -547,7 +552,8 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     out.push({
       location: loc,
       env: { night, sun, weather },
-      hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide },
+      hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide,
+        calm: move === "none" && CALM_ACTIONS.has(p.action) },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다
       things: p.stage === "action" && picks.action === "hide" ? []
