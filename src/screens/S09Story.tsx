@@ -361,7 +361,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 투명 프레임 묶음이 있는 이야기는 장면 층으로 (2026-11-03 「나」 — features/scene): 세부 장소 · 밤낮 · 인물 · 움직임.
   // 묶음이 없는(예전 AI · 예전 이야기) 이야기는 위의 장소 배경 + 영상 바탕 지우기(PlaceScene)
   // 주인공 크기 기준 — 4족형처럼 옆으로 긴 몸은 몸길이로 (형태 정의 hero.fit, pt_docs 19)
-  const heroFit = formOf(story.form ?? useSession.getState().character?.form).hero?.fit ?? "height";
+  const heroForm = formOf(story.form ?? useSession.getState().character?.form);
+  const heroFit = heroForm.hero?.fit ?? "height";
+  // 옆모습 형태의 머리 방향 — 관절에서 목이 엉덩이보다 왼쪽이면 왼쪽. 관절을 모르면(책장에서 다시 연 이야기) 뒤집지 않는다
+  const heroFacing: -1 | 0 | 1 = heroForm.hero?.facing === "auto" && keypoints?.neck && keypoints?.hip
+    ? (keypoints.neck.x < keypoints.hip.x ? -1 : 1) : 0;
   const scenes = useMemo(
     // 내 소품은 보호자 모드 이야기에서만 (팀원 의견). 쪽 글에 이름이 나오면 그 쪽 장면 안 주인공 옆에 (11/3 사용자 추천안 —
     // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게
@@ -454,7 +458,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       return (
         <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
           <FitStage ar={null}>
-            <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode} fit={heroFit}
+            <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode} fit={heroFit} facing={heroFacing}
               sprite={pgI.sprite && pgI.spriteUrl ? { url: pgI.spriteUrl, ...pgI.sprite } : null} still={still} />
           </FitStage>
           {pageText(i, active, top)}

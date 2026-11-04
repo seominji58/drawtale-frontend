@@ -88,12 +88,14 @@ interface Props {
   mode: "play" | "start" | "end";
   /** 주인공 크기 기준 — 키(height, 사람) / 몸길이(width, 4족형처럼 옆으로 긴 몸). 형태 정의의 hero.fit (pt_docs 19) */
   fit?: "height" | "width";
+  /** 옆모습 그림의 머리 방향 (-1 왼쪽 · 1 오른쪽 · 0 모름/정면). 머리 반대쪽으로 옮겨 갈 때 좌우로 뒤집는다 */
+  facing?: -1 | 0 | 1;
 }
 
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, fit = "height" }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite, still, mode, fit = "height", facing = 0 }: Props) {
   const play = mode === "play";
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
@@ -213,6 +215,11 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, fit = "
     const stillH = fit === "width" && stillAr ? Math.min((H.h * WIDE_LEN) / stillAr, H.h * WIDE_MAX_H) : H.h;
     heroStyle = { height: `${stillH * 100}%`, left: `${heroX * 100}%`, bottom: `${(1 - H.foot) * 100}%` };
   }
+  // 옆모습(4족형)은 렌더가 머리 쪽으로 걷는다 — 머리 반대쪽으로 옮겨 가면 뒤로 걷는 것처럼 보여 좌우로 뒤집는다
+  // (11/4 사용자 「얼굴 방향에 따라 < 인지 > 인지」). transform 은 넘어짐(.fallen)이 쓰니 scale 로
+  const goes = Math.sign(hero.to - hero.from);
+  const flip = facing !== 0 && hero.move !== "none" && goes !== 0 && goes !== facing;
+  if (flip) heroStyle = { ...heroStyle, scale: "-1 1" };
   // 같은 빠르기로 (속도가 바뀌면 걸음과 어긋나 발이 미끄러진다)
   const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease`;
 
