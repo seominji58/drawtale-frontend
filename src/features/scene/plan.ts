@@ -474,9 +474,11 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const move = p.action === "walk" ? "walk" : p.action === "run" ? "run" : "none";
     let from = x, to = x;
     if (move !== "none") {
-      const target = props.some((q) => q.id === "sign") ? 0.7
-        : props.some((q) => q.id === "adult") ? 0.42
-        : props.some((q) => q.id === "friend") ? 0.58 : SLOT;
+      // 표지판으로 달려가면 표지판(0.87) 바로 앞에 멈춘다 — 0.7 이면 표지판이 주인공 자리에 걸려 길 중간으로 밀려나
+      // 주인공이 표지판을 지나쳐 달려갔다 (11/4 자리 검사). 어른 · 친구는 카드로 세운 장소 그림(cardAdult · cardFriend)도 본다
+      const target = props.some((q) => q.id === "sign") ? 0.6
+        : props.some((q) => q.id === "adult" || q.id === cardAdult) ? 0.42
+        : props.some((q) => q.id === "friend" || q.id === cardFriend) ? 0.58 : SLOT;
       // 제자리면 옆에서 들어온다 — 「걸어갔어요」가 보이게
       from = Math.abs(x - target) < 0.08 ? (target > 0.5 ? 0.16 : 0.84) : x;
       if (target === SLOT && from === 0.84) from = 0.16;

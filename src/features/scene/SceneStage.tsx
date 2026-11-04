@@ -38,7 +38,7 @@ function loadLayout(id: string): Promise<Layout> {
 }
 
 /** 장소 layout 에 없는 인물 그림(대본 인물 9가지, 11/3)의 키 · 폭. 자리는 대본이 정한다(x) */
-const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
+export const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
   friend: { h: 0.46, w: 0.45 }, adult: { h: 0.58, w: 0.42 }, friend2: { h: 0.46, w: 0.45 },
   grandma: { h: 0.54, w: 0.4 }, grandpa: { h: 0.57, w: 0.4 }, mom: { h: 0.58, w: 0.38 }, dad: { h: 0.6, w: 0.38 },
   teacher: { h: 0.58, w: 0.42 }, baby: { h: 0.28, w: 0.62 }, dog: { h: 0.24, w: 0.9 }, cat: { h: 0.24, w: 0.72 },
@@ -216,15 +216,19 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf]];
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);
   /** 자리 { x, back } — back 이면 설 자리가 없어 조금 뒤(작게 · 약간 위)에 선다. 그림책에서 뒤에 선 사람처럼 */
-  const personX = (x: number, h: number, wRatio = 0.45): { x: number; back: boolean } => {
+  const personX = (x: number, h: number, wRatio = 0.45, sameSide = false): { x: number; back: boolean } => {
     const half = (h * wRatio / aspect) / 2;   // 친구 · 어른 그림은 키의 4~5할 폭
     const gap = 0.015, lo = half + 0.01, hi = 1 - half - 0.01;
     const want = Math.min(hi, Math.max(lo, x));
     const right = want >= hero.to;
     const tries = [want];
     for (let k = 1; k <= 40; k++) tries.push(want + (right ? 1 : -1) * k * 0.02, want - (right ? 1 : -1) * k * 0.02);
-    const at = tries.find((c) => c >= lo && c <= hi && free(c - half - gap, c + half + gap));
+    // 표지판은 주인공이 달려가는 쪽에만 — 반대쪽(지나온 길)으로 밀리면 표지판을 지나쳐 달려간 것처럼 보였다 (11/4)
+    const side = (c: number) => !sameSide || (right ? c >= hero.to : c <= hero.to);
+    const at = tries.find((c) => c >= lo && c <= hi && side(c) && free(c - half - gap, c + half + gap));
     if (at !== undefined) { placed.push([at - half, at + half]); return { x: at, back: false }; }
+    // 표지판은 틈이 없어도 가는 쪽 끝에 (좁은 화면 · 팔 넓은 그림에서 손끝과 조금 닿는 정도) — 반대편 뒤로 가지 않게
+    if (sameSide) { const ex = right ? hi : lo; placed.push([ex - half, ex + half]); return { x: ex, back: false }; }
     // 남는 공간이 많은 쪽 끝 — 뒤에 서서 작아지니 겹쳐도 앞뒤로 읽힌다
     const leftRoom = Math.min(...placed.map(([l]) => l)), rightRoom = 1 - Math.max(...placed.map(([, r]) => r));
     const bx = rightRoom >= leftRoom ? hi - 0.02 : lo + 0.02;
@@ -234,18 +238,28 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
   // 쪽 글에 나온 물건 · 내 소품: 주인공 옆 땅에 (인물 자리를 먼저 잡은 뒤 남는 곳). 쪽 안 움직임 없이 처음부터 놓여 있다
   // 배경 그림에 이미 같은 물건이 있으면 또 놓지 않는다 (pt_docs 18 — 동굴에서 「돌」이 나와도 동굴엔 바위가 있다)
   const bgKinds = new Set(layout.objects.map((o) => kindOf(o.src)));
+  // 공중 소품(나비 · 새 · 행성 …)은 사람 머리 위 높이라 땅의 사람 · 물건과는 겹치지 않는다 — 공중 소품끼리만 피한다.
+  // 전에는 땅과 같은 줄에서 자리를 다퉈 괜히 빠졌고, 머리 높이(0.45)라 사람 머리와 겹칠 수 있었다 (11/4 자리 검사)
+  const airPlaced: [number, number][] = [];
   const thingSpots = (plan.things ?? []).filter((t) => !bgKinds.has(kindOf(t.src))).map((t, k) => {
-    const half = (t.h * t.ar / aspect) / 2;
-    const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
-    const tries: number[] = [];
-    for (let d = 0; d <= 40; d++) {
-      const off = heroHalf + half + gap + d * 0.02;
-      if (k % 2 === 0) tries.push(hero.to - off, hero.to + off); else tries.push(hero.to + off, hero.to - off);
+    const air = t.spot === "air";
+    const list = air ? airPlaced : placed;
+    const open = (a: number, b: number) => list.every(([l, r]) => b <= l || a >= r);
+    // 넓은 물건(시소 · 다리 · 텐트 · 바위)은 자리가 없으면 조금 작게라도 놓는다 — 전에는 통째로 빠졌다(좁은 화면에서 11%)
+    for (const scale of air ? [1] : [1, 0.75, 0.55]) {
+      const h = t.h * scale, half = (h * t.ar / aspect) / 2;
+      const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
+      const tries: number[] = [];
+      for (let d = 0; d <= 40; d++) {
+        const off = (air ? 0 : heroHalf) + half + gap + d * 0.02;
+        if (k % 2 === 0) tries.push(hero.to - off, hero.to + off); else tries.push(hero.to + off, hero.to - off);
+      }
+      const x = tries.find((c) => c >= lo && c <= hi && open(c - half - gap, c + half + gap));
+      if (x === undefined) continue;
+      list.push([x - half, x + half]);
+      return { ...t, h, x };
     }
-    const x = tries.find((c) => c >= lo && c <= hi && free(c - half - gap, c + half + gap));
-    if (x === undefined) return null;   // 놓을 자리가 없으면 겹치지 않게 뺀다 (글에서 먼저 나온 것이 먼저 자리를 잡는다)
-    placed.push([x - half, x + half]);
-    return { ...t, x };
+    return null;   // 줄여도 놓을 자리가 없으면 겹치지 않게 뺀다 (글에서 먼저 나온 것이 먼저 자리를 잡는다)
   }).filter((t): t is NonNullable<typeof t> => !!t);
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
@@ -280,7 +294,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
         if (!base0) return null;
         const s = p.x !== undefined ? { ...base0, x: p.x } : base0;
         // 걸어 들어오는 인물: 처음엔 화면 밖, 끝 모습에서 제자리
-        const spot = personX(s.x, s.h, p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45);
+        const spot = personX(s.x, s.h, p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45, p.id === "sign");
         const x = phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
         const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
         return (
@@ -295,7 +309,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode }: Props
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
              style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
-               : { src: t.src, x: t.x, foot: t.spot === "air" ? 0.45 : 0.95, h: t.h }),
+               : { src: t.src, x: t.x, foot: t.spot === "air" ? 0.3 : 0.95, h: t.h }),
                // 공은 주인공 반대쪽으로 굴러간다 (주인공과 부딪치지 않게)
                ["--roll" as string]: t.x < hero.to ? -1 : 1 }} />
       ))}
