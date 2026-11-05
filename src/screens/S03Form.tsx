@@ -25,10 +25,12 @@ export default function S03Form() {
   const nav = useNavigate();
   const { file, setForm } = useSession();
   // 「화면에 그리기」에서 왔다 — 형태를 고르면 그 모양 안내선으로 그리러 간다 (그림이 아직 없다)
-  const draw = !!(useLocation().state as { draw?: boolean } | null)?.draw;
+  const st = useLocation().state as { draw?: boolean; other?: boolean } | null;
+  const draw = !!st?.draw;
   const next = draw ? "/draw" : "/analyzing";
   const { forms, load } = useForms();
-  const [other, setOther] = useState(false);
+  // 그리기 화면에서 뒤로 왔으면 고르던 단계(다른 모습 친구)로 — 처음부터 다시 고르지 않게 (11/5 사용자)
+  const [other, setOther] = useState(!!st?.other);
   // 2단계 「여기에 없어요」를 눌렀다 — 아직 준비 안 된 모양(물고기 · 새 …). 1단계로 돌아가 두 발 친구를 권한다
   const [missing, setMissing] = useState(false);
   useEffect(() => { void load(); }, [load]);

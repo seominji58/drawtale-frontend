@@ -171,7 +171,7 @@ export default function S03Draw() {
   };
 
   return (
-    <Screen back="/upload" speech={QUESTION} segment={1}
+    <Screen back={() => nav("/form", { state: { draw: true, other: form !== "biped" } })} speech={QUESTION} segment={1}
       acts={
         <>
           <BigButton disabled={empty} nudgeOnDisabled={false} onClick={undo}>되돌리기</BigButton>
