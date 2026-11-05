@@ -10,8 +10,10 @@ import type { StepChoice } from "@/types/story";
  *  정면 강아지 그림은 「옆모습 · 다리 아래로」 그려야 하는 4족형과 맞지 않았다. 「다른 모습」은 새 · 나비 · 물고기 ·
  *  강아지 · 고양이 모음(장면 그림을 합친 것)으로 사람이 아닌 친구 전부를 뜻한다. 그림이 없는 형태는 물음표 */
 const ICON: Record<string, string> = {
-  biped: "biped.svg", quadruped: "quadruped.svg", nonhumanoid: "others.webp", none: "none.svg",
+  biped: "biped.svg", quadruped: "quadruped.svg", chain: "chain.svg", finned: "finned.svg",
+  nonhumanoid: "others.webp", none: "none.svg",
 };
+const ORDER = ["quadruped", "chain", "finned"];
 const icon = (key: string) => `${import.meta.env.BASE_URL}forms/${ICON[key] ?? "none.svg"}`;
 const card = (f: FormDef): StepChoice => ({ id: f.id, iconUrl: icon(f.id), label: f.kid_label });
 
@@ -30,7 +32,9 @@ export default function S03Form() {
   useEffect(() => { if (!file) nav("/upload", { replace: true }); }, [file, nav]);
 
   const humanoid = forms.filter((f) => f.group === "humanoid");
-  const nonhumanoid = forms.filter((f) => f.group === "nonhumanoid");
+  // 많이 그리는 순서로 (서버는 형태 이름 순서로 보낸다 — 4족형이 뒤로 밀렸다, 11/5). 목록에 없는 새 형태는 뒤에
+  const rank = (id: string) => { const i = ORDER.indexOf(id); return i < 0 ? ORDER.length : i; };
+  const nonhumanoid = forms.filter((f) => f.group === "nonhumanoid").sort((a, b) => rank(a.id) - rank(b.id));
   const choose = (id: string) => { setForm(id); nav("/analyzing"); };
 
   // 서버가 다른 형태를 하나도 주지 않으면(예전 서버 · 목 엔진) 묻지 않고 사람으로 간다
