@@ -24,10 +24,27 @@ import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
 /** 넓은 화면에서 종이 양옆이 차지하는 폭: 색 세 칸(보호자 팔레트도 같은 폭) + 도구 세 칸 + 사이 간격 */
 const SIDES = (TAP * 3 + 24) + (TAP * 3 + 24) + 2 * 20;
 const QUESTION = "내 친구를 그려 볼까요?";
+/** 형태마다 그리기 안내 (11/5 — 그리기도 형태 모양 안내선으로). 사람은 지금 안내 그대로 */
+const HINT: Record<string, string> = {
+  biped: "선을 따라 그려도, 내 마음대로 그려도 돼요 · 팔다리를 몸에 붙이면 더 잘 움직여요",
+  quadruped: "옆에서 본 모습으로 그려요 · 다리 네 개를 아래로, 몸에 붙여요",
+  winged: "옆에서 본 모습으로 그려요 · 날개는 하나만, 등 위로 크게 솟게",
+  chain: "길쭉한 몸을 옆으로 길게 그려요 · 머리에 눈을 그려요",
+  finned: "옆에서 본 모습으로 그려요 · 몸 뒤에 꼬리지느러미를 붙여요",
+  radial: "둥근 몸 아래로 다리를 여러 개 그려요 · 다리끼리 떨어지게",
+};
 
 export default function S03Draw() {
   const nav = useNavigate();
-  const setFile = useSession((s) => s.setFile);
+  const { setFile, setDrawnAs, form } = useSession();
+  // 형태 안내선 — 사람은 몸 부위 점선(drawFigureGuide), 다른 형태는 형태 고르기 카드 실루엣을 옅게 (그림 PNG 에는 안 들어간다)
+  const [formGuide, setFormGuide] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    if (form === "biped") { setFormGuide(null); return; }
+    const img = new Image();
+    img.onload = () => setFormGuide(img);
+    img.src = `${import.meta.env.BASE_URL}forms/${form}.svg`;
+  }, [form]);
   const guardian = useGuardianMode();
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState(PEN_COLORS[0].hex);
@@ -76,9 +93,16 @@ export default function S03Draw() {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, c.width, c.height);
     ctx.setTransform((box.w * dpr) / W, 0, 0, (box.h * dpr) / H, 0, 0);
-    drawFigureGuide(ctx);   // 사람 모양 안내선 (그림 PNG 에는 안 들어간다)
+    if (form === "biped") drawFigureGuide(ctx);   // 사람 모양 안내선 (그림 PNG 에는 안 들어간다)
+    else if (formGuide) {
+      const s = (W * 0.92) / formGuide.width;
+      const gw = formGuide.width * s, gh = formGuide.height * s;
+      ctx.globalAlpha = 0.45;
+      ctx.drawImage(formGuide, (W - gw) / 2, (H - gh) / 2, gw, gh);
+      ctx.globalAlpha = 1;
+    }
     drawLayer(ctx, drawing, live.current ?? undefined);
-  }, [box, drawing]);
+  }, [box, drawing, form, formGuide]);
 
   useEffect(paint, [paint]);
 
@@ -129,6 +153,7 @@ export default function S03Draw() {
     setBusy(true);
     try {
       setFile(await toPngFile(drawing));
+      setDrawnAs(form);
       nav("/upload", { replace: true });   // S-03 에서 「이 그림으로」를 누른다
     } finally {
       setBusy(false);
@@ -145,7 +170,7 @@ export default function S03Draw() {
         </>
       }>
       <h2 className="question">{QUESTION}</h2>
-      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "선을 따라 그려도, 내 마음대로 그려도 돼요 · 팔다리를 몸에 붙이면 더 잘 움직여요"}</p>
+      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : HINT[form] ?? HINT.biped}</p>
 
       {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기는 오른쪽에 종이와 붙여 둔다
           (기준 화면이 가로 1024×768). 좁으면 종이 아래로 내려간다 */}

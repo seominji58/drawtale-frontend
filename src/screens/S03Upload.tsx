@@ -14,7 +14,7 @@ const REJECTED = "이 그림은 열 수 없어요. 다른 그림을 골라 볼�
 
 export default function S03Upload() {
   const nav = useNavigate();
-  const { imageUrl, file, setFile } = useSession();
+  const { imageUrl, file, setFile, drawnAs } = useSession();
   /** 「돌리기」: 고른 원본과 돌린 횟수(시계 방향 90도씩). 누를 때마다 원본에서 새로 돌려 보인다 — 돌린 그림을 또 돌리면 화질이 준다 */
   const [orig, setOrig] = useState<File | null>(null);
   const [turn, setTurn] = useState(0);
@@ -66,12 +66,14 @@ export default function S03Upload() {
           {/* 누운 그림을 바르게 (pt_docs 19 7-1) — 사람 · 동물 모두 머리가 위, 다리가 아래로 */}
           <BigButton disabled={busy} onClick={rotate}>돌리기 ↻</BigButton>
           {/* 다음은 「누구를 그렸어요?」 — 그림의 몸 구조를 고른다 (S03Form, pt_docs 19) */}
-          <BigButton go disabled={busy} onClick={() => nav("/form")}>이 그림으로</BigButton>
+          {/* 화면에 그린 그림은 그리기 전에 형태를 골랐다 — 다시 묻지 않는다 */}
+          <BigButton go disabled={busy} onClick={() => nav(drawnAs ? "/analyzing" : "/form")}>이 그림으로</BigButton>
         </>
       ) : (
         <>
           {/* S-03-04 화면에 그리기가 주된 행동이다 (pt_docs 05 S-03) */}
-          <BigButton go onClick={() => nav("/draw")}>화면에 그리기</BigButton>
+          {/* 무엇을 그릴지(형태) 먼저 고르고 그 모양 안내선으로 그린다 (11/5 사용자 「그리기도 형태를 가이드해서」) */}
+          <BigButton go onClick={() => nav("/form", { state: { draw: true } })}>화면에 그리기</BigButton>
           {photo && <BigButton onClick={() => camera.current?.click()}>그림 찍기</BigButton>}
           {photo && <BigButton onClick={() => album.current?.click()}>앨범에서 고르기</BigButton>}
         </>

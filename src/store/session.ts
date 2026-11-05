@@ -10,6 +10,10 @@ interface SessionState {
   imageUrl: string | null;
   /** 「누구를 그렸어요?」(S03Form)에서 고른 형태 (pt_docs 19). 분석에 함께 보낸다 */
   form: string;
+  /** 화면에 그린 그림의 형태 — 그리기 전에 형태를 골랐다(그 형태 안내선으로 그렸다). 사진 · 다른 그림이면 null.
+   *  S-03 「이 그림으로」가 형태 고르기를 건너뛴다 (11/5) */
+  drawnAs: string | null;
+  setDrawnAs: (form: string | null) => void;
   /** S-04 결과. S-06 에서 보정을 저장하면 서버가 돌려준 값으로 바뀐다 */
   character: Character | null;
   /** 화면에 펴는 관절. S-06 에서 끄는 동안은 저장 전 값이다 */
@@ -42,6 +46,8 @@ export const useSession = create<SessionState>((set, get) => ({
   file: null,
   imageUrl: null,
   form: "biped",
+  drawnAs: null,
+  setDrawnAs: (drawnAs) => set({ drawnAs }),
   character: null,
   keypoints: null,
   name: null,
@@ -53,7 +59,7 @@ export const useSession = create<SessionState>((set, get) => ({
   setFile: (f) => {
     const prev = get().imageUrl;
     if (prev) URL.revokeObjectURL(prev);
-    set({ file: f, imageUrl: f ? URL.createObjectURL(f) : null, name: null });
+    set({ drawnAs: null }); set({ file: f, imageUrl: f ? URL.createObjectURL(f) : null, name: null });
   },
   setForm: (form) => set({ form }),
   setCharacter: (c) => set({ character: c, keypoints: c ? c.keypoints : null }),
@@ -84,7 +90,7 @@ export const useSession = create<SessionState>((set, get) => ({
   resetAll: () => {
     const prev = get().imageUrl;
     if (prev) URL.revokeObjectURL(prev);
-    set({ file: null, imageUrl: null, form: "biped", character: null, keypoints: null, name: null,
+    set({ file: null, imageUrl: null, form: "biped", drawnAs: null, character: null, keypoints: null, name: null,
           picks: {}, said: {}, story: null, errorCode: null });
   },
 }));

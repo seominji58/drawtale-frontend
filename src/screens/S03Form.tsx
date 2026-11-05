@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import ChoiceCard from "@/components/ChoiceCard";
 import { useSession } from "@/store/session";
@@ -24,23 +24,26 @@ const card = (f: FormDef): StepChoice => ({ id: f.id, iconUrl: icon(f.id), label
 export default function S03Form() {
   const nav = useNavigate();
   const { file, setForm } = useSession();
+  // 「화면에 그리기」에서 왔다 — 형태를 고르면 그 모양 안내선으로 그리러 간다 (그림이 아직 없다)
+  const draw = !!(useLocation().state as { draw?: boolean } | null)?.draw;
+  const next = draw ? "/draw" : "/analyzing";
   const { forms, load } = useForms();
   const [other, setOther] = useState(false);
   // 2단계 「여기에 없어요」를 눌렀다 — 아직 준비 안 된 모양(물고기 · 새 …). 1단계로 돌아가 두 발 친구를 권한다
   const [missing, setMissing] = useState(false);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { if (!file) nav("/upload", { replace: true }); }, [file, nav]);
+  useEffect(() => { if (!file && !draw) nav("/upload", { replace: true }); }, [file, draw, nav]);
 
   const humanoid = forms.filter((f) => f.group === "humanoid");
   // 많이 그리는 순서로 (서버는 형태 이름 순서로 보낸다 — 4족형이 뒤로 밀렸다, 11/5). 목록에 없는 새 형태는 뒤에
   const rank = (id: string) => { const i = ORDER.indexOf(id); return i < 0 ? ORDER.length : i; };
   const nonhumanoid = forms.filter((f) => f.group === "nonhumanoid").sort((a, b) => rank(a.id) - rank(b.id));
-  const choose = (id: string) => { setForm(id); nav("/analyzing"); };
+  const choose = (id: string) => { setForm(id); nav(next); };
 
   // 서버가 다른 형태를 하나도 주지 않으면(예전 서버 · 목 엔진) 묻지 않고 사람으로 간다
   useEffect(() => {
-    if (useForms.getState().loaded && nonhumanoid.length === 0) { setForm("biped"); nav("/analyzing", { replace: true }); }
-  }, [forms, nonhumanoid.length, nav, setForm]);
+    if (useForms.getState().loaded && nonhumanoid.length === 0) { setForm("biped"); nav(next, { replace: true }); }
+  }, [forms, nonhumanoid.length, nav, setForm, next]);
 
   const step1: StepChoice[] = [
     ...humanoid.slice(0, 1).map(card),

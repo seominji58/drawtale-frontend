@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import ConfirmCard from "@/components/ConfirmCard";
-import { ColorPalette, PenTools } from "@/components/DrawTools";
+import { ColorPalette, PenTools, TAP } from "@/components/DrawTools";
 import type { Tool } from "@/components/DrawTools";
 import { ERASER_SCALE, H, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, toTrimmedPng } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Pt } from "@/features/draw/drawing";
@@ -15,6 +15,9 @@ import { useGuardianMode } from "@/store/settings";
 /** 소품 그리기 · 이름 붙이기 (2026-10-27 로컬 시험, open-decisions 0-13).
  *  1) 화면에 한 장 그린다 (S-03D 와 같은 도구, 부위 단계 · 안내 점선 없음). 종이 그림을 올렸으면 이 단계를 건너뛴다.
  *  2) 「무엇을 그렸나요?」 — 아이 · 보호자가 이름을 적고 「이걸로 할래요」로 등록한다. */
+/** 색(3칸) · 도구 두 기둥 폭 — 친구 그리기(S03Draw)와 같다 */
+const SIDES = (TAP * 3 + 24) + (TAP * 3 + 24) + 2 * 20;
+
 export default function SPropDraw() {
   const nav = useNavigate();
   const loc = useLocation() as { state?: { png?: string; from?: "photo" } };
@@ -31,7 +34,7 @@ export default function SPropDraw() {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef<LiveStroke | null>(null);
-  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [box, setBox] = useState({ w: 0, h: 0, wide: true, aw: 0 });
   /** 이름 붙이는 단계의 그림. 종이 그림을 올렸으면 처음부터 있다 */
   const [png, setPng] = useState<string | null>(loc.state?.png ?? null);
   const from = loc.state?.from === "photo" ? "photo" : "draw";
@@ -42,10 +45,15 @@ export default function SPropDraw() {
   useLayoutEffect(() => {
     const el = wrap.current;
     if (!el) return;
+    // 친구 그리기(S03Draw)와 같은 배치 — 넓으면 [색 | 종이 | 도구], 좁으면 종이 아래로. 전에는 24색 팔레트를
+    // 6칸 큰 단추로 그려 화면 아래 단추(되돌리기 · 다 그렸어요)와 겹쳤다 (11/5 사용자 「레이아웃이 다 깨져」)
     const fit = () => {
       const r = el.getBoundingClientRect();
-      const s = Math.min((r.width - 16) / W, (r.height - 16) / H);
-      setBox({ w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)) });
+      const wide = r.width >= SIDES + 320;
+      const s = wide
+        ? Math.min((r.width - SIDES) / W, r.height / H)
+        : Math.min((r.width - 12) / W, Math.max(260, r.height * 0.8) / H);
+      setBox({ w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), wide, aw: r.width });
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -143,15 +151,17 @@ export default function SPropDraw() {
       )}
       <h2 className="question">무엇을 그려 볼까요?</h2>
       <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "이야기에 나올 물건을 크게 그려요"}</p>
-      <div className="row" style={{ flex: 1, minHeight: 0, flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div ref={wrap} className={`draw-area ${box.wide ? "wide" : "narrow"}`}>
         {/* 내 소품은 보호자 모드에서만 쓰므로 보호자 팔레트 (2026-10-28) */}
-        <ColorPalette full tool={tool} color={color} onColor={(hex) => { setColor(hex); setTool("pen"); }} />
-        <div ref={wrap} className="stage" style={{ flex: 1, minWidth: 240, alignSelf: "stretch" }}>
+        <ColorPalette full tool={tool} color={color} cols={box.wide ? 3 : 4}
+          size={box.wide ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
+          onColor={(hex) => { setColor(hex); setTool("pen"); }} />
+        <div className="draw-paper" style={{ width: box.w, height: box.h }}>
           <canvas ref={canvas}
-            style={{ width: box.w, height: box.h, touchAction: "none", borderRadius: 16, cursor: "crosshair" }}
+            style={{ width: box.w, height: box.h, touchAction: "none", cursor: "crosshair" }}
             onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
         </div>
-        <div style={{ flex: "0 0 288px", display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="draw-tools">
           <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth} />
         </div>
       </div>
