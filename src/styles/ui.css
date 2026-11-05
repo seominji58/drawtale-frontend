@@ -464,7 +464,9 @@
   background: conic-gradient(#E0413A, #F2C200, #2E9E5B, #5BC0EB, #2F6FDB, #7E4CC9, #F06EAA, #E0413A);
 }
 .make-input { position: absolute; left: 50%; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.palette-recent { display: grid; grid-template-columns: auto repeat(6, 1fr); gap: 8px; align-items: center; font-size: 13px; color: var(--ink-soft); }
+.palette-recent { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: center; font-size: 13px; color: var(--ink-soft); }
+/* 「내가 만든 색」 이름은 칸 위 한 줄에 — 이름이 길어져 칸이 좁아지지 않게 (11/5) */
+.palette-recent > span { grid-column: 1 / -1; }
 .palette-note { font-size: 13px; line-height: 1.5; color: #7A5413; background: #FFF3D2; border: 1px solid #E8C77A; border-radius: 10px; padding: 8px 10px; }
 .draw-area.narrow .palette-full { width: 100%; max-width: 420px; }
 

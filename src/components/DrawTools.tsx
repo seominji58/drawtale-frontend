@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FULL_COLORS, KID_COLORS, PEN_WIDTHS, isFaint, luminance } from "@/features/draw/drawing";
 
 /* 그리기 도구 — S-03D 화면에 그리기와 내 소품 그리기가 같이 쓴다 (2026-10-27).
@@ -56,12 +56,23 @@ const readRecent = (): string[] => {
 function FullPalette({ tool, color, onColor }: PaletteProps) {
   const [recent, setRecent] = useState<string[]>(readRecent);
   const picker = useRef<HTMLInputElement>(null);
+  // 색 고르기 창을 닫을 때(브라우저 change)만 저장한다 — React 의 onChange 는 고르는 동안 계속 불린다
+  useEffect(() => {
+    const el = picker.current;
+    if (!el) return;
+    const done = () => keep(el.value);
+    el.addEventListener("change", done);
+    return () => el.removeEventListener("change", done);
+  });
   const on = (hex: string) => tool === "pen" && color.toLowerCase() === hex.toLowerCase();
   const inBase = FULL_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase());
 
-  // 「색 만들기」로 정한 색을 최근 색 맨 앞에 둔다 (같은 기기에서만 남는다)
+  // 「색 만들기」로 정한 색을 「내가 만든 색」 맨 앞에 둔다 (같은 기기에서만 남는다).
+  // 거의 같은 색은 하나로 — 전에는 고르는 동안 움직일 때마다 저장돼 비슷한 초록 여섯 개가 칸을 채웠다 (11/5 사용자)
   const keep = (hex: string) => {
-    const next = [hex, ...recent.filter((x) => x.toLowerCase() !== hex.toLowerCase())].slice(0, RECENT_MAX);
+    const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const near = (a: string, b: string) => { const [x, y] = [rgb(a), rgb(b)]; return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 40; };
+    const next = [hex, ...recent.filter((x) => !near(x, hex))].slice(0, RECENT_MAX);
     setRecent(next);
     try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* 저장 못 해도 된다 */ }
   };
@@ -86,13 +97,12 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
         </button>
         {/* 브라우저 색 고르기 창 (그림판의 「색 편집」). 고르는 동안에도 바로 칠할 색이 바뀐다 */}
         <input ref={picker} type="color" value={/^#[0-9a-f]{6}$/i.test(color) ? color : "#3a3733"}
-          onInput={(e) => onColor((e.target as HTMLInputElement).value)}
-          onChange={(e) => keep(e.target.value)}
+          onChange={(e) => onColor(e.target.value)}
           tabIndex={-1} aria-hidden="true" className="make-input" />
       </div>
       {recent.length > 0 && (
-        <div className="palette-recent" role="radiogroup" aria-label="최근 만든 색">
-          <span>최근</span>
+        <div className="palette-recent" role="radiogroup" aria-label="내가 만든 색">
+          <span>내가 만든 색</span>
           {recent.map((hex) => swatch(hex, `만든 색 ${hex}`, `r-${hex}`))}
         </div>
       )}
