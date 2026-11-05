@@ -5,8 +5,12 @@ import type { Character, Keypoints } from "@/types/character";
 
 /** 관절이 찍힌 그림 — 보기만 한다 (S-05, 2026-11-02 사용자 「관절도 사전에 볼 수 있게」).
  *  고치는 것은 S-06(어른). AI 가 자신 없어 한 관절(score < 0.4)은 S-06 처럼 빨간 점 */
-export default function JointView({ imageUrl, character, keypoints }: {
+export default function JointView({ imageUrl, character, keypoints, tags, busy }: {
   imageUrl: string; character: Character; keypoints: Keypoints;
+  /** 점 위에 붙이는 이름표 (관절 이름 → 글). 옆모습 형태에서 AI 가 얼굴 · 꼬리로 본 자리를 보여 준다 (11/5 사용자) */
+  tags?: Record<string, string>;
+  /** 다시 분석하는 동안 그림 위에 띄울 글 */
+  busy?: string | null;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   // 그림은 object-fit: contain 으로 여백을 두고 그려진다. 점은 그림이 실제로 그려진 칸 기준 (S-06 과 같음)
@@ -46,6 +50,11 @@ export default function JointView({ imageUrl, character, keypoints }: {
         const p = at(name);
         return <span key={name} className={`joint ${low.has(name) ? "low" : ""}`} style={{ left: p.x, top: p.y }} aria-hidden="true" />;
       })}
+      {Object.entries(tags ?? {}).filter(([n]) => keypoints[n]).map(([n, text]) => {
+        const p = at(n);
+        return <span key={`tag-${n}`} className="joint-tag" style={{ left: p.x, top: p.y }}>{text}</span>;
+      })}
+      {busy && <div className="joint-busy" role="status">{busy}</div>}
     </div>
   );
 }

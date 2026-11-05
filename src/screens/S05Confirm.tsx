@@ -18,6 +18,11 @@ export default function S05Confirm() {
   // 옆모습 형태(4족형)는 AI 가 머리 쪽을 틀리면(꼬리가 굵은 악어) 점이 모두 뒤집힌다 — 한 번에 바로잡는 버튼 (11/4 사용자)
   const side = useForm(character?.form).hero?.facing === "auto";
   const [turning, setTurning] = useState(false);
+  // AI 가 얼굴 · 꼬리로 본 자리에 이름표 — 「얼굴이 반대쪽이에요」가 무엇을 묻는지 알게 (11/5 사용자 「무슨 기능인지 명확하지 않다」).
+  // 꼬리가 없는 그림은 꼬리 점이 엉덩이에 겹쳐 있어 꼬리 이름표를 달지 않는다
+  const k = keypoints;
+  const hasTail = !!(k?.tail_tip && k?.hip) && Math.hypot(k.tail_tip.x - k.hip.x, k.tail_tip.y - k.hip.y) > 0.02;
+  const tags: Record<string, string> | undefined = side ? { neck: "얼굴", ...(hasTail ? { tail_tip: "꼬리" } : {}) } : undefined;
   const turn = async () => {
     if (!character || turning) return;
     setTurning(true);
@@ -57,16 +62,22 @@ export default function S05Confirm() {
         <figure>
           <div className="stage">
             {character
-              ? <JointView imageUrl={imageUrl} character={character} keypoints={keypoints} />
+              ? <JointView imageUrl={imageUrl} character={character} keypoints={keypoints} tags={tags}
+                  busy={turning ? "얼굴 쪽을 바꾸는 중이에요…" : null} />
               : <img src={imageUrl} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />}
           </div>
-          {side && character
-            ? <button className="btn link turn-face" onClick={turn} disabled={turning}>
-                {turning ? "돌리는 중이에요…" : "얼굴이 반대쪽이에요 ⇄"}
-              </button>
-            : <figcaption className="hint">점이 몸을 움직이는 자리예요</figcaption>}
+          <figcaption className="hint">점이 몸을 움직이는 자리예요</figcaption>
         </figure>
       </div>
+      {/* 옆모습 형태: AI 가 머리 쪽을 틀리면 점이 모두 뒤집힌다(꼬리가 굵은 악어). 이름표를 보고 바로 답하게 묻는다 */}
+      {side && character && (
+        <div className="face-check">
+          <span>「얼굴」 자리가 맞나요?</span>
+          <button className="face-flip" onClick={turn} disabled={turning}>
+            {turning ? "바꾸는 중이에요…" : "아니요, 반대쪽이에요 ⇄"}
+          </button>
+        </div>
+      )}
       {/* S-05-05. AI 가 자신 없어 한 관절이 있거나 검출 점수가 낮을 때 둔다 (계약 2-3). 점수를 모르면(목 엔진, 예전 서버) 늘 둔다.
           보호자 모드면 관절이 정상이어도 늘 둔다 — 보호자가 판단해 고친다 (2026-11-03 사용자) */}
       {/* 11/4 사용자: 관절 고치기는 기본 · 보호자 모드 모두 — 늘 둔다 */}

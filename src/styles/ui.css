@@ -204,8 +204,20 @@
 }
 .btn.link:active { transform: none; box-shadow: none; opacity: .6; }
 
-/* S-05 「얼굴이 반대쪽이에요」 — 옆모습 형태만, 관절 그림 바로 아래 (11/4) */
-.preview-pair .turn-face { display: block; margin: 6px auto 0; font-size: 15px; }
+/* S-05 옆모습 형태 — AI 가 얼굴 · 꼬리로 본 자리의 이름표와 「얼굴 자리가 맞나요?」 (11/5 사용자 「무슨 기능인지 명확하지 않다」) */
+.joint-tag { position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 16px)); pointer-events: none;
+  background: var(--ink); color: #FFFDF8; font-size: 14px; font-weight: 700; line-height: 1; white-space: nowrap;
+  padding: 5px 10px; border-radius: 999px; }
+.joint-tag::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px;
+  border: 6px solid transparent; border-bottom: 0; border-top-color: var(--ink); }
+.joint-busy { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 253, 248, .78); font-weight: 700; color: var(--ink); border-radius: inherit; }
+.face-check { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+  font-size: var(--t-body); color: var(--ink); font-weight: 700; }
+.face-flip { min-height: 44px; padding: 8px 18px; border-radius: 999px; background: var(--cloud); color: var(--ink);
+  border: var(--line-w) solid var(--line); box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: var(--t-body); }
+.face-flip:active { transform: translateY(3px); box-shadow: none; }
+.face-flip:disabled { opacity: .6; }
 .aside-links {
   display: flex; justify-content: center; align-items: center;
   gap: 8px; flex-wrap: wrap;
