@@ -24,7 +24,9 @@ export type Item =
    *  t 는 그린 차례 — 부위가 달라도 나중에 그은 지우개가 먼저 그린 선을 지우게 차례대로 그린다 */
   | { kind: "stroke"; pts: Pt[]; color?: string; width?: number; erase?: boolean; t?: number }
   /** 찍은 순간의 모양을 들고 있다. 자리는 그때 그려져 있던 부위에 맞춰 정해진다 (`placeStamp`) */
-  | { kind: "stamp"; id: StampId; shape: Shape };
+  | { kind: "stamp"; id: StampId; shape: Shape }
+  /** 페인트 통으로 채운 칸 — 채운 곳만 칠한 그림판 크기(800×1000) 판 (11/5 사용자 「윤곽선 닫히면 페인트」) */
+  | { kind: "fill"; layer: HTMLCanvasElement; t?: number };
 
 export type Drawing = Record<Part, Item[]>;
 export const emptyDrawing = (): Drawing => ({ head: [], body: [], arms: [], legs: [] });
@@ -166,7 +168,7 @@ function partBox(drawing: Drawing, part: Part): Box | null {
   };
   for (const it of drawing[part]) {
     if (it.kind === "stamp") grow(shapeBox(it.shape));
-    else for (const q of it.pts) grow({ x0: q.x - PEN / 2, y0: q.y - PEN / 2, x1: q.x + PEN / 2, y1: q.y + PEN / 2 });
+    else if (it.kind === "stroke") for (const q of it.pts) grow({ x0: q.x - PEN / 2, y0: q.y - PEN / 2, x1: q.x + PEN / 2, y1: q.y + PEN / 2 });
   }
   return b;
 }
@@ -264,10 +266,11 @@ function strokeOne(ctx: CanvasRenderingContext2D, pts: Pt[], color: string, widt
 /** 그림 전체를 그린다. ctx 는 이미 논리 좌표(800×1000) 배율이 걸려 있어야 한다.
  *  지우개 획은 그 아래 그린 것을 투명하게 지우므로 **투명한 판**에 그려야 한다 — 바탕 · 안내선 위에는 drawLayer 로 */
 export function drawItems(ctx: CanvasRenderingContext2D, drawing: Drawing, live?: LiveStroke) {
-  const all = PARTS.flatMap((part, pi) => drawing[part].map((it, i) => ({ it, key: it.kind === "stroke" && it.t != null ? it.t : pi * 1e6 + i })));
+  const all = PARTS.flatMap((part, pi) => drawing[part].map((it, i) => ({ it, key: it.kind !== "stamp" && it.t != null ? it.t : pi * 1e6 + i })));
   all.sort((a, b) => a.key - b.key);
   for (const { it } of all) {
     if (it.kind === "stamp") { inkStyle(ctx); ctx.lineWidth = LINE; drawStamp(ctx, it.id, it.shape); }
+    else if (it.kind === "fill") ctx.drawImage(it.layer, 0, 0, W, H);
     else strokeOne(ctx, it.pts, it.color ?? INK, it.width ?? PEN, !!it.erase);
   }
   if (live) strokeOne(ctx, live.pts, live.color, live.width, live.erase);
@@ -469,4 +472,42 @@ export function toPngFile(drawing: Drawing): Promise<File> {
   return new Promise((resolve, reject) => {
     c.toBlob((b) => (b ? resolve(new File([b], "drawing.png", { type: "image/png" })) : reject(new Error("toBlob"))), "image/png");
   });
+}
+
+/** 페인트 통 — pt 를 둘러싼 닫힌 칸을 color 로 채운 판. 선 밖(그림판 가장자리에 닿는 칸)은 채우지 않는다 —
+ *  바탕이 칠해지면 그림 영역이 그림판 전체가 되어 움직일 수 없다. 칸이 아니면 null (11/5 사용자 「윤곽선 닫히면 페인트」) */
+export function fillAt(drawing: Drawing, pt: Pt, color: string): HTMLCanvasElement | null {
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const g = c.getContext("2d", { willReadFrequently: true })!;
+  drawItems(g, drawing);
+  const ink = g.getImageData(0, 0, W, H).data;
+  const x0 = Math.round(pt.x), y0 = Math.round(pt.y);
+  if (x0 < 0 || y0 < 0 || x0 >= W || y0 >= H || ink[(y0 * W + x0) * 4 + 3] > 100) return null;
+  const seen = new Uint8Array(W * H);
+  const stack = [y0 * W + x0];
+  seen[y0 * W + x0] = 1;
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % W, y = (i - x) / W;
+    if (x === 0 || y === 0 || x === W - 1 || y === H - 1) return null;   // 닫히지 않았다
+    for (const j of [i - 1, i + 1, i - W, i + W]) {
+      if (!seen[j] && ink[j * 4 + 3] <= 100) { seen[j] = 1; stack.push(j); }
+    }
+  }
+  // 칠한 칸을 2px 넓혀 선 가장자리의 흐린 틈까지 덮는다
+  const out = g.createImageData(W, H);
+  const hex = color.replace("#", "");
+  const [r, gg, b] = [0, 2, 4].map((k) => parseInt(hex.slice(k, k + 2), 16));
+  for (let y = 2; y < H - 2; y++) {
+    for (let x = 2; x < W - 2; x++) {
+      const i = y * W + x;
+      if (!(seen[i] || seen[i - 1] || seen[i + 1] || seen[i - W] || seen[i + W] || seen[i - 2] || seen[i + 2] || seen[i - 2 * W] || seen[i + 2 * W])) continue;
+      out.data.set([r, gg, b, 255], i * 4);
+    }
+  }
+  const layer = document.createElement("canvas");
+  layer.width = W; layer.height = H;
+  layer.getContext("2d")!.putImageData(out, 0, 0);
+  return layer;
 }

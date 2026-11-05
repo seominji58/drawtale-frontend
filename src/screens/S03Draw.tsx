@@ -8,7 +8,7 @@ import { useSession } from "@/store/session";
 import { useGuardianMode } from "@/store/settings";
 import ConfirmCard from "@/components/ConfirmCard";
 import {
-  ERASER_SCALE, H, PARTS, PEN_COLORS, PEN_WIDTHS, W, drawFigureGuide, drawLayer, emptyDrawing, hasLoosePieces, toPngFile,
+  ERASER_SCALE, H, fillAt, PARTS, PEN_COLORS, PEN_WIDTHS, W, drawFigureGuide, drawLayer, emptyDrawing, hasLoosePieces, toPngFile,
 } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
 
@@ -52,6 +52,8 @@ export default function S03Draw() {
   /** 그린 차례. 지우개가 먼저 그린 선을 지우게 한다 */
   const order = useRef(0);
   const [drawing, setDrawing] = useState<Drawing>(emptyDrawing);
+  /** 채우기로 누른 곳이 선으로 닫힌 칸이 아니었다 */
+  const [fillMiss, setFillMiss] = useState(false);
   /** 「다 그렸어요」를 눌렀는데 떨어진 조각이 있다 — 고칠지 이대로 갈지 묻는다 */
   const [loose, setLoose] = useState(false);
   const [askClear, setAskClear] = useState(false);
@@ -112,6 +114,14 @@ export default function S03Draw() {
   };
 
   const down = (e: React.PointerEvent) => {
+    if (tool === "fill") {
+      // 페인트 통 — 닫힌 칸이면 채우고, 아니면 알려 준다
+      const layer = fillAt(drawing, toLogical(e), color);
+      if (layer) setDrawing((d) => ({ ...d, body: [...d.body, { kind: "fill", layer, t: ++order.current }] }));
+      setFillMiss(!layer);
+      return;
+    }
+    setFillMiss(false);
     const erase = tool === "eraser";
     live.current = { pts: [toLogical(e)], color, width: erase ? width * ERASER_SCALE : width, erase };
     // 손가락이 그림판 밖으로 나가도 획이 이어지게. 실패해도 그리기는 된다
@@ -170,7 +180,9 @@ export default function S03Draw() {
         </>
       }>
       <h2 className="question">{QUESTION}</h2>
-      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : HINT[form] ?? HINT.biped}</p>
+      <p className="hint">{tool === "eraser" ? "문지르면 지워져요"
+        : tool === "fill" ? (fillMiss ? "선으로 닫힌 곳을 눌러요 — 선이 끊긴 곳은 이어 그려 주세요" : "선으로 둘러싸인 곳을 누르면 색이 칠해져요")
+        : HINT[form] ?? HINT.biped}</p>
 
       {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기는 오른쪽에 종이와 붙여 둔다
           (기준 화면이 가로 1024×768). 좁으면 종이 아래로 내려간다 */}

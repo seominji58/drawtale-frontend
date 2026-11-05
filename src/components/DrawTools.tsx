@@ -4,7 +4,7 @@ import { FULL_COLORS, KID_COLORS, PEN_WIDTHS, isFaint, luminance } from "@/featu
 /* 그리기 도구 — S-03D 화면에 그리기와 내 소품 그리기가 같이 쓴다 (2026-10-27).
    아이 화면 터치 타깃 88px (AGENTS.md 3.1). 고른 것은 밝은 배경 · 테두리 · ✓ — 색만으로 구분하지 않는다 (3.5) */
 
-export type Tool = "pen" | "eraser";
+export type Tool = "pen" | "fill" | "eraser";
 export const TAP = 88;
 
 /** 색 고르기. 아이 모드는 12색 큰 동그라미, 보호자 모드(`full`)는 24색 + 「색 만들기」 + 최근 만든 색 — 그림판처럼.
@@ -109,11 +109,12 @@ export function PenTools({ tool, color, width, onTool, onWidth }: {
 }) {
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {(["pen", "eraser"] as Tool[]).map((t) => (
+      {/* 그리기 · 채우기(페인트 통 — 선으로 닫힌 칸을 누르면 고른 색으로) · 지우개 (11/5 사용자) */}
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(3, ${TAP}px)`, gap: 12 }}>
+        {(["pen", "fill", "eraser"] as Tool[]).map((t) => (
           <button key={t} className="btn" aria-pressed={tool === t} onClick={() => onTool(t)}
-            style={{ minHeight: TAP, padding: 0, ...(tool === t ? { background: "var(--butter)" } : {}) }}>
-            {tool === t ? "✓ " : ""}{t === "pen" ? "그리기" : "지우개"}
+            style={{ width: TAP, minHeight: TAP, padding: 0, fontSize: 17, ...(tool === t ? { background: "var(--butter)" } : {}) }}>
+            {tool === t ? "✓" : ""}{t === "pen" ? "그리기" : t === "fill" ? "채우기" : "지우개"}
           </button>
         ))}
       </div>

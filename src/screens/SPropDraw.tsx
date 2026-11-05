@@ -5,7 +5,7 @@ import BigButton from "@/components/BigButton";
 import ConfirmCard from "@/components/ConfirmCard";
 import { ColorPalette, PenTools, TAP } from "@/components/DrawTools";
 import type { Tool } from "@/components/DrawTools";
-import { ERASER_SCALE, H, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, toTrimmedPng } from "@/features/draw/drawing";
+import { ERASER_SCALE, H, fillAt, PEN_COLORS, PEN_WIDTHS, W, drawLayer, emptyDrawing, toTrimmedPng } from "@/features/draw/drawing";
 import type { Drawing, LiveStroke, Pt } from "@/features/draw/drawing";
 import { MAX_PROP_NAME, useProps } from "@/features/props/props";
 import type { PropSize } from "@/features/props/props";
@@ -30,6 +30,8 @@ export default function SPropDraw() {
   const [width, setWidth] = useState(PEN_WIDTHS[1].px);
   const order = useRef(0);
   const [drawing, setDrawing] = useState<Drawing>(emptyDrawing);
+  /** 채우기로 누른 곳이 선으로 닫힌 칸이 아니었다 */
+  const [fillMiss, setFillMiss] = useState(false);
   const [askClear, setAskClear] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -80,6 +82,14 @@ export default function SPropDraw() {
     return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H };
   };
   const down = (e: React.PointerEvent) => {
+    if (tool === "fill") {
+      // 페인트 통 — 닫힌 칸이면 채우고, 아니면 알려 준다
+      const layer = fillAt(drawing, toLogical(e), color);
+      if (layer) setDrawing((d) => ({ ...d, head: [...d.head, { kind: "fill", layer, t: ++order.current }] }));
+      setFillMiss(!layer);
+      return;
+    }
+    setFillMiss(false);
     const erase = tool === "eraser";
     live.current = { pts: [toLogical(e)], color, width: erase ? width * ERASER_SCALE : width, erase };
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* 무시 */ }
@@ -150,7 +160,9 @@ export default function SPropDraw() {
           onYes={() => { setDrawing(emptyDrawing()); setAskClear(false); }} onNo={() => setAskClear(false)} />
       )}
       <h2 className="question">무엇을 그려 볼까요?</h2>
-      <p className="hint">{tool === "eraser" ? "문지르면 지워져요" : "이야기에 나올 물건을 크게 그려요"}</p>
+      <p className="hint">{tool === "eraser" ? "문지르면 지워져요"
+        : tool === "fill" ? (fillMiss ? "선으로 닫힌 곳을 눌러요 — 선이 끊긴 곳은 이어 그려 주세요" : "선으로 둘러싸인 곳을 누르면 색이 칠해져요")
+        : "이야기에 나올 물건을 크게 그려요"}</p>
       <div ref={wrap} className={`draw-area ${box.wide ? "wide" : "narrow"}`}>
         {/* 내 소품은 보호자 모드에서만 쓰므로 보호자 팔레트 (2026-10-28) */}
         <ColorPalette full tool={tool} color={color} cols={box.wide ? 3 : 4}
