@@ -25,7 +25,9 @@ export default function S11Done() {
   useEffect(() => setDraft(title), [title]);
   const saveTitle = () => {
     const t = draft.trim().slice(0, TITLE_MAX);
-    if (!story || !t || t === title) { setDraft(title); return; }
+    if (!story || !t) { setDraft(title); return; }
+    // 만들어 준 제목 그대로도 「정하기」로 정할 수 있다 — 바꿔야만 눌리던 것 (11/5 사용자)
+    if (t === title) { setDraft(title); setSavedNote(true); return; }
     rename(story.storyId, t);
     setStory({ ...story, title: t, ...(story.book ? { book: { ...story.book, title: t } } : {}) });
     setSavedNote(true);
@@ -68,10 +70,10 @@ export default function S11Done() {
               <label className="rename-label" htmlFor="done-title-input">책 제목</label>
               <div className="done-title-row">
                 <input id="done-title-input" className="title-input" value={draft} maxLength={TITLE_MAX}
-                  enterKeyHint="done" onChange={(e) => { setDraft(e.target.value); setSavedNote(false); }} onBlur={saveTitle} />
-                <BigButton go disabled={!draft.trim() || draft.trim() === title} nudgeOnDisabled={false} onClick={saveTitle}>정하기</BigButton>
+                  enterKeyHint="done" onChange={(e) => { setDraft(e.target.value); setSavedNote(false); }} onBlur={() => { if (draft.trim() !== title) saveTitle(); }} />
+                <BigButton go disabled={!draft.trim()} nudgeOnDisabled={false} onClick={saveTitle}>정하기</BigButton>
               </div>
-              {savedNote && <p className="hint" role="status">제목을 바꿨어요</p>}
+              {savedNote && <p className="hint" role="status">「{title}」로 정했어요</p>}
             </form>
           )}
         </div>
