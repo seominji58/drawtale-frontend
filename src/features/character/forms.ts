@@ -17,7 +17,8 @@ export interface FormDef {
   joints: FormJoint[];
   guide?: string[];
   /** 장면에 세울 때 키(height) / 몸길이(width) 기준 */
-  hero?: { fit: "height" | "width"; facing?: string };
+  /** float: 바닥선에서 띄우는 높이 (장면 높이 대비) — 헤엄치는 친구는 땅을 기는 것처럼 보였다 (11/5) */
+  hero?: { fit: "height" | "width"; facing?: string; float?: number; size?: number };
   ready?: boolean;
 }
 

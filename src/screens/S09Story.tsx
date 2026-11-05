@@ -367,7 +367,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 세션 관절만 보던 때는 새로고침 · 책장에서 연 이야기가 머리 반대쪽으로 갈 때 뒤집지 못해 뒷걸음질했다 (11/4 운영)
   const heroFacing: -1 | 0 | 1 = heroForm.hero?.facing !== "auto" ? 0
     : story.heroFacing ? (story.heroFacing === "left" ? -1 : 1)
-    : keypoints?.neck && keypoints?.hip ? (keypoints.neck.x < keypoints.hip.x ? -1 : 1) : 0;
+    : keypoints?.neck && keypoints?.hip ? (keypoints.neck.x < keypoints.hip.x ? -1 : 1)
+    : keypoints?.head && keypoints?.tail ? (keypoints.head.x < keypoints.tail.x ? -1 : 1) : 0;   // 사슬형 · 지느러미형
   const scenes = useMemo(
     // 내 소품은 보호자 모드 이야기에서만 (팀원 의견). 쪽 글에 이름이 나오면 그 쪽 장면 안 주인공 옆에 (11/3 사용자 추천안 —
     // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게
@@ -460,7 +461,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       return (
         <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
           <FitStage ar={null}>
-            <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode} fit={heroFit} facing={heroFacing}
+            <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode} fit={heroFit} facing={heroFacing} lift={heroForm.hero?.float ?? 0} size={heroForm.hero?.size ?? 1}
               sprite={pgI.sprite && pgI.spriteUrl ? { url: pgI.spriteUrl, ...pgI.sprite } : null} still={still}
               heroHands={story.stillHands ?? null} />
           </FitStage>

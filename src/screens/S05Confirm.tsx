@@ -21,8 +21,14 @@ export default function S05Confirm() {
   // AI 가 얼굴 · 꼬리로 본 자리에 이름표 — 「얼굴이 반대쪽이에요」가 무엇을 묻는지 알게 (11/5 사용자 「무슨 기능인지 명확하지 않다」).
   // 꼬리가 없는 그림은 꼬리 점이 엉덩이에 겹쳐 있어 꼬리 이름표를 달지 않는다
   const k = keypoints;
-  const hasTail = !!(k?.tail_tip && k?.hip) && Math.hypot(k.tail_tip.x - k.hip.x, k.tail_tip.y - k.hip.y) > 0.02;
-  const tags: Record<string, string> | undefined = side ? { neck: "얼굴", ...(hasTail ? { tail_tip: "꼬리" } : {}) } : undefined;
+  // 4족형은 목 · 꼬리 끝(tail_tip), 사슬형 · 지느러미형은 머리 · 꼬리 끝(tail) — 몸 가운데 선의 양 끝이라 꼬리는 늘 있다
+  const face = k?.neck ? "neck" : k?.head ? "head" : null;
+  const hasTail = k?.tail_tip
+    ? !!k.hip && Math.hypot(k.tail_tip.x - k.hip.x, k.tail_tip.y - k.hip.y) > 0.02
+    : !!k?.tail;
+  const tailAt = k?.tail_tip ? "tail_tip" : "tail";
+  const tags: Record<string, string> | undefined = side && face
+    ? { [face]: "얼굴", ...(hasTail ? { [tailAt]: "꼬리" } : {}) } : undefined;
   const turn = async () => {
     if (!character || turning) return;
     setTurning(true);
