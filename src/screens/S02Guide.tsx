@@ -10,13 +10,13 @@ import { useSettings, useWithAdult } from "@/store/settings";
  *  그리면 움직일 때 팔이 몸통에 눌려 뭉개지지 않는다 (docs/worklog.md 2026-09-29 「팔 모양」) */
 type Kind = "ok" | "tip" | "no";
 const CARDS: { kind: Kind; text: string; art: GuideKind }[] = [
-  { kind: "ok", text: "사람을 한 명만 그려요", art: "one" },
+  { kind: "ok", text: "친구를 한 명(한 마리)만 그려요", art: "one" },
   { kind: "ok", text: "하얀 종이에 그려요", art: "white" },
-  { kind: "tip", text: "팔과 다리를 몸에서 조금 떨어지게 그려요", art: "spread" },
+  { kind: "tip", text: "팔다리 · 날개 · 꼬리를 몸에서 조금 떨어지게 그려요", art: "spread" },
   { kind: "no", text: "여러 명은 아직 어려워요", art: "many" },
-  // S-02-07 · S-02-08 (v0.4). 두 발로 선 동물은 되고 네 발 동물은 아직 안 된다 (06 R-01)
+  // S-02-07 · S-02-08. 11/5 부터 네 발 동물 · 새 · 물고기 · 뱀 · 문어도 된다 — 옆에서 본 모습이 잘 움직인다 (pt_docs 19)
   { kind: "ok", text: "곰이나 로봇처럼 두 발로 선 친구도 돼요", art: "biped" },
-  { kind: "no", text: "네 발로 걷는 동물은 아직 어려워요", art: "quad" },
+  { kind: "ok", text: "동물 · 새 · 물고기는 옆에서 본 모습으로 그려요", art: "quad" },
 ];
 /** S-02-09 (v0.4). 사람 사진은 받지 않는다 (06 R-11) */
 const PHOTO_NOTE = "그린 그림을 올려 주세요";
@@ -47,7 +47,7 @@ export default function S02Guide() {
 
   return (
     <Screen back="/" speech={`이런 그림이 좋아요. ${PHOTO_NOTE}`} segment={1}
-      acts={<BigButton go onClick={() => nav("/upload")}>{photo ? "그림 찍기" : "그림 그리기"}</BigButton>}>
+      acts={<BigButton go onClick={() => nav("/upload")}>{photo ? "그림 준비됐어요" : "그림 그리기"}</BigButton>}>
       <h2 className="question">이런 그림이 좋아요</h2>
       {/* 카드마다 그 규칙을 보여 주는 그림 + 도장 (2026-10-28 디자인) */}
       <div className="guide-grid">

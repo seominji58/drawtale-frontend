@@ -25,7 +25,6 @@ export default function S03Upload() {
     setBusy(true);
     try { setFile(await rotateFile(base, t)); setOrig(base); setTurn(t); } finally { setBusy(false); }
   };
-  const camera = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   /** 10MB 초과이거나 이미지가 아니어서 받지 않은 파일 (S-03-09). 업로드 전에 막고 아이 말로 알린다 */
@@ -74,8 +73,9 @@ export default function S03Upload() {
           {/* S-03-04 화면에 그리기가 주된 행동이다 (pt_docs 05 S-03) */}
           {/* 무엇을 그릴지(형태) 먼저 고르고 그 모양 안내선으로 그린다 (11/5 사용자 「그리기도 형태를 가이드해서」) */}
           <BigButton go onClick={() => nav("/form", { state: { draw: true } })}>화면에 그리기</BigButton>
-          {photo && <BigButton onClick={() => camera.current?.click()}>그림 찍기</BigButton>}
-          {photo && <BigButton onClick={() => album.current?.click()}>앨범에서 고르기</BigButton>}
+          {/* 찍기 · 앨범을 하나로 (11/5 사용자). capture 가 없는 파일 고르기는 휴대폰 · 태블릿에서 「카메라 / 사진 보관함 / 파일」을
+              고르는 창을 먼저 띄운다(iOS 사파리 · 안드로이드 크롬). 컴퓨터는 파일 고르기 창 */}
+          {photo && <BigButton onClick={() => album.current?.click()}>그림 올리기</BigButton>}
         </>
       )}>
       {imageUrl ? (
@@ -88,10 +88,11 @@ export default function S03Upload() {
           <div className="stage hero-sheet"><div className="illust-wrap"><Paper /></div></div>
           <div className="hero-side">
             <h2 className="hero-title">{photo ? "그림을 보여 줄래요?" : "화면에 그려 볼까요?"}</h2>
-            <p className="hero-sub">{photo ? "종이에 그린 그림을 찍거나, 화면에 그려 주세요" : "손가락으로 쓱쓱 그리면 친구가 돼요"}</p>
+            <p className="hero-sub">{photo ? "종이에 그린 그림을 올리거나, 화면에 그려 주세요" : "손가락으로 쓱쓱 그리면 친구가 돼요"}</p>
             <ul className="hero-tips">
-              <li>사람을 한 명만</li>
-              <li>팔과 다리는 몸에서 조금 떨어지게</li>
+              {/* 사람 · 동물 · 새 · 물고기 … 모든 형태에 맞게 (11/5) */}
+              <li>친구를 한 명(한 마리)만</li>
+              <li>팔다리 · 날개 · 꼬리는 몸에서 조금 떨어지게</li>
               {photo && <li>하얀 종이 위에, 밝은 곳에서</li>}
             </ul>
           </div>
@@ -111,7 +112,6 @@ export default function S03Upload() {
           )}
         </>
       )}
-      {photo && <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={onPick} />}
       {photo && <input ref={album} type="file" accept="image/*" hidden onChange={onPick} />}
     </Screen>
   );
