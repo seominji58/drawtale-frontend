@@ -273,6 +273,9 @@ export interface HeroPlan {
   /** 「숨었어요」 — out: 이 쪽에서 앞 물건 뒤로 천천히 사라지고 그대로 숨어 있다, gone: 이미 숨어 있다(행동 단계 다음 쪽).
    *  다시 나타나지 않는다 (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 「2초 뒤 다시 나타난다」와 다름) */
   hide: "out" | "gone" | null;
+  /** 주인공이 보는 쪽 (-1 왼쪽 · 1 오른쪽 · 0 정하지 않음). 옮겨 가면 가는 쪽, 제자리면 앞 쪽에서 보던 쪽을 잇는다 —
+   *  옮겨 갈 때만 뒤집으면 다음 쪽에서 원래 그림 방향으로 돌아가 옆 친구에게 등을 돌렸다 (11/5 사용자, 옆모습 주인공) */
+  face: -1 | 0 | 1;
 }
 
 export interface Env {
@@ -438,6 +441,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   const place = picks.place!;
   const out: PagePlan[] = [];
   let x = SLOT, loc: string | undefined, night = false;
+  let face: -1 | 0 | 1 = 0;
   const stageIdx = (s: string) => ["place", "problem", "action", "result"].indexOf(s);
   // 숨는 곳은 행동 쪽들의 글에서 한 번 정해 쪽이 바뀌어도 같은 물건
   const cover = coverFor(pages.filter((p) => p.stage === "action").map((p) => p.text).join(" "));
@@ -555,12 +559,13 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const hiding = p.stage === "action" && picks.action === "hide";
     const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
     if (hiding) { from = to = SLOT; }
+    if (to !== from) face = to > from ? 1 : -1;
     const weather = weatherFor(p.text, p.scene?.background ?? "", loc);
     out.push({
       location: loc,
       env: { night, sun, weather },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide,
-        calm: move === "none" && CALM_ACTIONS.has(p.action) },
+        calm: move === "none" && CALM_ACTIONS.has(p.action), face },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다
       things: p.stage === "action" && picks.action === "hide" ? []

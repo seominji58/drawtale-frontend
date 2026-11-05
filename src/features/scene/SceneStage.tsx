@@ -227,15 +227,6 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     const stillH = size * (fit === "width" && stillAr ? Math.min((H.h * WIDE_LEN) / stillAr, H.h * WIDE_MAX_H) : H.h);
     heroStyle = { height: `${stillH * 100}%`, left: `${heroX * 100}%`, bottom: `${(1 - H.foot + lift) * 100}%` };
   }
-  // 옆모습(4족형)은 렌더가 머리 쪽으로 걷는다 — 머리 반대쪽으로 옮겨 가면 뒤로 걷는 것처럼 보여 좌우로 뒤집는다
-  // (11/4 사용자 「얼굴 방향에 따라 < 인지 > 인지」). 가운데 맞추기(translateX(-50%)) 뒤에 뒤집는다 — 개별 scale 속성은
-  // transform 보다 먼저 적용돼 가운데 맞추기까지 뒤집혀 주인공이 제 폭만큼 오른쪽으로 밀렸다 (11/5, 장면 밖으로 나감)
-  const goes = Math.sign(hero.to - hero.from);
-  const flip = facing !== 0 && hero.move !== "none" && goes !== 0 && goes !== facing;
-  if (flip) {
-    heroStyle = { ...heroStyle, transform: hero.fallen
-      ? "translateX(-50%) translateY(5%) rotate(-9deg) scaleX(-1)" : "translateX(-50%) scaleX(-1)" };
-  }
   // 같은 빠르기로 (속도가 바뀌면 걸음과 어긋나 발이 미끄러진다)
   const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease`;
 
@@ -276,6 +267,20 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
     return { p, s, spot, sb };
   });
+  // 옆모습(4족형 · 사슬형 · 지느러미형) 주인공이 보는 쪽 — 그림의 머리 쪽(facing)과 다르면 좌우로 뒤집는다.
+  // 옮겨 가면 가는 쪽(렌더가 머리 쪽으로 걷는다, 11/4 「얼굴 방향에 따라 < 인지 > 인지」), 제자리면 가장 가까운 인물 · 동물 쪽,
+  // 아무도 없으면 앞 쪽에서 보던 쪽 (hero.face). 옮겨 갈 때만 뒤집으면 다음 쪽에서 원래 방향으로 돌아가 옆 친구 · 박쥐에게
+  // 등을 돌렸다 (11/5 사용자). 가운데 맞추기(translateX(-50%)) 뒤에 뒤집는다 — 개별 scale 속성은 transform 보다 먼저 적용돼
+  // 가운데 맞추기까지 뒤집혀 주인공이 제 폭만큼 오른쪽으로 밀렸다 (11/5)
+  const goes = Math.sign(hero.to - hero.from);
+  const near = people.filter((v) => v && v.p.id !== "sign")
+    .sort((a, b) => Math.abs(a!.spot.x - hero.to) - Math.abs(b!.spot.x - hero.to))[0];
+  const look = hero.move !== "none" && goes !== 0 ? goes
+    : near && Math.abs(near.spot.x - hero.to) > 0.02 ? Math.sign(near.spot.x - hero.to) : hero.face ?? 0;
+  if (facing !== 0 && look !== 0 && look !== facing) {
+    heroStyle = { ...heroStyle, transform: hero.fallen
+      ? "translateX(-50%) translateY(5%) rotate(-9deg) scaleX(-1)" : "translateX(-50%) scaleX(-1)" };
+  }
   // 쪽 글에 나온 물건 · 내 소품: 주인공 옆 땅에 (인물 자리를 먼저 잡은 뒤 남는 곳). 쪽 안 움직임 없이 처음부터 놓여 있다
   // 배경 그림에 이미 같은 물건이 있으면 또 놓지 않는다 (pt_docs 18 — 동굴에서 「돌」이 나와도 동굴엔 바위가 있다)
   const bgKinds = new Set(layout.objects.map((o) => kindOf(o.src)));
