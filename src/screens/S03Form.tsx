@@ -10,10 +10,10 @@ import type { StepChoice } from "@/types/story";
  *  정면 강아지 그림은 「옆모습 · 다리 아래로」 그려야 하는 4족형과 맞지 않았다. 「다른 모습」은 새 · 나비 · 물고기 ·
  *  강아지 · 고양이 모음(장면 그림을 합친 것)으로 사람이 아닌 친구 전부를 뜻한다. 그림이 없는 형태는 물음표 */
 const ICON: Record<string, string> = {
-  biped: "biped.svg", quadruped: "quadruped.svg", chain: "chain.svg", finned: "finned.svg",
+  biped: "biped.svg", quadruped: "quadruped.svg", chain: "chain.svg", finned: "finned.svg", winged: "winged.svg",
   nonhumanoid: "others.webp", none: "none.svg",
 };
-const ORDER = ["quadruped", "chain", "finned"];
+const ORDER = ["quadruped", "winged", "chain", "finned"];
 const icon = (key: string) => `${import.meta.env.BASE_URL}forms/${ICON[key] ?? "none.svg"}`;
 const card = (f: FormDef): StepChoice => ({ id: f.id, iconUrl: icon(f.id), label: f.kid_label });
 

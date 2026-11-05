@@ -368,7 +368,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const heroFacing: -1 | 0 | 1 = heroForm.hero?.facing !== "auto" ? 0
     : story.heroFacing ? (story.heroFacing === "left" ? -1 : 1)
     : keypoints?.neck && keypoints?.hip ? (keypoints.neck.x < keypoints.hip.x ? -1 : 1)
-    : keypoints?.head && keypoints?.tail ? (keypoints.head.x < keypoints.tail.x ? -1 : 1) : 0;   // 사슬형 · 지느러미형
+    : keypoints?.head && keypoints?.tail ? (keypoints.head.x < keypoints.tail.x ? -1 : 1)   // 사슬형 · 지느러미형
+    : keypoints?.head && keypoints?.body ? (keypoints.head.x < keypoints.body.x ? -1 : 1) : 0;   // 날개형
   const scenes = useMemo(
     // 내 소품은 보호자 모드 이야기에서만 (팀원 의견). 쪽 글에 이름이 나오면 그 쪽 장면 안 주인공 옆에 (11/3 사용자 추천안 —
     // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게
