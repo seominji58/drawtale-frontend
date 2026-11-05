@@ -175,7 +175,6 @@ export default function S03Draw() {
       acts={
         <>
           <BigButton disabled={empty} nudgeOnDisabled={false} onClick={undo}>되돌리기</BigButton>
-          <BigButton disabled={empty} nudgeOnDisabled={false} onClick={() => setAskClear(true)}>전체 지우기</BigButton>
           <BigButton go disabled={empty || busy} onClick={() => void finish()}>다 그렸어요</BigButton>
         </>
       }>
@@ -199,7 +198,8 @@ export default function S03Draw() {
         </div>
 
         <div className="draw-tools">
-          <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth} />
+          <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth}
+            onClear={empty ? null : () => setAskClear(true)} />
         </div>
       </div>
 

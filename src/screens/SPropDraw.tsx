@@ -151,7 +151,6 @@ export default function SPropDraw() {
         <>
           <BigButton disabled={empty} nudgeOnDisabled={false}
             onClick={() => setDrawing((d) => ({ ...d, head: d.head.slice(0, -1) }))}>되돌리기</BigButton>
-          <BigButton disabled={empty} nudgeOnDisabled={false} onClick={() => setAskClear(true)}>전체 지우기</BigButton>
           <BigButton go disabled={empty} onClick={() => setPng(toTrimmedPng(drawing))}>다 그렸어요</BigButton>
         </>
       }>
@@ -174,7 +173,8 @@ export default function SPropDraw() {
             onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
         </div>
         <div className="draw-tools">
-          <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth} />
+          <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth}
+            onClear={empty ? null : () => setAskClear(true)} />
         </div>
       </div>
     </Screen>

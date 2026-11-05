@@ -114,8 +114,10 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
 }
 
 /** 그리기 · 지우개와 선 굵기 세 가지 (지우개는 고른 굵기의 두 배) */
-export function PenTools({ tool, color, width, onTool, onWidth }: {
+export function PenTools({ tool, color, width, onTool, onWidth, onClear }: {
   tool: Tool; color: string; width: number; onTool: (t: Tool) => void; onWidth: (px: number) => void;
+  /** 전체 지우기 — 지우개 옆에 둔다 (11/5 사용자 — 아래 단추 줄에 있으니 손이 멀었다). 없으면 그리지 않는다. null 이면 끈 상태 */
+  onClear?: (() => void) | null;
 }) {
   return (
     <>
@@ -149,6 +151,10 @@ export function PenTools({ tool, color, width, onTool, onWidth }: {
           );
         })}
       </div>
+      {onClear !== undefined && (
+        <button className="btn" disabled={!onClear} onClick={() => onClear?.()}
+          style={{ minHeight: 64, padding: 0, ...(onClear ? {} : { opacity: 0.45 }) }}>전체 지우기</button>
+      )}
     </>
   );
 }
