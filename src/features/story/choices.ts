@@ -209,16 +209,18 @@ const byProblem = (kind: "action" | "result", table: Record<string, [string, str
 const ACTION_CHOICES = byProblem("action", ACTIONS_BY_PROBLEM);
 const RESULT_CHOICES = byProblem("result", RESULTS_BY_PROBLEM);
 
-/** 사람이 아닌 주인공(4족형 …)이면 손으로 하는 행동 카드를 같은 뜻의 몸 행동으로 (11/5 사용자 「4족 동물이 할 만한 행동만」).
- *  카드를 빼면 그 문제의 행동이 세 장이 되어 자리를 그대로 두고 글만 바꾼다. 그림은 손 흔드는 아이라 이모지로 */
+/** 사람이 아닌 주인공(4족형 · 사슬형 · 지느러미형)이면 손으로 하는 행동 카드를 같은 뜻의 몸 행동으로 (11/5 사용자 「4족 동물이 할 만한 행동만」).
+ *  카드를 빼면 그 문제의 행동이 세 장이 되어 자리를 그대로 두고 글만 바꾼다.
+ *  「꼬리를 흔들어」는 꼬리 없는 그림 · 뱀 · 물고기에 맞지 않아 몸 어디로든 할 수 있는 말로 (11/5 사용자).
+ *  그림은 다른 카드와 크기 · 비율이 같도록 크레파스 그림 — 손 흔드는 아이 대신 웃는 아이(결과 카드 그림). 임시 카드는 원래 이모지 */
 const BODY_ACTIONS: Record<string, [string, string]> = {
-  wave_smile: ["꼬리를 흔들어 웃게 했어요", "🐾"],
-  wave: ["꼬리를 흔들었어요", "🐾"],
+  wave_smile: ["재롱을 부려 웃게 했어요", `${import.meta.env.BASE_URL}icons/result/smile.webp`],
+  wave: ["몸을 흔들었어요", icon("🙌")],
 };
 const forBody = (cards: StepChoice[]): StepChoice[] => {
   const form = useSession.getState().character?.form;
   if (!form || form === "biped") return cards;
-  return cards.map((c) => (BODY_ACTIONS[c.id] ? { ...c, label: BODY_ACTIONS[c.id][0], iconUrl: icon(BODY_ACTIONS[c.id][1]) } : c));
+  return cards.map((c) => (BODY_ACTIONS[c.id] ? { ...c, label: BODY_ACTIONS[c.id][0], iconUrl: BODY_ACTIONS[c.id][1] } : c));
 };
 
 /** 그 칸에 보일 카드. 행동 · 결과는 고른 문제에 따라 달라진다 (문제를 말로 정했으면 RAW 의 임시 카드) */
