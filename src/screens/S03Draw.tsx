@@ -189,7 +189,7 @@ export default function S03Draw() {
         {/* 아이 모드 12색, 보호자 모드는 24색 + 색 만들기 (2026-10-28 사용자) */}
         <ColorPalette full={guardian} tool={tool} color={color} cols={box.wide ? 3 : 4}
           size={box.wide ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
-          onColor={(hex) => { setColor(hex); setTool("pen"); }} />
+          onColor={(hex) => { setColor(hex); if (tool === "eraser") setTool("pen"); }} />
 
         <div className="draw-paper" style={{ width: box.w, height: box.h }}>
           <canvas ref={canvas}

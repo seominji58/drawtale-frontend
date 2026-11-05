@@ -28,7 +28,7 @@ function KidPalette({ tool, color, onColor, cols = 3, size = TAP }: PaletteProps
   return (
     <div role="radiogroup" aria-label="색" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${size}px)`, gap: 12, alignContent: "start" }}>
       {KID_COLORS.map((c) => {
-        const on = tool === "pen" && color === c.hex;
+        const on = tool !== "eraser" && color === c.hex;
         return (
           <button key={c.id} className="btn" role="radio" aria-checked={on} aria-label={c.name}
             onClick={() => onColor(c.hex)}
@@ -64,7 +64,7 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
     el.addEventListener("change", done);
     return () => el.removeEventListener("change", done);
   });
-  const on = (hex: string) => tool === "pen" && color.toLowerCase() === hex.toLowerCase();
+  const on = (hex: string) => tool !== "eraser" && color.toLowerCase() === hex.toLowerCase();
   const inBase = FULL_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase());
 
   // 「색 만들기」로 정한 색을 「내가 만든 색」 맨 앞에 둔다 (같은 기기에서만 남는다).
@@ -92,7 +92,7 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
       </div>
       <div className="palette-make">
         <button type="button" className="make" onClick={() => picker.current?.click()}
-          aria-label="색 만들기" style={!inBase && tool === "pen" ? { background: color, color: checkColor(color) } : undefined}>
+          aria-label="색 만들기" style={!inBase && tool !== "eraser" ? { background: color, color: checkColor(color) } : undefined}>
           <span aria-hidden="true" className="make-wheel" />색 만들기
         </button>
         {/* 브라우저 색 고르기 창 (그림판의 「색 편집」). 고르는 동안에도 바로 칠할 색이 바뀐다 */}
@@ -106,7 +106,7 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
           {recent.map((hex) => swatch(hex, `만든 색 ${hex}`, `r-${hex}`))}
         </div>
       )}
-      {tool === "pen" && isFaint(color) && (
+      {tool !== "eraser" && isFaint(color) && (
         <p className="palette-note">아주 옅은 색이에요. 이 색으로만 그리면 AI가 친구를 못 찾을 수 있어요. 테두리는 진한 색으로 그려 주세요.</p>
       )}
     </div>

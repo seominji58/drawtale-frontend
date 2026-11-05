@@ -166,7 +166,7 @@ export default function SPropDraw() {
         {/* 내 소품은 보호자 모드에서만 쓰므로 보호자 팔레트 (2026-10-28) */}
         <ColorPalette full tool={tool} color={color} cols={box.wide ? 3 : 4}
           size={box.wide ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
-          onColor={(hex) => { setColor(hex); setTool("pen"); }} />
+          onColor={(hex) => { setColor(hex); if (tool === "eraser") setTool("pen"); }} />
         <div className="draw-paper" style={{ width: box.w, height: box.h }}>
           <canvas ref={canvas}
             style={{ width: box.w, height: box.h, touchAction: "none", cursor: "crosshair" }}
