@@ -283,6 +283,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   // 전에는 땅과 같은 줄에서 자리를 다퉈 괜히 빠졌고, 머리 높이(0.45)라 사람 머리와 겹칠 수 있었다 (11/4 자리 검사)
   const airPlaced: [number, number][] = [];
   // 대본이 말한 자리 (pose): 물에 떠내려감 · 바람에 날아감 · 나무에 걸림 · 머리에 씀 · 손에 듦. 놓을 수 없으면 아래 보통 자리로
+  // 주인공 머리 · 손 자리는 서 있는 사람 그림 기준 — 옆으로 긴 몸(4족형) · 띄운 몸(물고기)은 머리 · 손이 다른 데라 보통 자리로 (11/5)
+  const upright = fit === "height" && size === 1 && !lift;
   const posed = (t: NonNullable<typeof plan.things>[number]): { x: number; style: CSSProperties; cls: string; top?: boolean } | null => {
     const thingW = (h: number) => h * t.ar / aspect;
     const holder = t.holder ? people.find((v) => v && (v.p.name === t.holder || v.p.id === t.holder)) : null;
@@ -314,6 +316,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
       }
       case "head": {   // 그 사람 머리 위
         if (t.holder === "hero") {
+          if (!upright) return null;
           const h = H.h * 0.16;
           return { x: hero.to, cls: "", top: true, style: spotStyle({ src: t.src, x: heroX, foot: H.foot - H.h + h * 0.55, h }) };
         }
@@ -327,7 +330,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
           // 주인공은 가만히 있는 쪽만 — 걷거나 팔이 움직이면 손에서 떨어져 보인다
           const drawW = spr ? (spr.box[2] - spr.box[0]) * (H.h / Math.max(0.05, spr.box[3] - spr.box[1])) / aspect
             : stillAr ? H.h * stillAr / aspect : 0;
-          if (!heroHands || !hero.calm || !drawW) return null;
+          if (!upright || !heroHands || !hero.calm || !drawW) return null;
           // 사람이 서 있지 않은 쪽 손 (둘 다 비었으면 그림 오른쪽 손)
           outer = people.some((v) => v && v.spot.x > hero.to) && !people.some((v) => v && v.spot.x < hero.to) ? "l" : "r";
           hx = heroX + (heroHands[outer][0] - 0.5) * drawW;
