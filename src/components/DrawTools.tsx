@@ -47,34 +47,41 @@ function KidPalette({ tool, color, onColor, cols = 3, size = TAP }: PaletteProps
 
 const RECENT_KEY = "drawtale-recent-colors";
 const RECENT_MAX = 6;
-const readRecent = (): string[] => {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").filter((x: unknown) => typeof x === "string").slice(0, RECENT_MAX); }
-  catch { return []; }
+/** 「내가 만든 색」 여섯 칸 — 빈 칸은 null. 예전(왼쪽부터 쌓던) 목록도 앞에서부터 칸에 넣어 읽는다 */
+const readSlots = (): (string | null)[] => {
+  let saved: unknown[] = [];
+  try { saved = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { /* 없으면 빈 칸 */ }
+  return Array.from({ length: RECENT_MAX }, (_, i) => (typeof saved[i] === "string" ? (saved[i] as string) : null));
 };
 
 /** 보호자 모드 팔레트. 칸이 작아도 된다 — 어른 손가락 기준 44px */
 function FullPalette({ tool, color, onColor }: PaletteProps) {
-  const [recent, setRecent] = useState<string[]>(readRecent);
+  // 「내가 만든 색」은 아이 · 어른이 고른 칸에 담는다 (11/5 사용자 — 전에는 만든 색이 왼쪽부터 저절로 쌓였다).
+  // 색 만들기 창을 닫으면 「담을 칸을 눌러요」 — 그때 누른 칸에 그 색이 들어간다(있던 색은 바뀐다). 담을 색이 없으면 칸 색으로 그린다
+  const [slots, setSlots] = useState<(string | null)[]>(readSlots);
+  const [toStore, setToStore] = useState<string | null>(null);
   const picker = useRef<HTMLInputElement>(null);
-  // 색 고르기 창을 닫을 때(브라우저 change)만 저장한다 — React 의 onChange 는 고르는 동안 계속 불린다
+  // 색 고르기 창을 닫을 때(브라우저 change)만 — React 의 onChange 는 고르는 동안 계속 불린다
   useEffect(() => {
     const el = picker.current;
     if (!el) return;
-    const done = () => keep(el.value);
+    const done = () => setToStore(el.value);
     el.addEventListener("change", done);
     return () => el.removeEventListener("change", done);
   });
   const on = (hex: string) => tool !== "eraser" && color.toLowerCase() === hex.toLowerCase();
   const inBase = FULL_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase());
 
-  // 「색 만들기」로 정한 색을 「내가 만든 색」 맨 앞에 둔다 (같은 기기에서만 남는다).
-  // 거의 같은 색은 하나로 — 전에는 고르는 동안 움직일 때마다 저장돼 비슷한 초록 여섯 개가 칸을 채웠다 (11/5 사용자)
-  const keep = (hex: string) => {
-    const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-    const near = (a: string, b: string) => { const [x, y] = [rgb(a), rgb(b)]; return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 40; };
-    const next = [hex, ...recent.filter((x) => !near(x, hex))].slice(0, RECENT_MAX);
-    setRecent(next);
-    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* 저장 못 해도 된다 */ }
+  const tapSlot = (i: number) => {
+    if (toStore) {
+      const next = slots.map((x, k) => (k === i ? toStore : x));
+      setSlots(next);
+      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* 저장 못 해도 된다 */ }
+      onColor(toStore);
+      setToStore(null);
+    } else if (slots[i]) {
+      onColor(slots[i]!);
+    }
   };
 
   const swatch = (hex: string, name: string, key: string) => (
@@ -100,12 +107,17 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
           onChange={(e) => onColor(e.target.value)}
           tabIndex={-1} aria-hidden="true" className="make-input" />
       </div>
-      {recent.length > 0 && (
-        <div className="palette-recent" role="radiogroup" aria-label="내가 만든 색">
-          <span>내가 만든 색</span>
-          {recent.map((hex) => swatch(hex, `만든 색 ${hex}`, `r-${hex}`))}
-        </div>
-      )}
+      <div className={`palette-recent ${toStore ? "storing" : ""}`} role="group" aria-label="내가 만든 색">
+        <span>{toStore ? "담을 칸을 눌러요" : "내가 만든 색"}</span>
+        {slots.map((hex, i) => (
+          <button key={`slot-${i}`} type="button" className={`swatch ${hex ? "" : "empty"}`}
+            aria-label={hex ? `만든 색 ${i + 1}` : `빈 칸 ${i + 1}`} aria-pressed={!!hex && on(hex)}
+            onClick={() => tapSlot(i)}
+            style={hex ? { background: hex, color: checkColor(hex) } : undefined}>
+            {hex && on(hex) ? "✓" : hex ? "" : "+"}
+          </button>
+        ))}
+      </div>
       {tool !== "eraser" && isFaint(color) && (
         <p className="palette-note">아주 옅은 색이에요. 이 색으로만 그리면 AI가 친구를 못 찾을 수 있어요. 테두리는 진한 색으로 그려 주세요.</p>
       )}

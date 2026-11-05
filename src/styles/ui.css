@@ -467,6 +467,12 @@
 .palette-recent { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: center; font-size: 13px; color: var(--ink-soft); }
 /* 「내가 만든 색」 이름은 칸 위 한 줄에 — 이름이 길어져 칸이 좁아지지 않게 (11/5) */
 .palette-recent > span { grid-column: 1 / -1; }
+/* 빈 칸 — 「색 만들기」 다음에 눌러 색을 담는다. 담을 차례면 칸이 깜빡여 어디를 누를지 보인다 (11/5) */
+.palette-recent .swatch.empty { background: transparent; border: 2px dashed var(--edge, #C9BFB3); color: var(--ink-soft); font-size: 18px; }
+.palette-recent.storing > span { color: var(--grape-dk); font-weight: 700; }
+.palette-recent.storing .swatch { animation: slot-blink 0.9s ease-in-out infinite alternate; }
+@keyframes slot-blink { from { transform: scale(1); } to { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .palette-recent.storing .swatch { animation: none; } }
 .palette-note { font-size: 13px; line-height: 1.5; color: #7A5413; background: #FFF3D2; border: 1px solid #E8C77A; border-radius: 10px; padding: 8px 10px; }
 .draw-area.narrow .palette-full { width: 100%; max-width: 420px; }
 
