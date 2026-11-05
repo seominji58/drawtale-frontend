@@ -21,12 +21,15 @@ const cleanName = (v: string) => v.replace(/[^\p{L}\p{N}]/gu, "").slice(0, MAX_N
 
 export default function S05Name() {
   const nav = useNavigate();
-  const { imageUrl, keypoints, name, setName } = useSession();
+  const { imageUrl, keypoints, name, setName, character } = useSession();
+  // 사람이 아닌 주인공(4족형 …)은 이름을 꼭 짓는다 (11/5 사용자) — 화면이 무슨 동물인지 묻지 않아서 이야기는 이름으로 부른다.
+  // 「지을까요?」를 건너뛰고 바로 이름 카드, 「이름 없이」는 없다 (서버도 이름 없으면 NAME_REQUIRED)
+  const mustName = !!character?.form && character.form !== "biped";
   const level = useSettings((s) => s.level);
   const muteAll = useSettings((s) => s.muteAll);
   const lock = useRef(0);
   /** 이름을 짓기로 했는지. 돌아왔을 때 이미 지은 이름이 있으면 바로 이름 카드 */
-  const [naming, setNaming] = useState(!!name);
+  const [naming, setNaming] = useState(!!name || mustName);
   /** 직접 적은 이름 (2026-11-02 사용자 「카드 말고 아이가 직접 입력하거나 말해서」). 카드를 고르면 비운다 */
   const [typed, setTyped] = useState(name && !NAMES.includes(name) ? name : "");
 
@@ -74,7 +77,8 @@ export default function S05Name() {
   }
 
   return (
-    <Screen back={() => { stopSpeak(); setNaming(false); }} speech="어떤 이름이 좋을까요?" segment={2}
+    <Screen back={mustName ? "/confirm" : () => { stopSpeak(); setNaming(false); }}
+      speech={mustName ? "친구 이름을 지어 주세요. 어떤 이름이 좋을까요?" : "어떤 이름이 좋을까요?"} segment={2}
       acts={<BigButton go disabled={!name} onClick={() => go(true)}>이 이름으로 할래요</BigButton>}>
       <h2 className="question">어떤 이름이 좋을까요?</h2>
 
@@ -112,9 +116,11 @@ export default function S05Name() {
         <em>진짜 이름이나 학교 이름은 쓰지 않아요</em>
       </div>
 
-      <div className="aside-links">
-        <button className="btn link" onClick={() => go(false)}>이름 없이 할래요</button>
-      </div>
+      {!mustName && (
+        <div className="aside-links">
+          <button className="btn link" onClick={() => go(false)}>이름 없이 할래요</button>
+        </div>
+      )}
     </Screen>
   );
 }

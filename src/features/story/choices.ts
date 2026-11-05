@@ -1,5 +1,6 @@
 import { STEP_ORDER } from "@/types/story";
 import type { AskKind, ExtraKind, StepChoice, StepKind, SupportLevel } from "@/types/story";
+import { useSession } from "@/store/session";   // 세션이 이 파일을 불러 쓴다 — 함수 안에서만 읽는다
 
 /* S-07 선택지. 백엔드에 선택지를 내려주는 엔드포인트가 없어서 프론트가 들고 있다
    (백엔드 계약 2-5 ⚠ 「선택지를 서버가 내려줄지」 미정). 서버에는 id 가 아니라
@@ -208,17 +209,29 @@ const byProblem = (kind: "action" | "result", table: Record<string, [string, str
 const ACTION_CHOICES = byProblem("action", ACTIONS_BY_PROBLEM);
 const RESULT_CHOICES = byProblem("result", RESULTS_BY_PROBLEM);
 
+/** 사람이 아닌 주인공(4족형 …)이면 손으로 하는 행동 카드를 같은 뜻의 몸 행동으로 (11/5 사용자 「4족 동물이 할 만한 행동만」).
+ *  카드를 빼면 그 문제의 행동이 세 장이 되어 자리를 그대로 두고 글만 바꾼다. 그림은 손 흔드는 아이라 이모지로 */
+const BODY_ACTIONS: Record<string, [string, string]> = {
+  wave_smile: ["꼬리를 흔들어 웃게 했어요", "🐾"],
+  wave: ["꼬리를 흔들었어요", "🐾"],
+};
+const forBody = (cards: StepChoice[]): StepChoice[] => {
+  const form = useSession.getState().character?.form;
+  if (!form || form === "biped") return cards;
+  return cards.map((c) => (BODY_ACTIONS[c.id] ? { ...c, label: BODY_ACTIONS[c.id][0], iconUrl: icon(BODY_ACTIONS[c.id][1]) } : c));
+};
+
 /** 그 칸에 보일 카드. 행동 · 결과는 고른 문제에 따라 달라진다 (문제를 말로 정했으면 RAW 의 임시 카드) */
 export function choicesFor(kind: AskKind, problemId?: string): StepChoice[] {
-  if (kind === "action" && problemId && ACTION_CHOICES[problemId]) return ACTION_CHOICES[problemId];
+  if (kind === "action" && problemId && ACTION_CHOICES[problemId]) return forBody(ACTION_CHOICES[problemId]);
   if (kind === "result" && problemId && RESULT_CHOICES[problemId]) return RESULT_CHOICES[problemId];
-  return CHOICES[kind];
+  return kind === "action" ? forBody(CHOICES[kind]) : CHOICES[kind];
 }
 
 /** 고른 id 를 서버에 보낼 라벨로 바꾼다. 행동 · 결과는 문제별 카드에서 먼저 찾는다 */
 export const labelOf = (kind: AskKind, id: string | undefined, problemId?: string) =>
   choicesFor(kind, problemId).find((c) => c.id === id)?.label
-    ?? CHOICES[kind].find((c) => c.id === id)?.label ?? "";
+    ?? choicesFor(kind).find((c) => c.id === id)?.label ?? "";
 
 /** 단계 하나가 이야기에서 되는 문장. 백엔드 목 AI 의 문장 틀과 같게 둔다
  *  (drawtale-backend `services/jobs.py` `_mock_story_text`) — 아이가 미리 듣는 문장과 결과가 같도록.
