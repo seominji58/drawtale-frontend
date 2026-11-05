@@ -259,11 +259,17 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   };
   const behind = plan.props.filter((p) => isPerson(p.id) || p.id === "sign");
   // 인물 자리는 미리 잡는다 — 대본에서 그 사람이 든 · 쓴 소품을 손 · 머리에 놓으려면 자리를 알아야 한다 (11/4)
+  // 다가가는 인물(hero.goal)은 주인공이 가는 쪽 바로 앞에 — 남는 자리에 서면 그 사람 반대쪽으로 달려갔다 (11/5)
+  const travel = Math.sign(hero.to - hero.from);
   const people = behind.map((p) => {
     const base0 = prop(p.id);
     if (!base0) return null;
-    const s = p.x !== undefined ? { ...base0, x: p.x } : base0;
-    const spot = personX(s.x, s.h, p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45, p.id === "sign");
+    const wRatio = p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45;
+    const ahead = hero.goal === p.id && hero.move !== "none" && travel !== 0
+      ? hero.to + travel * (heroHalf + (base0.h * wRatio / aspect) / 2 + 0.015) : undefined;
+    const s = ahead !== undefined && ahead > 0.05 && ahead < 0.95 ? { ...base0, x: ahead }
+      : p.x !== undefined ? { ...base0, x: p.x } : base0;
+    const spot = personX(s.x, s.h, wRatio, p.id === "sign");
     const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
     return { p, s, spot, sb };
   });

@@ -276,6 +276,9 @@ export interface HeroPlan {
   /** 주인공이 보는 쪽 (-1 왼쪽 · 1 오른쪽 · 0 정하지 않음). 옮겨 가면 가는 쪽, 제자리면 앞 쪽에서 보던 쪽을 잇는다 —
    *  옮겨 갈 때만 뒤집으면 다음 쪽에서 원래 그림 방향으로 돌아가 옆 친구에게 등을 돌렸다 (11/5 사용자, 옆모습 주인공) */
   face: -1 | 0 | 1;
+  /** 이 쪽에서 다가가는 인물 · 표지판 (props 의 id). 장면이 그 인물을 주인공이 가는 쪽 바로 앞에 세운다 —
+   *  전에는 인물이 남는 자리에 서서 「어른에게 달려갔어요」에 그 사람 반대쪽으로 달려갔다 (11/5, 옆모습 주인공에서 보였다) */
+  goal?: string;
 }
 
 export interface Env {
@@ -545,15 +548,21 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     // 주인공: 걷기 · 뛰기는 옮겨 가고, 제자리 동작은 몇 번 하고 멈춘다
     const move = p.action === "walk" ? "walk" : p.action === "run" ? "run" : "none";
     let from = x, to = x;
+    let goal: string | undefined;
     if (move !== "none") {
       // 표지판으로 달려가면 표지판(0.87) 바로 앞에 멈춘다 — 0.7 이면 표지판이 주인공 자리에 걸려 길 중간으로 밀려나
       // 주인공이 표지판을 지나쳐 달려갔다 (11/4 자리 검사). 어른 · 친구는 카드로 세운 장소 그림(cardAdult · cardFriend)도 본다
       const target = props.some((q) => q.id === "sign") ? 0.6
         : props.some((q) => q.id === "adult" || q.id === cardAdult) ? 0.42
         : props.some((q) => q.id === "friend" || q.id === cardFriend) ? 0.58 : SLOT;
+      goal = (props.find((q) => q.id === "sign") ?? props.find((q) => q.id === "adult" || q.id === cardAdult)
+        ?? props.find((q) => q.id === "friend" || q.id === cardFriend))?.id;
       // 제자리면 옆에서 들어온다 — 「걸어갔어요」가 보이게
       from = Math.abs(x - target) < 0.08 ? (target > 0.5 ? 0.16 : 0.84) : x;
       if (target === SLOT && from === 0.84) from = 0.16;
+      // 다가가는 인물 · 표지판은 오른쪽에 선다 — 주인공이 목표 자리보다 오른쪽이면 왼쪽으로 가며 그 사람에게서 멀어졌다.
+      // 「제자리면 옆에서 들어온다」처럼 왼쪽 끝에서 들어와 오른쪽의 그 사람에게 간다 (11/5, 옆모습 · 몸이 긴 주인공에서 보였다)
+      if (goal && from > target) from = 0.16;
       to = target;
     }
     const hiding = p.stage === "action" && picks.action === "hide";
@@ -565,7 +574,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       location: loc,
       env: { night, sun, weather },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide,
-        calm: move === "none" && CALM_ACTIONS.has(p.action), face },
+        calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다
       things: p.stage === "action" && picks.action === "hide" ? []
