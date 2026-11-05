@@ -8,7 +8,7 @@ import type { StepChoice } from "@/types/story";
 
 /** 형태 카드 그림 (public/forms, 11/4 사용자). 형태는 특정 동물이 아니라 몸 모양 안내선으로 —
  *  정면 강아지 그림은 「옆모습 · 다리 아래로」 그려야 하는 4족형과 맞지 않았다. 「다른 모습」은 새 · 나비 · 물고기 ·
- *  애벌레 · 악어 · 고양이 모음(장면 그림을 합친 것)으로 사람이 아닌 친구 전부를 뜻한다 — 형태(날개 · 지느러미 · 긴 몸 · 네 발)를 하나씩, 11/5 사용자. 그림이 없는 형태는 물음표 */
+ *  애벌레 · 하마 · 고양이 모음(장면 그림을 합친 것)으로 사람이 아닌 친구 전부를 뜻한다 — 형태(날개 · 지느러미 · 긴 몸 · 네 발)를 하나씩, 11/5 사용자. 그림이 없는 형태는 물음표 */
 const ICON: Record<string, string> = {
   biped: "biped.svg", quadruped: "quadruped.svg", chain: "chain.svg", finned: "finned.svg", winged: "winged.svg",
   nonhumanoid: "others.webp", none: "none.svg",
