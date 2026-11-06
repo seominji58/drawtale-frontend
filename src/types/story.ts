@@ -54,7 +54,7 @@ export interface Story {
   stillUrl?: string | null;
   /** 정지 그림 안 주인공 손 위치 {l, r: [x, y]} 0~1 (l 은 그림 왼쪽) — 대본에서 주인공이 든 소품을 손에 (서버 still_hands, 11/4) */
   stillHands?: { l: number[]; r: number[] } | null;
-  /** 4족형 정지 그림 안 입 · 머리 꼭대기 · 등 자리 [x, y] 0~1 (그림 기준, 뒤집기 전) — 입에 묾 · 모자 · 등에 태움 (서버 still_body, 11/6) */
+  /** 4족형 정지 그림 안 입 · 머리 꼭대기 · 등 자리 [x, y] 0~1 (그림 기준, 뒤집기 전): 입에 묾 · 모자 · 등에 태움 (서버 still_body, 11/6) */
   stillBody?: { mouth: number[]; head: number[]; back: number[] } | null;
   /** 짧은 이야기: 동작 영상(animationUrl)의 바탕이 투명한 프레임 묶음과 행동 카드의 동작 (2026-11-03).
    *  화면이 짧은 이야기도 네 쪽으로 나눠 긴 이야기와 같은 책 화면(장면 층)으로 보인다 */

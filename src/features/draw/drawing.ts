@@ -486,7 +486,7 @@ export function fillAt(drawing: Drawing, pt: Pt, color: string): HTMLCanvasEleme
   const rgba = g.getImageData(0, 0, W, H).data;
   const alpha = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3];
-  // 작은 틈(6px 까지)은 막힌 것으로 본다 — 바깥으로 새거나 옆 칸까지 칠해지지 않게 (features/draw/fill.ts)
+  // 작은 틈(6px 까지)은 막힌 것으로 본다, 바깥으로 새거나 옆 칸까지 칠해지지 않게 (features/draw/fill.ts)
   const seen = fillMask(alpha, W, H, pt.x, pt.y);
   if (!seen) return null;   // 닫히지 않았다 · 선 위
   // 칠한 칸을 2px 넓혀 선 가장자리의 흐린 틈까지 덮는다

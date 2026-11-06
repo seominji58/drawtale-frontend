@@ -1,15 +1,15 @@
-/** 페인트 통 칸 찾기 — 화면(캔버스) 없이 도는 부분. drawing.fillAt 이 쓰고, tools/draw-check/check_fill.mjs 가 검사한다.
+/** 페인트 통 칸 찾기, 화면(캔버스) 없이 도는 부분. drawing.fillAt 이 쓰고, tools/draw-check/check_fill.mjs 가 검사한다.
  *
  *  아이는 선을 끝까지 잇지 못하고 1 ~ 몇 px 틈을 남긴다 (pt_docs 20 4-3, 11/6). 그냥 퍼뜨리면
  *  - 틈이 그림판 가장자리로 이어지면 「선이 끊긴 곳은 이어 그려 주세요」만 뜨고 칠해지지 않았고
  *  - 틈이 옆의 닫힌 칸으로 이어지면 그 칸까지 칠해졌다 (머리를 칠했는데 몸통까지).
  *  그래서 선을 GAP 만큼 두껍게 본 판에서 칸을 찾고(틈 폭 2 × GAP 까지 막힌 것으로), 찾은 칸을 원래 선까지 다시 넓힌다.
- *  다시 넓히는 폭은 GAP + 1 — 가장 가는 펜(6px)의 선 두께보다 작아 틈을 지나 옆 칸으로 넘어가지 않는다.
+ *  다시 넓히는 폭은 GAP + 1, 가장 가는 펜(6px)의 선 두께보다 작아 틈을 지나 옆 칸으로 넘어가지 않는다.
  *  누른 곳이 두껍게 본 선 안(선 바로 옆 · 아주 좁은 칸)이면 예전처럼 그냥 퍼뜨린다. */
 
 /** 이 알파 값보다 진하면 선 */
 export const INK = 100;
-/** 이 반지름 안의 틈은 막힌 것으로 본다 — 틈 폭 6px 까지 */
+/** 이 반지름 안의 틈은 막힌 것으로 본다, 틈 폭 6px 까지 */
 export const GAP = 3;
 
 /** alpha: 그림판 W × H 의 알파 값(0 ~ 255). (x, y) 를 둘러싼 닫힌 칸 = 1 인 판. 칸이 아니면(선 위 · 바깥과 이어짐) null */
@@ -24,7 +24,7 @@ export function fillMask(alpha: ArrayLike<number>, W: number, H: number, x: numb
   const thick = dilate(ink, W, H, gap);
   if (thick[seed]) return flood(ink, W, H, seed);
   const inner = flood(thick, W, H, seed);
-  if (!inner) return null;          // 두껍게 봐도 바깥과 이어진다 — 정말 열린 칸
+  if (!inner) return null;          // 두껍게 봐도 바깥과 이어진다, 정말 열린 칸
   return regrow(inner, ink, W, H, gap + 1);
 }
 

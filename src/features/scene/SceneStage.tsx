@@ -93,7 +93,7 @@ interface Props {
   still?: string | null;
   /** 정지 그림 안 주인공 손 위치 (서버 still_hands) — 대본에서 주인공이 든 소품을 손에 */
   heroHands?: { l: number[]; r: number[] } | null;
-  /** 4족형 정지 그림 안 입 · 머리 꼭대기 · 등 자리 (서버 still_body, 그림 기준) — 없으면 그려진 칸에서 어림 */
+  /** 4족형 정지 그림 안 입 · 머리 꼭대기 · 등 자리 (서버 still_body, 그림 기준): 없으면 그려진 칸에서 어림 */
   heroBody?: { mouth: number[]; head: number[]; back: number[] } | null;
   mode: "play" | "start" | "end";
   /** 주인공 크기 기준 — 키(height, 사람) / 몸길이(width, 4족형처럼 옆으로 긴 몸). 형태 정의의 hero.fit (pt_docs 19) */
@@ -311,14 +311,14 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   const headSide = look !== 0 ? look : facing;
   const topY = H.foot - lift - drawn.h;
   const withHero: CSSProperties = REDUCE || !play ? {} : { transition: `left ${timing.ms}ms linear, filter 2.6s ease` };
-  // 서버가 그림에서 잰 자리(still_body)가 있으면 그것 — 머리가 큰 · 목이 긴 그림도 맞는다 (11/6). 그림 기준이라 화면에서
+  // 서버가 그림에서 잰 자리(still_body)가 있으면 그것, 머리가 큰 · 목이 긴 그림도 맞는다 (11/6). 그림 기준이라 화면에서
   // 뒤집었으면(머리 반대쪽으로 갈 때) 좌우를 바꾼다. 없으면(예전 이야기) 아래 어림
   const flipped = facing !== 0 && look !== 0 && look !== facing;
   const bodyAt = (p: number[]) => ({ x: heroX + ((flipped ? 1 - p[0] : p[0]) - 0.5) * drawn.w, y: topY + p[1] * drawn.h });
   const onQuad = (t: NonNullable<typeof plan.things>[number], where: "mouth" | "back" | "head") => {
     const thingW = (h: number) => h * t.ar / aspect;
     if (heroBody) {
-      if (where === "mouth") {   // 입 앞에 물린 듯 — 소품 가운데가 입 높이, 조금 앞으로
+      if (where === "mouth") {   // 입 앞에 물린 듯, 소품 가운데가 입 높이, 조금 앞으로
         const h = Math.min(t.h, drawn.h * 0.32);
         const m = bodyAt(heroBody.mouth);
         const x = m.x + headSide * thingW(h) * 0.25;
