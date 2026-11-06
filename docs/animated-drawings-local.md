@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/6 로컬 시험 계정 로그인 | `docker exec drawtale-backend-git-backend-1 python -m scripts.dev_login [--pin 2580 --onboarded]` → 알려 준 `http://localhost:5173/?dev_token=…` 를 연다 (개발 서버 · 로컬 APP_ENV 에서만). 공유 DB 를 쓰는 중이면 공유 DB 에 시험 계정 하나가 생긴다 |
 | 11/6 밤 채우기 작은 틈(6px 까지 막힘 · 옆 칸 새지 않음, `features/draw/fill.ts`), 백엔드 · AI 형태별 대신 동작 · 새 · 문어 기쁨 동작 · 짧은 이야기 동작 · 아닌 말 | **push** — 프론트 `feat/backend-contract`, 백엔드 · AI `dev`, 운영 반영(VM 켬, 프론트 배포 다시 돌림) |
 | WSL2 · Docker Desktop 설치 | **끝** |
 | Meta AnimatedDrawings TorchServe 이미지 | **끝** — 직접 빌드했다가 팀원 `drawtale-ai` 것으로 갈아탔다 (아래) |
