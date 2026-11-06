@@ -287,12 +287,16 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       };
       tick();
     };
-    // 음성 파일이 없는 쪽(서버가 그 쪽 음성을 끝내 못 만듦)은 브라우저 기계 음성으로 대신 읽지 않는다 — 나레이터 목소리
-    // 사이에 다른 목소리가 끼었다 (11/3 사용자 「중간에 가끔 다른 tts 나올 때 있는데 막아줘」). 바만 찬다.
-    // 서버가 없는 목 엔진만 브라우저 음성
+    // 음성 실패 정책 (pt_docs 20 4-5, 11/6):
+    // - 일부 쪽만 음성 파일이 없으면(서버가 그 쪽 음성을 끝내 못 만듦) 그 쪽은 브라우저 기계 음성으로 대신 읽지 않는다 —
+    //   나레이터 목소리 사이에 다른 목소리가 끼었다 (11/3 사용자 「중간에 가끔 다른 tts 나올 때 있는데 막아줘」). 바만 찬다.
+    // - 이야기에 음성 파일이 하나도 없으면(음성 키 없음 · 모두 실패) 처음부터 끝까지 브라우저 음성으로 읽는다 — 한 목소리라
+    //   섞이지 않고, 글을 못 읽는 아이에게 소리 없이 지나가지 않게 (01 NFR-06, 05 6.9 「음성만 실패하면 브라우저 음성」)
+    // 서버가 없는 목 엔진은 늘 브라우저 음성
+    const noAudioAtAll = !perPage && !story.audioUrl;
     const tts = () => {
       if (!alive) return;
-      if (muteAll || ENGINE !== "mock") { fill(est); return; }
+      if (muteAll || (ENGINE !== "mock" && !noAudioAtAll)) { fill(est); return; }
       trackTts(text);
       speak(text, muteAll, () => { if (alive) { stopTts(); setFrac(1); } });
     };
