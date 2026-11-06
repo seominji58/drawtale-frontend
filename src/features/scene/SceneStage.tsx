@@ -102,12 +102,14 @@ interface Props {
   size?: number;
   /** 옆모습 그림의 머리 방향 (-1 왼쪽 · 1 오른쪽 · 0 모름/정면). 머리 반대쪽으로 옮겨 갈 때 좌우로 뒤집는다 */
   facing?: -1 | 0 | 1;
+  /** 주인공 형태 (forms/*.json id). 4족형이면 든 소품을 입에 물고 · 등에 태운다 (pt_docs 20 2-a) */
+  form?: string;
 }
 
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, fit = "height", facing = 0, lift = 0, size = 1 }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, fit = "height", facing = 0, lift = 0, size = 1, form }: Props) {
   const play = mode === "play";
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
@@ -208,6 +210,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   // 주인공 크기: 첫 장의 그림 키가 hero.h 가 되게 칸을 키우고, 발끝을 foot 에 맞춘다
   const H = layout.hero;
   let heroStyle: CSSProperties;
+  /** 그려진 주인공의 폭 · 키 (화면 너비 · 높이 대비) — 입에 묾 · 등에 태움 자리를 잰다 */
+  let drawn = { w: 0, h: 0 };
   // 프레임 칸 높이(화면 높이 대비). 칸은 정사각이라 그림 폭 w · 키 h(칸 대비)에 칸 높이를 곱하면 화면 높이 단위가 된다.
   // 키 기준이면 그림 키가 hero.h, 몸길이 기준이면 몸길이가 hero.h × WIDE_LEN (키는 hero.h × WIDE_MAX_H 까지)
   const scaleFor = (w: number, h: number) => size * (fit === "width"
@@ -217,6 +221,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     const [l, t, r, b] = spr.box;
     const cellH = scaleFor(r - l, b - t);               // 칸 높이 (화면 높이 대비)
     const cellW = cellH / aspect;                        // 칸 너비 (화면 너비 대비)
+    drawn = { w: (r - l) * cellW, h: (b - t) * cellH };
     heroStyle = {
       height: `${cellH * 100}%`, aspectRatio: "1",
       left: `${(heroX - ((l + r) / 2 - 0.5) * cellW) * 100}%`,
@@ -226,6 +231,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     // 멈춘 그림: 몸길이 기준이면 가로세로 비율로 높이를 정한다 (비율을 모르면 키 기준)
     const stillH = size * (fit === "width" && stillAr ? Math.min((H.h * WIDE_LEN) / stillAr, H.h * WIDE_MAX_H) : H.h);
     heroStyle = { height: `${stillH * 100}%`, left: `${heroX * 100}%`, bottom: `${(1 - H.foot + lift) * 100}%` };
+    drawn = { w: stillAr ? stillH * stillAr / aspect : 0, h: stillH };
   }
   // 같은 빠르기로 (속도가 바뀌면 걸음과 어긋나 발이 미끄러진다)
   const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease`;
@@ -296,6 +302,29 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   // 대본이 말한 자리 (pose): 물에 떠내려감 · 바람에 날아감 · 나무에 걸림 · 머리에 씀 · 손에 듦. 놓을 수 없으면 아래 보통 자리로
   // 주인공 머리 · 손 자리는 서 있는 사람 그림 기준 — 옆으로 긴 몸(4족형) · 띄운 몸(물고기)은 머리 · 손이 다른 데라 보통 자리로 (11/5)
   const upright = fit === "height" && size === 1 && !lift;
+  // 4족형 주인공에 붙는 소품 (pt_docs 20 2-a, 11/6) — 손이 없으니 든 것은 입에 물고, 「등에 태우고」는 등 위에, 모자는 머리에.
+  // 머리 쪽은 화면에 보이는 쪽(뒤집었으면 가는 쪽). 주인공과 같은 빠르기로 함께 옮겨 간다. 그림마다 머리 · 등 높이가 달라
+  // 그려진 칸에서 어림한다 — 머리는 앞쪽 위, 등은 가운데 위 (강아지 · 고양이 · 공룡 시험 그림 기준). 셋 다 주인공 앞에 그린다
+  const quad = form === "quadruped" && facing !== 0 && drawn.w > 0;
+  const headSide = look !== 0 ? look : facing;
+  const topY = H.foot - lift - drawn.h;
+  const withHero: CSSProperties = REDUCE || !play ? {} : { transition: `left ${timing.ms}ms linear, filter 2.6s ease` };
+  const onQuad = (t: NonNullable<typeof plan.things>[number], where: "mouth" | "back" | "head") => {
+    const thingW = (h: number) => h * t.ar / aspect;
+    if (where === "mouth") {
+      const h = Math.min(t.h, drawn.h * 0.32);
+      const x = heroX + headSide * (drawn.w * 0.47 + thingW(h) * 0.25);
+      return { x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x, foot: topY + drawn.h * 0.34 + h * 0.8, h }), ...withHero } };
+    }
+    if (where === "back") {
+      const h = Math.min(t.h, drawn.h * 0.5);
+      const x = heroX - headSide * drawn.w * 0.08;
+      return { x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x, foot: topY + drawn.h * 0.3, h }), ...withHero } };
+    }
+    const h = drawn.h * 0.26;
+    const x = heroX + headSide * drawn.w * 0.34;
+    return { x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x, foot: topY + h * 0.55, h }), ...withHero } };
+  };
   const posed = (t: NonNullable<typeof plan.things>[number]): { x: number; style: CSSProperties; cls: string; top?: boolean } | null => {
     const thingW = (h: number) => h * t.ar / aspect;
     const holder = t.holder ? people.find((v) => v && (v.p.name === t.holder || v.p.id === t.holder)) : null;
@@ -325,7 +354,11 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         const h = Math.min(t.h * 1.2, tree.h * 0.38), top = tree.foot - tree.h + tree.h * 0.08;
         return { x: tree.x, cls: "m-stuck", style: spotStyle({ src: t.src, x: tree.x + 0.03, top, h }) };
       }
+      case "mouth":
+      case "back":
+        return t.holder === "hero" && quad ? onQuad(t, t.pose) : null;
       case "head": {   // 그 사람 머리 위
+        if (t.holder === "hero" && quad) return onQuad(t, "head");
         if (t.holder === "hero") {
           if (!upright) return null;
           const h = H.h * 0.16;
@@ -337,6 +370,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
       }
       case "hand": {   // 그 사람 손끝에 소품 손잡이를 (인물은 그림마다 잰 값 hands.json, 주인공은 AI 손 관절 still_hands)
         let hx: number, hy: number, outer: "l" | "r", bodyH: number;
+        if (t.holder === "hero" && quad) return onQuad(t, "mouth");   // 4족형은 입에 문다
         if (t.holder === "hero") {
           // 주인공은 가만히 있는 쪽만 — 걷거나 팔이 움직이면 손에서 떨어져 보인다
           const drawW = spr ? (spr.box[2] - spr.box[0]) * (H.h / Math.max(0.05, spr.box[3] - spr.box[1])) / aspect
@@ -397,7 +431,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     return null;   // 줄여도 놓을 자리가 없으면 겹치지 않게 뺀다 (글에서 먼저 나온 것이 먼저 자리를 잡는다)
   }).filter((t): t is NonNullable<typeof t> => !!t)
     // 손에 듦 · 머리에 씀인데 그 자리에 놓지 못해 옆 땅에 놓인 내 소품은 등장 통통 (가만히 있으면 내 그림이 나온 줄 모른다)
-    .map((t) => (t.name !== undefined && !t.motion && (t.pose === "hand" || t.pose === "head") ? { ...t, motion: "pop" as const } : t));
+    .map((t) => (t.name !== undefined && !t.motion && (t.pose === "hand" || t.pose === "head" || t.pose === "mouth" || t.pose === "back")
+      ? { ...t, motion: "pop" as const } : t));
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   return (

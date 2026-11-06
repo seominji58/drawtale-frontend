@@ -124,6 +124,24 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/바구니/, "props/basket.webp", 0.1, "ground"],
   [W1("지도"), "props/map.webp", 0.07, "ground"],
   [/물고기/, "props/fish.webp", 0.08, "air"],
+  // D. 2차 14장 (11/6, tools/art/gen_scene_props2.py) — 카드 이야기 512편에서 글에 나오는데 그림이 없던 손에 드는 물건.
+  // 「배가 꼬르륵」 · 「사과했어요」 · 「북쪽」 · 「소라게」처럼 다른 뜻은 빼고
+  [/(?:작은|큰|나무|고깃|돛단|나룻|종이|아빠) ?배(?=를|가|에|는|도| 한| 하나|[^가-힣]|$)|배 한 척|배를 타|배에 (?:타|올)|배가 (?:들어|떠|둥둥|통통|출렁)|배 위에|배에서 내/,
+    "props/boat.webp", 0.14, "ground"],
+  [/별똥별/, "props/shootingstar.webp", 0.1, "air"],
+  [/헬멧/, "props/helmet.webp", 0.1, "ground"],
+  [/(?:빨간|노란|초록|맛있는|커다란|작은) 사과|사과 (?:한|두|세|하나)|사과를 (?:따|먹|사각|건네|깎|닦|주|받|골|사)|사과(?:와|,)|사과가 (?:수북|주렁|떨어|데굴|열)/,
+    "props/apple.webp", 0.07, "ground"],
+  [/식판/, "props/tray.webp", 0.06, "ground"],
+  [/베개/, "props/pillow.webp", 0.09, "ground"],
+  [/물뿌리개/, "props/wateringcan.webp", 0.1, "ground"],
+  [/편지/, "props/letter.webp", 0.06, "ground"],
+  [/리본/, "props/ribbon.webp", 0.07, "ground"],
+  [/우주 ?장갑|우주복 장갑/, "props/spacegloves.webp", 0.07, "ground"],
+  [/(?<!우주 |우주|우주복 )장갑/, "props/mittens.webp", 0.06, "ground"],
+  [/(?:^|[^가-힣])북(?:을|를|이|가|은|는|과|와|도|에|소리를|소리가)?(?=[^가-힣]|$)/, "props/drum.webp", 0.11, "ground"],
+  [/소라(?!게|빵)/, "props/conch.webp", 0.07, "ground"],
+  [/로켓/, "props/rocket.webp", 0.3, "ground"],
 ];
 /** 오린 그림의 가로 ÷ 세로 (tools/art/process_cast2.py 가 잰다). 없으면 1 */
 const ar = (src: string) => (AR as Record<string, number>)[src] ?? 1;
@@ -152,8 +170,9 @@ export interface ThingPlan {
 
 /** 소품이 문장에서 어디 있나 · 어떻게 움직이나 (11/4 사용자 시안 https://claude.ai/artifact/Fe8gN919XC7rDqUaxHEAw4 「그렇게 진행하자」).
  *  water 바다에 떠내려감 · blown 바람에 날아감 · high 나무에 걸림 · fall 떨어짐 · head 머리에 씀 · hand 손에 듦
- *  window 실내에서 창밖에 보임 (새 · 나비 · 행성) — 창문 그림 안에만, 창문이 없는 방이면 놓지 않는다 */
-export type ThingPose = "water" | "blown" | "high" | "fall" | "head" | "hand" | "window";
+ *  window 실내에서 창밖에 보임 (새 · 나비 · 행성) — 창문 그림 안에만, 창문이 없는 방이면 놓지 않는다
+ *  mouth 입에 묾 · back 등에 태움 (2026-11-06, pt_docs 20 2-a) — 4족형 주인공만. 사람은 보통 자리로 */
+export type ThingPose = "water" | "blown" | "high" | "fall" | "head" | "hand" | "window" | "mouth" | "back";
 /** 「창밖에 작은 새가」 — 실내 장면에서 공중 소품이 방 안을 날지 않게 (11/4 사용자) */
 const WINDOW_TEXT = /창\s?밖|창문\s?밖|창문 너머|유리창|창가|창문으로|창문에|창문을/;
 // 소품 낱말 바로 뒤에 조사(이 · 가 · 을 · 를 · 은 · 는 · 도)가 붙고 그 뒤에 오는 동사만 본다 — 「물방울이 바위 위로 떨어졌어요」의
@@ -164,6 +183,9 @@ const POSES: [ThingPose, RegExp][] = [
   ["high", /(?:나무|나뭇가지|가지)에 (?:걸|매달|대롱)|나무 위에 (?:걸|있|매달)/],
   ["blown", /바람에 날아|날아가 버|날아갔|날려 갔|휙 날아|훨훨 날아/],
   ["fall", /떨어졌|떨어뜨|떨어트|툭 떨어|뚝 떨어/],
+  // 「물었어요」는 「묻다」(물어봤다)이기도 해서 뺀다. 「물고기」는 띄어쓰기로 빠진다
+  ["mouth", /입에 (?:물|넣)|입으로 물|(?:꼭|살짝|덥석|앙) 물|물고 |물어 (?:왔|날랐|옮)/],
+  ["back", /(?<!발)등에 (?:태우|태웠|태워|업|얹|싣|실|올려|올렸)/],   // 「발등에 올려」 빼고
   ["head", /머리에 (?:쓰|썼|얹)|^\s*(?:(?:꾹|푹|눌러|살짝)\s*)*(?:쓰고|썼|써)/],
   ["hand", /손에 (?:들|쥐|꼭)|(?:들고|쥐고) |품에 (?:안|꼭)|꼭 안|껴안|안고 /],
 ];
@@ -183,8 +205,14 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   // 주어: 소품 앞에서 마지막으로 「…이/가/은/는」 붙은 말. 「내 손에 쥐여 주었어요」면 주인공
   const before = text.slice(from, at);
   const subj = [...before.matchAll(/([가-힣{}:]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|께서)\s/g)].pop()?.[1];
-  const subject = /내 손|나에게|내게/.test(rest) || !subj || /^(?:나|내가|\{이름\})/.test(subj) ? "hero" : subj;
-  if (pose === "hand" || pose === "head") return { pose, subject };
+  // 「오늘 나는」처럼 주어 앞에 꾸밈말이 붙어도 마지막 낱말로 본다 (11/6 — 「오늘 나」가 주인공이 아닌 것으로 읽혔다)
+  const subjLast = subj?.split(/\s+/).pop() ?? "";
+  // 「나」 · 「내가」 와 같을 때만 — 「나비가」 · 「나무가」 는 주인공이 아니다
+  const me = (w: string) => /^(?:나|내가)$|^\{이름\}/.test(w);
+  const subject = /내 손|나에게|내게/.test(rest) || !subj || me(subj) || me(subjLast) ? "hero" : subj;
+  // 입에 묾 · 등에 태움은 소품이 목적어(「공을 물고」)일 때만 — 「새가 벌레를 물고」의 새는 무는 쪽이다
+  if ((pose === "mouth" || pose === "back") && !/(?:을|를|도)$/.test(lead[0])) return {};
+  if (pose === "hand" || pose === "head" || pose === "mouth" || pose === "back") return { pose, subject };
   return { pose };
 }
 
@@ -195,6 +223,7 @@ export type ThingMotion = "flutter" | "float" | "glide" | "sway" | "swim" | "dri
 const ALWAYS_MOVING: Record<string, ThingMotion> = {
   "props/butterfly.webp": "flutter", "props/bird.webp": "float", "props/bat.webp": "float", "props/seagull.webp": "glide",
   "props/balloons.webp": "sway", "props/fish.webp": "swim", "props/planet.webp": "drift", "props/earth.webp": "drift",
+  "props/shootingstar.webp": "glide",
 };
 const WIND_MOVING = new Set(["props/flag.webp", "props/umbrella.webp", "props/leaves.webp"]);
 const BALL_MOVES = /굴렸|굴러|굴리|데굴|찼어|차서|뻥 찼|던졌|던져/;
@@ -269,7 +298,14 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     if (skip.has(src)) continue;
     // 내 소품이 같은 낱말이면 장면 그림은 빼고 내가 그린 것만
     if (hits.some((x) => m[0].includes(x.key) || x.key.includes(m[0].replace(/[^가-힣]/g, "").slice(0, 3)))) continue;
-    hits.push({ at: m.index, t: { src, h, ar: ar(src), spot, ...thingPose(text, m.index, m.index + m[0].length, spot, indoor) }, key: m[0] });
+    // 낱말 단위 정규식(W1)은 앞 글자와 뒤 조사까지 잡는다 — 자리 판단(thingPose)은 낱말 바로 뒤의 조사를 보므로 낱말만으로 줄인다.
+    // 전에는 「공을 손에 꼭 쥐었어요」의 공 · 나비 · 지구 · 지도가 자리를 못 받았다 (11/6)
+    // (낱말 단위 정규식만 — 「웅덩이」 · 「물고기」처럼 끝 글자가 조사 같은 낱말을 자르지 않게)
+    const wordRe = re.source.startsWith("(?:^|[^가-힣])");
+    const lead0 = wordRe && /^[^가-힣]/.test(m[0]) ? 1 : 0;
+    const word = wordRe ? m[0].slice(lead0).replace(/(?:을|를|이|가|은|는|과|와|도|랑|들|한 마리|의)$/, "") : m[0];
+    const at = m.index + lead0;
+    hits.push({ at, t: { src, h, ar: ar(src), spot, ...thingPose(text, at, at + word.length, spot, indoor) }, key: m[0] });
   }
   return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
 }
@@ -441,8 +477,10 @@ const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "c
 
 /** 손에 듦 · 머리에 씀: 문장의 주어를 그 쪽에 선 인물로 (이름 낱말이 겹치거나 같은 그림 종류). 못 찾으면 자리 없이 땅에 */
 function holderOf(t: ThingPlan, props: PropPlan[]): Partial<ThingPlan> {
-  if (t.pose !== "hand" && t.pose !== "head") return {};
+  if (t.pose !== "hand" && t.pose !== "head" && t.pose !== "mouth" && t.pose !== "back") return {};
   if (t.subject === "hero") return { holder: "hero", subject: undefined };
+  // 입에 묾 · 등에 태움은 4족형 주인공만 (다른 인물이면 보통 자리로)
+  if (t.pose === "mouth" || t.pose === "back") return { pose: undefined, subject: undefined };
   const subj = (t.subject ?? "").replace(/\s+/g, "");
   const words = (t.subject ?? "").split(/\s+/).map((w) => w.replace(/님$/, "")).filter((w) => w.length >= 2 && !TITLES.has(w));
   const kind = personKind("", t.subject ?? "");
@@ -616,7 +654,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       things: p.stage === "action" && picks.action === "hide" ? []
         : thingsFor(p.text, mine, isIndoor(loc), new Set([
           ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
-          ...(loc === "space-ship" ? ["props/spaceship.webp"] : []),
+          ...(loc === "space-ship" ? ["props/spaceship.webp", "props/rocket.webp"] : []),
         ])).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props) })),
     });
     x = to;
