@@ -469,7 +469,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
           <FitStage ar={null}>
             <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode} fit={heroFit} facing={heroFacing} lift={heroForm.hero?.float ?? 0} size={heroForm.hero?.size ?? 1} form={heroForm.id}
               sprite={pgI.sprite && pgI.spriteUrl ? { url: pgI.spriteUrl, ...pgI.sprite } : null} still={still}
-              heroHands={story.stillHands ?? null} />
+              heroHands={story.stillHands ?? null} heroBody={story.stillBody ?? null} />
           </FitStage>
           {pageText(i, active, top)}
           {top && <>

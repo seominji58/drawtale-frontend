@@ -93,6 +93,8 @@ interface Props {
   still?: string | null;
   /** 정지 그림 안 주인공 손 위치 (서버 still_hands) — 대본에서 주인공이 든 소품을 손에 */
   heroHands?: { l: number[]; r: number[] } | null;
+  /** 4족형 정지 그림 안 입 · 머리 꼭대기 · 등 자리 (서버 still_body, 그림 기준) — 없으면 그려진 칸에서 어림 */
+  heroBody?: { mouth: number[]; head: number[]; back: number[] } | null;
   mode: "play" | "start" | "end";
   /** 주인공 크기 기준 — 키(height, 사람) / 몸길이(width, 4족형처럼 옆으로 긴 몸). 형태 정의의 hero.fit (pt_docs 19) */
   fit?: "height" | "width";
@@ -109,7 +111,7 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, fit = "height", facing = 0, lift = 0, size = 1, form }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form }: Props) {
   const play = mode === "play";
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
@@ -309,8 +311,28 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   const headSide = look !== 0 ? look : facing;
   const topY = H.foot - lift - drawn.h;
   const withHero: CSSProperties = REDUCE || !play ? {} : { transition: `left ${timing.ms}ms linear, filter 2.6s ease` };
+  // 서버가 그림에서 잰 자리(still_body)가 있으면 그것 — 머리가 큰 · 목이 긴 그림도 맞는다 (11/6). 그림 기준이라 화면에서
+  // 뒤집었으면(머리 반대쪽으로 갈 때) 좌우를 바꾼다. 없으면(예전 이야기) 아래 어림
+  const flipped = facing !== 0 && look !== 0 && look !== facing;
+  const bodyAt = (p: number[]) => ({ x: heroX + ((flipped ? 1 - p[0] : p[0]) - 0.5) * drawn.w, y: topY + p[1] * drawn.h });
   const onQuad = (t: NonNullable<typeof plan.things>[number], where: "mouth" | "back" | "head") => {
     const thingW = (h: number) => h * t.ar / aspect;
+    if (heroBody) {
+      if (where === "mouth") {   // 입 앞에 물린 듯 — 소품 가운데가 입 높이, 조금 앞으로
+        const h = Math.min(t.h, drawn.h * 0.32);
+        const m = bodyAt(heroBody.mouth);
+        const x = m.x + headSide * thingW(h) * 0.25;
+        return { x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x, foot: m.y + h * 0.5, h }), ...withHero } };
+      }
+      if (where === "back") {    // 등 윗선에 얹힌 듯
+        const h = Math.min(t.h, drawn.h * 0.5);
+        const b = bodyAt(heroBody.back);
+        return { x: b.x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x: b.x, foot: b.y + h * 0.12, h }), ...withHero } };
+      }
+      const h = drawn.h * 0.26;  // 머리 꼭대기에 씀
+      const hd = bodyAt(heroBody.head);
+      return { x: hd.x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x: hd.x, foot: hd.y + h * 0.3, h }), ...withHero } };
+    }
     if (where === "mouth") {
       const h = Math.min(t.h, drawn.h * 0.32);
       const x = heroX + headSide * (drawn.w * 0.47 + thingW(h) * 0.25);

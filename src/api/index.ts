@@ -78,6 +78,7 @@ interface ServerStory {
   animation_url: string | null;
   still_url?: string | null;
   still_hands?: { l: number[]; r: number[] } | null;
+  still_body?: { mouth: number[]; head: number[]; back: number[] } | null;
   hero_form?: string | null;
   hero_facing?: "left" | "right" | null;
   /** 아이 · 보호자가 정한 책 제목 (계약 2-15). 없으면 null */
@@ -215,6 +216,7 @@ function toStory(s: ServerStory): Story {
     animationUrl: s.animation_url,
     stillUrl: s.still_url ?? null,
     stillHands: s.still_hands ?? null,
+    stillBody: s.still_body ?? null,
     // 서버가 아는 형태 · 머리 쪽 (계약 — 이야기 응답 hero_form · hero_facing). 예전 서버면 화면이 붙여 둔 것을 쓴다
     ...(s.hero_form ? { form: s.hero_form } : {}),
     heroFacing: s.hero_facing ?? null,
