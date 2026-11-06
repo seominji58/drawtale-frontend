@@ -39,6 +39,7 @@
 | S-07 선택지 목록 | `src/features/story/choices.ts` | 계약 2-5 ⚠ 「선택지를 서버가 내려줄지」 미정 |
 | 이야기 목록 (S-01·S-12) | `store/library.ts` (sessionStorage / localStorage) | 목록 엔드포인트 없음 |
 | 어른 설정 (S-13) | `store/settings.ts` | 설정 엔드포인트 없음 |
+| 보호자 비밀번호 · 보호자 소개 카드 (S-13 보호자 칸 · 🔒 기능, 2026-11-06) | `src/api/index.ts` `getGuardianStatus`(= `GET /auth/me` 의 `guardian_pin_set` · `onboarded`) · `checkGuardianPin` · `setGuardianPin` · `markOnboarded`. 비밀번호 호출은 429 를 기다렸다 다시 보내지 않는다(잠금은 남은 시간을 보인다) | 계약 2-16 |
 | 이메일 로그인·회원가입 (S-15·S-16) | `src/api/auth.ts`가 `/api/v1/auth/login` · `/auth/signup`을 부르지만 **백엔드에 없다** (4-3). 소셜 로그인(`POST /api/v1/auth/{provider}` · `GET /api/v1/auth/me`)은 백엔드 dev 에 있다 | 계약 2-7 · 2-8 |
 
 ---

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import type { Segment } from "@/types/story";
 import { useSettings, LEVEL_CONFIG } from "@/store/settings";
 import { speak, stopSpeak } from "@/lib";
-import AdultKey from "./AdultKey";
+import SettingsKey from "./SettingsKey";
 import SoundMenu from "./SoundMenu";
 
 interface Props {
@@ -21,7 +21,8 @@ interface Props {
   autoSpeak?: boolean;
   /** 레일 오른쪽에 다시 듣기 대신 둘 것 (S-01 설정 버튼) */
   railEnd?: ReactNode;
-  /** 어른 설정 자물쇠(3초 길게). 아이 화면은 기본으로 있다 — 만드는 중(S-04 · S-08)처럼 떠나면 안 되는 화면만 끈다 */
+  /** 설정 톱니(한 번 누르면 열림, 2026-11-06 — 전에는 자물쇠 3초 길게). 아이 화면은 기본으로 있다 —
+   *  만드는 중(S-04 · S-08)처럼 떠나면 안 되는 화면만 끈다 */
   adultKey?: boolean;
   /** 소리 목록의 「다시 듣기」. 없으면 speech 를 읽는다 (S-09 는 그 쪽 음성 파일로 다시 읽는다) */
   onReplay?: () => void;
@@ -93,7 +94,7 @@ export default function Screen({
               )}
         </div>
         <div className="rail-side end">
-          {adultKey && <AdultKey />}
+          {adultKey && <SettingsKey />}
           {/* C-02 소리: 누르면 다시 듣기 · 소리 끄기 · 소리 크기 목록 (components/SoundMenu). 아이 화면은 읽을 문장이 없어도
               소리 끄기 · 크기는 있다 */}
           {railEnd ?? ((speech !== null || onReplay || audience === "child") && (

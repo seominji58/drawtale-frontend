@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LockedFeature from "@/components/LockedFeature";
 import Screen from "@/components/Screen";
 import ChoiceCard from "@/components/ChoiceCard";
 import BigButton from "@/components/BigButton";
@@ -146,6 +147,10 @@ export default function S07Steps() {
 
         {/* S-07-13 카드 대신 말하기 · 적기. 카드에 없는 장소 · 일도 아이가 정한다.
             보호자 모드에서만 보인다 (F-SET-06) — 아이 목소리가 브라우저 인식 서버로 가고, 글쇠판은 어른이 쓴다 */}
+        {/* 보호자 기능이 꺼져 있어도 있는 줄은 알게 — 누르면 보호자 비밀번호 (pt_docs 20 3-2 ⑤). 고르는 중(pending)엔 숨긴다 */}
+        {!ownOn && !pending && !!step && VOICE_STEPS.includes(step) && (
+          <div className="own-locked"><LockedFeature label="카드에 없으면 · 말하기 · 적기" turnOn={["voiceInput"]} /></div>
+        )}
         {canOwn && (
           <form data-audience="adult" className="own"
             onSubmit={(e) => { e.preventDefault(); confirmOwn(); }}>

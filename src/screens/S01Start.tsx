@@ -25,7 +25,7 @@ export default function S01Start() {
     <Screen
       back={null}
       speech={null}
-      // 어른 설정 자물쇠는 Screen 이 둔다 (components/AdultKey — 다른 아이 화면과 같은 것). 다시 듣기는 없다
+      // 설정 톱니는 Screen 이 둔다 (components/SettingsKey — 다른 아이 화면과 같은 것). 다시 듣기는 없다
       railEnd={null}
     >
       {/* 왼쪽: 테이프로 붙인 도화지 위의 주인공, 오른쪽: 인사와 두 갈래 (디자인 방향 A, 2026-10-28) */}

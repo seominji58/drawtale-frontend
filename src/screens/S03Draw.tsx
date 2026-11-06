@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Coach from "@/components/Coach";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { ColorPalette, PenTools, TAP } from "@/components/DrawTools";
@@ -178,6 +179,8 @@ export default function S03Draw() {
           <BigButton go disabled={empty || busy} onClick={() => void finish()}>다 그렸어요</BigButton>
         </>
       }>
+      {/* 아이 말풍선 — 처음 한 번 (pt_docs 20 3-2-1) */}
+      <Coach id="draw" lines={["색 동그라미를 눌러 색을 골라요", "채우기는 선으로 닫힌 곳을 눌러요"]} />
       <h2 className="question">{QUESTION}</h2>
       <p className="hint">{tool === "eraser" ? "문지르면 지워져요"
         : tool === "fill" ? (fillMiss ? "선으로 닫힌 곳을 눌러요 — 선이 끊긴 곳은 이어 그려 주세요" : "선으로 둘러싸인 곳을 누르면 색이 칠해져요")

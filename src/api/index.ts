@@ -434,6 +434,71 @@ export async function deleteMyVoice(): Promise<void> {
   if (!r.ok && r.status !== 204) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
 }
 
+// ---- 보호자 비밀번호 · 보호자 소개 카드 (계약 2-16, pt_docs 20 3장, 2026-11-06) ----
+// 숫자 4자리. 서버가 계정에 해시로 두고, 연달아 다섯 번 틀리면 5분 동안 받지 않는다.
+
+export interface GuardianStatus { pinSet: boolean; onboarded: boolean }
+
+/** 비밀번호 확인 · 만들기 결과. 틀리면 남은 횟수, 막혔으면 남은 초 */
+export type PinResult =
+  | { ok: true }
+  | { ok: false; reason: "wrong"; triesLeft: number }
+  | { ok: false; reason: "locked"; retryAfter: number }
+  | { ok: false; reason: "required" | "not_set" | "offline" };
+
+const MOCK_PIN = "storyblanks.mock.pin";
+const MOCK_ONBOARDED = "storyblanks.mock.onboarded";
+
+export async function getGuardianStatus(): Promise<GuardianStatus> {
+  if (useMock) return { pinSet: !!localStorage.getItem(MOCK_PIN), onboarded: !!localStorage.getItem(MOCK_ONBOARDED) };
+  const r = await call<{ guardian_pin_set?: boolean; onboarded?: boolean }>("/auth/me");
+  return { pinSet: !!r.guardian_pin_set, onboarded: !!r.onboarded };
+}
+
+/** 429 를 기다렸다 다시 보내지 않는다 — 비밀번호 잠금은 기다리는 대신 화면에 남은 시간을 보인다 */
+async function pinCall(path: string, method: string, body: object): Promise<PinResult> {
+  let r: Response;
+  try {
+    r = await fetch(BASE + path, { method, headers: { ...authHeader(), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  } catch { return { ok: false, reason: "offline" }; }
+  if (r.status === 401) useAuth.getState().logout();
+  if (r.ok) return { ok: true };
+  const err = (await r.json().catch(() => null) as { error?: { code?: string; detail?: Record<string, number> } } | null)?.error;
+  switch (err?.code) {
+    case "PIN_WRONG": return { ok: false, reason: "wrong", triesLeft: err.detail?.tries_left ?? 0 };
+    case "PIN_LOCKED": return { ok: false, reason: "locked", retryAfter: err.detail?.retry_after ?? (Number(r.headers.get("Retry-After")) || 300) };
+    case "PIN_REQUIRED": return { ok: false, reason: "required" };
+    case "PIN_NOT_SET": return { ok: false, reason: "not_set" };
+    default: return { ok: false, reason: "offline" };
+  }
+}
+
+export async function checkGuardianPin(pin: string): Promise<PinResult> {
+  if (useMock) {
+    const saved = localStorage.getItem(MOCK_PIN);
+    if (!saved) return { ok: false, reason: "not_set" };
+    return saved === pin ? { ok: true } : { ok: false, reason: "wrong", triesLeft: 4 };
+  }
+  return pinCall("/me/guardian-pin/check", "POST", { pin });
+}
+
+/** 만들기 · 바꾸기. 이미 있으면 current 가 맞아야 한다 — 잊었으면 다시 로그인한 뒤 10분 안에는 current 없이 */
+export async function setGuardianPin(pin: string, current?: string): Promise<PinResult> {
+  if (useMock) {
+    const saved = localStorage.getItem(MOCK_PIN);
+    if (saved && current !== undefined && current !== saved) return { ok: false, reason: "wrong", triesLeft: 4 };
+    localStorage.setItem(MOCK_PIN, pin);
+    return { ok: true };
+  }
+  return pinCall("/me/guardian-pin", "PUT", current === undefined ? { pin } : { pin, current_pin: current });
+}
+
+/** 보호자 소개 카드를 봤다. 실패해도 이 기기에는 기억한다 */
+export async function markOnboarded(): Promise<void> {
+  if (useMock) { localStorage.setItem(MOCK_ONBOARDED, "1"); return; }
+  try { await fetch(BASE + "/me/onboarded", { method: "POST", headers: authHeader() }); } catch { /* 다음에 다시 */ }
+}
+
 /** 계정 탈퇴 (S-13, 2026-11-03). 서버가 그 계정의 그림 · 이야기 · 음성 · 영상 · 보호자 목소리 · 로그인 기록을 모두 지운다
  *  (계약 2-8 DELETE /auth/me). 되돌릴 수 없다 — 화면이 먼저 묻는다 */
 export async function deleteAccount(): Promise<void> {

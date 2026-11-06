@@ -10,6 +10,10 @@ import { TITLE_MAX, useLibrary } from "@/store/library";
 import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
 import { deleteAccount, deleteMyVoice, getMyVoice } from "@/api";
+import { SPEECH_RATES } from "@/lib";
+import { useGuardian } from "@/store/guardian";
+import { resetCoach } from "@/components/Coach";
+import { LockIcon } from "@/components/Screen";
 import type { GuardianVoice } from "@/api";
 
 function Row({ name, desc, children }: { name: string; desc: string; children: ReactNode }) {
@@ -43,15 +47,25 @@ function Head({ id, name, desc, children }: { id: string; name: string; desc?: s
 /** 이야기 제목 길이 (책장 책등에 들어가는 만큼) */
 
 /** 바로가기 칩. 설정이 길어 폰 · 태블릿 · 컴퓨터 어디서든 원하는 묶음으로 바로 간다 (10/28 사용자 「스크롤 방식 고민」) */
+/** 아이 칸(잠금 없음)이 먼저, 보호자 칸(비밀번호)이 뒤 (pt_docs 20 3-2, 2026-11-06) */
 const SECTIONS: [string, string][] = [
-  ["account", "계정"], ["story", "이야기"], ["sound", "소리"], ["adult", "어른과 함께"], ["info", "기록 · 안내"], ["mine", "만든 이야기"],
+  ["story", "이야기"], ["sound", "소리"], ["guardian", "보호자"], ["account", "계정"], ["info", "기록"], ["mine", "만든 이야기"],
+];
+/** 보호자 칸을 열기 전에도 무엇이 있는지는 보인다 (숨기지 않고 잠그기) */
+const GUARDIAN_ITEMS = [
+  "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 목소리로 덧붙이기 · 내 목소리로 읽어주기",
+  "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
 ];
 
 export default function S13Settings() {
   const nav = useNavigate();
-  // 아이 화면 어디서든 자물쇠로 들어온다(components/AdultKey) — 닫으면 그 화면으로 돌아간다. 없으면 처음 화면
+  // 아이 화면 어디서든 톱니로 들어온다(components/SettingsKey) — 닫으면 그 화면으로 돌아간다. 없으면 처음 화면.
+  // 닫으면 열어 둔 보호자 칸도 잠근다 (한 번 풀면 설정을 닫을 때까지)
   const from = (useLocation().state as { from?: string } | null)?.from;
-  const close = () => nav(from && from !== "/settings" ? from : "/");
+  const { unlocked, ask: askPin, change, lock, openIntro, status: pinStatus } = useGuardian();
+  const close = () => { lock(); nav(from && from !== "/settings" ? from : "/"); };
+  const openGuardian = () => askPin(pinStatus?.pinSet === false ? "보호자 비밀번호 만들기" : "보호자 칸 열기", () => undefined, { keep: true });
+  const [coachReset, setCoachReset] = useState(false);
   const s = useSettings();
   const { guardian } = useWithAdult();
   const { mode, account, logout } = useAuth();
@@ -152,10 +166,10 @@ export default function S13Settings() {
   };
 
   return (
-    <Screen back={close} speech={null} title="어른 설정" audience="adult" autoSpeak={false}
+    <Screen back={close} speech={null} title="설정" audience="adult" autoSpeak={false}
       acts={<BigButton onClick={close}>닫기</BigButton>}>
       <nav className="set-nav" aria-label="설정 묶음 바로가기">
-        {SECTIONS.filter(([id]) => id !== "mine" || stories.length > 0).map(([id, label]) => (
+        {SECTIONS.filter(([id]) => unlocked ? id !== "mine" || stories.length > 0 : !["account", "info", "mine"].includes(id)).map(([id, label]) => (
           <button key={id} className={current === id ? "on" : ""} aria-current={current === id} onClick={() => jump(id)}>{label}</button>
         ))}
       </nav>
@@ -180,18 +194,6 @@ export default function S13Settings() {
       )}
       {notice && <ConfirmCard title={notice} yes="확인" no={null} onYes={() => setNotice(null)} onNo={() => setNotice(null)} />}
       <div className="list scroll set-list" ref={listRef} tabIndex={0} aria-label="설정 목록">
-        <Head id="account" name="계정" />
-        <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
-          <button className="btn link" onClick={mode === "member" ? signOut : () => nav("/login")}>
-            {mode === "member" ? "로그아웃" : "로그인"}
-          </button>
-        </Row>
-        {mode === "member" && (
-          <Row name="계정 탈퇴" desc="그림 · 이야기 · 목소리가 모두 지워지고 되돌릴 수 없습니다">
-            <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "account" })}>탈퇴하기</button>
-          </Row>
-        )}
-
         {/* 지원 수준은 고정 (FIXED_LEVEL, open-decisions 0-12). null 이면 다시 보인다 */}
         {!FIXED_LEVEL && <Row name="지원 수준" desc="아동의 사용을 돕는 수준을 선택하세요">
           <span className="seg">
@@ -202,6 +204,7 @@ export default function S13Settings() {
           </span>
         </Row>}
 
+        {/* ── 아이 칸: 잠금 없음. 아이가 바꿔도 되는 것만 (pt_docs 20 3-2) ── */}
         <Head id="story" name="이야기" />
         {/* 긴 이야기 (open-decisions 0-6, 사용자 2026-10-12). 쪽 수는 서버 설정(STORY_PAGES, 지금 8쪽) */}
         <Row name="이야기 길이"
@@ -245,21 +248,40 @@ export default function S13Settings() {
             onChange={(e) => s.set("muteAll", e.target.checked)}
             className="tog" />
         </Row>
+        <Row name="읽어주기 빠르기" desc="이야기와 화면 안내를 읽는 빠르기입니다. 이야기 보기 화면에서도 바꿀 수 있습니다">
+          <span className="seg">
+            {SPEECH_RATES.map(([label, v]) => (
+              <button key={label} className={s.speechRate === v ? "on" : ""} onClick={() => s.set("speechRate", v)}>{label}</button>
+            ))}
+          </span>
+        </Row>
+        <Row name="화면 안내 다시 보기" desc="화면마다 처음 한 번 나오는 말풍선 도움말을 다시 보여 줍니다">
+          <button className="btn link" disabled={coachReset} onClick={() => { resetCoach(); setCoachReset(true); }}>
+            {coachReset ? "다시 보여 줄게요" : "다시 보기"}
+          </button>
+        </Row>
+        {/* AI 생성 표시 (인공지능기본법 제31조, 2026-01-22 시행). 어른 화면이라 분명하게 적는다.
+            아이 화면(S-09)에는 쉬운 말로 둔다 */}
+        <Row name="AI 생성 안내"
+          desc="이야기 문장과 읽어 주는 음성, 움직이는 영상은 AI 가 만듭니다. 아이가 고른 네 칸과 말한 내용을 바탕으로 만들며, 아이 그림은 외부로 보내지 않습니다">
+          <span className="hint">알림</span>
+        </Row>
+
+        {/* ── 보호자 칸: 보호자 비밀번호로 연다. 열기 전에도 무엇이 있는지는 보인다 ── */}
+        {unlocked ? <>
         {/* 「어른과 함께」 묶음 (pt_docs 03 F-SET-06, 01 NFR-15). 위험이 따르는 기능은 로그인한 보호자만 켠다.
             설계는 「로그인 후 아이 프로필 설정」에 두는 것이고, 아이 프로필(F-ACC-07)이 아직 없어 그때까지 여기 둔다.
             로그인하지 않았으면 설정값과 상관없이 꺼진 것으로 본다 (store/settings.ts useWithAdult) */}
-        <Head id="adult" name="어른과 함께"
-          desc={mode === "member"
-            ? "위험이 따를 수 있는 기능입니다. 켜면 아이 화면에 버튼이 생기고, 꺼 두면 버튼 자체가 보이지 않습니다. 아이 곁에서 함께 써 주세요"
-            : "로그인한 보호자만 켤 수 있습니다. 로그인하지 않으면 아래 기능은 모두 꺼져 있습니다"}>
-          {mode !== "member" && <button className="btn link" onClick={() => nav("/login")}>로그인</button>}
+        <Head id="guardian" name="보호자 기능"
+          desc="위험이 따를 수 있는 기능입니다. 켜면 아이 화면에서 바로 쓰고, 꺼 두면 아이 화면에 🔒 로 보입니다(누르면 보호자 비밀번호). 아이 곁에서 함께 써 주세요">
+          <button className="btn link" onClick={lock}>보호자 칸 잠그기</button>
         </Head>
         {/* 보호자 모드 켜기 · 끄기 (2026-11-03 사용자). 끄면 아래 기능 · 내 소품이 모두 꺼진 것으로 본다(켜 둔 값은 남는다).
             켜면 S-05 에서 관절이 정상이어도 보호자가 판단해 고칠 수 있다 */}
         <Row name="보호자 모드"
           desc={mode !== "member" ? "로그인한 보호자만 켤 수 있습니다"
             : guardian ? "켜져 있습니다. 아래 기능 · 내 소품을 쓸 수 있고, 캐릭터 확인(S-05)에서 관절을 언제든 고칠 수 있습니다"
-            : "꺼져 있습니다. 아이 혼자 쓰는 기본 화면입니다 — 아래 기능과 내 소품이 보이지 않습니다"}>
+            : "꺼져 있습니다. 아이 혼자 쓰는 기본 화면입니다 — 아래 기능과 내 소품은 아이 화면에 🔒 로 보입니다"}>
           <input type="checkbox" className="tog" checked={guardian} disabled={mode !== "member"}
             onChange={(e) => s.set("guardianMode", e.target.checked)} />
         </Row>
@@ -301,7 +323,7 @@ export default function S13Settings() {
             </span>
           </Row>
         )}
-        <Head id="info" name="기록 · 안내" />
+        <Head id="info" name="기록" />
         <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
           <input type="checkbox" checked={s.keepOriginal}
             onChange={(e) => s.set("keepOriginal", e.target.checked)}
@@ -313,19 +335,41 @@ export default function S13Settings() {
             className="tog" />
         </Row>
 
-        {/* AI 생성 표시 (인공지능기본법 제31조, 2026-01-22 시행). 어른 화면이라 분명하게 적는다.
-            아이 화면(S-09)에는 쉬운 말로 둔다 */}
-        <Row name="AI 생성 안내"
-          desc="이야기 문장과 읽어 주는 음성, 움직이는 영상은 AI 가 만듭니다. 아이가 고른 네 칸과 말한 내용을 바탕으로 만들며, 아이 그림은 외부로 보내지 않습니다">
-          <span className="hint">알림</span>
+        <Head id="account" name="계정" />
+        <Row name="보호자 비밀번호" desc="보호자 칸과 아이 화면의 🔒 기능을 여는 숫자 4자리입니다. 잊으면 비밀번호 창의 「비밀번호를 잊었어요」로 다시 로그인해 새로 정합니다">
+          <button className="btn link" onClick={change}>바꾸기</button>
         </Row>
+        <Row name="보호자 소개 다시 보기" desc="처음 로그인했을 때 본 소개 카드 3장입니다">
+          <button className="btn link" onClick={openIntro}>보기</button>
+        </Row>
+        <Row name="계정" desc={mode === "member" ? (account ?? "로그인됨") : "로그인 없이 사용 중입니다"}>
+          <button className="btn link" onClick={mode === "member" ? signOut : () => nav("/login")}>
+            {mode === "member" ? "로그아웃" : "로그인"}
+          </button>
+        </Row>
+        {mode === "member" && (
+          <Row name="계정 탈퇴" desc="그림 · 이야기 · 목소리가 모두 지워지고 되돌릴 수 없습니다">
+            <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "account" })}>탈퇴하기</button>
+          </Row>
+        )}
 
+        </> : <>
+        <div className="set-anchor" id="set-guardian" data-section="guardian" aria-hidden />
+        <div className="item head"><span className="grow"><span className="name">보호자 칸</span></span></div>
+        <div className="item set-locked">
+          <span className="desc">보호자 비밀번호를 넣으면 열립니다. 한 번 열면 설정을 닫을 때까지 열려 있습니다.</span>
+          <ul>{GUARDIAN_ITEMS.map((t) => <li key={t}>{t}</li>)}</ul>
+          <button className="locked-feature" onClick={openGuardian}>
+            <LockIcon />{pinStatus?.pinSet === false ? "보호자 비밀번호 만들기" : "보호자 비밀번호 넣기"}
+          </button>
+        </div>
+        </>}
         {/* 제목 고치기 · 지우기는 로그인한 보호자만 (2026-11-02 사용자 「보호자 모드에서」, 「삭제도 보호자랑 같이」).
             아이가 혼자 지우지 않게. 로그인한 계정의 이야기만 보인다 */}
-        {stories.length > 0 && <Head id="mine" name="만든 이야기"
+        {unlocked && stories.length > 0 && <Head id="mine" name="만든 이야기"
           desc={mode === "member" ? "제목을 고치거나 지울 수 있습니다. 지우면 되돌릴 수 없습니다"
             : "제목 고치기와 지우기는 로그인한 보호자만 할 수 있습니다"} />}
-        {stories.map((st) => (
+        {unlocked && stories.map((st) => (
           editing?.id === st.storyId
             ? <form key={st.storyId} className="item" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
                 <input className="title-input" value={editing.title} maxLength={TITLE_MAX} autoFocus

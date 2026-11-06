@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Paper } from "@/components/illust";
+import LockedFeature from "@/components/LockedFeature";
 import { useSession } from "@/store/session";
 import { rotateFile, shrink, speak } from "@/lib";
 import { useSettings, useWithAdult } from "@/store/settings";
@@ -95,6 +96,8 @@ export default function S03Upload() {
               <li>팔다리 · 날개 · 꼬리는 몸에서 조금 떨어지게</li>
               {photo && <li>하얀 종이 위에, 밝은 곳에서</li>}
             </ul>
+            {/* 사진 올리기가 꺼져 있어도 있는 줄은 알게 — 누르면 보호자 비밀번호 (pt_docs 20 3-2 ⑤) */}
+            {!photo && <LockedFeature label="사진으로 그림 올리기" turnOn={["photoUpload"]} />}
           </div>
         </div>
       )}

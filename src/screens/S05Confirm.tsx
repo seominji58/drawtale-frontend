@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import Coach from "@/components/Coach";
 import Screen, { LockIcon } from "@/components/Screen";
+import { useGuardian } from "@/store/guardian";
 import BigButton from "@/components/BigButton";
 import CharacterPreview from "@/features/character/CharacterPreview";
 import JointView from "@/features/character/JointView";
@@ -55,6 +57,8 @@ export default function S05Confirm() {
           <BigButton go onClick={() => nav(next)}>이 친구로 할래요</BigButton>
         </>
       }>
+      {/* 아이 말풍선 — 처음 한 번 (pt_docs 20 3-2-1) */}
+      <Coach id="confirm" lines={["점이 몸을 움직이는 자리예요"]} />
       <h2 className="question">내 친구가 움직여요</h2>
       {/* 왼쪽 움직이는 미리보기 · 오른쪽 관절이 찍힌 그림 (2026-11-02 사용자 「미리보기 영상 반 / 관절 배정 이미지 반」).
           이야기를 만들기 전에 어디를 관절로 잡았는지 한눈에 본다. 고치는 것은 S-06(어른) */}
@@ -91,7 +95,9 @@ export default function S05Confirm() {
         <div className="aside-links">
           <span>{needsAdult(character) ? "잘 움직이지 않나요?" : "관절을 바꾸고 싶나요?"}</span>
           {/* 어른 화면으로 가는 길이라 자물쇠를 붙이고, 가서 무엇을 하는지 적는다 (2026-10-28 — 링크가 눈에 띄지 않았다) */}
-          <button className="btn link adult-link" onClick={() => nav("/joints")}>
+          {/* 다른 보호자 기능과 같은 비밀번호 창으로 (pt_docs 20 3-2 4번, 2026-11-06) */}
+          <button className="btn link adult-link"
+            onClick={() => useGuardian.getState().ask(needsAdult(character) ? "어른에게 도움 받기 · 관절 맞추기" : "관절 고치기", () => nav("/joints"))}>
             <LockIcon />{needsAdult(character) ? "어른에게 도움 받기 · 관절 맞추기" : "관절 고치기"}
           </button>
         </div>

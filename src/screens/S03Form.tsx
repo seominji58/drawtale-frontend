@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import Coach from "@/components/Coach";
 import Screen from "@/components/Screen";
 import ChoiceCard from "@/components/ChoiceCard";
 import { useSession } from "@/store/session";
@@ -56,6 +57,8 @@ export default function S03Form() {
   return (
     <Screen back={other ? () => setOther(false) : "/upload"} segment={1}
       speech={other ? "어떤 친구예요?" : missing ? "아직 준비 중인 모양이에요. 두 발 친구로 해 볼까요?" : "누구를 그렸어요?"}>
+      {/* 아이 말풍선 — 처음 한 번 (pt_docs 20 3-2-1) */}
+      <Coach id="form" lines={["무엇을 그렸는지 골라요"]} />
       {/* 소리를 꺼 둔 아이도 보게 — 「여기에 없어요」 다음에만 글로 */}
       {missing && !other && <h2 className="question">아직 준비 중인 모양이에요. 두 발 친구로 해 볼까요?</h2>}
       <div className="pick-area">

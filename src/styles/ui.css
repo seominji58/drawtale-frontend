@@ -4,7 +4,6 @@
 .rail { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; min-height: var(--tap); }
 .rail-side { flex: 1 1 0; min-width: max-content; display: flex; align-items: center; gap: 14px; }
 .rail-side.end { justify-content: flex-end; }
-.adult-key { position: relative; display: inline-flex; }
 .rail-mid { flex: 0 1 auto; min-width: 0; display: flex; justify-content: center; align-items: center; }
 .rail-title { font-size: var(--t-title); }
 
@@ -564,20 +563,7 @@
 /* 움직임 줄이기를 켰으면 손도 멈춘다 (--dur 만 줄이면 infinite 는 계속 돈다) */
 @media (prefers-reduced-motion: reduce) { .wave-arm { animation: none; } }
 
-/* 길게 누르기 진행 고리 */
 .round { position: relative; }
-.round.hold::after {
-  content: ""; position: absolute; inset: -7px; border-radius: 50%;
-  background: conic-gradient(var(--grape) var(--p, 0deg), transparent 0);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
-  pointer-events: none;
-}
-.hold-hint {
-  position: absolute; top: calc(var(--tap) + 10px); right: 0;
-  background: var(--ink); color: #FFFDF8; font-size: 14px;
-  padding: 8px 14px; border-radius: 999px; white-space: nowrap; z-index: 20;
-}
 
 /* 캔버스가 무대 높이를 꽉 채우게 한다 */
 .stage > .fillbox { align-self: stretch; flex: 1; min-width: 0; }
@@ -1021,3 +1007,45 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .sound-vol-name { font-family: "Gaegu", sans-serif; font-weight: 700; font-size: calc(var(--t-button) * .85); padding-left: 4px; }
 .sound-vol .seg { display: grid; grid-template-columns: repeat(3, 1fr); }
 .sound-vol .seg > button { min-height: var(--tap); font-size: calc(var(--t-button) * .8); }
+
+/* 보호자 비밀번호 창 (components/GuardianGate, pt_docs 20 3장, 2026-11-06). 어른 창이지만 숫자 단추는 크게 */
+.pin-card { width: min(420px, 100%); align-items: center; text-align: center; gap: 12px; }
+.pin-title { font-size: 15px; color: var(--muted, #7a6e64); }
+.pin-dots { display: flex; gap: 18px; margin: 4px 0; }
+.pin-dots i { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line); background: transparent; }
+.pin-dots i.on { background: var(--line); }
+.pin-msg { min-height: 1.4em; font-size: 15px; opacity: .75; }
+.pin-msg.bad { color: var(--berry); opacity: 1; }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 84px); gap: 14px; }
+.pin-key { width: 84px; height: 72px; border-radius: 18px; border: 2.5px solid var(--line); background: var(--cloud);
+  font-family: "Gaegu", sans-serif; font-weight: 700; font-size: 34px; color: var(--ink); cursor: pointer; }
+.pin-key.small { font-family: inherit; font-weight: 600; font-size: 16px; }
+.pin-key:disabled { opacity: .45; cursor: default; }
+.pin-key:active:not(:disabled) { background: var(--butter); }
+.pin-forgot { font-size: 15px; }
+
+/* 보호자 소개 카드 (components/GuardianIntro) */
+.intro-card { width: min(560px, 100%); }
+.intro-step { font-size: 14px; color: var(--muted, #7a6e64); }
+.intro-lines { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 10px; font-size: 17px; line-height: 1.5; }
+
+/* 보이되 잠그기 — 아이 화면의 보호자 기능 (pt_docs 20 3-2 ⑤). 누르면 보호자 비밀번호 창 */
+.locked-feature { display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px; min-height: 60px;
+  border: 2px dashed var(--line); border-radius: 16px; background: transparent; color: var(--ink); cursor: pointer;
+  font: inherit; font-size: 16px; text-align: left; opacity: .85; }
+.locked-feature svg { width: 22px; height: 22px; flex: 0 0 auto; }
+.locked-feature small { display: block; font-size: 13px; opacity: .8; }
+
+/* 아이 말풍선 (components/Coach, pt_docs 20 3-2-1). 화면마다 처음 한 번, 움직이지 않는다 */
+.coach-layer { position: fixed; inset: 0; z-index: 55; background: rgb(58 46 38 / .18); display: flex;
+  align-items: flex-end; justify-content: center; padding: 0 16px 120px; }
+.coach { max-width: 560px; display: flex; flex-direction: column; gap: 14px; align-items: center; padding: 22px 26px;
+  background: var(--cloud); border: 3px solid var(--line); border-radius: 26px; box-shadow: 4px 5px 0 rgb(58 46 38 / .25);
+  font-family: "Gaegu", sans-serif; font-weight: 700; font-size: 30px; text-align: center; color: var(--ink); }
+.coach small { font-family: inherit; font-size: 16px; opacity: .7; }
+
+/* S-13 두 칸 (아이 칸 · 보호자 칸) */
+.set-locked { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.set-locked ul { margin: 0; padding-left: 1.2em; font-size: 14px; line-height: 1.6; opacity: .75; }
+
+.own-locked { display: flex; justify-content: center; }

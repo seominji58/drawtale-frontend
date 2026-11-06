@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
+import LockedFeature from "@/components/LockedFeature";
 import { TITLE_MAX, useLibrary } from "@/store/library";
 import { findStory, refreshStory } from "@/api";
 import { shelve } from "@/features/story/shelve";
@@ -165,7 +166,8 @@ export default function S12Stories() {
     <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}
       // 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 보호자 모드에서만.
       // 글자 링크는 눈에 안 띄어(11/3 사용자) 아래 줄 버튼으로. 이 화면의 주된 행동은 책 고르기라 강조색은 쓰지 않는다
-      acts={!guardian ? undefined
+      // 보호자 모드가 꺼져 있어도 있는 줄은 알게 — 누르면 보호자 비밀번호 (pt_docs 20 3-2 ⑤)
+      acts={!guardian ? <LockedFeature label="내 소품 그리기 · 책 제목 바꾸기" />
         : renaming ? <BigButton go onClick={() => setRenaming(false)}>다 바꿨어요</BigButton>
         : <>
             <BigButton onClick={() => nav("/props")}>내 소품 그리기</BigButton>

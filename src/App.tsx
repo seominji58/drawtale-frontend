@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import OfflineBar from "@/components/OfflineBar";
+import GuardianGate from "@/components/GuardianGate";
+import GuardianIntro from "@/components/GuardianIntro";
+import { useGuardian } from "@/store/guardian";
 import { useAuth } from "@/store/auth";
 import { useSettings, ORDER_GAME } from "@/store/settings";
 import { watchOriginals } from "@/features/character/originals";
@@ -50,6 +53,13 @@ export default function App() {
   // 형태 목록 (pt_docs 19) — 관절 화면을 새로고침으로 바로 열어도 그 형태의 관절을 그린다
   useEffect(() => { void useForms.getState().load(); }, []);
   useEffect(() => onRouteChange(), [pathname]);
+  // 설정(과 그 안의 목소리 등록)을 떠나면 열어 둔 보호자 칸을 잠근다 — 한 번 풀면 설정을 닫을 때까지
+  useEffect(() => { if (pathname !== "/settings" && pathname !== "/voice") useGuardian.getState().lock(); }, [pathname]);
+  // 보호자 비밀번호 · 소개 카드 상태 (pt_docs 20 3장). 로그아웃하면 열어 둔 보호자 칸도 닫는다
+  useEffect(() => {
+    if (mode === "member") void useGuardian.getState().load();
+    else useGuardian.setState({ status: null, unlocked: false, request: null, intro: false });
+  }, [mode]);
 
   /* 비회원 데이터를 지우는 pagehide 핸들러는 두지 않는다 (설계서 11.1).
      pagehide 는 탭을 닫을 때만이 아니라 페이지를 떠날 때마다 발생해서,
@@ -62,6 +72,8 @@ export default function App() {
   return (
     <>
       <OfflineBar />
+      {mode === "member" && <GuardianIntro />}
+      {mode === "member" && <GuardianGate />}
       <Routes>
         <Route path="/welcome" element={<S14Welcome />} />
         <Route path="/login" element={<S15Login />} />
