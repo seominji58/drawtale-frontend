@@ -395,7 +395,9 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
       return { ...t, h, x };
     }
     return null;   // 줄여도 놓을 자리가 없으면 겹치지 않게 뺀다 (글에서 먼저 나온 것이 먼저 자리를 잡는다)
-  }).filter((t): t is NonNullable<typeof t> => !!t);
+  }).filter((t): t is NonNullable<typeof t> => !!t)
+    // 손에 듦 · 머리에 씀인데 그 자리에 놓지 못해 옆 땅에 놓인 내 소품은 등장 통통 (가만히 있으면 내 그림이 나온 줄 모른다)
+    .map((t) => (t.name !== undefined && !t.motion && (t.pose === "hand" || t.pose === "head") ? { ...t, motion: "pop" as const } : t));
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   return (
@@ -441,7 +443,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
       ))}
       {thingSpots.map((t, k) => (
         <img key={`thing-${k}-${t.src.slice(0, 40)}`}
-             className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (t.motion !== "roll" || play) ? `m-${t.motion}` : ""}`}
+             className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
              style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
@@ -479,6 +481,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
 
 /** 물에 뜨는 소품의 발끝 높이 — 바다 물결 띠(배경판에서 잰 55~60%). 물이 뚜렷한 배경만 */
 const WATER: Record<string, number> = { sea: 0.6 };
+/** 쪽에 들어올 때 한 번만 하는 움직임 — 끝 모습(떠나는 쪽 · 뒤로 넘긴 쪽)에서는 하지 않는다 */
+const ONCE = new Set(["roll", "pop"]);
 /** 옆으로 쥐는 소품 (손잡이를 손에) — 나머지는 윗부분을 쥐고 매단다 */
 const SIDE_GRIP = new Set(["props/flashlight.webp"]);
 /** 그림 이름으로 본 물건 종류 — 꽃밭 그림이 둘(flowers · flowerbed)이라 하나로 */

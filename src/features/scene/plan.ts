@@ -191,18 +191,52 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
 /** 소품 움직임 (11/4 사용자 시안 https://claude.ai/artifact/FJL8Cu7vPSt9YzPdbxJBTw 「이렇게 진행해」).
  *  하늘 소품은 놓이면 늘 천천히, 공은 쪽 글에 굴렸어요 · 찼어요 · 던졌어요가 있을 때 한 번, 깃발 · 우산 · 나뭇잎은 바람 부는 쪽만.
  *  의자 · 상자 · 바위처럼 움직이지 않는 물건은 가만히 */
-export type ThingMotion = "flutter" | "float" | "glide" | "sway" | "swim" | "drift" | "roll" | "wind";
+export type ThingMotion = "flutter" | "float" | "glide" | "sway" | "swim" | "drift" | "roll" | "wind" | "bounce" | "pop";
 const ALWAYS_MOVING: Record<string, ThingMotion> = {
   "props/butterfly.webp": "flutter", "props/bird.webp": "float", "props/bat.webp": "float", "props/seagull.webp": "glide",
   "props/balloons.webp": "sway", "props/fish.webp": "swim", "props/planet.webp": "drift", "props/earth.webp": "drift",
 };
 const WIND_MOVING = new Set(["props/flag.webp", "props/umbrella.webp", "props/leaves.webp"]);
 const BALL_MOVES = /굴렸|굴러|굴리|데굴|찼어|차서|뻥 찼|던졌|던져/;
-function thingMotion(src: string, text: string, weather: Weather | null): ThingMotion | undefined {
+function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
+  const src = t.src;
+  // 내 소품: 대본 자리가 있으면 그 자리의 움직임(떨어짐 · 떠내려감 …)만 — 둘이 겹치면 한쪽이 지워진다
+  if (t.name !== undefined) return t.pose ? undefined : mineMotion(text, t.name, weather);
   if (ALWAYS_MOVING[src]) return ALWAYS_MOVING[src];
   if (src === "props/ball.webp" && BALL_MOVES.test(text)) return "roll";
   if (weather === "wind" && WIND_MOVING.has(src)) return "wind";
   return undefined;
+}
+
+/** 내 소품 움직임 (pt_docs 20 2-b, 2026-11-06 — 「살짝 흔들기 · 통통 튀기, 그림 전체를 움직이는 정도부터」).
+ *  아이가 그린 그림 한 장이라 관절 없이 그림 전체를 움직인다. 그 소품이 나온 문장에서 소품 뒤의 말을 본다 —
+ *  굴러 → 한 번 굴러감, 둥실 · 날아다니 → 늘 둥실, 흔들 · 살랑 → 늘 흔들, 통통 · 폴짝 · 튀어 → 통통 튀기,
+ *  바람 부는 쪽이면 바람에 흔들림. 아무 말이 없으면 쪽에 들어올 때 한 번 통통 — 「내가 그린 것이 나왔다」를 알아보게.
+ *  자리(손에 듦 · 떠내려감 …)는 장면 그림과 같이 thingPose 가 정한다 */
+const MINE_MOVES: [ThingMotion, RegExp][] = [
+  ["roll", /굴러|굴렸|굴리|데굴|떼굴/],
+  ["float", /둥실|둥둥|떠다니|날아다니|훨훨|떠올랐|떠올라/],
+  ["sway", /흔들|살랑|하늘하늘|나풀|펄럭/],
+  ["bounce", /통통|콩콩|폴짝|깡충|튀어|튀었|튀며|튀고|들썩/],
+];
+export function mineMotion(text: string, name: string, weather: Weather | null): ThingMotion {
+  const at = mentionAt(text, name);
+  if (at >= 0) {
+    // 소품부터 그 문장 끝까지 (앞 문장의 말이 걸리지 않게)
+    const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, at)).filter((i) => i >= 0);
+    const after = text.slice(at, ends.length ? Math.min(...ends) + 1 : text.length);
+    for (const [m, re] of MINE_MOVES) if (re.test(after)) return m;
+  }
+  return weather === "wind" ? "wind" : "pop";
+}
+
+/** 내 소품이 글에 나온 자리 (없으면 -1). 한 글자 이름은 낱말 단위 — 「꽃집 앞에서 깡충깡충 … 빨간 꽃」의 꽃은 뒤의 것 */
+function mentionAt(text: string, name: string): number {
+  const last = name.trim().split(/\s+/).pop() ?? "";
+  if (!last) return -1;
+  if (last.length > 1) return text.indexOf(last);
+  const m = new RegExp(`(?:^|[^가-힣])(${last})(?:을|를|이|가|은|는|과|와|도|랑|이랑)?(?=[^가-힣]|$)`).exec(text);
+  return m ? m.index + m[0].indexOf(last) : -1;
 }
 
 /** 내 소품 이름이 쪽 글에 나오나 — 이름 그대로(띄어쓰기 무시) 또는 마지막 낱말(「노란 우산」 → 「우산」) */
@@ -224,7 +258,9 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
   for (const p of mine) {
     if (!mentions(text, p.name)) continue;
     const last = p.name.trim().split(/\s+/).pop() ?? p.name;
-    hits.push({ at: text.indexOf(last), t: { src: p.png, h: p.height, ar: 1, name: p.name }, key: last });
+    const at = mentionAt(text, p.name) >= 0 ? mentionAt(text, p.name) : text.indexOf(last);
+    // 대본이 말한 자리(손에 듦 · 머리에 씀 · 떠내려감 · 날아감 · 떨어짐)는 장면 그림과 같이 (11/6)
+    hits.push({ at, t: { src: p.png, h: p.height, ar: 1, name: p.name, ...(at >= 0 ? thingPose(text, at, at + last.length, "ground", indoor) : {}) }, key: last });
   }
   for (const [re, src, h, spot] of THINGS) {
     const m = re.exec(text);
@@ -581,7 +617,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
         : thingsFor(p.text, mine, isIndoor(loc), new Set([
           ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
           ...(loc === "space-ship" ? ["props/spaceship.webp"] : []),
-        ])).map((t) => ({ ...t, motion: thingMotion(t.src, p.text, weather), ...holderOf(t, props) })),
+        ])).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props) })),
     });
     x = to;
   }

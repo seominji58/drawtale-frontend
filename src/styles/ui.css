@@ -962,6 +962,16 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 @keyframes thing-roll { from { translate: 0 0; rotate: 0deg; } to { translate: calc(var(--roll, 1) * 160%) 0; rotate: calc(var(--roll, 1) * 420deg); } }
 .scene .m-wind { transform-origin: 50% 100%; animation: thing-wind 2s ease-in-out infinite alternate; }
 @keyframes thing-wind { from { rotate: -2deg; } to { rotate: 3.5deg; } }
+/* 내 소품 (plan.ts mineMotion, pt_docs 20 2-b, 11/6) — 아이 그림 한 장을 통째로. 통통: 세 번 뛰고 쉬기를 되풀이,
+   pop: 쪽에 들어올 때 두 번 통통 하고 멈춤 (「내가 그린 것이 나왔다」). 발끝을 축으로 위아래로만 살짝 눌렸다 펴진다
+   (가로 scale 은 가운데 맞추기 translateX(-50%) 까지 늘려 옆으로 흔들린다) */
+.scene .m-bounce { transform-origin: 50% 100%; animation: thing-bounce 2.8s ease-in-out infinite; }
+@keyframes thing-bounce { 0%, 45%, 100% { translate: 0 0; scale: 1 1; }
+  7% { translate: 0 0; scale: 1 .9; } 15% { translate: 0 -22%; scale: 1 1.05; } 23% { translate: 0 0; scale: 1 .92; }
+  30% { translate: 0 -12%; scale: 1 1; } 38% { translate: 0 0; scale: 1 .96; } }
+.scene .m-pop { transform-origin: 50% 100%; animation: thing-pop 1.3s ease-in-out .5s 1 both; }
+@keyframes thing-pop { 0%, 100% { translate: 0 0; scale: 1 1; } 12% { scale: 1 .9; } 32% { translate: 0 -24%; scale: 1 1.06; }
+  52% { translate: 0 0; scale: 1 .92; } 70% { translate: 0 -10%; scale: 1 1; } 86% { translate: 0 0; scale: 1 .97; } }
 /* 우주는 낮에도 별 (pt_docs 18 D — 우주 바깥은 밝은 하늘이 아니다) */
 .scene.starry .scene-star { opacity: .9; }
 .scene-person, .scene-hero { transition: filter 2.6s ease; }
@@ -979,7 +989,7 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .scene-rainbow { opacity: 1; }
   .scene-leaf, .scene-flash { display: none; }
   .scene .m-flutter, .scene .m-float, .scene .m-glide, .scene .m-sway, .scene .m-swim, .scene .m-drift, .scene .m-roll, .scene .m-wind,
-  .scene .m-drift-away, .scene .m-stuck, .scene .m-drop { animation: none; }
+  .scene .m-drift-away, .scene .m-stuck, .scene .m-drop, .scene .m-bounce, .scene .m-pop { animation: none; }
   .scene .m-blow { animation: none; opacity: 0; }
 }
 
