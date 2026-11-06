@@ -21,11 +21,19 @@
 .dots { display: flex; gap: 8px; }
 .dots i { width: 34px; height: 12px; border-radius: 6px; background: var(--cloud); border: 2px solid var(--edge); }
 .dots i.on { background: var(--grape); border-color: var(--line); width: 48px; }
+/* 폰 폭(390)에서는 위 줄 가운데 자리가 50px 남짓이라 점이 되돌리기 단추 밑으로 넘쳤다, 점을 줄인다 (11/6 화면 점검) */
+@media (max-width: 560px) {
+  .dots { gap: 4px; min-width: 0; }
+  .dots i { flex: 0 1 34px; width: auto; min-width: 9px; }
+  .dots i.on { flex-basis: 48px; width: auto; }
+}
 
 .main { flex: 1; display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
 /* 버튼 줄. 화면 폭을 꽉 채우지 않고 가운데 모은다 — 넓은 태블릿에서 알약 둘이 화면 끝까지 늘어나면 설계 도면처럼 보인다 */
 .acts { flex: 0 0 auto; display: flex; gap: var(--gap); align-items: stretch; justify-content: center; }
 .acts > * { flex: 1 1 0; max-width: 460px; }
+/* 세로 태블릿에서 아래 단추가 넷이면(S-11) 한 글자씩 끊겨 세 줄이 됐다, 낱말로만 끊는다 (11/6 화면 점검) */
+@media (max-width: 900px) { .acts > .btn { padding-inline: 8px; word-break: keep-all; } }
 
 /* ───────── 무대 ─────────
    구름처럼 부드럽게 떠 있는 흰 덩어리. 아이 그림이 여기 산다. */
@@ -427,7 +435,12 @@
 /* ───────── 화면에 그리기 (S-03D) ─────────
    종이 틀이 그림판 크기와 꼭 같다 — 틀 안에 그릴 수 없는 빈 칸을 두지 않는다 (2026-10-28) */
 .draw-area { flex: 1; min-height: 0; display: flex; gap: 20px; justify-content: center; }
-.draw-area.wide { align-items: flex-start; }
+.draw-area.wide, .draw-area.mid { align-items: flex-start; }
+/* 세로 태블릿: 색 · 도구 기둥을 두 칸 폭으로 (11/6 화면 점검). 보호자 팔레트는 한 줄 넷 */
+.draw-area.mid .draw-tools { width: 188px; }
+.draw-area.mid .palette-full { width: 188px; }
+.draw-area.mid .palette-full .swatches { grid-template-columns: repeat(4, 1fr); }
+.draw-area.mid .palette-recent { grid-template-columns: repeat(3, 1fr); }
 /* 가운데 정렬로 두면 넘칠 때 위가 잘린다 — 위에서부터 쌓는다 */
 .draw-area.narrow {
   flex-direction: column; align-items: center; justify-content: flex-start;
@@ -584,9 +597,16 @@
 .home-brand { font-family: var(--font-round); font-weight: 700; font-size: 32px; letter-spacing: -.1em; color: var(--grape-dk); }
 .home-title { font-size: 72px; line-height: 1.05; }
 .home-acts { display: flex; flex-direction: column; gap: 18px; margin-top: 14px; }
-@media (max-width: 767px) {
+/* 세로 태블릿(768 ~ 900)도 위아래로 쌓는다. 두 칸이면 높이에 맞춘 그림 카드(폭 약 490)가 반쪽 칸(약 340)을 넘어
+   왼쪽 화면 밖으로 잘렸다 (11/6 화면 점검, 768 × 1024) */
+@media (max-width: 900px) {
   .home { grid-template-columns: 1fr; gap: 24px; padding: 0; }
-  .home-sheet { justify-self: center; height: 300px; }
+  .home-sheet { justify-self: center; height: min(400px, 40vh); }
+  .home-side { justify-self: center; align-items: center; text-align: center; }
+  .home-title { font-size: 56px; }
+}
+@media (max-width: 767px) {
+  .home-sheet { height: 300px; }
   .home-title { font-size: 44px; }
 }
 
@@ -625,7 +645,7 @@
 .book-title { position: absolute; left: 22%; right: 8%; top: 5.5%; padding: 6px 8px 4px;
   /* 짧은 이야기 책은 작아서 글자도 조금 작게 */
   background: #FFFDF8; border: 2px solid var(--line); border-radius: 8px; text-align: center;
-  font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: clamp(19px, 1.9vw, 25px); line-height: 1;
+  font-family: var(--font-round); font-weight: 700; letter-spacing: -.1em; font-size: clamp(14px, 1.9vw, 25px); line-height: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .book-window { position: absolute; left: 22%; right: 8%; top: 22%; bottom: 11%;
   background: #FFFDF8; border: 2px solid var(--line); border-radius: 10px; box-shadow: inset 0 3px 0 rgba(58, 46, 38, .10);
@@ -633,7 +653,7 @@
 .book-window img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .book-window img.fallback { width: 72%; height: 72%; opacity: .85; }
 .book-date { position: absolute; left: 22%; right: 8%; bottom: 2.5%; text-align: center; font-size: 12px; color: rgba(58, 46, 38, .7); }
-.book.short .book-title { font-size: clamp(17px, 1.7vw, 22px); }
+.book.short .book-title { font-size: clamp(13px, 1.7vw, 22px); }   /* 좁은 화면(세로 태블릿)에서 제목이 「바다에 …」로 잘리던 것 (11/6) */
 /* ── 책 펼치기 (책을 누르면) ──
    선반의 책은 그 자리에서 사라지고(lifted), 같은 모양의 책이 화면 가운데로 떠오르며 커진 뒤
    앞표지가 왼쪽 책등을 축으로 넘어가 첫 장이 보인다. 그다음 이야기 화면(S-09)으로 */
@@ -813,9 +833,16 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
     radial-gradient(circle, var(--c-place) 5px, transparent 6px) 92% 12% / 40px 40px no-repeat,
     radial-gradient(circle, var(--c-problem) 6px, transparent 7px) 96% 70% / 40px 40px no-repeat,
     radial-gradient(circle, var(--c-action) 5px, transparent 6px) 4% 82% / 40px 40px no-repeat; }
+/* 세로 태블릿(768)부터 위아래로: 옆에 두면 책 제목 칸이 「숲에 간 …」 처럼 좁아졌다 (11/6 화면 점검) */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 24px; padding: 0; align-content: center; }
+  .hero-sheet { justify-self: center; width: min(320px, 100%); max-height: none; }
+  .hero-side { justify-self: center; width: 100%; max-width: 460px; align-items: center; text-align: center; }
+  .done-title .hint { text-align: center; }
+}
 @media (max-width: 767px) {
-  .hero { grid-template-columns: 1fr; gap: 18px; padding: 0; }
-  .hero-sheet { justify-self: center; width: 240px; }
+  .hero { gap: 18px; }
+  .hero-sheet { width: 240px; }
   .hero-title { font-size: 40px; }
 }
 

@@ -181,7 +181,7 @@ export default function S13Voice() {
             이름 · 연락처는 받지 않습니다.
           </Clause>
           <Clause title="어디로 보내나요 (국외 이전)">
-            받는 곳: ElevenLabs, Inc. (미국) — 음성 합성 업체. 보내는 때: 「이 목소리로 등록」을 누를 때 인터넷으로.
+            받는 곳: ElevenLabs, Inc. (미국), 음성 합성 업체. 보내는 때: 「이 목소리로 등록」을 누를 때 인터넷으로.
             목적: 목소리를 만들고 이야기를 읽는 데에만 씁니다. 녹음 파일은 저희 서버에 저장하지 않고 바로 넘기며, 저희 서버에는 목소리 번호만 남습니다.
           </Clause>
           <Clause title="얼마나 보관하나요">
@@ -205,7 +205,7 @@ export default function S13Voice() {
           <div className="item head"><span className="grow">
             <span className="name">
               {step === "record"
-                ? recording ? `녹음 중 ${mmss(sec)} — 아래 글을 천천히 읽어 주세요` : "조용한 곳에서, 아래 글을 아이에게 읽어 주듯 읽어 주세요"
+                ? recording ? `녹음 중 ${mmss(sec)}. 아래 글을 천천히 읽어 주세요` : "조용한 곳에서, 아래 글을 아이에게 읽어 주듯 읽어 주세요"
                 : `녹음 ${mmss(takeSec)}`}
             </span>
           </span></div>

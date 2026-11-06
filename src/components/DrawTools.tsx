@@ -7,6 +7,25 @@ import { FULL_COLORS, KID_COLORS, PEN_WIDTHS, isFaint, luminance } from "@/featu
 export type Tool = "pen" | "fill" | "eraser";
 export const TAP = 88;
 
+/** 그림판 배치. wide = [색 세 칸 | 종이 | 도구 세 칸] (가로 1024),
+ *  mid = 색 · 도구를 두 칸씩 세워 종이 양옆에 (세로 태블릿 768, 11/6 화면 점검. 전에는 종이 아래로 내려 색 둘째 줄과 도구가 아래 단추 줄에 가렸다),
+ *  narrow = 종이 아래로 내리고 위아래로 민다 (폰) */
+export type DrawMode = "wide" | "mid" | "narrow";
+const SIDE_3 = TAP * 3 + 24;
+const SIDE_2 = TAP * 2 + 12;
+/** 두 칸으로 세운 아이 팔레트 높이 (12색 = 여섯 줄) */
+const MID_TALL = TAP * 6 + 12 * 5;
+
+/** 그림판 자리(rw × rh)에 종이(W × H 비율)를 가장 크게 맞춘다 */
+export function fitDraw(rw: number, rh: number, W: number, H: number) {
+  const mode: DrawMode = rw >= SIDE_3 * 2 + 40 + 320 ? "wide"
+    : rw >= SIDE_2 * 2 + 40 + 280 && rh >= MID_TALL ? "mid" : "narrow";
+  const s = mode === "wide" ? Math.min((rw - SIDE_3 * 2 - 40) / W, rh / H)
+    : mode === "mid" ? Math.min((rw - SIDE_2 * 2 - 40) / W, rh / H)
+    : Math.min((rw - 12) / W, Math.max(260, rh * 0.8) / H);
+  return { w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), mode, aw: rw };
+}
+
 /** 색 고르기. 아이 모드는 12색 큰 동그라미, 보호자 모드(`full`)는 24색 + 「색 만들기」 + 최근 만든 색 — 그림판처럼.
  *  고르면 그리기 도구로 돌아간다 */
 export function ColorPalette({ full = false, ...rest }: PaletteProps & { full?: boolean }) {
@@ -126,15 +145,17 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
 }
 
 /** 그리기 · 지우개와 선 굵기 세 가지 (지우개는 고른 굵기의 두 배) */
-export function PenTools({ tool, color, width, onTool, onWidth, onClear }: {
+export function PenTools({ tool, color, width, onTool, onWidth, onClear, cols = 3 }: {
   tool: Tool; color: string; width: number; onTool: (t: Tool) => void; onWidth: (px: number) => void;
+  /** 한 줄에 몇 칸. 세로 태블릿(mid)은 2 */
+  cols?: number;
   /** 전체 지우기 — 지우개 옆에 둔다 (11/5 사용자 — 아래 단추 줄에 있으니 손이 멀었다). 없으면 그리지 않는다. null 이면 끈 상태 */
   onClear?: (() => void) | null;
 }) {
   return (
     <>
       {/* 그리기 · 채우기(페인트 통 — 선으로 닫힌 칸을 누르면 고른 색으로) · 지우개 (11/5 사용자) */}
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(3, ${TAP}px)`, gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${TAP}px)`, gap: 12 }}>
         {(["pen", "fill", "eraser"] as Tool[]).map((t) => (
           <button key={t} className="btn" aria-pressed={tool === t} onClick={() => onTool(t)}
             style={{ width: TAP, minHeight: TAP, padding: 0, fontSize: 17, ...(tool === t ? { background: "var(--butter)" } : {}) }}>
@@ -142,7 +163,7 @@ export function PenTools({ tool, color, width, onTool, onWidth, onClear }: {
           </button>
         ))}
       </div>
-      <div role="radiogroup" aria-label="선 굵기" style={{ display: "grid", gridTemplateColumns: `repeat(3, ${TAP}px)`, gap: 12 }}>
+      <div role="radiogroup" aria-label="선 굵기" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${TAP}px)`, gap: 12 }}>
         {PEN_WIDTHS.map((w) => {
           const on = width === w.px;
           const dot = Math.round(w.px * 1.4);

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Coach from "@/components/Coach";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import { ColorPalette, PenTools, TAP } from "@/components/DrawTools";
+import { ColorPalette, PenTools, TAP, fitDraw } from "@/components/DrawTools";
 import type { Tool } from "@/components/DrawTools";
 import { useSession } from "@/store/session";
 import { useGuardianMode } from "@/store/settings";
@@ -22,8 +22,6 @@ import type { Drawing, LiveStroke, Part, Pt } from "@/features/draw/drawing";
  *  사람 모양 안내선 하나만 옅게 깐다(같은 날 사용자 「사람 형태 가이드 라인만」). 떨어진 조각은 막지 않고 알려만 준다. 그린 것은 drawing.body 한 칸에 모은다(예전 단계 그림도 그대로 그려진다).
  *  예전 도장 그림 데이터는 drawing.ts 에 남아 있어 그대로 그려진다. */
 
-/** 넓은 화면에서 종이 양옆이 차지하는 폭: 색 세 칸(보호자 팔레트도 같은 폭) + 도구 세 칸 + 사이 간격 */
-const SIDES = (TAP * 3 + 24) + (TAP * 3 + 24) + 2 * 20;
 const QUESTION = "내 친구를 그려 볼까요?";
 /** 형태마다 그리기 안내 (11/5 — 그리기도 형태 모양 안내선으로). 사람은 지금 안내 그대로 */
 const HINT: Record<string, string> = {
@@ -63,22 +61,18 @@ export default function S03Draw() {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef<LiveStroke | null>(null);
-  const [box, setBox] = useState({ w: 0, h: 0, wide: true, aw: 0 });
+  const [box, setBox] = useState<ReturnType<typeof fitDraw>>({ w: 0, h: 0, mode: "wide", aw: 0 });
 
   const empty = PARTS.every((p) => drawing[p].length === 0);
 
   // 남은 자리에 4:5 종이를 가장 크게 맞춘다 (2026-10-28).
-  // 넓으면 [색 | 종이 | 도구] 를 가운데 붙여 놓고, 좁으면(폰) 종이 아래로 색 · 도구를 내리고 위아래로 민다
+  // 넓으면 [색 | 종이 | 도구] 를 가운데 붙여 놓고, 세로 태블릿은 색 · 도구를 두 칸씩, 좁으면(폰) 종이 아래로 내리고 위아래로 민다
   useLayoutEffect(() => {
     const el = wrap.current;
     if (!el) return;
     const fit = () => {
       const r = el.getBoundingClientRect();
-      const wide = r.width >= SIDES + 320;
-      const s = wide
-        ? Math.min((r.width - SIDES) / W, r.height / H)
-        : Math.min((r.width - 12) / W, Math.max(260, r.height * 0.8) / H);
-      setBox({ w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), wide, aw: r.width });
+      setBox(fitDraw(r.width, r.height, W, H));
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -183,15 +177,16 @@ export default function S03Draw() {
       <Coach id="draw" lines={["색 동그라미를 눌러 색을 골라요", "채우기는 선으로 닫힌 곳을 눌러요"]} />
       <h2 className="question">{QUESTION}</h2>
       <p className="hint">{tool === "eraser" ? "문지르면 지워져요"
-        : tool === "fill" ? (fillMiss ? "선으로 닫힌 곳을 눌러요 — 선이 끊긴 곳은 이어 그려 주세요" : "선으로 둘러싸인 곳을 누르면 색이 칠해져요")
+        : tool === "fill" ? (fillMiss ? "선으로 닫힌 곳을 눌러요. 선이 끊긴 곳은 이어 그려 주세요" : "선으로 둘러싸인 곳을 누르면 색이 칠해져요")
         : HINT[form] ?? HINT.biped}</p>
 
       {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기는 오른쪽에 종이와 붙여 둔다
-          (기준 화면이 가로 1024×768). 좁으면 종이 아래로 내려간다 */}
-      <div ref={wrap} className={`draw-area ${box.wide ? "wide" : "narrow"}`}>
+          (기준 화면이 가로 1024×768). 세로 태블릿은 두 칸씩, 좁으면 종이 아래로 내려간다 */}
+      <div ref={wrap} className={`draw-area ${box.mode}`}>
         {/* 아이 모드 12색, 보호자 모드는 24색 + 색 만들기 (2026-10-28 사용자) */}
-        <ColorPalette full={guardian} tool={tool} color={color} cols={box.wide ? 3 : 4}
-          size={box.wide ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
+        <ColorPalette full={guardian} tool={tool} color={color}
+          cols={box.mode === "wide" ? 3 : box.mode === "mid" ? 2 : 4}
+          size={box.mode !== "narrow" ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
           onColor={(hex) => { setColor(hex); if (tool === "eraser") setTool("pen"); }} />
 
         <div className="draw-paper" style={{ width: box.w, height: box.h }}>
@@ -202,7 +197,7 @@ export default function S03Draw() {
 
         <div className="draw-tools">
           <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth}
-            onClear={empty ? null : () => setAskClear(true)} />
+            cols={box.mode === "mid" ? 2 : 3} onClear={empty ? null : () => setAskClear(true)} />
         </div>
       </div>
 

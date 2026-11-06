@@ -130,7 +130,7 @@ function PinPad({ mode: startMode, title }: { mode: PinMode; title: string }) {
               {[0, 1, 2, 3].map((i) => <i key={i} className={i < digits.length ? "on" : ""} />)}
             </div>
             <p className={`pin-msg ${msg && !busy ? "bad" : ""}`} role="status">
-              {busy ? "확인하고 있어요" : msg ?? (mode === "create" || mode === "reset" ? "숫자 4자리 — 아이가 모르는 숫자로 정해 주세요" : " ")}</p>
+              {busy ? "확인하고 있어요" : msg ?? (mode === "create" || mode === "reset" ? "숫자 4자리, 아이가 모르는 숫자로 정해 주세요" : " ")}</p>
             <div className="pin-pad">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
                 <button key={d} type="button" className="pin-key" disabled={busy} onClick={() => press(d)}>{d}</button>

@@ -281,7 +281,7 @@ export default function S13Settings() {
         <Row name="보호자 모드"
           desc={mode !== "member" ? "로그인한 보호자만 켤 수 있습니다"
             : guardian ? "켜져 있습니다. 아래 기능 · 내 소품을 쓸 수 있고, 캐릭터 확인(S-05)에서 관절을 언제든 고칠 수 있습니다"
-            : "꺼져 있습니다. 아이 혼자 쓰는 기본 화면입니다 — 아래 기능과 내 소품은 아이 화면에 🔒 로 보입니다"}>
+            : "꺼져 있습니다. 아이 혼자 쓰는 기본 화면입니다. 아래 기능과 내 소품은 아이 화면에 🔒 로 보입니다"}>
           <input type="checkbox" className="tog" checked={guardian} disabled={mode !== "member"}
             onChange={(e) => s.set("guardianMode", e.target.checked)} />
         </Row>
