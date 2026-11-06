@@ -9,6 +9,8 @@
  * - 다리가 길면 검출 상자가 발끝을 자른다 → 아이 그림 비율로 짧게 둔다
  */
 
+import { fillMask } from "./fill";
+
 export const W = 800;
 export const H = 1000;
 
@@ -481,20 +483,12 @@ export function fillAt(drawing: Drawing, pt: Pt, color: string): HTMLCanvasEleme
   c.width = W; c.height = H;
   const g = c.getContext("2d", { willReadFrequently: true })!;
   drawItems(g, drawing);
-  const ink = g.getImageData(0, 0, W, H).data;
-  const x0 = Math.round(pt.x), y0 = Math.round(pt.y);
-  if (x0 < 0 || y0 < 0 || x0 >= W || y0 >= H || ink[(y0 * W + x0) * 4 + 3] > 100) return null;
-  const seen = new Uint8Array(W * H);
-  const stack = [y0 * W + x0];
-  seen[y0 * W + x0] = 1;
-  while (stack.length) {
-    const i = stack.pop()!;
-    const x = i % W, y = (i - x) / W;
-    if (x === 0 || y === 0 || x === W - 1 || y === H - 1) return null;   // 닫히지 않았다
-    for (const j of [i - 1, i + 1, i - W, i + W]) {
-      if (!seen[j] && ink[j * 4 + 3] <= 100) { seen[j] = 1; stack.push(j); }
-    }
-  }
+  const rgba = g.getImageData(0, 0, W, H).data;
+  const alpha = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3];
+  // 작은 틈(6px 까지)은 막힌 것으로 본다 — 바깥으로 새거나 옆 칸까지 칠해지지 않게 (features/draw/fill.ts)
+  const seen = fillMask(alpha, W, H, pt.x, pt.y);
+  if (!seen) return null;   // 닫히지 않았다 · 선 위
   // 칠한 칸을 2px 넓혀 선 가장자리의 흐린 틈까지 덮는다
   const out = g.createImageData(W, H);
   const hex = color.replace("#", "");
