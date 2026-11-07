@@ -55,8 +55,7 @@ export default function S06Joints() {
     rows.current[name]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
-  const move = (e: React.PointerEvent) => {
-    const name = drag.current;
+  const move = (e: React.PointerEvent, name = drag.current) => {
     if (!name || !wrap.current) return;
     const r = wrap.current.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (e.clientX - r.left - box.l) / box.w));
@@ -124,7 +123,15 @@ export default function S06Joints() {
           {preview
             ? <CharacterPreview />
             : <div ref={wrap} className="joint-stage"
-                   onPointerMove={move} onPointerUp={() => (drag.current = null)}
+                   // 고른 점을 그림의 빈 곳을 눌러 옮긴다 (탭 두 번, AGENTS 3.5 「드래그만 되는 조작 금지」).
+                   // 겹친 점(꼬리 없는 꼬리 · 하나만 그린 뒷다리)은 목록에서 골라 이렇게 옮긴다 (11/7)
+                   onPointerDown={(e) => {
+                     if (!picked || e.target !== e.currentTarget) return;
+                     drag.current = picked;
+                     move(e, picked);
+                     e.currentTarget.setPointerCapture(e.pointerId);
+                   }}
+                   onPointerMove={(e) => move(e)} onPointerUp={() => (drag.current = null)}
                    onPointerCancel={() => (drag.current = null)}>
                 <img src={imageUrl} alt="" draggable={false} />
                 <svg className="joint-bones" aria-hidden="true">
@@ -170,6 +177,7 @@ export default function S06Joints() {
               </button>
             ))}
           </div>
+          <p className="joint-note">목록에서 고른 뒤 그림을 누르면 그 자리로 옮겨져요. 겹친 점도 이렇게 옮겨요.</p>
           {/* 05 S-06: right · left 는 그림 속 캐릭터 기준이다 (사람만 — 4족형은 앞 · 뒷다리로 부른다) */}
           {form.id === "biped"
             ? <p className="joint-note">오른쪽 · 왼쪽은 그림 속 친구 기준이에요. 친구의 오른손은 화면 왼쪽에 있어요.</p>

@@ -18,7 +18,9 @@ export function resetCoach() {
   try { localStorage.removeItem(KEY); } catch { /* 없어도 된다 */ }
 }
 
-export default function Coach({ id, lines }: { id: string; lines: string[] }) {
+/** at: 말풍선 자리. 기본은 위(제목 자리), 아래 단추를 가리키는 말이면 bottom.
+ *  11/7: 아래에 두니 형태 카드 글자 · 그리기 색 팔레트를 가렸다 (실제 모드 화면 점검) */
+export default function Coach({ id, lines, at = "top" }: { id: string; lines: string[]; at?: "top" | "bottom" }) {
   const [i, setI] = useState(() => (seen().includes(id) ? -1 : 0));
   const blocked = useGuardian((s) => s.intro || !!s.request);
   const mute = useSettings((s) => s.muteAll);
@@ -40,7 +42,7 @@ export default function Coach({ id, lines }: { id: string; lines: string[] }) {
   };
 
   return (
-    <div className="coach-layer" role="dialog" aria-label="도움말" onClick={next}>
+    <div className={`coach-layer ${at}`} role="dialog" aria-label="도움말" onClick={next}>
       <div className="coach">
         <span>{line}</span>
         <small>{i + 1 < lines.length ? "눌러서 다음" : "눌러서 닫기"}</small>

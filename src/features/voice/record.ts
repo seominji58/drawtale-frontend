@@ -1,12 +1,14 @@
-/** 보호자 목소리 녹음 (S13Voice). 브라우저가 만든 녹음(webm · mp4)을 24kHz 모노 WAV 로 바꿔 보낸다.
- *  ElevenLabs 가 어떤 형식이든 확실히 읽게 하려고 WAV 로 — 3분이면 약 9MB (서버 한도 20MB).
+/** 보호자 목소리 녹음 (S13Voice). 브라우저가 만든 녹음(webm · mp4)을 44.1kHz 모노 WAV 로 바꿔 보낸다.
+ *  ElevenLabs 가 어떤 형식이든 확실히 읽게 하려고 WAV 로, 3분이면 약 16MB (서버 한도 20MB).
+ *  11/7: 만든 목소리가 보호자 목소리와 다르게 들렸다(사용자). 24kHz 로 줄이며 높은 소리(목소리 결)를 잘랐고,
+ *  브라우저의 메아리 · 잡음 지우기 · 소리 크기 맞추기가 목소리 자체를 바꿨다. 셋을 끄고 44.1kHz 로
  *  녹음은 이 화면 메모리에만 있고, 보낸 뒤에는 버린다 (서버도 저장하지 않는다) */
 
 /** 이보다 짧으면 목소리가 잘 만들어지지 않는다 (ElevenLabs 권장 1분 이상) */
 export const MIN_SECONDS = 60;
 /** 이만큼 녹음하면 저절로 멈춘다 */
 export const MAX_SECONDS = 180;
-const WAV_RATE = 24000;
+const WAV_RATE = 44100;
 
 export const recordSupported = () =>
   typeof window !== "undefined" && "MediaRecorder" in window && !!navigator.mediaDevices?.getUserMedia;
@@ -21,7 +23,8 @@ export interface Recording {
 /** 녹음을 시작한다. 마이크 권한이 없으면 NotAllowedError 를 던진다 */
 export async function startRecording(): Promise<Recording> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+    // 통화용 처리(메아리 · 잡음 지우기 · 크기 맞추기)는 목소리 결을 바꾼다, 날 녹음을 보낸다
+    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
   });
   const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported(t));
   const rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
@@ -38,7 +41,7 @@ export async function startRecording(): Promise<Recording> {
   };
 }
 
-/** 녹음 → 24kHz 모노 16비트 WAV */
+/** 녹음 → 44.1kHz 모노 16비트 WAV */
 export async function toWav(blob: Blob): Promise<Blob> {
   const ctx = new AudioContext();
   const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
