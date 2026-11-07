@@ -1,6 +1,103 @@
-# 한칸이야기 · 프론트엔드
+﻿# 한칸이야기 · 프론트엔드 — Antigravity 안내
 
-작업 규칙은 **`AGENTS.md`** 에 있다. 먼저 그 파일을 읽는다.
+이 저장소는 Claude Code 와 Antigravity 를 번갈아 쓴다. **어느 도구든 같은 문서를 읽고 같은 문서에 남긴다.**
 
-지금 진행 중인 작업(AnimatedDrawings 로컬 실행)은 `docs/animated-drawings-local.md`의
-「지금 상태」부터 이어서 한다.
+## 먼저 읽을 것 (이 순서로)
+
+1. **`AGENTS.md`** — 작업 규칙 전부. 화면에 쓰면 안 되는 말, 디자인 원칙, 라우팅, 작업 순서
+2. **`docs/team-status.md`** — 지금 상태 한 장 요약. 영역별 진행 표, 브랜치, 바뀐 것
+   (진행 표의 원본은 팀 공유 문서 https://claude.ai/code/artifact/ab310e00-4b6d-4c7a-87a5-11047d955e21 「진행 상황」)
+3. **`docs/animated-drawings-local.md`** 「지금 상태」 — 로컬에서 백엔드·AI 까지 띄우는 법과 진행 표
+4. 서버와 주고받는 것을 건드리면 `docs/api-contract.md` (원본 계약은 백엔드 저장소 `docs/api-contract.md`)
+
+## 지금 상태 (2026-10-08)
+
+- **11/7 보호자 목소리 · S-06 · 말풍선**: 녹음은 날 녹음 44.1kHz(`features/voice/record.ts`), 백엔드는 잡음 걷기 끔. S-06 은 목록에서 고르고 그림을 눌러 옮김. `Coach` 기본 자리 위, S-09 만 `at="bottom"`.
+- **11/7 실제 모드 형태 고르기 점검**: 세로 태블릿 형태 카드 두 장을 폭에 맞춤. 화면에 넓게 그린 4족형이 테두리만 움직이던 것은 AI `quadruped._place`(바탕이 고르면 상자를 그림까지 넓힘).
+- **11/6 밤 화면 점검**: 목 엔진으로 모든 화면을 가로 1024 · 세로 768 · 폰 390 에서 찍어 봄. 그리기 화면 배치가 셋(`DrawTools` `fitDraw`: wide · mid · narrow), 세로 태블릿은 색 · 도구를 두 칸씩 종이 양옆에. 첫 화면 · S-11 · S-03 · E-01 은 900px 아래에서 위아래로. 화면 글에 긴 작대기를 쓰지 않는다(사용자).
+
+- **11/6 밤 사람 아닌 주인공 다듬기**: 실제 이야기 15편 점검 → 짧은 이야기 동작 · 새 · 문어 기쁨 동작 · 아닌 말 고침, 형태별 대신 동작 표(AI 형태 정의 `fallback`), 4족형 소품을 그림에서 잰 입 · 머리 · 등(`still_body`)에. 음성 실패 정책(하나도 없을 때만 브라우저 음성). 회의 안건 6 ~ 9 는 pt_docs `team/회의-안건.md`.
+- **11/6 채우기 작은 틈 (pt_docs 20 4-3)**: `features/draw/fill.ts`: 선을 3px 두껍게 본 판에서 칸을 찾아 6px 까지의 틈은 막힌 것으로 본다(바깥으로 새거나 옆 칸까지 칠해지지 않게). 검사 `node tools/draw-check/check_fill.mjs`.
+- **11/6 기능 드러내기 (pt_docs 20 3장, 11/6)**: 위 줄 자물쇠(3초 꾹) → **톱니(설정, 한 번 누르면 열림)**. 설정은 **아이 칸**(이야기 길이 · 읽어주기 · 주인공 목소리 · 소리 끄기 · 읽어주기 빠르기 · 화면 안내 다시 보기 — 잠금 없음)과 **보호자 칸**(보호자 모드 · 사진 · 목소리 · 내 목소리 · 원본 보관 · 진단 · 만든 이야기 · 계정 · 비밀번호 바꾸기 — **보호자 비밀번호 숫자 4자리**, 한 번 열면 설정을 닫을 때까지). 보호자 기능은 꺼져 있어도 **🔒 로 보이고**(S-03 사진으로 그림 올리기 · S-07 카드에 없으면 · S-12 내 소품 · 제목, S-05 관절 고치기) 누르면 비밀번호 → 맞으면 보호자 모드와 그 기능을 켠다. 비밀번호는 서버(계정, 해시, 다섯 번 틀리면 5분 막힘), 잊으면 「비밀번호를 잊었어요」 → 다시 로그인 → 10분 안에 새로 정함. 처음 로그인한 보호자에게 **소개 카드 3장**(마지막에 비밀번호 만들기), 아이에게는 형태 고르기 · 그리기 · S-05 · S-09 에서 **말풍선**(처음 한 번, 소리로 읽음 — 나레이터 음성 파일). 코드 `store/guardian.ts` · `components/GuardianGate` · `GuardianIntro` · `LockedFeature` · `Coach` · `SettingsKey`, 백엔드 계약 2-16(migration `b7c8d9e0f1a2`)
+- **11/3 S-09 장면 층**: 투명 캐릭터 프레임 묶음(AI) + 세부 장소 배경판 · 물건 · 인물(`features/scene/`). 백엔드 응답 스키마가 `sprite_frames` · `sprite_box` · `scene` · `character_sheet` 를 버려 MP4 로 그려지던 것은 백엔드 286965c 에서 고침. 대본 인물 종류는 `plan.ts` `personKind`(생김새 영어 → 한국어 이름)
+- **10/28 화면 디자인 「그림책 종이」(시안 https://claude.ai/artifact/33DwE22K8py2a91zkFXycq 의 A): 크림 종이 · 크레파스 색 · 갈색 선 · 손글씨 제목(개구) · 고운돋움, 어른 화면은 Pretendard. S-01 도화지 + 인사, S-12 책 표지 책장, S-07 고른 카드에 압정(확인 단계에서도 표시), S-13 스크롤 고침 · 묶음 칩, S-14 이름 · 세 단계 배치, S-14 · S-15 · S-16 은 찢은 종이 가장자리 카드(`index.html` 의 SVG 필터 `#paper-torn`). 기본 바탕 질감은 지금 점무늬 유지 — 다시 고민하기로(사용자).**
+- **10/27**: S-03D 직접 그리기(색 8 · 굵기 3 · 지우개, 도장 뺌). 지원 수준을 없애고 카드 4장 고정(`FIXED_LEVEL = 2`, open-decisions 0-12). S-07 은 네 칸 4가지 선택(인물 · 기분 칸은 시험 뒤 뺌, `ASK_EXTRAS = false`, 0-11), 행동 카드는 문제마다 4장(목업). 긴 이야기 대본은 백엔드 dev 에서 Claude Opus 5.5(0-10). **내 소품**(0-13): 보호자 모드에서만 — 그리거나 종이 그림을 올려 이름 · 크기(작게 · 보통 · 크게)를 정해 등록, 이름이 카드 물건과 맞으면 S-09 그 단계 첫 쪽에서 소품들(최대 3) 2.2초 → 주인공. 기본 소품은 못 바꿈. S-09 진행 바: 이 쪽 하나의 바가 그 쪽 음성 길이에 맞춰 회색 → 초록. 디자인 다듬기는 나중에. 서민지 님 커밋 8개 병합(S-09 펼침면 · AI 생성 표시). 시연 전 고칠 목록 `docs/demo-fix-list.md`, AI API 정리 `docs/ai-api-usage.md`, 그림 교체 목록 `docs/image-replacement-plan.md`
+
+- **설계 문서는 `hankan-story/drawtale-pt_docs/`** (github.com/seominji58/drawtale-pt_docs, main) — **어긋나면 이 문서가 최우선** (2026-10-12 사용자). 01 요구사항 정의서 · 02 시스템 아키텍처 · 03 기능정의서 ·
+  04 플로우차트 · 05 화면설계서 · 06 입력 그림 요구사항 · 07 사용자 조사 · 08 기술 스택 · 09 DB ERD, `policy/` · `legal/` (10/12 번호가 바뀜). 발표 덱은 `presentation/`
+- 프론트는 **React 유지** (Vue 아님, 2026-10-01 확인)
+- S-07 아이콘 24장은 10/2 에 체크무늬를 지워 투명 PNG(512px)로 바꿨다. 행동 · 결과 12장이 같은 그림인 것은 그대로 — `docs/backlog.md` 0-6
+- 10/2: S-03 받지 않은 파일 안내(S-03-09), S-06 처음 자리로 되돌리기(S-06-07, 서버 `analysis.joints`), 기다리는 중 연결 끊김 · 502~504 면 다시 묻기
+- 10/2 (세 저장소 같이): **관절 신뢰도** — S-05-05 는 자신 없는 관절(score < 0.4)이나 낮은 검출(< 0.6)일 때만, S-06 은 그 관절을 빨간 점으로.
+  **여러 명 · 사람 아닌 그림**은 E-01 (`MULTIPLE_CHARACTERS` · `LOW_CONFIDENCE`). **원본 그림 보관을 끄면 그림을 떠날 때 서버 원본을 지운다**
+  (`features/character/originals.ts`). **S-10 시도 기록**을 보낸다. AI 는 `feat/joint-confidence`, 백엔드는 dev. 근거와 잰 값은 `docs/worklog.md` 맨 위
+
+- 작업 브랜치: **`feat/backend-contract`** (push 됨, main 에 합치기 전)
+- 프론트는 **백엔드 계약(drawtale-backend dev) 기준**이다. 변환은 `src/api/index.ts` 한 곳
+- 실제 모델로 S-01~S-11 이 돈다. S-09 는 서버 렌더 MP4 를 튼다
+- 백엔드는 팀 합의로 **`dev` 하나에서 작업**한다 (`hankan-story/drawtale-backend-git/`, 로컬 백엔드도 여기서 띄운다)
+- 소셜 로그인: 카카오·구글. 백엔드 쪽도 dev 에 있다. 네이버는 보류로 뺐다
+- 소셜 로그인 client id 는 프론트 `.env` 에 있다 (팀원이 전달, 2026-10-08, `VITE_ENGINE=agent`). 백엔드 `.env` 의
+  `KAKAO_CLIENT_ID/SECRET` · `GOOGLE_CLIENT_ID/SECRET` 이 비어 있으면 버튼은 보여도 로그인이 끝나지 않는다 (시크릿은 팀원에게 받는다)
+- MP4 에서 팔이 뭉개지는 문제: S-02 권장 카드(프론트), 순화 동작(AI `feat/gentle-motions`,
+  `hankan-story/drawtale-ai-git/`, 검토 대기), 동작 매핑(백엔드 dev). AI 를 합치기 전에는 백엔드가 원래 동작으로 렌더한다
+- S-07 카드 + 말로 덧붙이기(STT, 어른 설정에서 켬) + 안내 나레이션. 이야기 음성은 백엔드 `TTS_PROVIDER` (openai / elevenlabs)
+- 10/8: ElevenLabs 목소리 가안 **Anna Kim**(한국어), 모델 `eleven_v4` (청취로 고름) → 10/29 `eleven_v4_turbo`(별 차이 없고 크레딧 절반). S-09 는 `audioUrl` 이 있으면 그 MP3 를 튼다.
+  S-13 「읽어주기」: 나레이션만 / 캐릭터 목소리 → 서버 `voice_mode`. 대사는 `“ ”` 안, `sentences()` 는 따옴표 안에서 끊지 않는다
+  캐릭터 목소리면 S-13 「주인공 목소리」(여자아이/남자아이)도 보낸다. 다른 인물 목소리는 백엔드 `voices.py` 가 종류로 고른다
+  S-05 다음 `/name`(S05Name)에서 친구 이름을 지을지 고른다(11/2 부터 늘). 캐릭터 목소리면 나레이션이 그 이름으로 3인칭으로 들려준다
+  S-05 · 이름 짓기의 캐릭터는 서버 Meta 렌더 미리보기(`preview_url`)를 튼다 — `CharacterPreview.tsx`. 없으면 브라우저 `CharacterCanvas`
+  비회원 체험 한도는 개발 서버에서 세지 않는다 (배포 빌드만, `store/auth.ts`)
+  긴 동화책(15쪽 이내) 대비 음성 구조 가안은 `docs/open-decisions.md` 0-6
+  노트북에서 렌더가 300초를 넘으면 AI `.env` 에 `RENDER_MAX_FRAMES=150` (AI README)
+- 10/12: **긴 이야기 1단계** — S-13 「이야기 길이」(기본 길게) → 서버 `length=long` → 쪽 단위 `book`. S-09 쪽 넘기기, S-10 대표 쪽 네 장. pt_docs(네 문장)와 어긋나 서민지 님 확인 필요
+- 10/12: **「어른과 함께」(F-SET-06) 1단계** — 사진 올리기 · 말로 덧붙이기는 로그인한 보호자만 S-13 에서 켠다(기본 꺼짐, `useWithAdult()`). 꺼져 있으면 S-03 은 화면에 그리기만
+- 10/23: **S-07 카드 옆 「카드에 없으면」** — 카드 고르는 화면에서 바로 말하거나 적어 그 칸을 정한다(문제 · 행동 · 결과만, 장소는 카드만, 50자, 「이걸로 할래요」로 확정). 「더 말해 볼래요?」 화면은 없앴다. `docs/open-decisions.md` 0-9 들은 글도 칸에 먼저 들어가고 「이대로 할래요」로 확정해야 이야기에 들어간다. 타이핑을 따로 켤지는 `docs/open-decisions.md` 0-9
+- 10/12: **동물 · 괴물 그림** 실험 (코드 변경 없음). Meta 는 서 있는 그림만 맞고, 모양에서 뼈대를 뽑는 방법은 13장 모두 움직였다.
+  실험 코드 `hankan-story/experiments/animal-monster/`, 판단할 것은 `docs/open-decisions.md` 0-7
+- 10/19: **뱀 · 지렁이**(팔다리 없는 긴 몸) 시험 (코드 변경 없음). Meta 는 지원 안 함. 모양 뼈대에 「몸 축을 따라 꿈틀」을 더해 S자 · 한 줄 뱀 · 지렁이가 움직임, 똬리는 아직
+- 10/20: 그 실험 `shape_rig.py` 를 **아무 그림 파일 · 폴더로** 돌릴 수 있게 함 (`python shape_rig.py 내그림.jpg --out 결과`, 이 PC 경로 의존 삭제, 가장자리에 닿은 그림 처리). 실제 아이 그림 사진은 아직
+- 10/20: **네발 동물 전용 걷기** `experiments/animal-monster/quadruped.py` (코드 변경 없음). 배 아래 다리 찾기 + 네발 걷기 순서, 꼬리는 있을 때만, 네발 아니면 일반 방식으로. 경우의 수 11장 + 카톡 그림 2장 모두 맞음. 다리 곡선은 CMU 사람 걷기 mocap 에서 뽑은 모양(`--gait cmu`)
+- 11/2: **보안** — 백엔드 분당 · 동시 제한(서민지 님) + 하루 한도(429 · 503 → E-01 BUSY, 429 는 Retry-After 60초 이하면 기다렸다 다시), 파일 주소 서명(책장에서 다시 열면 `refreshStory`), `POST /auth/logout`, 배포 헤더(`public/staticwebapp.config.json` CSP), Pillow 13
+- 11/3: **S-09 장면 층**(`features/scene/` — locations · plan · sprite · SceneStage, 쪽에 `spriteUrl` · `sprite` · `scene`, 세부 장소 `public/scenes/{세부}`) — 로컬, push 전
+- 11/4: **장면 소품 보강**(pt_docs 18) — `plan.ts` THINGS 에 A 5 · B 6 · C 12 더함, `SceneStage` 가 배경에 이미 있는 물건은 빼고(`kindOf`), 우주는 낮에도 별. 그림 `tools/art/gen_scene_props.py`
+- 11/4: **해 · 달 · 날씨** — 낮이면 늘 해, 밤 · 아침은 카드 + 쪽 글(`NIGHT_TEXT` · `MORNING_TEXT`), 날씨 `weatherFor`(바깥만, `hasSkyBodies`). 번개는 하늘만 한 번 살짝(번쩍임 없음)
+- 11/4: **장면 소품 움직임** — `plan.ts` `thingMotion` → `SceneStage` 의 `m-*` 클래스(ui.css). 하늘 소품은 늘, 공은 굴렸어요 쪽만, 바람 소품은 바람 쪽만. 설계서 2장 「장식용 움직임 없음」과 다름(사용자 결정)
+- 11/3: **AI 마스크 · 동작 고침** — 팔 · 머리카락에 갇힌 종이 빼기(`analyzer.drop_pockets`, 흰 종이만), 걷기 · 뛰기 다리 정면 투영 + 무릎 굽힘, 점프 웅크림 줄임(`runtime/tools/make_soft_motions.py`, 이름 `walk` · `run` · `jumping_gentle` 그대로, 원래 판 `*_orig`)
+- 11/3: **보호자 모드 스위치**(`settings.guardianMode`, `useWithAdult().guardian` — 끄면 어른과 함께 전부 꺼진 것으로) · S-05 보호자면 늘 관절 고치기 · E-01 다시 시도하기 · S-07 그림 카드 `.choice img.art`
+- 11/3: **목업 그림 B 크레용으로 전부** — `public/icons/*/*.webp`(`choices.ts` `ICON_IDS`), `public/illust/`, `public/guide/`, `public/scenes/{장소}/layout.json`(S-09 에는 아직 안 씀), 스크립트 `tools/art/`
+- 11/3: **S-09 이야기책 형광펜 없앰 · 글자 38px**(긴 쪽은 `fitSize` 로 칸에 맞춰 줄임)
+- 11/3: **S-09 장면 크게 · 대본 작게**(`.book-area` · `.book-ctl`, 가로 화면은 오른쪽 칸에 글 + 조작, 다 봤어요는 마지막 쪽에만)
+- 11/3: **S-12 「내 소품 그리기」 버튼**(행동 줄). 목업 그림은 층(배경판 · 뒤 물건 · 주인공 · 앞 물건/소품) + 장소별 좌표 표 안 — 목록 https://claude.ai/artifact/KJiDPVk9FDv756vPgYNinM
+- 11/3: **「천천히」 음성** — 음성 파일은 `fileRate()`(0.9배 아래로 안 늘림). `eleven_v4_turbo` 는 `voice_settings.speed` 를 무시함(느린 판 시도 실패)
+- 11/3: **S-09 형광펜 줄마다(`.said > .mark`) · 장면 칸을 영상 비율에 맞춤**(`FitStage`, `.stage-cell`, 컨테이너 단위)
+- 11/3: **화면 안내 음성을 나레이터 목소리로** — `lib.ts` `speak()` 가 `src/features/voice/guide.json`(문장 → `public/voice/guide/*.mp3`, 95문장)에 있으면 파일, 없으면 브라우저 TTS. 문구 바꾸면 `tools/guide-voice/` 로 다시 만든다(글자가 정확히 같아야 함)
+- 11/3: **S-09 쪽 넘김 움직임**(비스듬한 말림 띠 0.6초, 단추 · 자동 넘김 · 손가락 밀기, `BookView` 의 `turn` · `turnTo` · `turnFrame`)
+- 11/2: **이메일 로그인은 목 엔진에서만**(백엔드에 없음, `emailLoginAvailable`) · 내 소품 단어표를 지금 카드 id 로 · 휴대폰 폭(S-09 진행 바 · 빠르기, S-13 줄, 한글 `keep-all`)
+- 11/2: **이름 직접 적기**(S-05N 카드 아래 칸, 글자 · 숫자 10자). 말로 짓기는 뺐다
+- 11/2: **이름 짓기 늘 묻기**(S-05 → `/name`, 지을지 단추로, 이름은 판과 상관없이 서버에 등록 · 나레이션 판 글엔 안 씀) · **제목 고치기 · 삭제는 로그인한 보호자만**(S-13) · **S-05 미리보기 반 / 관절 그림 반**(`JointView.tsx`). `docs/open-decisions.md` 0-18
+- 11/2: **보호자 목소리로 나레이션** — S-13 「어른과 함께」 「내 목소리로 읽어주기」 → `/voice`(`S13Voice.tsx`, 동의 → 1~3분 녹음 → WAV 로 등록). 이야기 요청에 `narrator: "guardian"` + 로그인 토큰. 백엔드 `/api/v1/me/voice`(계약 2-12). 녹음은 서버에 저장하지 않는다. `docs/open-decisions.md` 0-17
+- 11/2: **S-09 읽어주기 빠르기**(진행 바 옆 천천히 · 보통 · 빠르게, 설정 `speechRate` 에 남음, 서버 음성은 재생 속도만 바꿈) · 펼침면 그림 2.3 : 글 1 로 장면을 키움
+- **S-03D 화면에 그리기** (`/draw`, 설계서에 없음): 부위별 안내 + 손 그리기·도장. `features/draw/drawing.ts`.
+  요소표 초안은 `docs/open-decisions.md` 0-4
+
+## 작업을 끝낼 때마다 (빠뜨리지 않는다)
+
+`AGENTS.md` 7절과 같다.
+
+1. `docs/worklog.md` 맨 위에 항목 추가 — 무엇을, 왜, 무엇을 확인했고 무엇을 못 했는지
+2. `docs/team-status.md` 갱신 — 팀원이 이것만 보고 알 수 있게
+3. `docs/animated-drawings-local.md` 「지금 상태」 표 갱신
+4. 이 파일(`GEMINI.md`)의 「지금 상태」 갱신
+5. 새 할 일은 `docs/backlog.md`, 팀 판단이 필요한 것은 `docs/open-decisions.md`
+
+## 이 PC 에서 알아 둘 것
+
+- 확인: `npm run typecheck` 필수. 목 모드와 실서버 모드 둘 다 브라우저로 S-01~S-11 을 돌린다
+- **push 는 사용자에게 묻고 한다.** main 에 바로 커밋하지 않고 브랜치에서 한다
+- GitHub 로그인은 에이전트 셸에서 안 된다(대화형 창을 못 띄움). 필요하면 사용자가 자기 터미널에서
+  `git push` 로 한 번 로그인하게 한다. 그 뒤로는 저장된 자격 증명으로 된다
+- `drawtale-ai/`, `drawtale-backend-dev/` 는 zip 으로 받은 폴더라 git 이 아니다. `drawtale-backend-dev/` 는 더 쓰지 않는다
+- API 키는 백엔드 `.env` 에만 둔다. 채팅·문서·커밋에 붙이지 않는다
+- `AnimatedDrawings/` (Meta 원본) 는 수정하지 않는다
+

@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import type { Segment } from "@/types/story";
 import { useSettings, LEVEL_CONFIG } from "@/store/settings";
 import { speak, stopSpeak } from "@/lib";
+import SettingsKey from "./SettingsKey";
+import SoundMenu from "./SoundMenu";
 
 interface Props {
   /** C-01 되돌리기가 갈 곳. null 이면 숨긴다 */
@@ -19,22 +21,55 @@ interface Props {
   autoSpeak?: boolean;
   /** 레일 오른쪽에 다시 듣기 대신 둘 것 (S-01 설정 버튼) */
   railEnd?: ReactNode;
+  /** 설정 톱니(한 번 누르면 열림, 2026-11-06 — 전에는 자물쇠 3초 길게). 아이 화면은 기본으로 있다 —
+   *  만드는 중(S-04 · S-08)처럼 떠나면 안 되는 화면만 끈다 */
+  adultKey?: boolean;
+  /** 소리 목록의 「다시 듣기」. 없으면 speech 를 읽는다 (S-09 는 그 쪽 음성 파일로 다시 읽는다) */
+  onReplay?: () => void;
   acts?: ReactNode;
   children: ReactNode;
 }
 
+/** 레일 단추 그림. 글자(「뒤로」 · 「소리」)는 아이가 못 읽고 작아서 그림으로 (디자인 방향 A, 2026-10-28) */
+export function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M15 5l-7 7 7 7" />
+    </svg>
+  );
+}
+
+export function SoundIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 9v6h4l5 4V5L8 9z" />
+      <path d="M17 8c1.5 1.2 1.5 6.8 0 8" />
+    </svg>
+  );
+}
+
+export function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
 export default function Screen({
   back = null, speech = null, segment = null, title,
-  audience = "child", autoSpeak = true, railEnd, acts, children,
+  audience = "child", autoSpeak = true, railEnd, acts, children, adultKey = audience === "child", onReplay,
 }: Props) {
   const nav = useNavigate();
-  const { level, muteAll } = useSettings();
+  const level = useSettings((s) => s.level);
   const cfg = LEVEL_CONFIG[level];
 
+  // 소리 켜기 · 끄기로는 다시 돌지 않는다 — 돌면 끄는 순간 멈춰 둔 소리까지 지워 다시 켜도 이어지지 않았다 (11/3)
   useEffect(() => {
-    if (speech && autoSpeak && cfg.autoSpeak && audience === "child") speak(speech, muteAll);
+    if (speech && autoSpeak && cfg.autoSpeak && audience === "child") speak(speech, useSettings.getState().muteAll);
     return stopSpeak;
-  }, [speech, autoSpeak, cfg.autoSpeak, muteAll, audience]);
+  }, [speech, autoSpeak, cfg.autoSpeak, audience]);
 
   const onBack = () => {
     if (typeof back === "function") back();
@@ -46,7 +81,7 @@ export default function Screen({
       <div className="rail">
         <div className="rail-side">
           {back !== null && (
-            <button className="round" onClick={onBack} aria-label="되돌리기">뒤로</button>
+            <button className="round" onClick={onBack} aria-label="되돌리기"><BackIcon /></button>
           )}
         </div>
         <div className="rail-mid">
@@ -59,10 +94,12 @@ export default function Screen({
               )}
         </div>
         <div className="rail-side end">
-          {railEnd ?? (speech !== null && (
-            <button className="round" onClick={() => speak(speech, muteAll)} aria-label="다시 듣기">
-              소리
-            </button>
+          {adultKey && <SettingsKey />}
+          {/* C-02 소리: 누르면 다시 듣기 · 소리 끄기 · 소리 크기 목록 (components/SoundMenu). 아이 화면은 읽을 문장이 없어도
+              소리 끄기 · 크기는 있다 */}
+          {railEnd ?? ((speech !== null || onReplay || audience === "child") && (
+            // 소리 설정은 누르는 그때 값으로 (켠 직후 다시 읽을 때 끄기 전 값을 들고 있으면 조용했다)
+            <SoundMenu onReplay={onReplay ?? (speech !== null ? () => speak(speech, useSettings.getState().muteAll) : undefined)} />
           ))}
         </div>
       </div>

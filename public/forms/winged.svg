@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- 「날개로 나는 친구」 형태 카드 (S-03, 11/5) — 어떤 동물인지 말하지 않는 옆모습 안내선. 머리 · 몸통 · 등 위로 솟은 날개만 -->
+  <g fill="#F2DDBF" stroke="#8B6B4E" stroke-width="5" stroke-dasharray="11 8" stroke-linejoin="round">
+    <path d="M150 112 C176 60 230 30 282 40 C268 66 250 92 214 118 Z"/>
+    <ellipse cx="160" cy="146" rx="78" ry="48"/>
+    <circle cx="84" cy="104" r="34"/>
+  </g>
+</svg>
