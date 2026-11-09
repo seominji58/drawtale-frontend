@@ -14,7 +14,7 @@ export const FIXED_LEVEL: SupportLevel | null = 2;
 export const ORDER_GAME = false;
 const DEFAULTS: Settings = {
   level: 2, muteAll: false, keepOriginal: false, diagnostics: false, voiceInput: false, voiceMode: "narration", protagonistVoice: "girl",
-  photoUpload: false, storyLength: "long", speechRate: 1, guardianNarrator: false, guardianMode: false, volume: 1,
+  photoUpload: false, storyLength: "long", speechRate: 1, guardianNarrator: false, childNarrator: false, guardianMode: false, volume: 1,
 };
 
 function load(): Settings {
@@ -54,10 +54,12 @@ export function useWithAdult() {
   const photoUpload = useSettings((s) => s.photoUpload);
   const voiceInput = useSettings((s) => s.voiceInput);
   const guardianNarrator = useSettings((s) => s.guardianNarrator);
+  const childNarrator = useSettings((s) => s.childNarrator);
   const guardianMode = useSettings((s) => s.guardianMode);
   // 보호자 모드를 끄면 「어른과 함께」는 모두 꺼진 것으로 본다 (켜 둔 값은 남는다 — 다시 켜면 그대로)
   const on = member && guardianMode;
-  return { member, guardian: on, photo: on && photoUpload, voice: on && voiceInput, myVoice: on && guardianNarrator };
+  return { member, guardian: on, photo: on && photoUpload, voice: on && voiceInput, myVoice: on && guardianNarrator,
+    childVoice: on && childNarrator };
 }
 
 /** 보호자 모드 — 로그인한 보호자가 S-13 「보호자 모드」를 켰을 때 (2026-11-03 사용자 「ON, OFF 가능하게」).

@@ -55,7 +55,7 @@ export default function App() {
   useEffect(() => { void useForms.getState().load(); }, []);
   useEffect(() => onRouteChange(), [pathname]);
   // 설정(과 그 안의 목소리 등록)을 떠나면 열어 둔 보호자 칸을 잠근다 — 한 번 풀면 설정을 닫을 때까지
-  useEffect(() => { if (pathname !== "/settings" && pathname !== "/voice") useGuardian.getState().lock(); }, [pathname]);
+  useEffect(() => { if (pathname !== "/settings" && pathname !== "/voice" && pathname !== "/child-voice") useGuardian.getState().lock(); }, [pathname]);
   // 보호자 비밀번호 · 소개 카드 상태 (pt_docs 20 3장). 로그아웃하면 열어 둔 보호자 칸도 닫는다
   useEffect(() => {
     if (mode === "member") void useGuardian.getState().load();
@@ -111,6 +111,7 @@ export default function App() {
             <Route path="/props/:id" element={<SPropView />} />
             <Route path="/settings" element={<S13Settings />} />
             <Route path="/voice" element={<S13Voice />} />
+            <Route path="/child-voice" element={<S13Voice kind="child" />} />
             <Route path="/error" element={<E01Error />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </>

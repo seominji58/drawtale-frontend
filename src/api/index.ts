@@ -342,7 +342,7 @@ export async function generateStory(
   said: Partial<Record<StepKind, string>>,
   onStatus: (s: JobStatus) => void,
   signal?: AbortSignal,
-  voice: { mode: VoiceMode; protagonist: ProtagonistVoice; name?: string | null; guardian?: boolean } = {
+  voice: { mode: VoiceMode; protagonist: ProtagonistVoice; name?: string | null; guardian?: boolean; child?: boolean } = {
     mode: "narration", protagonist: "girl",
   },
   length: StoryLength = "short",
@@ -375,7 +375,8 @@ export async function generateStory(
     body: JSON.stringify({
       character_id: characterId, ...labels,
       // 보호자 목소리로 나레이션 (S-13 「내 목소리로 읽어주기」, 계약 2-12). 목소리가 없으면 서버가 기본으로 읽는다
-      ...(voice.guardian ? { narrator: "guardian" } : {}),
+      // 아이 목소리가 켜져 있으면 그것이 먼저 (2026-11-09, 계약 2-12)
+      ...(voice.child ? { narrator: "child" } : voice.guardian ? { narrator: "guardian" } : {}),
       voice_mode: voice.mode, protagonist_voice: voice.protagonist,
       // 캐릭터 목소리 판에서 나레이터가 3인칭으로 부를 이름 (S05Name). 없으면 서버가 짓는다
       ...(voice.name ? { protagonist_name: voice.name } : {}),
@@ -400,43 +401,47 @@ export interface GuardianVoice {
   consentedAt: string | null;
 }
 
-/** 동의 화면 세 칸 (S13Voice). 모두 true 여야 서버가 받는다 */
+/** 동의 화면 세 칸 (S13Voice). 모두 true 여야 서버가 받는다.
+ *  ownVoice 는 보호자 목소리면 「본인 목소리」, 아이 목소리면 「법정대리인으로서 아이 녹음에 동의」 */
 export interface VoiceConsent { collect: boolean; transfer: boolean; ownVoice: boolean; version: string }
 
-const MOCK_VOICE = "storyblanks.mock.voice";
+/** guardian 보호자 목소리(/me/voice), child 아이 목소리(/me/child-voice, 2026-11-09 시연용) */
+export type VoiceKind = "guardian" | "child";
+const VOICE_PATH: Record<VoiceKind, string> = { guardian: "/me/voice", child: "/me/child-voice" };
+const MOCK_VOICE: Record<VoiceKind, string> = { guardian: "storyblanks.mock.voice", child: "storyblanks.mock.childVoice" };
 
-export async function getMyVoice(): Promise<GuardianVoice> {
+export async function getMyVoice(kind: VoiceKind = "guardian"): Promise<GuardianVoice> {
   if (useMock) {
-    const at = localStorage.getItem(MOCK_VOICE);
+    const at = localStorage.getItem(MOCK_VOICE[kind]);
     return { registered: !!at, available: true, consentedAt: at };
   }
   const r = await call<{ registered: boolean; available: boolean; consented_at: string | null }>(
-    "/me/voice", { headers: authHeader() });
+    VOICE_PATH[kind], { headers: authHeader() });
   return { registered: r.registered, available: r.available, consentedAt: r.consented_at };
 }
 
-export async function registerMyVoice(wav: Blob, consent: VoiceConsent): Promise<GuardianVoice> {
+export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: VoiceKind = "guardian"): Promise<GuardianVoice> {
   if (useMock) {
     await sleep(1200);
     const at = new Date().toISOString();
-    localStorage.setItem(MOCK_VOICE, at);
+    localStorage.setItem(MOCK_VOICE[kind], at);
     return { registered: true, available: true, consentedAt: at };
   }
   const form = new FormData();
   form.append("audio", wav, "voice.wav");
   form.append("agree_collect", String(consent.collect));
   form.append("agree_transfer", String(consent.transfer));
-  form.append("own_voice", String(consent.ownVoice));
+  form.append(kind === "child" ? "guardian_consent" : "own_voice", String(consent.ownVoice));
   form.append("consent_version", consent.version);
   const r = await call<{ registered: boolean; available: boolean; consented_at: string | null }>(
-    "/me/voice", { method: "POST", headers: authHeader(), body: form });
+    VOICE_PATH[kind], { method: "POST", headers: authHeader(), body: form });
   return { registered: r.registered, available: r.available, consentedAt: r.consented_at };
 }
 
 /** 목소리 지우기 (동의 철회). 서버가 ElevenLabs 목소리와 그 목소리로 만든 음성을 함께 지운다 */
-export async function deleteMyVoice(): Promise<void> {
-  if (useMock) { localStorage.removeItem(MOCK_VOICE); return; }
-  const r = await fetch(BASE + "/me/voice", { method: "DELETE", headers: authHeader() });
+export async function deleteMyVoice(kind: VoiceKind = "guardian"): Promise<void> {
+  if (useMock) { localStorage.removeItem(MOCK_VOICE[kind]); return; }
+  const r = await fetch(BASE + VOICE_PATH[kind], { method: "DELETE", headers: authHeader() });
   if (!r.ok && r.status !== 204) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
 }
 

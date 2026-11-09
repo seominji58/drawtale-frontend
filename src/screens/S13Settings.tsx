@@ -81,14 +81,17 @@ export default function S13Settings() {
   const [current, setCurrent] = useState("account");
   // 보호자 목소리 상태 (로그인했을 때만 서버에 묻는다). null 이면 아직 모름
   const [myVoice, setMyVoice] = useState<GuardianVoice | null>(null);
+  // 아이 목소리 상태 (2026-11-09 시연용)
+  const [kidVoice, setKidVoice] = useState<GuardianVoice | null>(null);
   useEffect(() => {
-    if (mode !== "member") { setMyVoice(null); return; }
+    if (mode !== "member") { setMyVoice(null); setKidVoice(null); return; }
     let alive = true;
     getMyVoice().then((v) => { if (alive) setMyVoice(v); }).catch(() => { if (alive) setMyVoice(null); });
+    getMyVoice("child").then((v) => { if (alive) setKidVoice(v); }).catch(() => { if (alive) setKidVoice(null); });
     return () => { alive = false; };
   }, [mode]);
   // 되돌릴 수 없는 일은 화면 안 카드로 한 번 묻는다 (브라우저 확인 창 대신, 11/3 사용자)
-  const [ask, setAsk] = useState<{ kind: "voice" } | { kind: "story"; id: string; title: string } | { kind: "account" } | null>(null);
+  const [ask, setAsk] = useState<{ kind: "voice" } | { kind: "childVoice" } | { kind: "story"; id: string; title: string } | { kind: "account" } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const forgetVoice = async () => {
@@ -101,8 +104,18 @@ export default function S13Settings() {
     } catch { setAsk(null); setNotice("지우지 못했습니다. 인터넷 연결을 확인하고 다시 해 주세요."); }
     finally { setWorking(false); }
   };
+  const forgetKidVoice = async () => {
+    setWorking(true);
+    try {
+      await deleteMyVoice("child");
+      s.set("childNarrator", false);
+      setKidVoice((v) => (v ? { ...v, registered: false, consentedAt: null } : v));
+      setAsk(null);
+    } catch { setAsk(null); setNotice("지우지 못했습니다. 인터넷 연결을 확인하고 다시 해 주세요."); }
+    finally { setWorking(false); }
+  };
   /** 로그아웃하면 「어른과 함께」 기능도 끈다. 다음에 들고 있는 사람이 보호자라는 보장이 없다 */
-  const signOut = () => { s.set("guardianMode", false); s.set("photoUpload", false); s.set("voiceInput", false); s.set("guardianNarrator", false); logout(); };
+  const signOut = () => { s.set("guardianMode", false); s.set("photoUpload", false); s.set("voiceInput", false); s.set("guardianNarrator", false); s.set("childNarrator", false); logout(); };
   /** 계정 탈퇴: 서버에서 다 지운 뒤 이 기기의 이야기 목록 · 내 소품 · 그 계정 설정도 지우고 처음 화면으로 */
   const withdraw = async () => {
     setWorking(true);
@@ -177,6 +190,12 @@ export default function S13Settings() {
       {ask?.kind === "voice" && (
         <ConfirmCard title="등록한 목소리를 지울까요?" yes="지우기" busy={working}
           onYes={() => void forgetVoice()} onNo={() => setAsk(null)}>
+          <p className="hint">이 목소리로 만든 이야기 음성도 함께 지워집니다.</p>
+        </ConfirmCard>
+      )}
+      {ask?.kind === "childVoice" && (
+        <ConfirmCard title="등록한 아이 목소리를 지울까요?" yes="지우기" busy={working}
+          onYes={() => void forgetKidVoice()} onNo={() => setAsk(null)}>
           <p className="hint">이 목소리로 만든 이야기 음성도 함께 지워집니다.</p>
         </ConfirmCard>
       )}
@@ -311,7 +330,7 @@ export default function S13Settings() {
                 : "보호자님이 1~3분 글을 읽어 녹음하면, 이야기 나레이션을 그 목소리로 읽어 드립니다. 등록 전에 동의 내용을 안내합니다"}>
           {mode === "member" && myVoice?.registered
             ? <input type="checkbox" className="tog" checked={guardian && s.guardianNarrator} disabled={!guardian}
-                onChange={(e) => s.set("guardianNarrator", e.target.checked)} />
+                onChange={(e) => { s.set("guardianNarrator", e.target.checked); if (e.target.checked) s.set("childNarrator", false); }} />
             : <button className="btn link" disabled={mode !== "member" || !myVoice?.available}
                 onClick={() => nav("/voice")}>등록하기</button>}
         </Row>
@@ -320,6 +339,29 @@ export default function S13Settings() {
             <span style={{ display: "flex", gap: 14 }}>
               <button className="btn link" onClick={() => nav("/voice")}>다시 녹음</button>
               <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "voice" })}>지우기</button>
+            </span>
+          </Row>
+        )}
+        {/* 아이 목소리로 읽어주기 (2026-11-09 교수님 지시 · 시연용). 동의 · 녹음은 /child-voice (S13Voice kind="child").
+            나레이터는 하나만 — 켜면 보호자 목소리는 꺼진다 (계약 2-12) */}
+        <Row name="아이 목소리로 읽어주기"
+          desc={mode !== "member" ? "로그인한 보호자만 쓸 수 있습니다"
+            : kidVoice?.registered
+              ? `아이 목소리로 나레이션을 읽습니다 (${kidVoice.consentedAt?.slice(0, 10) ?? ""} 등록). 아이가 자기 목소리로 이야기를 듣습니다. 새로 만드는 이야기부터 적용됩니다`
+              : kidVoice && !kidVoice.available
+                ? "지금은 목소리를 등록할 수 없습니다"
+                : "보호자님 동의 아래 아이가 30초~3분 짧은 글을 읽어 녹음하면, 이야기 나레이션을 아이 목소리로 읽어 줍니다 (시연용)"}>
+          {mode === "member" && kidVoice?.registered
+            ? <input type="checkbox" className="tog" checked={guardian && s.childNarrator} disabled={!guardian}
+                onChange={(e) => { s.set("childNarrator", e.target.checked); if (e.target.checked) s.set("guardianNarrator", false); }} />
+            : <button className="btn link" disabled={mode !== "member" || !guardian || !kidVoice?.available}
+                onClick={() => nav("/child-voice")}>등록하기</button>}
+        </Row>
+        {mode === "member" && kidVoice?.registered && (
+          <Row name="아이 목소리 다시 녹음 · 지우기" desc="다시 녹음하면 예전 목소리는 지워집니다. 지우면 동의를 거둬들인 것으로 기록합니다">
+            <span style={{ display: "flex", gap: 14 }}>
+              <button className="btn link" onClick={() => nav("/child-voice")}>다시 녹음</button>
+              <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "childVoice" })}>지우기</button>
             </span>
           </Row>
         )}

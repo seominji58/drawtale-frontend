@@ -69,7 +69,7 @@ export default function S08Generating() {
   const storyLength = useSettings((s) => s.storyLength);
   const guardian = useGuardianMode();
   // 보호자 목소리로 나레이션 (S-13 「내 목소리로 읽어주기」). 목소리가 없으면 서버가 기본 나레이터로 읽는다
-  const myVoice = useWithAdult().myVoice;
+  const { myVoice, childVoice } = useWithAdult();
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
   const [showStop, setShowStop] = useState(false);
@@ -79,7 +79,7 @@ export default function S08Generating() {
     const t = setTimeout(() => setShowStop(true), 3000);
     // 이름은 판과 상관없이 등록해 둔다(S05Name). 나레이션만 판은 서버가 받아 두기만 하고 글은 「나는」 —
     // 나중에 캐릭터 목소리 판으로 바꿀 때 그 이름을 쓴다 (2026-11-02, 계약 2-5 protagonist_name)
-    const voice = { mode: voiceMode, protagonist, name, guardian: myVoice };
+    const voice = { mode: voiceMode, protagonist, name, guardian: myVoice, child: childVoice };
     const key = JSON.stringify([character.id, picks, said, voice, storyLength]);
     const kept = { place: picks.place, problem: picks.problem, action: picks.action, result: picks.result };
     // 결과를 받기 전에 화면을 떠나도(시간 초과 · 탭 닫힘) 책장이 나중에 찾도록 기억해 둔다
@@ -110,7 +110,7 @@ export default function S08Generating() {
         setError(e instanceof ApiError ? e.code : "ENGINE_ERROR"); nav("/error");
       });
     return () => { live = false; clearTimeout(t); };
-  }, [character, picks, said, setStory, add, addPending, removePending, setError, nav, mode, voiceMode, protagonist, name, guardian, imageUrl, storyLength, myVoice]);
+  }, [character, picks, said, setStory, add, addPending, removePending, setError, nav, mode, voiceMode, protagonist, name, guardian, imageUrl, storyLength, myVoice, childVoice]);
 
   const stop = () => { const ids = cancelStory(); if (ids) removePending(ids.storyId); nav("/steps"); };
 
