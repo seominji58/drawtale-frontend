@@ -44,6 +44,10 @@ def shape(alpha: np.ndarray) -> float:
     return (xs.max() - xs.min() + 1) / (ys.max() - ys.min() + 1)
 
 
+MOTION = "walk_still_arms"     # 왼쪽으로 내딛음. --right 면 walk_still_arms_r (오른쪽, 왼쪽에서 들어올 때 · {id}.r.webp)
+SUFFIX = ""
+
+
 def make(pid: str) -> dict | None:
     """종이 여유를 바꿔 가며 — 렌더 첫 장이 원본과 모양이 다르면(분석이 머리 · 헬멧을 몸 밖으로 잘랐다, 11/9 3명) 다시"""
     im = Image.open(PROPS / f"{pid}.webp").convert("RGBA")
@@ -65,7 +69,7 @@ def _make(pid: str, im: Image.Image, wide: float, tall_: float, want: float) -> 
     if not a.get("success"):
         print(pid, "분석 실패", a.get("message")); return None
     r = post("/render", {"request_id": a["request_id"], "joints": json.dumps(a["joints"]),
-                         "motion": "walk_still_arms", "sprite": "true"})
+                         "motion": MOTION, "sprite": "true"})
     if "sprite" not in r:
         print(pid, "렌더 실패", r.get("message")); return None
     sheet = Image.open(io.BytesIO(base64.b64decode(r["sprite"]))).convert("RGBA")
@@ -88,21 +92,33 @@ def _make(pid: str, im: Image.Image, wide: float, tall_: float, want: float) -> 
     for i, f in enumerate(frames):
         strip.paste(f.crop((l0, t0, r0, b0)).resize((fw, FRAME_H), Image.LANCZOS), (i * fw, 0))
     OUT.mkdir(parents=True, exist_ok=True)
-    strip.save(OUT / f"{pid}.webp", "WEBP", quality=75, method=6)
+    strip.save(OUT / f"{pid}{SUFFIX}.webp", "WEBP", quality=75, method=6)
     # 멈춘 그림 키(첫 장 머리~발) 대비: 칸 키, 칸 아래 여유. 칸 가로세로 비
     meta = {"frames": n, "ar": round(fw / FRAME_H, 4), "pad_top": round(float((top - t0) / tall), 4),
             "pad_bottom": round(float((b0 - bottom) / tall), 4)}
-    print(pid, meta, f"{(OUT / f'{pid}.webp').stat().st_size // 1024}KB", flush=True)
+    print(pid, meta, f"{(OUT / f'{pid}{SUFFIX}.webp').stat().st_size // 1024}KB", flush=True)
     return meta
 
 
 if __name__ == "__main__":
-    ids = sys.argv[1:] or PEOPLE
+    args = sys.argv[1:]
+    right = "--right" in args
+    if right:
+        MOTION, SUFFIX = "walk_still_arms_r", ".r"
+    ids = [a for a in args if not a.startswith("--")] or PEOPLE
     meta = json.loads(META.read_text(encoding="utf8")) if META.exists() else {}
     for pid in ids:
+        if right and pid not in meta:
+            continue                      # 왼쪽 걸음이 없는 사람(모양이 달라 뺀 사람)은 오른쪽도 없다
         m = make(pid)
-        if m:
-            meta[pid] = m
+        if right:
+            if m:
+                meta[pid]["right"] = m
+            else:
+                meta[pid].pop("right", None)
+                (OUT / f"{pid}.r.webp").unlink(missing_ok=True)
+        elif m:
+            meta[pid] = {**m, **({"right": meta[pid]["right"]} if "right" in meta.get(pid, {}) else {})}
         else:
             meta.pop(pid, None)
             (OUT / f"{pid}.webp").unlink(missing_ok=True)

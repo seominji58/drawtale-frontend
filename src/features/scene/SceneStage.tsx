@@ -60,7 +60,7 @@ export const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
 };
 
 /** 등장인물 걸음 그림띠 자리 (tools/people-walk/make.py): 장 수, 칸 가로세로 비, 멈춘 그림 키 대비 위 · 아래 여유 */
-interface WalkStrip { frames: number; ar: number; pad_top: number; pad_bottom: number }
+interface WalkStrip { frames: number; ar: number; pad_top: number; pad_bottom: number; right?: WalkStrip }
 /** 인물이 걸어 들어오는 시간 (ui.css .scene-person-walk · .after-walk 와 같게) */
 const ENTER_MS = 2400;
 
@@ -95,6 +95,8 @@ interface Props {
   prevEnv: Env | null;
   /** 이 쪽 동작의 프레임 묶음. 없으면 멈춘 그림(still) */
   sprite?: { url: string; frames: number; box: [number, number, number, number] } | null;
+  /** 사람형 걷기 · 뛰기의 왼쪽 걸음 (sprite 는 오른쪽으로 내딛는다). 왼쪽으로 옮겨 가는 쪽은 이것 — 그림을 뒤집지 않는다 */
+  spriteLeft?: { url: string; frames: number; box: [number, number, number, number] } | null;
   /** 배경을 잘라 낸 주인공 정지 그림 */
   still?: string | null;
   /** 정지 그림 안 주인공 손 위치 (서버 still_hands) — 대본에서 주인공이 든 소품을 손에 */
@@ -123,8 +125,10 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt, text = "" }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt, text = "" }: Props) {
   const play = mode === "play";
+  // 왼쪽으로 옮겨 가는 쪽이면 왼쪽 걸음 (사람형, 11/9 「좌우 바뀌면 안 되지」). 없으면(예전 이야기) 오른쪽 걸음 그대로 — 뒤집지 않는다
+  const sprite = plan.hero.move !== "none" && plan.hero.to < plan.hero.from && spriteLeft ? spriteLeft : spriteRight;
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
   // 0 = 시작 모습, 1 = 끝 모습. play 가 아니면 처음부터 끝 모습
@@ -331,9 +335,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     .sort((a, b) => Math.abs(a!.spot.x - hero.to) - Math.abs(b!.spot.x - hero.to))[0];
   const look = hero.move !== "none" && goes !== 0 ? goes
     : near && Math.abs(near.spot.x - hero.to) > 0.02 ? Math.sign(near.spot.x - hero.to) : hero.face ?? 0;
-  // 사람형 걷기 · 뛰기는 다리가 오른쪽으로 내딛는 옆면 걸음이다 (AI cmu1_side, 11/9) — 왼쪽으로 옮겨 가는 쪽만 뒤집는다
-  const sideWalker = form === "biped" && !!spr && hero.move !== "none" && goes < 0;
-  if (sideWalker || (facing !== 0 && look !== 0 && look !== facing)) {
+  if (facing !== 0 && look !== 0 && look !== facing) {
     // 칸 가운데를 축으로 뒤집으니 칸 한쪽에 치우친 몸은 반대쪽으로 옮겨졌다 — 뒤집힌 몸 가운데가 heroX 에 오게 (11/9 형태 버그 2)
     if (spr) {
       const [l, , r] = spr.box;
@@ -544,7 +546,10 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         const beat = { animationDelay: `${-((k * 1.37) % 3.6).toFixed(2)}s` };
         // 걸음 그림띠가 있는 사람(tools/people-walk)은 들어오는 동안 실제로 걷는다 — 그림띠 칸을 멈춘 그림과 같은 키 · 발끝에 두고,
         // 다 들어오면 멈춘 그림으로 바꾼다. 그림띠가 없으면(동물 · 아기 · 반 친구들) 예전처럼 통통 들썩이며 들어온다
-        const walk = p.enter && play && !REDUCE ? (WALK as Record<string, WalkStrip>)[p.id] : undefined;
+        const walkL = p.enter && play && !REDUCE ? (WALK as Record<string, WalkStrip>)[p.id] : undefined;
+        // 그림띠는 왼쪽으로 내딛는다(오른쪽에서 들어옴). 왼쪽에서 들어오면 오른쪽으로 내딛는 띠({id}.r.webp) — 그림은 뒤집지 않는다
+        const fromLeft = p.enter === "left";
+        const walk = fromLeft && walkL?.right ? walkL.right : walkL;
         if (walk && phase === 1) {
           const tall = sb.h * (1 + walk.pad_top + walk.pad_bottom);
           return [
@@ -552,9 +557,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
                  style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * walk.pad_bottom }), aspectRatio: `${walk.ar}`, ...move,
                    // 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다, 11/9 사용자)
                    ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg",
-                   // 걸음 그림띠는 왼쪽으로 내딛는다 (오른쪽에서 들어온다) — 왼쪽에서 들어오면 뒤집는다
-                   ...(p.enter === "left" ? { scale: "-1 1" } : {}) }}>
-              <img src={`${base}../people-walk/${p.id}.webp`} alt=""
+ }}>
+              <img src={`${base}../people-walk/${p.id}${fromLeft && walkL?.right ? ".r" : ""}.webp`} alt=""
                    style={{ width: `${walk.frames * 100}%`, animationTimingFunction: `steps(${walk.frames})` }} />
             </div>,
             <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person after-walk ${idle}`}

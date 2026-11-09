@@ -93,6 +93,8 @@ export interface BookPage {
   spriteUrl?: string | null;
   /** 프레임 묶음의 장 수와 첫 장의 그림 자리 [left, top, right, bottom] (칸 대비 0~1). 서버가 잰다 */
   sprite?: { frames: number; box: [number, number, number, number] } | null;
+  /** 사람형 걷기 · 뛰기의 왼쪽 걸음 묶음 (11/9) — sprite 는 오른쪽으로 내딛는다. 왼쪽으로 옮겨 가는 쪽에 쓴다(그림을 뒤집지 않게) */
+  spriteLeft?: { url: string; frames: number; box: [number, number, number, number] } | null;
   /** 대본의 장면 계획 — 세부 장소 id(`school-cafeteria` 등)와 영어 배경 문장. 틀 문장 그림책 · 예전 이야기는 없음 */
   scene?: { location?: string; background?: string; characters?: { name: string; slot: string }[] } | null;
 }
