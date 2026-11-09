@@ -22,7 +22,7 @@ export function resetCoach() {
  *  11/7: 아래에 두니 형태 카드 글자 · 그리기 색 팔레트를 가렸다 (실제 모드 화면 점검) */
 export default function Coach({ id, lines, at = "top" }: { id: string; lines: string[]; at?: "top" | "bottom" }) {
   const [i, setI] = useState(() => (seen().includes(id) ? -1 : 0));
-  const blocked = useGuardian((s) => s.intro || !!s.request);
+  const blocked = useGuardian((s) => s.intro || !!s.request || s.status?.ageVerified === false);
   const mute = useSettings((s) => s.muteAll);
   const line = i >= 0 ? lines[i] : null;
 

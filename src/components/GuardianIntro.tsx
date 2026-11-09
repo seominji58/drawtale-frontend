@@ -37,7 +37,8 @@ const PAGES: { head: string; lines: string[] }[] = [
 ];
 
 export default function GuardianIntro() {
-  const open = useGuardian((s) => s.intro);
+  // 본인인증(AgeGate)이 먼저다
+  const open = useGuardian((s) => s.intro && s.status?.ageVerified !== false);
   if (!open) return null;
   return <Cards />;
 }

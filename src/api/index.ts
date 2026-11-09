@@ -439,7 +439,8 @@ export async function deleteMyVoice(): Promise<void> {
 // ---- 보호자 비밀번호 · 보호자 소개 카드 (계약 2-16, pt_docs 20 3장, 2026-11-06) ----
 // 숫자 4자리. 서버가 계정에 해시로 두고, 연달아 다섯 번 틀리면 5분 동안 받지 않는다.
 
-export interface GuardianStatus { pinSet: boolean; onboarded: boolean }
+/** ageVerified: 보호자 나이 확인(본인인증)을 했는지 (계약 2-17, 2026-11-09). false 면 예전에 가입한 계정 → 화면보다 먼저 묻는다 */
+export interface GuardianStatus { pinSet: boolean; onboarded: boolean; ageVerified: boolean }
 
 /** 비밀번호 확인 · 만들기 결과. 틀리면 남은 횟수, 막혔으면 남은 초 */
 export type PinResult =
@@ -452,9 +453,29 @@ const MOCK_PIN = "storyblanks.mock.pin";
 const MOCK_ONBOARDED = "storyblanks.mock.onboarded";
 
 export async function getGuardianStatus(): Promise<GuardianStatus> {
-  if (useMock) return { pinSet: !!localStorage.getItem(MOCK_PIN), onboarded: !!localStorage.getItem(MOCK_ONBOARDED) };
-  const r = await call<{ guardian_pin_set?: boolean; onboarded?: boolean }>("/auth/me");
-  return { pinSet: !!r.guardian_pin_set, onboarded: !!r.onboarded };
+  if (useMock) return { pinSet: !!localStorage.getItem(MOCK_PIN), onboarded: !!localStorage.getItem(MOCK_ONBOARDED), ageVerified: !localStorage.getItem(MOCK_AGE_NEEDED) };
+  const r = await call<{ guardian_pin_set?: boolean; onboarded?: boolean; age_verified?: boolean }>("/auth/me");
+  // 예전 서버는 age_verified 를 주지 않는다 → 묻지 않는다
+  return { pinSet: !!r.guardian_pin_set, onboarded: !!r.onboarded, ageVerified: r.age_verified ?? true };
+}
+
+/** 목 엔진에서 「예전 계정(본인인증 안 함)」 화면을 보려면 localStorage 에 이 키를 둔다 */
+const MOCK_AGE_NEEDED = "storyblanks.mock.ageNeeded";
+
+/** 예전 계정의 보호자 나이 확인 (계약 2-17). 실패하면 서버 오류 code */
+export async function checkMyAge(identityVerificationId: string): Promise<{ ok: true } | { ok: false; code: string }> {
+  if (useMock) { await sleep(500); localStorage.removeItem(MOCK_AGE_NEEDED); return { ok: true }; }
+  let r: Response;
+  try {
+    r = await fetch(BASE + "/auth/me/age-check", {
+      method: "POST", headers: { ...authHeader(), "Content-Type": "application/json" },
+      body: JSON.stringify({ identity_verification_id: identityVerificationId }),
+    });
+  } catch { return { ok: false, code: "AGE_CHECK_UNAVAILABLE" }; }
+  if (r.status === 401) useAuth.getState().logout();
+  if (r.ok) return { ok: true };
+  const err = (await r.json().catch(() => null) as { error?: { code?: string } } | null)?.error;
+  return { ok: false, code: err?.code ?? "AGE_CHECK_UNAVAILABLE" };
 }
 
 /** 429 를 기다렸다 다시 보내지 않는다 — 비밀번호 잠금은 기다리는 대신 화면에 남은 시간을 보인다 */

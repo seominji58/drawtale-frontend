@@ -887,6 +887,13 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 /* .btn 기본이 폭 100% 라 줄을 다 차지한다. 글자만큼만 */
 .consents-read { flex: 0 0 auto; width: auto; min-height: 44px; padding: 0 22px; font-size: 17px; }
 .consents-row .btn.link { flex: 0 0 auto; font-size: 15px; }
+/* S-16 보호자 본인인증 (2026-11-09): 동의 줄과 같은 모양, 아래에 짧은 안내 */
+.age-step { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; width: 100%; min-height: 52px;
+  padding: 8px 14px; border: 1.5px solid var(--edge); border-radius: 14px; background: var(--cloud); }
+.age-step .consents-name { white-space: normal; }
+.age-step .btn:disabled { opacity: .45; }
+.age-note { flex: 1 0 100%; font-size: 13px; color: var(--ink-soft); line-height: 1.45; margin: 0; }
+.age-error { flex: 1 0 100%; font-size: 14px; color: var(--grape-dk); margin: 0; }
 .legal { display: flex; flex-direction: column; gap: 14px; text-align: left; }
 .legal-body { font-size: 15px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; }
 .legal-body h1 { font-size: 22px; margin: 0 0 8px; }

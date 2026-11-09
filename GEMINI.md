@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/9 보호자 나이 확인**: 포트원 V2 + KG이니시스 본인인증, 가입할 때 한 번 만 14세 이상. 프론트 `features/identity/ageCheck.ts` · S-16 · `components/AgeGate`, 백엔드 `app/services/identity.py` · 계약 2-17. 개인정보는 저장하지 않는다.
 - **11/9 기기 점검**: 높이가 낮은 가로 화면(폰을 가로로)은 `ui.css` 맨 끝 「낮은 가로 화면」 한 덩어리 + `DrawTools fitDraw` 의 `short`. 카드 줄 · 칸 수는 `components/useFitGrid` 가 칸을 재서 정한다(폭 규칙을 더하지 말 것). 검사 `tools/device-check/walk.mjs`.
 - **11/9 화면 안내 음성**: 나레이터 파일로 안 바뀐 17문장을 만들어 112문장. 화면 문구 · 카드 · 형태 이름을 고치면 `node tools/guide-voice/check.mjs` 로 빠진 문장을 찾고 `lines.json` → `make.py`.
 - **11/7 보호자 목소리 · S-06 · 말풍선**: 녹음은 날 녹음 44.1kHz(`features/voice/record.ts`), 백엔드는 잡음 걷기 끔. S-06 은 목록에서 고르고 그림을 눌러 옮김. `Coach` 기본 자리 위, S-09 만 `at="bottom"`.

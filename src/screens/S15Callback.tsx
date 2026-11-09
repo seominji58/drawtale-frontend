@@ -5,6 +5,7 @@ import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
 import { AuthError, finishSocialLogin, PROVIDER_NAME } from "@/api/auth";
 import type { SocialProvider } from "@/api/auth";
+import { clearAgeTicket } from "@/features/identity/ageCheck";
 
 /** S-15 소셜 로그인에서 돌아오는 자리 (`/auth/:provider/callback`).
  *  pt_docs 05 S-15C. 로그인 흐름의 일부라 S-15 에 붙인다 (처음 결정은 open-decisions 0-3). */
@@ -21,7 +22,7 @@ export default function S15Callback() {
   useEffect(() => {
     if (!(p in PROVIDER_NAME)) { setFailed(true); return; }
     finishSocialLogin(p, params)
-      .then((r) => { login(r.account, r.token); nav("/", { replace: true }); })
+      .then((r) => { clearAgeTicket(); login(r.account, r.token); nav("/", { replace: true }); })
       .catch((e: Error) => {
         // 카카오 화면에서 취소했으면 오류로 보이지 않고 로그인 화면으로 돌아간다
         if (e.message === "CANCELLED") nav("/login", { replace: true });
@@ -29,6 +30,11 @@ export default function S15Callback() {
         else if (e.message === "SIGNUP_REQUIRED") {
           const ticket = e instanceof AuthError ? e.detail?.signup_ticket : undefined;
           nav("/signup", { replace: true, state: { social: p, ticket } });
+        }
+        // 가입인데 나이 확인증이 없거나 10분이 지났다, 가입 화면에서 본인인증부터 다시 (2026-11-09)
+        else if (e.message.startsWith("AGE_")) {
+          clearAgeTicket();
+          nav("/signup", { replace: true, state: { social: p, ageError: e.message } });
         }
         else setFailed(true);
       });

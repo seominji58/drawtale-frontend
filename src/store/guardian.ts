@@ -40,6 +40,8 @@ interface GuardianState {
   finish: (ok: boolean) => void;
   lock: () => void;
   pinCreated: () => void;
+  /** 예전 계정이 본인인증(나이 확인)을 마쳤다 (components/AgeGate) */
+  ageChecked: () => void;
   openIntro: () => void;
   closeIntro: () => void;
   /** 「비밀번호를 잊었어요」 — 다시 로그인하러 가기 전에 */
@@ -89,8 +91,9 @@ export const useGuardian = create<GuardianState>((set, get) => ({
   lock: () => set({ unlocked: false }),
   pinCreated: () => {
     try { localStorage.removeItem(RESET_KEY); } catch { /* 없어도 된다 */ }
-    set((s) => ({ status: { onboarded: s.status?.onboarded ?? false, pinSet: true } }));
+    set((s) => ({ status: { onboarded: s.status?.onboarded ?? false, pinSet: true, ageVerified: s.status?.ageVerified ?? true } }));
   },
+  ageChecked: () => set((s) => (s.status ? { status: { ...s.status, ageVerified: true } } : {})),
   openIntro: () => set({ intro: true }),
   closeIntro: () => {
     try { localStorage.setItem(INTRO_KEY, "1"); } catch { /* 저장 못 해도 서버가 기억한다 */ }

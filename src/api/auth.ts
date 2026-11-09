@@ -1,5 +1,6 @@
 import { BASE, ENGINE } from "./index";
 import { LEGAL_VERSION } from "@/legal/LegalDoc";
+import { ageTicket } from "@/features/identity/ageCheck";
 
 /* 소셜 로그인은 백엔드 `feat/social-login` 브랜치의 계약 2-7·2-8 을 따른다 (dev 에 합쳐지기 전).
    이메일 로그인(`/auth/login` · `/auth/signup`)은 백엔드에 없다 — 프론트에만 남아 있다.
@@ -155,11 +156,20 @@ async function exchange(p: SocialProvider, params: URLSearchParams, code: string
   // state 는 여기서 확인을 끝냈다. 백엔드에는 보내지 않는다 (백엔드 계약 2-7)
   return post<AuthResult>(`/auth/${p}`, {
     code, redirect_uri: redirectUri(p), agreed, consent_version: agreed ? LEGAL_VERSION : undefined,
+    // 가입이면 S-16 에서 받은 나이 확인증을 같이 (계약 2-17). 이미 있는 계정이면 서버가 보지 않는다
+    age_ticket: agreed ? ageTicket() : undefined,
   });
+}
+
+/** S-16 본인인증을 마친 뒤 부른다. 서버가 포트원에 결과를 물어 만 14세 이상이면 나이 확인증(10분)을 준다 (계약 2-17) */
+export async function checkAge(identityVerificationId: string): Promise<string> {
+  if (useMock) { await wait(500); return "mock-age-ticket"; }
+  const r = await post<{ age_ticket: string }>("/auth/age-check", { identity_verification_id: identityVerificationId });
+  return r.age_ticket;
 }
 
 /** 처음 온 사람이 S-16 에서 약관에 동의하면 부른다. 카카오 · 구글 화면을 다시 거치지 않는다.
  *  ticket 은 SIGNUP_REQUIRED 응답에 실려 온 가입 확인증이다 (10분) */
 export function finishSocialSignup(ticket: string): Promise<AuthResult> {
-  return post<AuthResult>("/auth/social-signup", { ticket, agreed: true, consent_version: LEGAL_VERSION });
+  return post<AuthResult>("/auth/social-signup", { ticket, agreed: true, consent_version: LEGAL_VERSION, age_ticket: ageTicket() });
 }

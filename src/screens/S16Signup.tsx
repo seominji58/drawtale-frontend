@@ -1,20 +1,30 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
-import { emailLoginAvailable, finishSocialSignup, signup } from "@/api/auth";
+import { AuthError, checkAge, emailLoginAvailable, finishSocialSignup, signup } from "@/api/auth";
+import { AGE_CHECK_TEXT, ageCheckEnabled, ageTicket, clearAgeTicket, openAgeCheck, preloadAgeCheck, returnedVerification, saveAgeTicket } from "@/features/identity/ageCheck";
+import type { AgeCheckOutcome } from "@/features/identity/ageCheck";
 import SocialButtons from "@/components/SocialButton";
 import Consents from "@/components/Consents";
 import { PROVIDER_NAME } from "@/api/auth";
 import type { SocialProvider } from "@/api/auth";
+
+/** 폰에서 본인인증 화면을 다녀오면 화면이 새로 열려 navigate state(카카오 가입 확인증)가 사라진다, 떠나기 전에 둔다 */
+const PENDING = "storyblanks.signupPending";
+type From = { social?: SocialProvider; ticket?: string; ageError?: string } | null;
+function pendingFrom(): From {
+  try { const v = JSON.parse(sessionStorage.getItem(PENDING) ?? "null") as From; sessionStorage.removeItem(PENDING); return v; } catch { return null; }
+}
 
 export default function S16Signup() {
   const nav = useNavigate();
   const auth = useAuth();
   // 카카오로 로그인하려다 처음이라 넘어온 경우 (S15Callback 의 SIGNUP_REQUIRED).
   // 가입 확인증(ticket)이 있으면 동의만 받고 바로 가입한다 — 카카오 · 구글을 두 번 거치지 않는다
-  const from = useLocation().state as { social?: SocialProvider; ticket?: string } | null;
+  const navState = useLocation().state as From;
+  const [from] = useState<From>(() => navState ?? pendingFrom());
   const fromSocial = from?.social;
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -23,15 +33,57 @@ export default function S16Signup() {
   const [busy, setBusy] = useState(false);
   const [ticket, setTicket] = useState(from?.ticket);
   const [expired, setExpired] = useState(false);
+  // 보호자 본인인증 (만 14세 이상, 포트원 + KG이니시스, 2026-11-09). 통과하면 서버가 준 나이 확인증이 이 탭에 있다
+  const [aged, setAged] = useState(() => !!ageTicket());
+  const [ageBusy, setAgeBusy] = useState(false);
+  const [ageError, setAgeError] = useState<string | null>(() => (from?.ageError ? AGE_CHECK_TEXT[from.ageError] ?? AGE_CHECK_TEXT.failed : null));
+  const needAge = ageCheckEnabled && !aged;
+  const once = useRef(false);
+
+  const afterAgeCheck = async (o: AgeCheckOutcome) => {
+    if (!o.ok) { setAgeError(o.message ? `${AGE_CHECK_TEXT[o.reason]} (${o.message})` : AGE_CHECK_TEXT[o.reason]); return; }
+    setAgeBusy(true);
+    try {
+      saveAgeTicket(await checkAge(o.id));
+      setAged(true);
+      setAgeError(null);
+    } catch (e) {
+      setAgeError(AGE_CHECK_TEXT[e instanceof AuthError ? e.message : ""] ?? AGE_CHECK_TEXT.failed);
+    } finally { setAgeBusy(false); }
+  };
+  // 폰에서 KG이니시스 화면을 다녀왔으면 그 결과로
+  useEffect(() => {
+    if (once.current) return;
+    once.current = true;
+    preloadAgeCheck();
+    const back = returnedVerification();
+    if (back) void afterAgeCheck(back);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startAgeCheck = async () => {
+    setAgeError(null);
+    setAgeBusy(true);
+    try { sessionStorage.setItem(PENDING, JSON.stringify(from ?? null)); } catch { /* 없으면 카카오를 한 번 더 */ }
+    const o = await openAgeCheck("/signup");
+    try { sessionStorage.removeItem(PENDING); } catch { /* 없어도 된다 */ }
+    setAgeBusy(false);
+    await afterAgeCheck(o);
+  };
 
   const finishWithTicket = async () => {
     if (!ticket) return;
     setBusy(true);
     try {
       const r = await finishSocialSignup(ticket);
+      clearAgeTicket();
       auth.login(r.account, r.token);
       nav("/", { replace: true });
-    } catch {
+    } catch (e) {
+      // 나이 확인증이 없거나 지났다, 다시 본인인증
+      if (e instanceof AuthError && e.message.startsWith("AGE_")) {
+        clearAgeTicket(); setAged(false); setAgeError(AGE_CHECK_TEXT[e.message] ?? AGE_CHECK_TEXT.failed);
+        return;
+      }
       // 10분이 지났거나 확인증이 틀렸다. 카카오 · 구글 버튼으로 다시 하게 한다
       setTicket(undefined);
       setExpired(true);
@@ -40,7 +92,7 @@ export default function S16Signup() {
 
   const pwOk = pw.length >= 8;
   const matched = pw2.length > 0 && pw === pw2;
-  const ready = !!email && pwOk && matched && agree && !busy;
+  const ready = !!email && pwOk && matched && agree && !needAge && !busy;
 
   const submit = async () => {
     setBusy(true);
@@ -70,11 +122,24 @@ export default function S16Signup() {
               항목에 대한 것이고, 우리 서비스 약관 동의를 대신하지 않는다.
               약관 전문을 「보기」로 열어 보고 항목마다 따로 체크한다 (2026-11-03) */}
           <Consents onChange={setAgree} />
+          {/* 보호자 본인인증: 약관에 동의한 뒤, 가입 버튼보다 먼저 (2026-11-09) */}
+          {ageCheckEnabled && (
+            <div className="age-step">
+              <span className="consents-name">[필수] 보호자 본인인증 (만 14세 이상)</span>
+              {aged
+                ? <span className="consents-done">인증함</span>
+                : <button type="button" className="btn consents-read" disabled={!agree || ageBusy} onClick={startAgeCheck}>
+                    {ageBusy ? "확인하는 중" : "인증하기"}
+                  </button>}
+              <p className="age-note">KG이니시스 간편인증(카카오 · PASS · 토스 등)으로 나이만 확인해요. 이름 · 전화번호 · 생년월일은 저장하지 않아요</p>
+              {ageError && <p className="age-error" role="alert">{ageError}</p>}
+            </div>
+          )}
           {ticket && fromSocial
-            ? <BigButton go disabled={!agree || busy} onClick={finishWithTicket}>
+            ? <BigButton go disabled={!agree || needAge || busy} onClick={finishWithTicket}>
                 {busy ? "가입하는 중" : `${PROVIDER_NAME[fromSocial] ?? fromSocial} 계정으로 가입하기`}
               </BigButton>
-            : <SocialButtons intent="signup" disabled={!agree} />}
+            : <SocialButtons intent="signup" disabled={!agree || needAge} />}
           {/* 이메일 가입은 백엔드에 없다 — 목 엔진에서만 보인다 (api/auth.ts emailLoginAvailable) */}
           {emailLoginAvailable && <>
             <p className="auth-or">또는 이메일로</p>

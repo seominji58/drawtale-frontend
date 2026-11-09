@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import OfflineBar from "@/components/OfflineBar";
 import GuardianGate from "@/components/GuardianGate";
 import GuardianIntro from "@/components/GuardianIntro";
+import AgeGate from "@/components/AgeGate";
 import { useGuardian } from "@/store/guardian";
 import { useAuth } from "@/store/auth";
 import { useSettings, ORDER_GAME } from "@/store/settings";
@@ -74,6 +75,8 @@ export default function App() {
       <OfflineBar />
       {mode === "member" && <GuardianIntro />}
       {mode === "member" && <GuardianGate />}
+      {/* 예전 계정의 본인인증(나이 확인), 다른 창보다 위에 (2026-11-09) */}
+      {mode === "member" && <AgeGate />}
       <Routes>
         <Route path="/welcome" element={<S14Welcome />} />
         <Route path="/login" element={<S15Login />} />
