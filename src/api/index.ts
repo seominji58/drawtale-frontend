@@ -438,6 +438,15 @@ export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: Vo
   return { registered: r.registered, available: r.available, consentedAt: r.consented_at };
 }
 
+/** 등록한 목소리 들어 보기 (11/9) — 녹음은 저장하지 않아 원본은 없다. 서버가 그 목소리로 짧은 문장을 읽어 MP3 로 준다.
+ *  재생할 수 있는 주소(blob URL)를 돌려준다. 다 들으면 URL.revokeObjectURL 로 놓아 준다 */
+export async function voiceSampleUrl(kind: VoiceKind = "guardian"): Promise<string | null> {
+  if (useMock) return null;
+  const r = await fetch(BASE + VOICE_PATH[kind] + "/sample", { headers: authHeader() });
+  if (!r.ok) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
+  return URL.createObjectURL(await r.blob());
+}
+
 /** 목소리 지우기 (동의 철회). 서버가 ElevenLabs 목소리와 그 목소리로 만든 음성을 함께 지운다 */
 export async function deleteMyVoice(kind: VoiceKind = "guardian"): Promise<void> {
   if (useMock) { localStorage.removeItem(MOCK_VOICE[kind]); return; }

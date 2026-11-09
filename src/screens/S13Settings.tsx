@@ -9,7 +9,8 @@ import { useAuth } from "@/store/auth";
 import { TITLE_MAX, useLibrary } from "@/store/library";
 import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
-import { deleteAccount, deleteMyVoice, getMyVoice } from "@/api";
+import { deleteAccount, deleteMyVoice, getMyVoice, voiceSampleUrl } from "@/api";
+import type { VoiceKind } from "@/api";
 import { SPEECH_RATES } from "@/lib";
 import { useGuardian } from "@/store/guardian";
 import { resetCoach } from "@/components/Coach";
@@ -53,7 +54,7 @@ const SECTIONS: [string, string][] = [
 ];
 /** 보호자 칸을 열기 전에도 무엇이 있는지는 보인다 (숨기지 않고 잠그기) */
 const GUARDIAN_ITEMS = [
-  "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기 · 내 목소리로 읽어주기",
+  "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기 · 읽어 주는 목소리",
   "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
 ];
 
@@ -83,6 +84,22 @@ export default function S13Settings() {
   const [myVoice, setMyVoice] = useState<GuardianVoice | null>(null);
   // 아이 목소리 상태 (2026-11-09 시연용)
   const [kidVoice, setKidVoice] = useState<GuardianVoice | null>(null);
+  // 목소리 들어 보기 — 재생 중인 쪽 · 실패 안내
+  const [sampling, setSampling] = useState<VoiceKind | null>(null);
+  const [sampleError, setSampleError] = useState<string | null>(null);
+  const hear = async (kind: VoiceKind) => {
+    setSampling(kind); setSampleError(null);
+    try {
+      const url = await voiceSampleUrl(kind);
+      if (!url) { setSampling(null); return; }
+      const a = new Audio(url);
+      a.onended = a.onerror = () => { URL.revokeObjectURL(url); setSampling(null); };
+      await a.play();
+    } catch {
+      setSampleError("목소리를 들려주지 못했어요. 잠시 뒤에 다시 해 주세요.");
+      setSampling(null);
+    }
+  };
   useEffect(() => {
     if (mode !== "member") { setMyVoice(null); setKidVoice(null); return; }
     let alive = true;
@@ -278,7 +295,7 @@ export default function S13Settings() {
             나레이터는 하나만 — 아래 두 스위치 중 켜진 것. 둘 다 꺼져 있으면 기본 나레이터 */}
         <Row name="지금 읽어 주는 목소리"
           desc={mode !== "member" ? "로그인하면 보호자 · 아이 목소리를 고를 수 있습니다"
-            : "새로 만드는 이야기부터 이 목소리로 읽습니다. 바꾸려면 보호자 칸의 「내 목소리로 읽어주기」 · 「아이 목소리로 읽어주기」를 켜거나 끄세요 (이 기기에 저장)"}>
+            : "새로 만드는 이야기부터 이 목소리로 읽습니다. 바꾸려면 보호자 칸의 「읽어 주는 목소리」에서 고르세요 (이 기기에 저장)"}>
           <strong style={{ whiteSpace: "nowrap" }}>
             {guardian && s.childNarrator && kidVoice?.registered ? "아이 목소리"
               : guardian && s.guardianNarrator && myVoice?.registered ? "보호자 목소리"
@@ -331,52 +348,48 @@ export default function S13Settings() {
             onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>
-        {/* 보호자 목소리로 나레이션 (2026-11-02). 동의 · 녹음은 따로 화면(/voice, S13Voice).
-            녹음은 저장하지 않고 ElevenLabs(미국)로 넘긴다. 지우면 그 목소리로 만든 음성도 지운다 (계약 2-12) */}
-        <Row name="내 목소리로 읽어주기"
-          desc={mode !== "member" ? "로그인한 보호자만 쓸 수 있습니다"
-            : myVoice?.registered
-              ? `보호자님 목소리로 나레이션을 읽습니다 (${myVoice.consentedAt?.slice(0, 10) ?? ""} 등록). 끄면 기본 나레이터가 읽습니다. 새로 만드는 이야기부터 적용됩니다`
-              : myVoice && !myVoice.available
-                ? "지금은 목소리를 등록할 수 없습니다"
-                : "보호자님이 1~3분 글을 읽어 녹음하면, 이야기 나레이션을 그 목소리로 읽어 드립니다. 등록 전에 동의 내용을 안내합니다"}>
-          {mode === "member" && myVoice?.registered
-            ? <input type="checkbox" className="tog" checked={guardian && s.guardianNarrator} disabled={!guardian}
-                onChange={(e) => { s.set("guardianNarrator", e.target.checked); if (e.target.checked) s.set("childNarrator", false); }} />
-            : <button className="btn link" disabled={mode !== "member" || !myVoice?.available}
-                onClick={() => nav("/voice")}>등록하기</button>}
+        {/* 목소리 (11/9 다시 짬 — 사용자 「둘 다 녹음하면 무엇이 자동으로 쓰이는지 모르겠고, 녹음 결과도 못 들어 본다」).
+            ① 읽어 주는 목소리를 한 줄에서 하나 고른다(기본 · 보호자 · 아이 — 등록한 것만 고를 수 있다).
+            ② 목소리마다 등록 · 들어 보기 · 다시 녹음 · 지우기. 새로 등록하면 그 목소리로 바뀐다(위 줄에 보인다).
+            녹음은 저장하지 않아(ElevenLabs 로만 넘김) 원본 대신 그 목소리로 읽은 짧은 문장을 들려준다 */}
+        <Row name="읽어 주는 목소리"
+          desc={mode !== "member" ? "로그인한 보호자만 고를 수 있습니다"
+            : "이야기 나레이션을 누구 목소리로 읽을지 하나 고릅니다. 등록한 목소리만 고를 수 있고, 새로 만드는 이야기부터 적용됩니다"}>
+          <span className="seg">
+            {([["default", "기본"], ["guardian", "보호자"], ["child", "아이"]] as const).map(([k, label]) => {
+              const on = k === "child" ? s.childNarrator && !!kidVoice?.registered
+                : k === "guardian" ? s.guardianNarrator && !s.childNarrator && !!myVoice?.registered
+                : !(s.childNarrator && kidVoice?.registered) && !(s.guardianNarrator && myVoice?.registered);
+              const can = k === "default" || (guardian && (k === "child" ? !!kidVoice?.registered : !!myVoice?.registered));
+              return (
+                <button key={k} className={on ? "on" : ""} disabled={!can}
+                  onClick={() => { s.set("guardianNarrator", k === "guardian"); s.set("childNarrator", k === "child"); }}>{label}</button>
+              );
+            })}
+          </span>
         </Row>
-        {mode === "member" && myVoice?.registered && (
-          <Row name="내 목소리 다시 녹음 · 지우기" desc="다시 녹음하면 예전 목소리는 지워집니다. 지우면 동의를 거둬들인 것으로 기록합니다">
-            <span style={{ display: "flex", gap: 14 }}>
-              <button className="btn link" onClick={() => nav("/voice")}>다시 녹음</button>
-              <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "voice" })}>지우기</button>
-            </span>
+        {([["guardian", "보호자 목소리", myVoice, "/voice",
+            "보호자님이 1~3분 글을 읽어 녹음하면, 이야기 나레이션을 그 목소리로 읽어 드립니다. 등록 전에 동의 내용을 안내합니다"],
+           ["child", "아이 목소리", kidVoice, "/child-voice",
+            "보호자님 동의 아래 아이가 30초~3분 짧은 글을 읽어 녹음하면, 이야기 나레이션을 아이 목소리로 읽어 줍니다 (시연용)"]] as const)
+          .map(([kind, label, v, path, intro]) => (
+          <Row key={kind} name={label}
+            desc={mode !== "member" ? "로그인한 보호자만 쓸 수 있습니다"
+              : v?.registered ? `${v.consentedAt?.slice(0, 10) ?? ""} 등록. 녹음 파일은 저장하지 않아, 들어 보기는 이 목소리로 읽은 짧은 문장입니다. 다시 녹음하면 예전 목소리는 지워지고, 지우면 동의를 거둬들인 것으로 기록합니다`
+              : v && !v.available ? "지금은 목소리를 등록할 수 없습니다" : intro}>
+            {mode === "member" && v?.registered
+              ? <span style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <button className="btn link" disabled={sampling !== null} onClick={() => void hear(kind)}>
+                    {sampling === kind ? "듣는 중…" : "들어 보기"}</button>
+                  <button className="btn link" disabled={!guardian} onClick={() => nav(path)}>다시 녹음</button>
+                  <button className="btn link" style={{ color: "var(--berry)" }}
+                    onClick={() => setAsk({ kind: kind === "child" ? "childVoice" : "voice" })}>지우기</button>
+                </span>
+              : <button className="btn link" disabled={mode !== "member" || !guardian || !v?.available}
+                  onClick={() => nav(path)}>등록하기</button>}
           </Row>
-        )}
-        {/* 아이 목소리로 읽어주기 (2026-11-09 교수님 지시 · 시연용). 동의 · 녹음은 /child-voice (S13Voice kind="child").
-            나레이터는 하나만 — 켜면 보호자 목소리는 꺼진다 (계약 2-12) */}
-        <Row name="아이 목소리로 읽어주기"
-          desc={mode !== "member" ? "로그인한 보호자만 쓸 수 있습니다"
-            : kidVoice?.registered
-              ? `아이 목소리로 나레이션을 읽습니다 (${kidVoice.consentedAt?.slice(0, 10) ?? ""} 등록). 아이가 자기 목소리로 이야기를 듣습니다. 새로 만드는 이야기부터 적용됩니다`
-              : kidVoice && !kidVoice.available
-                ? "지금은 목소리를 등록할 수 없습니다"
-                : "보호자님 동의 아래 아이가 30초~3분 짧은 글을 읽어 녹음하면, 이야기 나레이션을 아이 목소리로 읽어 줍니다 (시연용)"}>
-          {mode === "member" && kidVoice?.registered
-            ? <input type="checkbox" className="tog" checked={guardian && s.childNarrator} disabled={!guardian}
-                onChange={(e) => { s.set("childNarrator", e.target.checked); if (e.target.checked) s.set("guardianNarrator", false); }} />
-            : <button className="btn link" disabled={mode !== "member" || !guardian || !kidVoice?.available}
-                onClick={() => nav("/child-voice")}>등록하기</button>}
-        </Row>
-        {mode === "member" && kidVoice?.registered && (
-          <Row name="아이 목소리 다시 녹음 · 지우기" desc="다시 녹음하면 예전 목소리는 지워집니다. 지우면 동의를 거둬들인 것으로 기록합니다">
-            <span style={{ display: "flex", gap: 14 }}>
-              <button className="btn link" onClick={() => nav("/child-voice")}>다시 녹음</button>
-              <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "childVoice" })}>지우기</button>
-            </span>
-          </Row>
-        )}
+        ))}
+        {sampleError && <p className="hint" role="status" style={{ padding: "0 20px" }}>{sampleError}</p>}
         <Head id="info" name="기록" />
         <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
           <input type="checkbox" checked={s.keepOriginal}
