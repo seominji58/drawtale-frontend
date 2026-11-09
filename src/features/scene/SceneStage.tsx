@@ -114,6 +114,8 @@ interface Props {
    *  앞 쪽 하늘에서 이 쪽 하늘로 천천히 바뀐다. 없으면 쪽에 들어올 때 바로 (11/9 테스트 5번) */
   narration?: number;
   envAt?: number;
+  /** 이 쪽 글 — 이름이 나온 인물(말하는 사람)은 들어올 때 통통 */
+  text?: string;
   /** 주인공 형태 (forms/*.json id). 4족형이면 든 소품을 입에 물고 · 등에 태운다 (pt_docs 20 2-a) */
   form?: string;
 }
@@ -121,7 +123,7 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt, text = "" }: Props) {
   const play = mode === "play";
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
@@ -521,7 +523,9 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         const x = phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
         const move: CSSProperties = { transition: REDUCE || !play ? "none" : `left ${ENTER_MS}ms cubic-bezier(.3,.15,.45,1), filter 2.6s ease` };
         // 가만히 있는 동안 숨쉬기 · 깡충 (11/9 「등장인물이 다 가만히 있다」) — 사람마다 박자를 엇갈려 같이 들썩이지 않게
-        const idle = p.id === "bird" || p.id === "bat" ? "m-float" : p.id === "rabbit" || p.id === "squirrel" ? "p-hop" : "p-breathe";
+        const talks = !!p.name && play && text.includes(p.name);
+        const idle = p.id === "bird" || p.id === "bat" ? "m-float" : p.id === "rabbit" || p.id === "squirrel" ? "p-hop"
+          : talks ? "p-talk" : "p-breathe";
         const beat = { animationDelay: `${-((k * 1.37) % 3.6).toFixed(2)}s` };
         // 걸음 그림띠가 있는 사람(tools/people-walk)은 들어오는 동안 실제로 걷는다 — 그림띠 칸을 멈춘 그림과 같은 키 · 발끝에 두고,
         // 다 들어오면 멈춘 그림으로 바꾼다. 그림띠가 없으면(동물 · 아기 · 반 친구들) 예전처럼 통통 들썩이며 들어온다
@@ -541,7 +545,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         return (
           <img key={`${p.id}-${p.name ?? k}`}
                className={`scene-obj scene-person ${phase === 0 || !p.enter ? idle : "walking-in"}`}
-               src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move, ...(phase === 0 || !p.enter ? beat : {}) }} />
+               src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move, ...(phase === 0 || !p.enter ? (idle === "p-talk" ? { animationDelay: `${0.5 + k * 0.3}s, ${1.8 + k * 0.45}s` } : beat) : {}) }} />
         );
       })}
       {posedSpots.filter((v) => v.at && !v.at.top).map(({ t, at }, k) => (
