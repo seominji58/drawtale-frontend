@@ -331,9 +331,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     .sort((a, b) => Math.abs(a!.spot.x - hero.to) - Math.abs(b!.spot.x - hero.to))[0];
   const look = hero.move !== "none" && goes !== 0 ? goes
     : near && Math.abs(near.spot.x - hero.to) > 0.02 ? Math.sign(near.spot.x - hero.to) : hero.face ?? 0;
-  // 사람형 걷기 · 뛰기는 다리가 오른쪽으로 내딛는 옆면 걸음이다 (AI cmu1_side, 11/9) — 왼쪽으로 옮겨 가는 쪽만 뒤집는다
-  const sideWalker = form === "biped" && !!spr && hero.move !== "none" && goes < 0;
-  if (sideWalker || (facing !== 0 && look !== 0 && look !== facing)) {
+  if (facing !== 0 && look !== 0 && look !== facing) {
     // 칸 가운데를 축으로 뒤집으니 칸 한쪽에 치우친 몸은 반대쪽으로 옮겨졌다 — 뒤집힌 몸 가운데가 heroX 에 오게 (11/9 형태 버그 2)
     if (spr) {
       const [l, , r] = spr.box;
@@ -551,9 +549,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
             <div key={`${p.id}-${p.name ?? k}-walk`} className="scene-obj scene-person-walk"
                  style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * walk.pad_bottom }), aspectRatio: `${walk.ar}`, ...move,
                    // 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다, 11/9 사용자)
-                   ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg",
-                   // 걸음 그림띠는 왼쪽으로 내딛는다 (오른쪽에서 들어온다) — 왼쪽에서 들어오면 뒤집는다
-                   ...(p.enter === "left" ? { scale: "-1 1" } : {}) }}>
+                   ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" }}>
               <img src={`${base}../people-walk/${p.id}.webp`} alt=""
                    style={{ width: `${walk.frames * 100}%`, animationTimingFunction: `steps(${walk.frames})` }} />
             </div>,
