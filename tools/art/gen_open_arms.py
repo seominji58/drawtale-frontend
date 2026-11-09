@@ -4,7 +4,7 @@
 몸통까지 날개처럼 찢어짐). 같은 인물 · 같은 크레용 화풍 그대로, 팔은 몸 옆으로 살짝 벌려(겨드랑이 틈), 두 다리 사이도
 틈이 보이게. 흰 바탕 → 오림은 process 단계에서.
 
-  python tools/art/gen_open_arms.py OUT_DIR id [id ...]     (키: drawtale-backend/.env OPENAI_API_KEY)
+  python tools/art/gen_open_arms.py OUT_DIR id [id ...]     (키: drawtale-backend-git/.env OPENAI_API_KEY)
 """
 import base64, io, sys
 from concurrent.futures import ThreadPoolExecutor
@@ -14,7 +14,7 @@ from openai import OpenAI
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-ENV = ROOT.parent / "drawtale-backend" / ".env"
+ENV = next(p for p in (ROOT.parent / "drawtale-backend-git" / ".env", ROOT.parent / "drawtale-backend" / ".env") if p.exists())
 KEY = next(l.split("=", 1)[1].strip().strip('"') for l in ENV.read_text(encoding="utf-8").splitlines()
            if l.startswith("OPENAI_API_KEY="))
 PROMPT = ("Redraw exactly this same character: same face, hair, clothes, colors, proportions and the same waxy crayon "
@@ -23,6 +23,12 @@ PROMPT = ("Redraw exactly this same character: same face, hair, clothes, colors,
           "between each arm and the torso), legs straight with a small clear gap between them, feet slightly apart. "
           "Nothing in the hands. Full body, centered, plain pure white background, no ground, no shadow, nothing else. "
           "No text, no letters, no numbers anywhere.")
+# 인물마다 옷을 바꿀 것 (11/9): 치마는 걸을 때 다리를 들면 무릎 모양으로 같이 꺾였다 (할머니, 사용자 「바지 입은 그림으로」)
+CHANGE = {
+    "grandma": "One exception to keeping the clothes: replace her long brown skirt with long, fairly slim brown trousers "
+               "(same brown color and texture). Draw the two trouser legs as two separate tubes with a clear wedge of white "
+               "background between them all the way up to the crotch (like an upside-down V), legs slightly apart. Keep the purple cardigan.",
+}
 
 
 def one(c: OpenAI, pid: str, out: Path) -> str:
@@ -34,7 +40,7 @@ def one(c: OpenAI, pid: str, out: Path) -> str:
     paper = Image.new("RGB", (int(im.height * 0.75), im.height), "white")
     paper.paste(im, ((paper.width - im.width) // 2, 0), im)
     buf = io.BytesIO(); paper.save(buf, "PNG"); buf.name = f"{pid}.png"; buf.seek(0)
-    r = c.images.edit(model="gpt-image-2", image=[buf], prompt=PROMPT, size="1024x1536", quality="medium",
+    r = c.images.edit(model="gpt-image-2", image=[buf], prompt=PROMPT + (" " + CHANGE[pid] if pid in CHANGE else ""), size="1024x1536", quality="medium",
                       output_format="png")
     dst.write_bytes(base64.b64decode(r.data[0].b64_json))
     return "ok"

@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/9 장면 등장인물 동작**: 그림띠는 `tools/people-moves/make.py`(AI `mask_from=alpha` · 관절 검사 → `regen.json`), 동작은 AI `scene_walk` · `scene_wave`(`runtime/tools/make_scene_motions.py`, 재적용 `scene_front.yaml`, 첫 장 = 그린 자세, 인사는 `loop_from` 부터 끝없이 되풀이). 렌더 도중에도 `merge.py` 로 정보 합치기. 만세는 뺐고 기쁜 쪽도 인사(`SceneStage`). 흰 옷 비침은 `tools/art/fill_white_clothes.py`. 보기 `/tools/people-moves/view.html`, 검사 `check.py`, 장면 재생 검사 `harness.html?play=hooray`
 - **11/9 책 화면 뒤로 가기**: `S09Story` 장면 모드는 넘기는 동안 도착할 쪽 = 시작 모습(방향 상관없이), 들어온 쪽 = 늘 재생. 장면 층 이야기 기기 점검은 `tools/device-check/story.mjs`(실서버 모드 · 토큰 · 이야기 id).
 - **11/9 장면 소품 배치**: 소품은 `plan.ts` `thingsFor`(낱말 · `NOT_REAL` · 장소 `ONLY_AT`), 배경 중복은 `SceneStage` `SAME_KIND`. 실제 이야기로 검사 `node tools/scene-check/layout.mjs`(목 엔진 5174 + 로컬 DB 카드 이야기를 `tools/scene-check/out/cases.json` 으로).
 - **11/9 보호자 나이 확인**: 포트원 V2 + KG이니시스 본인인증, 가입할 때 한 번 만 14세 이상. 프론트 `features/identity/ageCheck.ts` · S-16 · `components/AgeGate`, 백엔드 `app/services/identity.py` · 계약 2-17. 개인정보는 저장하지 않는다.

@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/9 장면 등장인물 동작 | **끝 (커밋 전)**: 33명 걷기 · 인사 그림띠를 새 동작(AI `scene_walk` · `scene_wave`)으로 다시 렌더. AI 를 고치면 도커에 반영(`docker cp` + 재시작 또는 다시 빌드) 뒤 `python tools/people-moves/make.py` → 결과 `people-moves.{포트}.json` 을 `people-moves.json` 에 합친다. 두 서버로 나눠 돌리면 빠르다(두 번째 AI 는 같은 이미지를 8002 에 `TORCHSERVE_URL=http://torchserve:8080`) |
 | 11/9 보호자 나이 확인(본인인증) | **테스트 채널로 실제 가입 확인 (커밋 전)**: Google · 카카오 가입 둘 다 본인인증 → 계정에 시각 · 방법 · 인증 번호만. 시험 환경은 백엔드 덮어쓰기 `scratchpad/be-age-test.yml`(로컬 DB · 파일 로컬) + 프론트 5173(agent). 로컬은 키가 없으면 묻지 않는다. 실제로 보려면 백엔드 `.env` 에 `PORTONE_API_SECRET` · `PORTONE_STORE_ID`, 프론트 `.env` 에 `VITE_PORTONE_STORE_ID` · `VITE_PORTONE_IDV_CHANNEL_KEY` 를 넣고 `alembic upgrade head`(`c8d9e0f1a2b3`). 시험 계정(`dev_login`)은 인증한 것으로, `--no-age` 면 안 한 계정 |
 | 11/9 기기 점검(폰 가로 · 아이패드) | **끝 (커밋 전)**: 에뮬레이터 `Medium_Phone_API_37.0` 을 `adb shell wm size` 로 갤럭시 크기에, iOS 는 WebKit. 방법은 `tools/device-check/walk.mjs` 첫머리. 에뮬레이터 화면 크기는 끝나면 `adb shell wm size reset` · `wm density reset` |
 | 11/9 화면 안내 음성 빠진 17문장 | **끝 (커밋 전)**: 112문장, 검사 `node tools/guide-voice/check.mjs` 112 / 112. 브라우저 청취는 아직 |

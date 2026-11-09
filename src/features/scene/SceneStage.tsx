@@ -59,8 +59,9 @@ export const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
   bat: { h: 0.16, w: arOf("props/bat.webp", 1.4), foot: 0.5 }, bird: { h: 0.14, w: arOf("props/bird.webp", 0.9), foot: 0.6 },
 };
 
-/** 등장인물 동작 그림띠 (tools/people-moves/make.py, 11/9): 장 수, 한 번 도는 시간(초), 칸 가로세로 비, 멈춘 그림 키 대비 위 · 아래 여유 */
-interface MoveStrip { frames: number; sec: number; ar: number; pad_top: number; pad_bottom: number }
+/** 등장인물 동작 그림띠 (tools/people-moves/make.py, 11/9): 장 수, 한 번 도는 시간(초), 칸 가로세로 비, 멈춘 그림 키 대비 위 · 아래 여유,
+ *  loop_from 이 있으면 그 장까지 한 번 넘긴 뒤 그 장부터 끝까지를 끝없이 되풀이한다 (인사: 손 들기 뒤 흔들기) */
+interface MoveStrip { frames: number; sec: number; ar: number; pad_top: number; pad_bottom: number; loop_from?: number }
 type PersonMoves = Partial<Record<"walk" | "wave" | "hooray", MoveStrip>>
 /** 쪽 동작이 기쁨이면 옆 인물도 같이 만세 */
 const CHEER_ACTIONS = new Set(["hooray", "jump", "dance"]);
@@ -563,14 +564,16 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
         const idle = p.id === "bird" || p.id === "bat" ? "m-float" : p.id === "rabbit" || p.id === "squirrel" ? "p-hop"
           : talks ? "p-talk" : "p-breathe";
         const beat = { animationDelay: `${-((k * 1.37) % 3.6).toFixed(2)}s` };
-        // 관절로 렌더한 동작 그림띠 (11/9 「등장인물도 관절 애니메이션」, tools/people-moves) — 들어오면 걷기, 기쁜 쪽이면 만세,
+        // 관절로 렌더한 동작 그림띠 (11/9 「등장인물도 관절 애니메이션」, tools/people-moves) — 들어오면 걷기, 기쁜 쪽이거나
         // 쪽 글에 이름이 나오면(말하는 사람) 손 흔들기. 그림띠를 멈춘 그림과 같은 키 · 발끝에 두고, 끝나면 멈춘 그림(숨쉬기)으로
         // 시작 모습(phase 0)부터 같은 요소로 둔다 — 끝 모습에서 새로 붙이면 left 가 옮겨 가지 않고 제자리에 나타났다
         const moves = play && !REDUCE ? (MOVES as Record<string, PersonMoves>)[p.id] : undefined;
         const pick: [keyof PersonMoves, number] | null = !moves ? null
           : p.enter && moves.walk ? ["walk", ENTER_MS]
           : CHEER_ACTIONS.has(pageAction) && moves.hooray ? ["hooray", moves.hooray.sec * 2000]
-          : talks && moves.wave ? ["wave", moves.wave.sec * 2000]
+          // 만세 그림띠는 몸통이 불룩해져 뺐다(11/9). 기쁜 쪽도 손 흔들기로. 인사는 손을 든 채 쪽이 바뀔 때까지 흔든다
+          // (사용자 「손 들고 계속 흔드는 거 무한 유지」, loop_from)
+          : (talks || CHEER_ACTIONS.has(pageAction)) && moves.wave ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
           : null;
         if (moves && pick) {
           const [name, until] = pick;
@@ -579,14 +582,21 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           // 같은 쪽 인물끼리 박자를 엇갈린다 (들어오기는 함께)
           const walking = name === "walk";
           const lag = walking ? 0 : 300 + k * 450;
-          const vars = { ["--until" as string]: `${until + lag}ms`, ["--lag" as string]: `${lag}ms`, ["--dur" as string]: `${m.sec}s` };
+          const vars = { ["--until" as string]: Number.isFinite(until) ? `${until + lag}ms` : "86400s", ["--lag" as string]: `${lag}ms`, ["--dur" as string]: `${m.sec}s` };
+          // 되풀이 그림띠: loop_from 장까지 한 번(strip-in) → 그 장부터 끝까지 끝없이(strip-loop)
+          const k0 = m.loop_from;
+          const run: CSSProperties = k0 == null ? { animationTimingFunction: `steps(${m.frames})` } : {
+            ["--a" as string]: `${(-100 * k0) / m.frames}%`,
+            animation: `strip-in ${(m.sec * k0) / m.frames}s steps(${k0}) ${lag}ms forwards, `
+              + `strip-loop ${(m.sec * (m.frames - k0)) / m.frames}s steps(${m.frames - k0}) ${lag + (m.sec * 1000 * k0) / m.frames}ms infinite`,
+          };
           return [
             <div key={`${p.id}-${p.name ?? k}-${name}`} className={`scene-obj scene-person-strip s-${walking ? "walk" : name}`}
                  style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * m.pad_bottom }), aspectRatio: `${m.ar}`, ...move, ...vars,
                    // 걸어 들어올 때 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다)
                    ...(walking ? { ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" } : {}) }}>
               <img src={`${base}../people-moves/${p.id}.${name}.webp`} alt=""
-                   style={{ width: `${m.frames * 100}%`, animationTimingFunction: `steps(${m.frames})` }} />
+                   style={{ width: `${m.frames * 100}%`, ...run }} />
             </div>,
             <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person after-strip ${idle === "p-talk" ? "p-breathe" : idle}`}
                  src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move, ...vars }} />,

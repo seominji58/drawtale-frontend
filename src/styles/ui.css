@@ -1056,6 +1056,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   animation: strip-show 0s var(--lag) forwards, strip-hide 0s var(--until) forwards; }
 .scene-person-strip > img { display: block; height: 100%; max-width: none; animation: strip-run var(--dur) var(--lag) infinite; }
 @keyframes strip-run { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+/* 되풀이 그림띠(인사): 손 들기까지 한 번(--a = 되풀이 시작 장) → 그 장부터 끝까지 끝없이 (SceneStage loop_from) */
+@keyframes strip-in { from { transform: translateX(0); } to { transform: translateX(var(--a)); } }
+@keyframes strip-loop { from { transform: translateX(var(--a)); } to { transform: translateX(-100%); } }
 @keyframes strip-show { to { visibility: visible; } }
 @keyframes strip-hide { to { visibility: hidden; } }
 /* 걸어 들어오기: 가는 쪽으로 기울이고 걸음마다 통통 */

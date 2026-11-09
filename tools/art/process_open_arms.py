@@ -15,6 +15,7 @@ import types  # noqa: E402
 sys.modules.setdefault("gen_cast2", types.ModuleType("gen_cast2"))   # write_ar 만 쓴다 (gen_cast2 는 키 파일을 읽는다)
 import process_cast2  # noqa: E402
 import measure_hands  # noqa: E402
+from fill_white_clothes import fill  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[2] / "public" / "scenes" / "props"
 
@@ -35,6 +36,7 @@ def main() -> None:
         if bb:
             im = im.crop(bb)
         im.thumbnail((700, 700), Image.LANCZOS)
+        im, _ = fill(im)   # cut 이 지운 흰 옷(가운 · 앞치마 · 우주복)을 메운다 (11/9, fill_white_clothes.py)
         im.save(OUT / f"{pid}.webp", "WEBP", quality=82, method=6)
         print("ok", pid, im.size)
     process_cast2.write_ar()

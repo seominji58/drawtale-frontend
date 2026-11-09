@@ -27,6 +27,8 @@ const q = new URLSearchParams(location.search);
 const FROM = Number(q.get("i") ?? 0), N = Number(q.get("n") ?? 10);
 const FILE = q.get("f") ?? "cases.json";
 const W = Number(q.get("w") ?? 700), H = Number(q.get("h") ?? 470);
+// 재생 모드(11/9): ?play=hooray 처럼 쪽 동작 이름을 주면 끝 모습 대신 쪽에 들어온 재생으로 그린다 (등장인물 그림띠 확인)
+const PLAY = q.get("play") ?? "";
 const NAME = "토토";
 // 백엔드가 채우는 이름 자리 (`{이름}{조사:는}`) — 받침 없는 이름이라 조사는 적힌 그대로
 const fill = (t: string) => t.replace(/\{이름\}/g, NAME).replace(/\{조사:([^}]+)\}/g, "$1");
@@ -91,7 +93,7 @@ function App() {
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
         <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage plan={plan} prevEnv={null} still={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} mode="end" />
+          <SceneStage plan={plan} prevEnv={null} still={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} mode={PLAY ? "play" : "end"} pageAction={PLAY} />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {plan.location}</span>
         </div>
       )))}
