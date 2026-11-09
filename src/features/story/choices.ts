@@ -21,13 +21,14 @@ const icon = (label: string) =>
   )}`;
 
 /** 카드 그림 (2026-11-03 B 크레용 화풍으로 전부 다시 그림 — 생성 · 오리기는 `tools/art/`).
- *  장소 카드는 장면 배경판 + 물건을 쌓아 만든 것이다(`public/scenes/{장소}`). 그림이 없는 카드(말로 정한 문제일 때
- *  쓰는 임시 행동 · 결과)만 이모지로 보인다 */
+ *  장소 카드는 장면 배경판 + 물건을 쌓아 만든 것이다(`public/scenes/{장소}`). 말로 정한 문제일 때 쓰는 기본 행동 4장
+ *  (wave · walk · run · wait)은 11/9 에 같은 화풍으로 더 그렸다(`tools/art/gen_cards_extra.py`). 표에 없는 카드만 이모지 */
 const ICON_IDS: Record<string, string[]> = {
   place: ["home", "playground", "school", "town", "forest", "sea", "space", "cave"],
   problem: ["fall", "crying", "lost", "dark"],
   action: ["fall_run", "call_adult", "walk_again", "fall_rest", "help_friend", "wave_smile", "run_adult", "wait_beside",
-    "stay_wait", "ask_adult", "look_walk", "run_sign", "hide", "run_light", "tiptoe", "still_wait"],
+    "stay_wait", "ask_adult", "look_walk", "run_sign", "hide", "run_light", "tiptoe", "still_wait",
+    "wave", "walk", "run", "wait"],
   result: ["okay", "smile", "got_there", "new_friend", "tears_stop", "thanked", "best_friend", "party_friend",
     "found_way", "adult_took", "relief", "party_lost", "sun", "brave", "sleep", "back_safe"],
 };
@@ -212,10 +213,11 @@ const RESULT_CHOICES = byProblem("result", RESULTS_BY_PROBLEM);
 /** 사람이 아닌 주인공(4족형 · 사슬형 · 지느러미형)이면 손으로 하는 행동 카드를 같은 뜻의 몸 행동으로 (11/5 사용자 「4족 동물이 할 만한 행동만」).
  *  카드를 빼면 그 문제의 행동이 세 장이 되어 자리를 그대로 두고 글만 바꾼다.
  *  「꼬리를 흔들어」는 꼬리 없는 그림 · 뱀 · 물고기에 맞지 않아 몸 어디로든 할 수 있는 말로 (11/5 사용자).
- *  그림은 다른 카드와 크기 · 비율이 같도록 크레파스 그림 — 손 흔드는 아이 대신 웃는 아이(결과 카드 그림). 임시 카드는 원래 이모지 */
+ *  그림 (11/9, `tools/art/gen_cards_extra.py`): 주인공이 강아지인지 물고기인지 모르니 특정 동물을 그리지 않았다.
+ *  재롱은 주인공 쪽을 보고 웃는 친구, 몸 흔들기는 몸을 흔드는 둥근 친구. 전에는 결과 카드의 웃는 아이 · 이모지 🙌 */
 const BODY_ACTIONS: Record<string, [string, string]> = {
-  wave_smile: ["재롱을 부려 웃게 했어요", `${import.meta.env.BASE_URL}icons/result/smile.webp`],
-  wave: ["몸을 흔들었어요", icon("🙌")],
+  wave_smile: ["재롱을 부려 웃게 했어요", `${import.meta.env.BASE_URL}icons/action/body_smile.webp`],
+  wave: ["몸을 흔들었어요", `${import.meta.env.BASE_URL}icons/action/body_wiggle.webp`],
 };
 const forBody = (cards: StepChoice[]): StepChoice[] => {
   const form = useSession.getState().character?.form;
