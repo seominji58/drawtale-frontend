@@ -3,6 +3,7 @@
     python tools/guide-voice/make.py [백엔드 .env 경로]   # 기본 ../drawtale-backend-git/.env
 
 - 문장 목록: tools/guide-voice/lines.json (묶음 → 문장). 화면 문구를 바꾸면 여기도 같은 글자로 고친다
+  빠진 문장은 `node tools/guide-voice/check.mjs` 가 찾는다 (11/9, 112문장)
 - 결과: public/voice/guide/{sha1 앞 12자}.mp3 + src/features/voice/guide.json (문장 → 파일). 앱의 `speak()` 가 이 표를 본다
 - 이미 있는 파일은 건너뛰므로 고친 · 새 문장만 돈이 든다 (eleven_v4_turbo 1자 ≈ 0.5크레딧)
 - 「천천히」 판은 만들지 않는다: eleven_v4_turbo 는 voice_settings.speed 를 무시한다(0.72 로 95문장을 만들었더니 길이가 같았다, 11/3).
