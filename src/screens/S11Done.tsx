@@ -38,6 +38,22 @@ export default function S11Done() {
   // 원본(imageUrl)은 쓰지 않는다 — 사진 배경까지 나온다 (2026-11-03 「통이미지는 안 된다」)
   const art = saved?.cover ?? (ENGINE === "mock" ? imageUrl : null);
 
+  // 「다 했어요!」를 읽어 준 뒤 저절로 책장으로 (11/9 사용자 「누르지 않으면 뒤로 가기 흐름이 이상해진다」).
+  // 제목을 고치는 중(입력 칸을 누름)이면 기다린다
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    if (editing) return;
+    const t = window.setTimeout(() => nav("/stories", { replace: true }), 6000);
+    return () => clearTimeout(t);
+  }, [editing, nav]);
+  // 브라우저 · 기기 뒤로 가기도 책장으로 (만들기 흐름 화면이 기록에 남아 있다)
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const back = () => nav("/stories", { replace: true });
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
+  }, [nav]);
+
   return (
     // 다 만든 뒤에는 만들기 흐름(카드 고르기 · 만드는 중)으로 돌아가지 않는다 — 뒤로는 책장으로 (11/9 사용자 「책장으로 자연스럽게,
     // 뒤로 가면 못 가게」). 다시 보기는 제목 아래 글자 버튼
@@ -47,7 +63,7 @@ export default function S11Done() {
           {/* 큰 버튼은 둘만 (11/9 사용자 「저장하고 나서 버튼이 4개나」). 다시 보기는 제목 아래 글자 버튼 · 뒤로 버튼,
               「처음으로」는 책장에서 갈 수 있어 뺐다 */}
           {/* 방금 꽂은 책을 책장에서 보러 간다 (11/3 사용자 「다 했어요 페이지에서 책장으로 갈 수 있는 버튼」) */}
-          <BigButton onClick={() => nav("/stories")}>내 책장</BigButton>
+          <BigButton onClick={() => nav("/stories", { replace: true })}>내 책장</BigButton>
           <BigButton go onClick={() => { resetStory(); nav("/steps"); }}>새 이야기 만들기</BigButton>
         </>
       }>
@@ -71,7 +87,7 @@ export default function S11Done() {
             <form className="done-title" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
               <label className="rename-label" htmlFor="done-title-input">책 제목</label>
               <div className="done-title-row">
-                <input id="done-title-input" className="title-input" value={draft} maxLength={TITLE_MAX}
+                <input id="done-title-input" className="title-input" value={draft} maxLength={TITLE_MAX} onFocus={() => setEditing(true)}
                   enterKeyHint="done" onChange={(e) => { setDraft(e.target.value); setSavedNote(false); }} onBlur={() => { if (draft.trim() !== title) saveTitle(); }} />
                 <BigButton go disabled={!draft.trim()} nudgeOnDisabled={false} onClick={saveTitle}>정하기</BigButton>
               </div>

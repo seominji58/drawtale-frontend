@@ -53,12 +53,39 @@ export default function S03Draw() {
   // 그리던 그림은 이 탭에 남긴다 (11/9 사용자 「분석이 오래 걸려 튕기면 다시 그려야 한다」) — 오류 화면에서 「화면에 그리기」로
   // 돌아오거나 뒤로 와도 이어 그린다. 형태마다 따로, 처음부터(resetAll) 하면 지운다
   const draftKey = `storyblanks.draft.${form}`;
-  const [drawing, setDrawing] = useState<Drawing>(() => {
-    try { const v = sessionStorage.getItem(draftKey); return v ? (JSON.parse(v) as Drawing) : emptyDrawing(); }
-    catch { return emptyDrawing(); }
-  });
+  // 칠한 칸(fill)은 캔버스라 JSON 으로 못 남긴다 — 그림 주소(data URL)로 바꿔 남기고, 되살릴 때 캔버스로 다시 그린다
+  const [drawing, setDrawing] = useState<Drawing>(emptyDrawing);
+  const restored = useRef(false);
   useEffect(() => {
-    try { sessionStorage.setItem(draftKey, JSON.stringify(drawing)); } catch { /* 저장 공간이 모자라면 이번 화면에서만 */ }
+    let live = true;
+    (async () => {
+      try {
+        const v = sessionStorage.getItem(draftKey);
+        if (!v) return;
+        const saved = JSON.parse(v) as Record<Part, ({ kind: "fill"; src: string; t?: number } | Drawing[Part][number])[]>;
+        const back = emptyDrawing();
+        for (const part of Object.keys(back) as Part[]) {
+          for (const it of saved[part] ?? []) {
+            if (it.kind === "fill" && "src" in it) {
+              const im = new Image(); im.src = it.src; await im.decode();
+              const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+              c.getContext("2d")!.drawImage(im, 0, 0);
+              back[part].push({ kind: "fill", layer: c, t: it.t });
+            } else back[part].push(it as Drawing[Part][number]);
+          }
+        }
+        if (live) setDrawing(back);
+      } catch { /* 깨진 남김은 버린다 */ } finally { restored.current = true; }
+    })();
+    return () => { live = false; };
+  }, [draftKey]);
+  useEffect(() => {
+    if (!restored.current) return;
+    try {
+      const out = Object.fromEntries(Object.entries(drawing).map(([part, items]) => [part,
+        (items as Drawing[Part]).map((it) => (it.kind === "fill" ? { kind: "fill", src: it.layer.toDataURL("image/png"), t: it.t } : it))]));
+      sessionStorage.setItem(draftKey, JSON.stringify(out));
+    } catch { /* 저장 공간이 모자라면 이번 화면에서만 */ }
   }, [draftKey, drawing]);
   /** 채우기로 누른 곳이 선으로 닫힌 칸이 아니었다 */
   const [fillMiss, setFillMiss] = useState(false);

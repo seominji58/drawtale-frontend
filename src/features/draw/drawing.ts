@@ -482,7 +482,9 @@ export function fillAt(drawing: Drawing, pt: Pt, color: string): HTMLCanvasEleme
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
   const g = c.getContext("2d", { willReadFrequently: true })!;
-  drawItems(g, drawing);
+  // 칸을 가르는 것은 선뿐 — 칠한 칸까지 벽으로 보면 한 번 칠한 곳을 다른 색으로 다시 칠할 수 없었다 (11/9 사용자)
+  const lines = Object.fromEntries(PARTS.map((part) => [part, drawing[part].filter((it) => it.kind !== "fill")])) as Drawing;
+  drawItems(g, lines);
   const rgba = g.getImageData(0, 0, W, H).data;
   const alpha = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3];
