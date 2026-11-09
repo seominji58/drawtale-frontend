@@ -3,16 +3,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5214,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483
+   "ar": 0.525,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6607,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483,
+   "ar": 0.7286,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
    "loop_from": 9
   }
  },
@@ -20,14 +20,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5464,
+   "ar": 0.5429,
    "pad_top": 0.051,
    "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6643,
+   "ar": 0.7357,
    "pad_top": 0.051,
    "pad_bottom": 0.0482,
    "loop_from": 9
@@ -38,15 +38,15 @@
    "frames": 48,
    "sec": 2.0,
    "ar": 0.5857,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.7179,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483,
+   "ar": 0.8107,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482,
    "loop_from": 9
   }
  },
@@ -54,16 +54,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.55,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479
+   "ar": 0.5321,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.7,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479,
+   "ar": 0.7821,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
    "loop_from": 9
   }
  },
@@ -71,16 +71,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5179,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479
+   "ar": 0.5321,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6786,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479,
+   "ar": 0.7429,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483,
    "loop_from": 9
   }
  },
@@ -88,16 +88,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5143,
+   "ar": 0.5107,
    "pad_top": 0.0507,
    "pad_bottom": 0.0479
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6321,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479,
+   "ar": 0.725,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
    "loop_from": 9
   }
  },
@@ -105,16 +105,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.525,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483
+   "ar": 0.5179,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6857,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483,
+   "ar": 0.7393,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
    "loop_from": 9
   }
  },
@@ -122,16 +122,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.4679,
+   "ar": 0.4643,
    "pad_top": 0.0522,
    "pad_bottom": 0.0495
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.5714,
-   "pad_top": 0.0522,
-   "pad_bottom": 0.0495,
+   "ar": 0.6643,
+   "pad_top": 0.0523,
+   "pad_bottom": 0.0496,
    "loop_from": 9
   }
  },
@@ -139,14 +139,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5107,
+   "ar": 0.5036,
    "pad_top": 0.0523,
    "pad_bottom": 0.0496
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.625,
+   "ar": 0.6964,
    "pad_top": 0.0523,
    "pad_bottom": 0.0496,
    "loop_from": 9
@@ -156,16 +156,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5179,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048
+   "ar": 0.525,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6286,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048,
+   "ar": 0.6929,
+   "pad_top": 0.0504,
+   "pad_bottom": 0.0476,
    "loop_from": 9
   }
  },
@@ -173,16 +173,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5107,
-   "pad_top": 0.0526,
-   "pad_bottom": 0.0499
+   "ar": 0.5143,
+   "pad_top": 0.05,
+   "pad_bottom": 0.05
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.625,
-   "pad_top": 0.05,
-   "pad_bottom": 0.05,
+   "ar": 0.6821,
+   "pad_top": 0.0526,
+   "pad_bottom": 0.0499,
    "loop_from": 9
   }
  },
@@ -190,14 +190,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.4714,
-   "pad_top": 0.05,
-   "pad_bottom": 0.05
+   "ar": 0.4607,
+   "pad_top": 0.0526,
+   "pad_bottom": 0.0499
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.5393,
+   "ar": 0.6143,
    "pad_top": 0.05,
    "pad_bottom": 0.05,
    "loop_from": 9
@@ -207,16 +207,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.45,
-   "pad_top": 0.0519,
-   "pad_bottom": 0.049
+   "ar": 0.4679,
+   "pad_top": 0.0516,
+   "pad_bottom": 0.0487
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.5857,
-   "pad_top": 0.0519,
-   "pad_bottom": 0.049,
+   "ar": 0.6429,
+   "pad_top": 0.0516,
+   "pad_bottom": 0.0487,
    "loop_from": 9
   }
  },
@@ -224,16 +224,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5536,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048
+   "ar": 0.5429,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6929,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048,
+   "ar": 0.7643,
+   "pad_top": 0.0504,
+   "pad_bottom": 0.0476,
    "loop_from": 9
   }
  },
@@ -241,16 +241,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5143,
-   "pad_top": 0.0506,
-   "pad_bottom": 0.0478
+   "ar": 0.5214,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6429,
-   "pad_top": 0.0506,
-   "pad_bottom": 0.0478,
+   "ar": 0.7107,
+   "pad_top": 0.0503,
+   "pad_bottom": 0.0475,
    "loop_from": 9
   }
  },
@@ -259,15 +259,15 @@
    "frames": 48,
    "sec": 2.0,
    "ar": 0.525,
-   "pad_top": 0.0513,
-   "pad_bottom": 0.0484
+   "pad_top": 0.0516,
+   "pad_bottom": 0.0487
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6464,
-   "pad_top": 0.0513,
-   "pad_bottom": 0.0484,
+   "ar": 0.7214,
+   "pad_top": 0.0514,
+   "pad_bottom": 0.0486,
    "loop_from": 9
   }
  },
@@ -275,14 +275,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5071,
+   "ar": 0.5143,
    "pad_top": 0.0507,
    "pad_bottom": 0.0479
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6321,
+   "ar": 0.7036,
    "pad_top": 0.0507,
    "pad_bottom": 0.0479,
    "loop_from": 9
@@ -292,16 +292,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5143,
+   "ar": 0.5071,
    "pad_top": 0.0504,
    "pad_bottom": 0.0476
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6464,
-   "pad_top": 0.0504,
-   "pad_bottom": 0.0476,
+   "ar": 0.7036,
+   "pad_top": 0.0503,
+   "pad_bottom": 0.0475,
    "loop_from": 9
   }
  },
@@ -309,16 +309,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5179,
-   "pad_top": 0.0506,
-   "pad_bottom": 0.0478
+   "ar": 0.5214,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6464,
-   "pad_top": 0.0506,
-   "pad_bottom": 0.0478,
+   "ar": 0.7036,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479,
    "loop_from": 9
   }
  },
@@ -326,14 +326,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.525,
+   "ar": 0.5179,
    "pad_top": 0.0511,
    "pad_bottom": 0.0483
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.65,
+   "ar": 0.7214,
    "pad_top": 0.0511,
    "pad_bottom": 0.0483,
    "loop_from": 9
@@ -343,16 +343,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.4857,
-   "pad_top": 0.051,
-   "pad_bottom": 0.0482
+   "ar": 0.4893,
+   "pad_top": 0.0506,
+   "pad_bottom": 0.0478
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6357,
-   "pad_top": 0.051,
-   "pad_bottom": 0.0482,
+   "ar": 0.7214,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479,
    "loop_from": 9
   }
  },
@@ -360,14 +360,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5321,
-   "pad_top": 0.0501,
-   "pad_bottom": 0.0474
+   "ar": 0.5107,
+   "pad_top": 0.05,
+   "pad_bottom": 0.05
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6,
+   "ar": 0.6821,
    "pad_top": 0.0501,
    "pad_bottom": 0.0474,
    "loop_from": 9
@@ -377,16 +377,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5036,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048
+   "ar": 0.5071,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6464,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048,
+   "ar": 0.7357,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484,
    "loop_from": 9
   }
  },
@@ -394,14 +394,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5107,
+   "ar": 0.5214,
    "pad_top": 0.0506,
    "pad_bottom": 0.0478
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6714,
+   "ar": 0.75,
    "pad_top": 0.0506,
    "pad_bottom": 0.0478,
    "loop_from": 9
@@ -412,15 +412,15 @@
    "frames": 48,
    "sec": 2.0,
    "ar": 0.4786,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.5964,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479,
+   "ar": 0.675,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482,
    "loop_from": 9
   }
  },
@@ -428,16 +428,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5036,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048
+   "ar": 0.5179,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6643,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048,
+   "ar": 0.7429,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484,
    "loop_from": 9
   }
  },
@@ -445,16 +445,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.525,
+   "ar": 0.5143,
    "pad_top": 0.0526,
    "pad_bottom": 0.0499
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6321,
-   "pad_top": 0.0526,
-   "pad_bottom": 0.0499,
+   "ar": 0.725,
+   "pad_top": 0.0522,
+   "pad_bottom": 0.0495,
    "loop_from": 9
   }
  },
@@ -462,14 +462,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5464,
+   "ar": 0.5357,
    "pad_top": 0.05,
    "pad_bottom": 0.05
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6893,
+   "ar": 0.7607,
    "pad_top": 0.05,
    "pad_bottom": 0.05,
    "loop_from": 9
@@ -480,15 +480,15 @@
    "frames": 48,
    "sec": 2.0,
    "ar": 0.55,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6321,
-   "pad_top": 0.0507,
-   "pad_bottom": 0.0479,
+   "ar": 0.7071,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
    "loop_from": 9
   }
  },
@@ -496,16 +496,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5714,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483
+   "ar": 0.5679,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.7143,
-   "pad_top": 0.0511,
-   "pad_bottom": 0.0483,
+   "ar": 0.8179,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
    "loop_from": 9
   }
  },
@@ -513,14 +513,14 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5357,
-   "pad_top": 0.0508,
-   "pad_bottom": 0.048
+   "ar": 0.5464,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6464,
+   "ar": 0.7286,
    "pad_top": 0.0508,
    "pad_bottom": 0.048,
    "loop_from": 9
@@ -530,16 +530,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.5857,
-   "pad_top": 0.051,
-   "pad_bottom": 0.0482
+   "ar": 0.5821,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.7071,
-   "pad_top": 0.051,
-   "pad_bottom": 0.0482,
+   "ar": 0.775,
+   "pad_top": 0.0506,
+   "pad_bottom": 0.0478,
    "loop_from": 9
   }
  },
@@ -547,16 +547,16 @@
   "walk": {
    "frames": 48,
    "sec": 2.0,
-   "ar": 0.525,
+   "ar": 0.5286,
    "pad_top": 0.0503,
    "pad_bottom": 0.0475
   },
   "wave": {
    "frames": 39,
    "sec": 1.95,
-   "ar": 0.6536,
-   "pad_top": 0.0503,
-   "pad_bottom": 0.0475,
+   "ar": 0.7036,
+   "pad_top": 0.0504,
+   "pad_bottom": 0.0476,
    "loop_from": 9
   }
  }

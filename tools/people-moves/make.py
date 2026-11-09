@@ -16,6 +16,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+sys.path.insert(0, str(Path(__file__).parent))
+import hand_flip  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 PROPS = ROOT / "public/scenes/props"
 OUT = Path(os.environ.get("MOVES_OUT", ROOT / "public/scenes/people-moves"))   # 시험 렌더는 다른 곳에
@@ -158,7 +161,16 @@ def make(pid: str) -> dict:
         return {}
     got = {}
     for move, (motion, sec, loop_from) in MOVES.items():
-        r = post("/render", {"request_id": a["request_id"], "joints": json.dumps(a["joints"]), "motion": motion, "sprite": "true"})
+        rid = a["request_id"]
+        if motion.startswith("scene_wave"):
+            # 인사는 흔드는 손을 아래팔 축으로 미리 뒤집은 그림으로 (돌리기만 하면 든 손이 뒤집혀 손목이 꺾여 보였다, hand_flip.py).
+            # 관절은 원래 그림 것을 그대로 쓴다
+            flipped = hand_flip.flip_hand(paper, a["joints"], "left")
+            fb = io.BytesIO(); flipped.save(fb, "PNG")
+            fa = post("/analyze", {"form": "biped", "mask_from": "alpha"}, {"file": (f"{pid}.wave.png", fb.getvalue())})
+            if fa.get("success"):
+                rid = fa["request_id"]
+        r = post("/render", {"request_id": rid, "joints": json.dumps(a["joints"]), "motion": motion, "sprite": "true"})
         if "sprite" not in r:
             print(pid, move, "렌더 실패", r.get("message"), flush=True)
             continue
