@@ -43,11 +43,11 @@ export default function S11Done() {
     <Screen back={ORDER_GAME ? "/order" : "/story"} speech="다 했어요!" segment={4}
       acts={
         <>
-          <BigButton onClick={() => nav("/story")}>다시 보기</BigButton>
+          {/* 큰 버튼은 둘만 (11/9 사용자 「저장하고 나서 버튼이 4개나」). 다시 보기는 제목 아래 글자 버튼 · 뒤로 버튼,
+              「처음으로」는 책장에서 갈 수 있어 뺐다 */}
           {/* 방금 꽂은 책을 책장에서 보러 간다 (11/3 사용자 「다 했어요 페이지에서 책장으로 갈 수 있는 버튼」) */}
           <BigButton onClick={() => nav("/stories")}>내 책장</BigButton>
           <BigButton go onClick={() => { resetStory(); nav("/steps"); }}>새 이야기 만들기</BigButton>
-          <BigButton onClick={() => nav("/")}>처음으로</BigButton>
         </>
       }>
       {/* 방금 만든 이야기의 주인공(아이 그림)을 도화지에 붙여 축하한다. 책장에 꽂혔다고 알려 준다 (2026-10-28 디자인) */}
@@ -65,6 +65,7 @@ export default function S11Done() {
         <div className="hero-side">
           <h2 className="hero-title">다 했어요!</h2>
           <p className="hero-sub">{story ? `「${title}」을 내 책장에 꽂아 두었어요` : "멋진 이야기를 만들었어요"}</p>
+          {story && <button type="button" className="btn link" onClick={() => nav("/story")}>▶ 이야기 다시 보기</button>}
           {story && (
             <form className="done-title" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
               <label className="rename-label" htmlFor="done-title-input">책 제목</label>
