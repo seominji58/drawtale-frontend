@@ -34,7 +34,7 @@ export default function SPropDraw() {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef<LiveStroke | null>(null);
-  const [box, setBox] = useState<ReturnType<typeof fitDraw>>({ w: 0, h: 0, mode: "wide", aw: 0 });
+  const [box, setBox] = useState<ReturnType<typeof fitDraw>>({ w: 0, h: 0, mode: "wide", aw: 0, tap: TAP });
   /** 이름 붙이는 단계의 그림. 종이 그림을 올렸으면 처음부터 있다 */
   const [png, setPng] = useState<string | null>(loc.state?.png ?? null);
   const from = loc.state?.from === "photo" ? "photo" : "draw";
@@ -159,8 +159,8 @@ export default function SPropDraw() {
       <div ref={wrap} className={`draw-area ${box.mode}`}>
         {/* 내 소품은 보호자 모드에서만 쓰므로 보호자 팔레트 (2026-10-28) */}
         <ColorPalette full tool={tool} color={color}
-          cols={box.mode === "wide" ? 3 : box.mode === "mid" ? 2 : 4}
-          size={box.mode !== "narrow" ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
+          cols={box.mode === "wide" || box.mode === "short" ? 3 : box.mode === "mid" ? 2 : 4}
+          size={box.mode === "short" || box.mode === "wide" ? box.tap : box.mode !== "narrow" ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
           onColor={(hex) => { setColor(hex); if (tool === "eraser") setTool("pen"); }} />
         <div className="draw-paper" style={{ width: box.w, height: box.h }}>
           <canvas ref={canvas}
@@ -169,7 +169,7 @@ export default function SPropDraw() {
         </div>
         <div className="draw-tools">
           <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth}
-            cols={box.mode === "mid" ? 2 : 3} onClear={empty ? null : () => setAskClear(true)} />
+            cols={box.mode === "mid" ? 2 : 3} tap={box.tap} onClear={empty ? null : () => setAskClear(true)} />
         </div>
       </div>
     </Screen>

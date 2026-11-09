@@ -77,7 +77,7 @@ export default function Screen({
   };
 
   return (
-    <div className="screen" data-audience={audience}>
+    <div className={`screen ${title ? "has-title" : ""}`} data-audience={audience}>
       <div className="rail">
         <div className="rail-side">
           {back !== null && (

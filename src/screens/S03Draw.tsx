@@ -61,7 +61,7 @@ export default function S03Draw() {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef<LiveStroke | null>(null);
-  const [box, setBox] = useState<ReturnType<typeof fitDraw>>({ w: 0, h: 0, mode: "wide", aw: 0 });
+  const [box, setBox] = useState<ReturnType<typeof fitDraw>>({ w: 0, h: 0, mode: "wide", aw: 0, tap: TAP });
 
   const empty = PARTS.every((p) => drawing[p].length === 0);
 
@@ -185,8 +185,8 @@ export default function S03Draw() {
       <div ref={wrap} className={`draw-area ${box.mode}`}>
         {/* 아이 모드 12색, 보호자 모드는 24색 + 색 만들기 (2026-10-28 사용자) */}
         <ColorPalette full={guardian} tool={tool} color={color}
-          cols={box.mode === "wide" ? 3 : box.mode === "mid" ? 2 : 4}
-          size={box.mode !== "narrow" ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
+          cols={box.mode === "wide" || box.mode === "short" ? 3 : box.mode === "mid" ? 2 : 4}
+          size={box.mode === "short" || box.mode === "wide" ? box.tap : box.mode !== "narrow" ? TAP : Math.min(TAP, Math.floor((box.aw - 36 - 24) / 4))}
           onColor={(hex) => { setColor(hex); if (tool === "eraser") setTool("pen"); }} />
 
         <div className="draw-paper" style={{ width: box.w, height: box.h }}>
@@ -197,7 +197,7 @@ export default function S03Draw() {
 
         <div className="draw-tools">
           <PenTools tool={tool} color={color} width={width} onTool={setTool} onWidth={setWidth}
-            cols={box.mode === "mid" ? 2 : 3} onClear={empty ? null : () => setAskClear(true)} />
+            cols={box.mode === "mid" ? 2 : 3} tap={box.tap} onClear={empty ? null : () => setAskClear(true)} />
         </div>
       </div>
 

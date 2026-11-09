@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Coach from "@/components/Coach";
 import Screen from "@/components/Screen";
 import ChoiceCard from "@/components/ChoiceCard";
+import { useFitGrid } from "@/components/useFitGrid";
 import { useSession } from "@/store/session";
 import { useForms, type FormDef } from "@/features/character/forms";
 import type { StepChoice } from "@/types/story";
@@ -53,6 +54,7 @@ export default function S03Form() {
     { id: "__other", iconUrl: icon("nonhumanoid"), label: "다른 모습 친구" },
   ];
   const step2: StepChoice[] = [...nonhumanoid.map(card), { id: "__none", iconUrl: icon("none"), label: "여기에 없어요" }];
+  const grid = useFitGrid<HTMLDivElement>(other ? step2.length : step1.length);
 
   return (
     <Screen back={other ? () => setOther(false) : "/upload"} segment={1}
@@ -62,7 +64,7 @@ export default function S03Form() {
       {/* 소리를 꺼 둔 아이도 보게 — 「여기에 없어요」 다음에만 글로 */}
       {missing && !other && <h2 className="question">아직 준비 중인 모양이에요. 두 발 친구로 해 볼까요?</h2>}
       <div className="pick-area">
-        <div className="choices form-choices" data-count={other ? step2.length : step1.length}>
+        <div ref={grid} className="choices form-choices" data-count={other ? step2.length : step1.length}>
           {(other ? step2 : step1).map((c) => (
             <ChoiceCard key={c.id} choice={c}
               onPick={(id) => (id === "__other" ? setOther(true)

@@ -3,3 +3,4 @@ dist/
 .env
 *.log
 *.tsbuildinfo
+tools/device-check/shots/

@@ -9,6 +9,8 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/9 기기 점검(폰 가로 · 아이패드) | **끝 (커밋 전)**: 에뮬레이터 `Medium_Phone_API_37.0` 을 `adb shell wm size` 로 갤럭시 크기에, iOS 는 WebKit. 방법은 `tools/device-check/walk.mjs` 첫머리. 에뮬레이터 화면 크기는 끝나면 `adb shell wm size reset` · `wm density reset` |
+| 11/9 화면 안내 음성 빠진 17문장 | **끝 (커밋 전)**: 112문장, 검사 `node tools/guide-voice/check.mjs` 112 / 112. 브라우저 청취는 아직 |
 | 11/7 보호자 목소리 청취 시험 준비 | 로컬 `.env` 에 `TTS_PROVIDER` 가 없어 openai 로 읽힌다. 시험은 덮어쓰기 설정(로컬 DB · `TTS_PROVIDER=elevenlabs` · CORS 5173)으로 백엔드를 띄우고 `dev_login --front http://localhost:5173` 링크로 녹음 · 등록. 끝나면 `docker compose up -d backend` 로 원래 설정 |
 | 11/7 실제 모드 형태 고르기 · 사람 아닌 주인공 점검 | **고침**: 세로 형태 카드, AI 4족형 그림 영역(넓게 그린 그림). 시험 프론트를 5173 이 아닌 포트로 띄우면 백엔드 `CORS_ORIGINS` 에 그 포트를 더해야 캐릭터 영상 바탕이 지워진다 |
 | 11/6 밤 화면 점검(가로 1024 · 세로 768 · 폰 390, 목 엔진) | **고침**: 세로 태블릿 그리기 · 첫 화면 · 책 제목 · S-11, 폰 위 줄 점. 형태 고르기 · 사람 아닌 주인공 화면은 목 엔진이 건너뛰어 실제 모드로 따로 볼 것 (`docs/worklog.md` 맨 위) |

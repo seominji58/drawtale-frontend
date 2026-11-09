@@ -4,6 +4,7 @@ import LockedFeature from "@/components/LockedFeature";
 import Screen from "@/components/Screen";
 import ChoiceCard from "@/components/ChoiceCard";
 import BigButton from "@/components/BigButton";
+import { useFitGrid } from "@/components/useFitGrid";
 import { useSession } from "@/store/session";
 import { useSettings, useWithAdult, LEVEL_CONFIG } from "@/store/settings";
 import { fetchSteps } from "@/api";
@@ -47,6 +48,7 @@ export default function S07Steps() {
 
   const [choices, setChoices] = useState<StepChoice[]>([]);
   const [pending, setPending] = useState<StepChoice | null>(null);
+  const grid = useFitGrid<HTMLDivElement>(choices.length);
   const [listening, setListening] = useState(false);
   const [heardError, setHeardError] = useState<ListenError | null>(null);
   /** S-07-13 칸에 적힌 글. 들은 글도 여기 먼저 들어가고, 「이걸로 할래요」를 눌러야 이야기에 들어간다 */
@@ -139,7 +141,7 @@ export default function S07Steps() {
       {/* 카드와 말하기 · 적기를 나란히 둔다. 아래에 두면 카드가 그만큼 작아져 아이콘이 줄어든다 */}
       <div className="pick-area">
         {/* 확인을 묻는 동안(pending) 고른 카드는 표시하고 나머지는 흐리게 — 무엇을 골랐는지 보여야 「예」를 누른다 (10/28 사용자) */}
-        <div className={`choices ${pending ? "deciding" : ""}`} data-count={choices.length}>
+        <div ref={grid} className={`choices ${pending ? "deciding" : ""}`} data-count={choices.length}>
           {choices.map((c) => (
             <ChoiceCard key={c.id} choice={c} selected={pending ? pending.id === c.id : picks[kind] === c.id} onPick={choose} />
           ))}

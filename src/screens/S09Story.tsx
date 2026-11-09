@@ -405,7 +405,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     el.style.removeProperty("--said"); el.style.removeProperty("--lh");
     let size = parseFloat(getComputedStyle(el.querySelector(".said") ?? el).fontSize);
     const start = size;
-    while (el.scrollHeight > el.clientHeight + 1 && size > 26) {
+    // 줄이는 바닥: 보통 26px, 낮은 가로 화면(폰을 가로로, 글 18px 부터)은 그 7할까지
+    const floor = Math.min(26, Math.round(start * 0.7));
+    while (el.scrollHeight > el.clientHeight + 1 && size > floor) {
       size -= 2;
       el.style.setProperty("--said", `${size}px`);
       el.style.setProperty("--lh", `${Math.round(size * 1.47)}px`);

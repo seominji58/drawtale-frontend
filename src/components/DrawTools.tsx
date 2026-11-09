@@ -9,21 +9,43 @@ export const TAP = 88;
 
 /** 그림판 배치. wide = [색 세 칸 | 종이 | 도구 세 칸] (가로 1024),
  *  mid = 색 · 도구를 두 칸씩 세워 종이 양옆에 (세로 태블릿 768, 11/6 화면 점검. 전에는 종이 아래로 내려 색 둘째 줄과 도구가 아래 단추 줄에 가렸다),
- *  narrow = 종이 아래로 내리고 위아래로 민다 (폰) */
-export type DrawMode = "wide" | "mid" | "narrow";
+ *  narrow = 종이 아래로 내리고 위아래로 민다 (폰),
+ *  short = 낮은 가로 화면(폰을 가로로): [색 세 칸 | 종이 | 도구 세 칸] 인데 단추를 줄인다 (11/9 기기 점검. 높이 240 에서
+ *  narrow 로 가 종이 아래 색 · 도구가 칸 밖으로 밀려 보이지 않았다) */
+export type DrawMode = "wide" | "mid" | "narrow" | "short";
 const SIDE_3 = TAP * 3 + 24;
 const SIDE_2 = TAP * 2 + 12;
 /** 두 칸으로 세운 아이 팔레트 높이 (12색 = 여섯 줄) */
 const MID_TALL = TAP * 6 + 12 * 5;
 
+/** 폰을 가로로 돌린 낮은 화면 (ui.css 와 같은 값) */
+const SHORT_LANDSCAPE = "(orientation: landscape) and (max-height: 520px)";
+
 /** 그림판 자리(rw × rh)에 종이(W × H 비율)를 가장 크게 맞춘다 */
 export function fitDraw(rw: number, rh: number, W: number, H: number) {
+  // 낮은 가로: 종이는 높이를 다 쓰고, 남는 폭을 색 · 도구 각 세 칸에 나눈다. 단추는 40 ~ 56px
+  // CSS 의 낮은 가로 화면(ui.css 「낮은 가로 화면」)과 같은 조건. 그림판 칸 높이로만 보면 가로 1024 × 768 도 걸려 단추가 작아졌다
+  if (typeof window !== "undefined" && window.matchMedia?.(SHORT_LANDSCAPE).matches) {
+    const paperW = Math.floor((rh * W) / H);
+    // 색 열두 개가 세 칸 네 줄이라 높이에도 들어가야 한다
+    const tap = Math.max(36, Math.min(56, Math.floor((rw - paperW - 2 * 12 - 2 * 16) / 6), Math.floor((rh - 3 * 8) / 4)));
+    const s = Math.min((rw - 2 * (tap * 3 + 16) - 24) / W, rh / H);
+    return { w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), mode: "short" as DrawMode, aw: rw, tap };
+  }
+  // 넓은 배치의 색은 세 칸 네 줄 (4 × 88 + 3 × 12 = 388px). 그림판 칸이 그보다 낮으면(아이패드 미니 가로, Safari 막대를 빼면 670)
+  // 색 넷째 줄이 아래 단추에 겹쳤다 (11/9), 단추를 높이에 맞춰 줄인다 (60px 아래로는 줄이지 않는다)
+  const wideTap = Math.max(60, Math.min(TAP, Math.floor((rh - 3 * 12) / 4)));
+  if (wideTap < TAP && rw >= (wideTap * 3 + 24) * 2 + 40 + 320) {
+    const side = wideTap * 3 + 24;
+    const s = Math.min((rw - side * 2 - 40) / W, rh / H);
+    return { w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), mode: "wide" as DrawMode, aw: rw, tap: wideTap };
+  }
   const mode: DrawMode = rw >= SIDE_3 * 2 + 40 + 320 ? "wide"
     : rw >= SIDE_2 * 2 + 40 + 280 && rh >= MID_TALL ? "mid" : "narrow";
   const s = mode === "wide" ? Math.min((rw - SIDE_3 * 2 - 40) / W, rh / H)
     : mode === "mid" ? Math.min((rw - SIDE_2 * 2 - 40) / W, rh / H)
     : Math.min((rw - 12) / W, Math.max(260, rh * 0.8) / H);
-  return { w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), mode, aw: rw };
+  return { w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), mode, aw: rw, tap: TAP };
 }
 
 /** 색 고르기. 아이 모드는 12색 큰 동그라미, 보호자 모드(`full`)는 24색 + 「색 만들기」 + 최근 만든 색 — 그림판처럼.
@@ -45,7 +67,7 @@ const checkColor = (hex: string) => (luminance(hex) > 0.62 ? "#3A2E26" : "#FFFFF
 
 function KidPalette({ tool, color, onColor, cols = 3, size = TAP }: PaletteProps) {
   return (
-    <div role="radiogroup" aria-label="색" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${size}px)`, gap: 12, alignContent: "start" }}>
+    <div role="radiogroup" aria-label="색" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${size}px)`, gap: size < 70 ? 8 : 12, alignContent: "start" }}>
       {KID_COLORS.map((c) => {
         const on = tool !== "eraser" && color === c.hex;
         return (
@@ -145,25 +167,29 @@ function FullPalette({ tool, color, onColor }: PaletteProps) {
 }
 
 /** 그리기 · 지우개와 선 굵기 세 가지 (지우개는 고른 굵기의 두 배) */
-export function PenTools({ tool, color, width, onTool, onWidth, onClear, cols = 3 }: {
+export function PenTools({ tool, color, width, onTool, onWidth, onClear, cols = 3, tap = TAP }: {
   tool: Tool; color: string; width: number; onTool: (t: Tool) => void; onWidth: (px: number) => void;
   /** 한 줄에 몇 칸. 세로 태블릿(mid)은 2 */
   cols?: number;
   /** 전체 지우기 — 지우개 옆에 둔다 (11/5 사용자 — 아래 단추 줄에 있으니 손이 멀었다). 없으면 그리지 않는다. null 이면 끈 상태 */
   onClear?: (() => void) | null;
+  /** 단추 한 변. 낮은 가로 화면(short)은 줄인다 */
+  tap?: number;
 }) {
+  const small = tap < 70;
+  const gap = small ? 8 : 12;
   return (
     <>
       {/* 그리기 · 채우기(페인트 통 — 선으로 닫힌 칸을 누르면 고른 색으로) · 지우개 (11/5 사용자) */}
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${TAP}px)`, gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${tap}px)`, gap }}>
         {(["pen", "fill", "eraser"] as Tool[]).map((t) => (
           <button key={t} className="btn" aria-pressed={tool === t} onClick={() => onTool(t)}
-            style={{ width: TAP, minHeight: TAP, padding: 0, fontSize: 17, ...(tool === t ? { background: "var(--butter)" } : {}) }}>
+            style={{ width: tap, minHeight: tap, padding: 0, fontSize: small ? 12 : 17, letterSpacing: small ? "-.05em" : undefined, ...(tool === t ? { background: "var(--butter)" } : {}) }}>
             {tool === t ? "✓" : ""}{t === "pen" ? "그리기" : t === "fill" ? "채우기" : "지우개"}
           </button>
         ))}
       </div>
-      <div role="radiogroup" aria-label="선 굵기" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${TAP}px)`, gap: 12 }}>
+      <div role="radiogroup" aria-label="선 굵기" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${tap}px)`, gap }}>
         {PEN_WIDTHS.map((w) => {
           const on = width === w.px;
           const dot = Math.round(w.px * 1.4);
@@ -171,22 +197,22 @@ export function PenTools({ tool, color, width, onTool, onWidth, onClear, cols = 
             <button key={w.id} className="btn" role="radio" aria-checked={on} aria-label={`선 ${w.name}`}
               onClick={() => onWidth(w.px)}
               style={{
-                width: TAP, minHeight: TAP, padding: 0, display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", gap: 4,
+                width: tap, minHeight: tap, padding: 0, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: small ? 1 : 4,
                 ...(on ? { background: "var(--butter)" } : {}),
               }}>
               <span aria-hidden="true" style={{
                 display: "block", flex: "0 0 auto", width: dot, height: dot, borderRadius: "50%",
                 background: tool === "eraser" ? "#B8B2AA" : color,
               }} />
-              <span style={{ fontSize: 14 }}>{on ? "✓ " : ""}{w.name}</span>
+              <span style={{ fontSize: small ? 11 : 14 }}>{on ? "✓ " : ""}{w.name}</span>
             </button>
           );
         })}
       </div>
       {onClear !== undefined && (
         <button className="btn" disabled={!onClear} onClick={() => onClear?.()}
-          style={{ minHeight: 64, padding: 0, ...(onClear ? {} : { opacity: 0.45 }) }}>전체 지우기</button>
+          style={{ minHeight: small ? tap : 64, padding: 0, fontSize: small ? 13 : undefined, ...(onClear ? {} : { opacity: 0.45 }) }}>전체 지우기</button>
       )}
     </>
   );
