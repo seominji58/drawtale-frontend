@@ -13,6 +13,7 @@ import { hasSkyBodies, isIndoor, isPerson } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
 import HANDS from "./hands.json";
+import WALK from "./people-walk.json";
 
 /** 오린 그림의 가로 ÷ 세로 (없으면 기본값) */
 const arOf = (src: string, fallback: number) => (AR as Record<string, number>)[src] ?? fallback;
@@ -57,6 +58,11 @@ export const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
   // 날아다니는 것은 공중에
   bat: { h: 0.16, w: arOf("props/bat.webp", 1.4), foot: 0.5 }, bird: { h: 0.14, w: arOf("props/bird.webp", 0.9), foot: 0.6 },
 };
+
+/** 등장인물 걸음 그림띠 자리 (tools/people-walk/make.py): 장 수, 칸 가로세로 비, 멈춘 그림 키 대비 위 · 아래 여유 */
+interface WalkStrip { frames: number; ar: number; pad_top: number; pad_bottom: number }
+/** 인물이 걸어 들어오는 시간 (ui.css .scene-person-walk · .after-walk 와 같게) */
+const ENTER_MS = 2400;
 
 const REDUCE = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const FPS = 12;
@@ -498,10 +504,29 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         const { p, s, spot, sb } = v;
         // 걸어 들어오는 인물: 처음엔 화면 밖, 끝 모습에서 제자리
         const x = phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
+        const move: CSSProperties = { transition: REDUCE || !play ? "none" : `left ${ENTER_MS}ms cubic-bezier(.3,.15,.45,1), filter 2.6s ease` };
+        // 가만히 있는 동안 숨쉬기 · 깡충 (11/9 「등장인물이 다 가만히 있다」) — 사람마다 박자를 엇갈려 같이 들썩이지 않게
+        const idle = p.id === "bird" || p.id === "bat" ? "m-float" : p.id === "rabbit" || p.id === "squirrel" ? "p-hop" : "p-breathe";
+        const beat = { animationDelay: `${-((k * 1.37) % 3.6).toFixed(2)}s` };
+        // 걸음 그림띠가 있는 사람(tools/people-walk)은 들어오는 동안 실제로 걷는다 — 그림띠 칸을 멈춘 그림과 같은 키 · 발끝에 두고,
+        // 다 들어오면 멈춘 그림으로 바꾼다. 그림띠가 없으면(동물 · 아기 · 반 친구들) 예전처럼 통통 들썩이며 들어온다
+        const walk = p.enter && play && !REDUCE ? (WALK as Record<string, WalkStrip>)[p.id] : undefined;
+        if (walk && phase === 1) {
+          const tall = sb.h * (1 + walk.pad_top + walk.pad_bottom);
+          return [
+            <div key={`${p.id}-${p.name ?? k}-walk`} className="scene-obj scene-person-walk"
+                 style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * walk.pad_bottom }), aspectRatio: `${walk.ar}`, ...move }}>
+              <img src={`${base}../people-walk/${p.id}.webp`} alt=""
+                   style={{ width: `${walk.frames * 100}%`, animationTimingFunction: `steps(${walk.frames})` }} />
+            </div>,
+            <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person after-walk ${idle}`}
+                 src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move }} />,
+          ];
+        }
         return (
-          <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person ${phase === 0 || !p.enter ? "" : "walking-in"} ${p.id === "bird" || p.id === "bat" ? "m-float" : ""}`}
-               src={base + s.src} alt=""
-               style={{ ...spotStyle({ ...sb, x }), transition: REDUCE || !play ? "none" : "left 2.4s cubic-bezier(.35,.1,.35,1), filter 2.6s ease" }} />
+          <img key={`${p.id}-${p.name ?? k}`}
+               className={`scene-obj scene-person ${phase === 0 || !p.enter ? idle : "walking-in"}`}
+               src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move, ...(phase === 0 || !p.enter ? beat : {}) }} />
         );
       })}
       {posedSpots.filter((v) => v.at && !v.at.top).map(({ t, at }, k) => (
