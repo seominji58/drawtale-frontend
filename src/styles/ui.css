@@ -268,6 +268,21 @@
 .own-field em { font-style: normal; font-size: var(--t-label); color: var(--ink-soft); padding: 0 6px; min-height: 2.6em; }
 .own-ok:disabled { opacity: .45; }
 /* S-05N 이름 직접 적기 (2026-11-02) — 이름 카드 아래 한 줄 */
+/* S-05N 이름 짓기 (11/9) — 가로 화면은 왼쪽 친구 · 오른쪽 이름 고르기, 세로는 위아래. 무대가 남는 높이에 맞춰 줄어든다 */
+.name-layout { flex: 1; min-height: 0; display: flex; gap: var(--gap); justify-content: center; }
+.name-layout > .stage { min-height: 0; }
+.name-side { display: flex; flex-direction: column; justify-content: center; gap: var(--gap); min-width: 0; }
+.name-side > div:first-child { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gap); }
+@media (orientation: landscape) {
+  .name-layout { flex-direction: row; align-items: stretch; }
+  .name-layout > .stage { flex: 1 1 0; max-width: 560px; }
+  .name-side { flex: 1 1 0; max-width: 520px; }
+}
+@media (orientation: portrait) {
+  .name-layout { flex-direction: column; }
+  .name-layout > .stage { flex: 1 1 0; }
+  .name-side { flex: 0 0 auto; }
+}
 .name-own { flex: 0 0 auto; width: min(100%, 420px); align-self: center; }
 .name-own input { text-align: center; font-size: var(--t-button); }
 @media (max-width: 767px) {
