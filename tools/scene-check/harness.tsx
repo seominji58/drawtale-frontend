@@ -6,16 +6,26 @@ import SceneStage from "@/features/scene/SceneStage";
 import { planPages } from "@/features/scene/plan";
 import type { PagePlan } from "@/features/scene/plan";
 import { CHOICES, choicesFor } from "@/features/story/choices";
+import { sentences } from "@/lib";
 import type { BookPage } from "@/types/story";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
 import "@/styles/ui.css";
 
-interface Case { id: string; place: string; problem: string; action: string; result: string;
-  book: { title: string; pages: (Omit<BookPage, "childWords"> & { child_words?: string })[]; character_sheet?: Record<string, string> } }
+interface Case { id: string; place: string; problem: string; action: string; result: string; length?: string; voice_mode?: string;
+  /** 긴 이야기 */
+  book?: { title: string; pages: (Omit<BookPage, "childWords"> & { child_words?: string })[]; character_sheet?: Record<string, string> };
+  /** 짧은 이야기 (네 문장) */
+  text?: string;
+  /** 짧은 이야기 캐릭터 목소리 판: 문장마다 [말하는 이, 글, 감정] 조각 */
+  sentences?: [string, string, string][][] }
+
+/** 캐릭터 목소리 판 짧은 이야기를 한 덩어리 글로 — 대사는 “ ” 안에 (백엔드가 화면에 주는 글과 같은 모양) */
+const textOf = (c: Case) => c.text ?? (c.sentences ?? []).map((s) => s.map(([who, t]) => (who === "나레이션" ? t : `“${t}”`)).join(" ")).join(" ");
 
 const q = new URLSearchParams(location.search);
 const FROM = Number(q.get("i") ?? 0), N = Number(q.get("n") ?? 10);
+const FILE = q.get("f") ?? "cases.json";
 const W = Number(q.get("w") ?? 700), H = Number(q.get("h") ?? 470);
 const NAME = "토토";
 // 백엔드가 채우는 이름 자리 (`{이름}{조사:는}`) — 받침 없는 이름이라 조사는 적힌 그대로
@@ -26,9 +36,24 @@ const idIn = (kind: "action" | "result", label: string, problem?: string) => cho
 function plansOf(c: Case): PagePlan[] {
   const problem = idOf("problem", c.problem);
   const picks = { place: idOf("place", c.place), problem, action: idIn("action", c.action, problem), result: idIn("result", c.result, problem) };
-  const pages = c.book.pages.map((p) => ({ ...p, text: fill(p.text), childWords: p.child_words ?? "" })) as BookPage[];
-  return planPages(pages, picks, c.book.character_sheet ?? {});
+  const pages = c.book ? c.book.pages.map((p) => ({ ...p, text: fill(p.text), childWords: p.child_words ?? "" })) as BookPage[]
+    : shortPages(fill(textOf(c)));
+  return planPages(pages, picks, c.book?.character_sheet ?? {});
 }
+
+/** 짧은 이야기를 네 쪽으로 — S09Story shortBook 과 같은 나눔 (행동 쪽만 움직임, 장면 계획 없음) */
+function shortPages(text: string): BookPage[] {
+  const lines = sentences(text);
+  const STAGES = ["place", "problem", "action", "result"] as const;
+  const n = Math.min(4, lines.length);
+  const groups: string[][] = Array.from({ length: n }, () => []);
+  lines.forEach((l, i) => groups[Math.min(n - 1, Math.floor((i * n) / lines.length))].push(l));
+  return groups.map((g, i) => {
+    const stage = n === 4 ? STAGES[i] : STAGES[Math.min(3, Math.round((i * 3) / Math.max(1, n - 1)))];
+    return { page: i + 1, stage, action: stage === "action" ? "wave" : "idle", text: g.join(" "), childWords: "", scene: null } as BookPage;
+  });
+}
+const pageText = (c: Case, plans: PagePlan[], i: number) => (c.book ? fill(c.book.pages[i].text) : shortPages(fill(textOf(c)))[i]?.text ?? "");
 
 /** 한 장면의 자리 재기. 화면 대비 0~1 사각형 */
 function measure(el: HTMLElement) {
@@ -48,7 +73,7 @@ function measure(el: HTMLElement) {
 
 function App() {
   const [cases, setCases] = useState<Case[] | null>(null);
-  useEffect(() => { void fetch("./out/cases.json").then((r) => r.json()).then((all: Case[]) => setCases(all.slice(FROM, FROM + N))); }, []);
+  useEffect(() => { void fetch(`./out/${FILE}`).then((r) => r.json()).then((all: Case[]) => setCases(all.slice(FROM, FROM + N))); }, []);
   useEffect(() => {
     if (!cases) return;
     // 그림이 다 읽히고 자리가 잡힐 때까지
@@ -63,8 +88,8 @@ function App() {
   if (!cases) return <p>읽는 중</p>;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 8 }}>
-      {cases.flatMap((c, ci) => plansOf(c).map((plan, pi) => (
-        <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={fill(c.book.pages[pi].text)} data-loc={plan.location}
+      {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
+        <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
           <SceneStage plan={plan} prevEnv={null} still={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} mode="end" />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {plan.location}</span>

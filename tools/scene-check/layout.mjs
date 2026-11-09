@@ -2,13 +2,17 @@
 //
 // 준비: 목 엔진 개발 서버(VITE_ENGINE=mock npx vite --port 5174) + playwright(webkit), 이야기 묶음 tools/scene-check/out/cases.json
 //   (로컬 DB card_stories 에서 꺼낸다: 긴 이야기 · 나레이션 판, book 과 카드 네 칸)
-//   node tools/scene-check/layout.mjs [이야기 수=160] [한 번에=10]
+//   node tools/scene-check/layout.mjs [이야기 수=160] [한 번에=10] [묶음 파일=cases.json]
+//   (짧은 이야기는 text 만 있는 묶음, 화면 shortBook 처럼 네 쪽으로 나눈다)
 // 결과: 종류별 개수와 예, tools/scene-check/out/layout.json, 걸린 쪽 사진 out/flag-*.png
 import { webkit } from "playwright";
 import fs from "node:fs";
 
 const TOTAL = Number(process.argv[2] ?? 160), STEP = Number(process.argv[3] ?? 10);
-const BASE = "http://localhost:5174/tools/scene-check/harness.html";
+// 이야기 묶음 파일 (tools/scene-check/out/ 안) 과 결과 이름 앞말
+const FILE = process.argv[4] ?? "cases.json", TAG = FILE.replace(/\.json$/, "");
+const BASE = `http://localhost:5174/tools/scene-check/harness.html`;
+const url = (i, n) => `${BASE}?f=${FILE}&i=${i}&n=${n}`;
 
 const area = (r) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
 const inter = (a, b) => area({ x0: Math.max(a.x0, b.x0), x1: Math.min(a.x1, b.x1), y0: Math.max(a.y0, b.y0), y1: Math.min(a.y1, b.y1) });
@@ -26,7 +30,8 @@ function issuesOf(s) {
     // 배경 물건은 뒤쪽(발끝이 위)이라 앞줄 인물과 겹쳐도 앞뒤로 읽힌다. 인물 발끝이 그 물건 발끝보다 위면(뒤에 서야 하는데 앞에 그림) 어색하다
     for (const b of s.bg) {
       const o = inter(f, b) / Math.max(1e-6, Math.min(area(b), area(f)));
-      if (o > 0.25 && f.y1 < b.y1 + 0.02) out.push(["인물이 배경 물건과 겹침", `${f.name} ↔ ${b.name} ${Math.round(o * 100)}%`]);
+      // 공중 인물(새 · 박쥐)은 날고 있어 배경 앞이 맞다
+      if (o > 0.25 && f.y1 < b.y1 + 0.02 && f.name !== "bird" && f.name !== "bat") out.push(["인물이 배경 물건과 겹침", `${f.name} ↔ ${b.name} ${Math.round(o * 100)}%`]);
     }
   }
   for (let i = 0; i < figs.length; i++) for (let j = i + 1; j < figs.length; j++) {
@@ -63,7 +68,7 @@ const b = await webkit.launch();
 const page = await b.newPage({ viewport: { width: 1450, height: 1000 } });
 const all = [];
 for (let i = 0; i < TOTAL; i += STEP) {
-  await page.goto(`${BASE}?i=${i}&n=${Math.min(STEP, TOTAL - i)}`);
+  await page.goto(url(i, Math.min(STEP, TOTAL - i)));
   await page.waitForFunction(() => window.__audit, null, { timeout: 60000 });
   const a = await page.evaluate(() => window.__audit);
   for (const s of a) all.push({ ...s, issues: issuesOf(s) });
@@ -86,18 +91,18 @@ for (const [k, v] of [...byKind].sort((x, y) => y[1].length - x[1].length)) {
 // 장소마다 놓인 소품 (엉뚱한 물건 찾기용) — 소품 이름 → 장소 → [쪽]
 const where = {};
 for (const s of all) for (const t of s.things) ((where[t.name] ??= {})[s.location] ??= []).push(s.key);
-fs.writeFileSync("tools/scene-check/out/things.json", JSON.stringify({ where, text: Object.fromEntries(all.map((s) => [s.key, s.text])) }, null, 1));
-fs.writeFileSync("tools/scene-check/out/layout.json", JSON.stringify({ pages: all.length, byKind: Object.fromEntries(byKind) }, null, 1));
+fs.writeFileSync(`tools/scene-check/out/${TAG}-things.json`, JSON.stringify({ where, text: Object.fromEntries(all.map((s) => [s.key, s.text])) }, null, 1));
+fs.writeFileSync(`tools/scene-check/out/${TAG}-layout.json`, JSON.stringify({ pages: all.length, byKind: Object.fromEntries(byKind) }, null, 1));
 
 // 종류마다 걸린 쪽 몇 장을 찍어 둔다 (눈으로 확인)
 for (const [k, v] of byKind) {
   const keys = [...new Set(v.map((x) => x.key))].slice(0, 4);
   for (const key of keys) {
     const [ci, pi] = key.split(":").map(Number);
-    await page.goto(`${BASE}?i=${ci}&n=1`);
+    await page.goto(url(ci, 1));
     await page.waitForFunction(() => window.__audit, null, { timeout: 60000 });
     const el = page.locator(`[data-page="${key}"]`);
-    await el.screenshot({ path: `tools/scene-check/out/flag-${k.replace(/\s+/g, "_")}-${ci}-${pi}.png` });
+    await el.screenshot({ path: `tools/scene-check/out/${TAG}-flag-${k.replace(/\s+/g, "_")}-${ci}-${pi}.png` });
   }
 }
 await b.close();

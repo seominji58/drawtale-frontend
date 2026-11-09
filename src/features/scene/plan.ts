@@ -90,7 +90,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/수건|손수건/, "props/towel.webp", 0.07, "ground"],
   [/케이크|쿠키|과자|간식/, "props/cake.webp", 0.1, "ground"],
   [/우산/, "props/umbrella.webp", 0.24, "ground"],
-  [/기차/, "props/toytrain.webp", 0.1, "ground"],
+  // 장난감 기차 그림이라 진짜 기차를 타는 말은 빼고 — 「기차에서 엄마에게 기대어 잠이 들었어요」에 동굴 바닥 장난감 기차 (11/9 배치 검사)
+  [/기차(?!에서|를 ?타|에 ?타|를 탔|에 올|역|표|길|소리|가 (?:출발|도착|달|지나|멈|떠))/, "props/toytrain.webp", 0.1, "ground"],
   [/화분/, "props/flowerpot.webp", 0.16, "ground"],
   // 대본 인물로 나오지 않고 글에만 나오는 작은 동물 (인물로 나오면 인물 그림이 선다)
   // 「새 책 · 새 친구 · 새 둥지」의 새(new)는 빼고 — 조사가 붙거나 「작은 새」처럼 꾸밈말이 앞에 올 때만 (11/4, 씨앗 문장 120개가 잘못 걸렸다)
@@ -106,7 +107,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/시소/, "props/seesaw.webp", 0.2, "ground"],
   [/텐트/, "props/tent.webp", 0.34, "ground"],
   // B. 장소 배경에만 있던 그림을 다른 장소에서도 (배경에 이미 있으면 SceneStage 가 또 놓지 않는다)
-  [/돌멩이|돌들|작은 돌|돌을 |돌이 |돌 위|돌탑/, "forest-stream/rocks.webp", 0.09, "ground"],   // 「돌았어요」 · 「돌아왔어요」 빼고
+  // 「돌았어요」 · 「돌아왔어요」 빼고, 짧은 「돌」은 앞 글자와 떨어진 것만 — 「곰돌이 컵」에 부엌 바닥 돌멩이 (11/9 전체 배치 검사)
+  [/돌멩이|작은 돌|돌탑|(?<![가-힣])돌(?:들|을 |이 | 위)/, "forest-stream/rocks.webp", 0.09, "ground"],
   [/바위/, "cave/rocks.webp", 0.2, "ground"],
   [/꽃(?!게)/, "forest-flowers/flowers.webp", 0.12, "ground"],
   [/식탁/, "home-kitchen/table.webp", 0.26, "ground"],
@@ -300,7 +302,7 @@ function mentions(text: string, name: string): boolean {
 
 /** 낱말 바로 뒤가 이러면 그 물건이 아니라 그림 · 이야기 · 별명이다 — 「물고기 그림」 · 「꽃 그림」 · 「물고기 이야기」 ·
  *  「돌멩이 박사님」 · 「별 스티커」 · 「토끼 인형」에 도서실 바닥 물고기 · 교실 꽃밭 · 우주선 안 돌멩이가 섰다 (11/9 배치 검사, 카드 이야기 160편) */
-const NOT_REAL = /^ ?(?:그림|이야기|스티커|인형|장난감|사진|모양|무늬|박사|노래|풍선)/;
+const NOT_REAL = /^ ?(?:그림|이야기|스티커|인형|장난감|사진|모양|무늬|박사|노래|풍선|뛰기|흉내|춤)/;   // 「토끼 뛰기」 놀이에 토끼
 /** 그 장소에서만 놓는 물건. 물에 사는 것 · 모래 놀이는 바다 · 물가 · 모래밭에서만 — 「양동이 속 장미」(꽃집)에 모래놀이 양동이,
  *  달의 「웅덩이」에 물웅덩이가 섰다 (11/9). 장소 이름(세부 장소 포함)의 앞 낱말로 본다 */
 const WATER = /^(?:sea|forest-stream|cave-lake)/, SAND = /^(?:sea|playground)/;

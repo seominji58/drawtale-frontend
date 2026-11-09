@@ -409,7 +409,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     return { x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x, foot: topY + h * 0.55, h }), ...withHero } };
   };
   // 창밖 소품 수와 몇 번째인지 (창 안에서 나란히 놓으려고)
-  const winCount = (plan.things ?? []).filter((t) => t.pose === "window" || (indoor && !t.pose && SKY_ONLY.has(t.src))).length;
+  const winCount = (plan.things ?? []).filter((t) => t.pose === "window" || (indoor && !t.pose && TO_WINDOW.has(t.src))).length;
   let winAt = 0;
   const posed = (t: NonNullable<typeof plan.things>[number]): { x: number; style: CSSProperties; cls: string; top?: boolean } | null => {
     const thingW = (h: number) => h * t.ar / aspect;
@@ -498,7 +498,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     }
   };
   // 실내에서 하늘에만 있는 것(별똥별 · 행성 · 지구)은 창 안에 — 우주선 방 안 공중에 별똥별이 떠서 창 속 지구를 가렸다 (11/9 배치 검사)
-  const things = (plan.things ?? []).map((t) => (indoor && !t.pose && SKY_ONLY.has(t.src) ? { ...t, pose: "window" as const } : t));
+  const things = (plan.things ?? []).map((t) => (indoor && !t.pose && TO_WINDOW.has(t.src) ? { ...t, pose: "window" as const } : t));
   const posedSpots = things.filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }))
     .filter((v) => v.t.pose !== "window" || v.at);   // 창밖 소품은 창이 없으면 방 안에 놓지 않는다
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
@@ -652,8 +652,10 @@ const kindOf = (src: string) => {
   const name = src.split("/").pop()?.replace(/\.webp$/, "") ?? src;
   return SAME_KIND[name] ?? name;
 };
-/** 하늘에만 있는 것 — 실내면 창 안에만 놓는다 */
-const SKY_ONLY = new Set(["props/shootingstar.webp", "props/planet.webp", "props/earth.webp"]);
+/** 바깥 하늘 · 공중에 있는 것 — 실내면 창 안에만 놓는다 (창 없는 방이면 안 놓음). 거실 공중에 나비가 날았다 (11/9 배치 검사).
+ *  박쥐는 동굴(실내)에 사니 빼고 */
+const TO_WINDOW = new Set(["props/shootingstar.webp", "props/planet.webp", "props/earth.webp",
+  "props/butterfly.webp", "props/bird.webp", "props/seagull.webp", "props/balloons.webp"]);
 /** 이름이 달라도 같은 물건 — 바다 배경에 모래성(castle) · 바위(rock)가 있는데 쪽 글의 「모래성」 · 「바위」로 하나 더 섰다 (11/9 배치 검사) */
 const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks" };
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */

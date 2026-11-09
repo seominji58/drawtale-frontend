@@ -73,6 +73,17 @@ const PLACE_CASES = [
   ["운동장 웅덩이마다 파란 하늘이 비쳤어요.", "school-classroom", true, null, "props/puddle.webp"],
   ["비가 그치고 웅덩이에 하늘이 비쳤어요.", "playground", false, "props/puddle.webp", "props/puddle.webp"],
   ["텐트 천장에는 작은 별 스티커가 붙어 있었어요.", "school-library", true, "props/tent.webp", "props/tent.webp"],
+  // 짧은 이야기 160편 (11/9)
+  ["기차에서 엄마에게 기대어 잠이 들었어요.", "cave", true, null, "props/toytrain.webp"],
+  ["우리는 기차를 타고 할머니 댁에 갔어요.", "home", false, null, "props/toytrain.webp"],
+  ["나는 장난감 기차를 칙칙폭폭 굴렸어요.", "home-living", true, "props/toytrain.webp", "props/toytrain.webp"],
+  ["나는 우주 달 위에서 토끼 뛰기를 했어요.", "space", false, null, "props/rabbit.webp"],
+  ["하얀 토끼가 깡충 뛰어갔어요.", "forest", false, "props/rabbit.webp", "props/rabbit.webp"],
+  // 전체 배치 검사 2,048편 (11/9)
+  ["주전자 옆에는 토토의 곰돌이 컵이 놓여 있었어요.", "home-kitchen", true, null, "forest-stream/rocks.webp"],
+  ["엄마가 무릎에 귀여운 곰돌이 밴드를 붙여 주었어요.", "home-living", true, null, "forest-stream/rocks.webp"],
+  ["징검다리 첫 돌 위에 올라섰어요.", "forest-stream", false, "forest-stream/rocks.webp", "forest-stream/rocks.webp"],
+  ["그런데 작은 돌멩이에 발이 탁 걸렸어요.", "school", false, "forest-stream/rocks.webp", "forest-stream/rocks.webp"],
 ];
 let bad = 0;
 for (const [text, loc, indoor, want, look] of PLACE_CASES) {

@@ -457,13 +457,16 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const canvas = !perPage && !story.animationUrl && imageUrl && keypoints;
     // 영상 쪽이든 정지 그림 쪽이든 같은 칸 — 쪽마다 칸 크기가 바뀌지 않게. 캔버스(목 엔진) · 소품 장면만 칸을 다 쓴다
     const fit = !props && (!!clipI || !canvas);
-    // 장면 층: 넘기는 동안 밑에 깔린 도착할 쪽은 시작 모습으로 기다리고, 넘긴 뒤 이어서 움직인다
-    const forward = turn ? turn.dir > 0 : entered.from === null || entered.from < i;
+    // 장면 층: 넘기는 동안 도착할 쪽은 시작 모습으로 기다리고, 넘긴 뒤 이어서 움직인다.
+    // 뒤로 넘겨 돌아온 쪽도 처음부터 다시 움직인다 — 전에는 끝 모습으로만 그려 주인공이 첫 장 자세로 멈춰 있었다 (11/9 사용자
+    // 「책 페이지에서 뒤로 가기 하면 애니메이션 재생 이상해지는 문제」). 앞으로는 도착할 쪽이 밑(under), 뒤로는 위(top)로 넘어온다
+    const arriving = !!turn && i === turn.to && (turn.dir > 0 ? !top : top);
     const sceneMode: "play" | "start" | "end" =
       // 넘김이 끝나고 entered 가 바뀌기 전 한 번도 시작 모습으로 (끝 모습이 끼면 주인공이 도착 자리 · 숨은 모습으로 튀었다 돌아온다)
-      active && !top ? (forward ? (entered.pg === i ? "play" : "start") : "end")
-      : !top && turn && turn.dir > 0 && i === turn.to ? "start" : "end";
-    const prevEnv = scenes && i > 0 ? scenes[forward ? i - 1 : i].env : null;
+      active && !top ? (entered.pg === i ? "play" : "start")
+      : arriving ? "start" : "end";
+    // 앞 쪽 밤낮에서 이 쪽 밤낮으로 (뒤로 돌아와도 같은 순서로 다시)
+    const prevEnv = scenes && i > 0 ? scenes[i - 1].env : null;
     if (scenes && !props) {
       return (
         <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
