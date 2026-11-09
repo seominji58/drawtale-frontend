@@ -637,7 +637,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
         };
         const pick: [keyof PersonMoves, number] | null = !moves ? null
           : p.enter && moves.walk ? (ready("walk", true) ? ["walk", ENTER_MS] : null)
-          : CHEER_ACTIONS.has(pageAction) && moves.hooray ? ["hooray", moves.hooray.sec * 2000]
+          // 그림띠를 다 받기 전에 바꿔 끼우면 멈춘 그림은 숨고 그림띠는 비어 있어 깜빡였다 — 받은 뒤에만 (11/9)
+          : CHEER_ACTIONS.has(pageAction) && moves.hooray && ready("hooray") ? ["hooray", moves.hooray.sec * 2000]
           // 만세 그림띠는 몸통이 불룩해져 뺐다(11/9). 기쁜 쪽도 손 흔들기로. 인사는 손을 든 채 쪽이 바뀔 때까지 흔든다
           // (사용자 「손 들고 계속 흔드는 거 무한 유지」, loop_from)
           : (talks || CHEER_ACTIONS.has(pageAction)) && moves.wave && ready("wave") ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
