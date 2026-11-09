@@ -91,6 +91,14 @@ function usePerShelf() {
 
 export default function S12Stories() {
   const nav = useNavigate();
+  // 책장에서 기기 · 브라우저 뒤로 가기는 처음 화면으로 — 기록에 남은 만들기 흐름(그림 올리기 · 카드 고르기)으로
+  // 돌아가던 것 (11/9 사용자 「다 만들고 뒤로 가면 맨 처음 그림 올리는 화면이 나온다」). 앱 뒤로 버튼도 처음 화면
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const back = () => nav("/", { replace: true });
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
+  }, [nav]);
   const { stories, load, rename, add, pending, removePending } = useLibrary();
   const setStory = useSession((s) => s.setStory);
   const guardian = useGuardianMode();
