@@ -1,194 +1,194 @@
 {
  "adult": {
   "frames": 48,
-  "ar": 0.3864,
-  "pad_top": 0.0412,
-  "pad_bottom": 0.0382
+  "ar": 0.6773,
+  "pad_top": 0.0413,
+  "pad_bottom": 0.0383
  },
  "astronaut-f": {
   "frames": 48,
-  "ar": 0.4591,
+  "ar": 0.6091,
   "pad_top": 0.0424,
   "pad_bottom": 0.0394
  },
  "astronaut-m": {
   "frames": 48,
-  "ar": 0.4909,
+  "ar": 0.6,
   "pad_top": 0.0423,
   "pad_bottom": 0.0394
  },
  "aunt": {
   "frames": 48,
-  "ar": 0.3545,
-  "pad_top": 0.0425,
-  "pad_bottom": 0.0397
+  "ar": 0.6182,
+  "pad_top": 0.0426,
+  "pad_bottom": 0.0398
  },
  "busdriver": {
   "frames": 48,
-  "ar": 0.3409,
-  "pad_top": 0.042,
-  "pad_bottom": 0.0392
+  "ar": 0.6318,
+  "pad_top": 0.0423,
+  "pad_bottom": 0.0394
  },
  "caveguide-m": {
   "frames": 48,
-  "ar": 0.35,
-  "pad_top": 0.0421,
-  "pad_bottom": 0.0393
+  "ar": 0.5864,
+  "pad_top": 0.0423,
+  "pad_bottom": 0.0394
  },
  "cook-f": {
   "frames": 48,
-  "ar": 0.3818,
+  "ar": 0.4409,
   "pad_top": 0.0414,
   "pad_bottom": 0.0387
  },
  "cook-m": {
   "frames": 48,
-  "ar": 0.3682,
-  "pad_top": 0.041,
-  "pad_bottom": 0.0383
+  "ar": 0.4818,
+  "pad_top": 0.0411,
+  "pad_bottom": 0.0384
  },
  "dad": {
   "frames": 48,
-  "ar": 0.3318,
-  "pad_top": 0.0411,
-  "pad_bottom": 0.0381
+  "ar": 0.5864,
+  "pad_top": 0.0412,
+  "pad_bottom": 0.0382
  },
  "friend": {
   "frames": 48,
-  "ar": 0.4227,
+  "ar": 0.5909,
   "pad_top": 0.0427,
   "pad_bottom": 0.0399
  },
  "friend2": {
   "frames": 48,
-  "ar": 0.4591,
+  "ar": 0.5273,
   "pad_top": 0.0401,
   "pad_bottom": 0.0372
  },
  "grandma": {
   "frames": 48,
-  "ar": 0.3636,
+  "ar": 0.6,
   "pad_top": 0.0411,
   "pad_bottom": 0.0381
  },
  "grandpa": {
   "frames": 48,
-  "ar": 0.3545,
-  "pad_top": 0.0411,
-  "pad_bottom": 0.0381
+  "ar": 0.5727,
+  "pad_top": 0.0413,
+  "pad_bottom": 0.0383
  },
  "keeper-f": {
   "frames": 48,
-  "ar": 0.4045,
-  "pad_top": 0.0419,
-  "pad_bottom": 0.0391
+  "ar": 0.5591,
+  "pad_top": 0.042,
+  "pad_bottom": 0.0392
  },
  "keeper-m": {
   "frames": 48,
-  "ar": 0.3636,
-  "pad_top": 0.0421,
-  "pad_bottom": 0.0393
+  "ar": 0.5864,
+  "pad_top": 0.0423,
+  "pad_bottom": 0.0394
  },
  "lifeguard-f": {
   "frames": 48,
-  "ar": 0.3636,
+  "ar": 0.6045,
   "pad_top": 0.0424,
   "pad_bottom": 0.0395
  },
  "lifeguard-m": {
   "frames": 48,
-  "ar": 0.35,
+  "ar": 0.5636,
   "pad_top": 0.0418,
   "pad_bottom": 0.039
  },
  "mail-f": {
   "frames": 48,
-  "ar": 0.3955,
-  "pad_top": 0.042,
-  "pad_bottom": 0.0392
+  "ar": 0.5591,
+  "pad_top": 0.0421,
+  "pad_bottom": 0.0393
  },
  "mail-m": {
   "frames": 48,
-  "ar": 0.3864,
-  "pad_top": 0.042,
-  "pad_bottom": 0.0392
+  "ar": 0.5864,
+  "pad_top": 0.0421,
+  "pad_bottom": 0.0393
  },
  "mom": {
   "frames": 48,
-  "ar": 0.3727,
-  "pad_top": 0.0414,
-  "pad_bottom": 0.0385
+  "ar": 0.6,
+  "pad_top": 0.0415,
+  "pad_bottom": 0.0386
  },
  "nurse": {
   "frames": 48,
-  "ar": 0.3227,
+  "ar": 0.4955,
   "pad_top": 0.0418,
   "pad_bottom": 0.039
  },
  "police-f": {
   "frames": 48,
-  "ar": 0.3909,
+  "ar": 0.5909,
   "pad_top": 0.0421,
   "pad_bottom": 0.0393
  },
  "police-m": {
   "frames": 48,
-  "ar": 0.3773,
-  "pad_top": 0.0419,
-  "pad_bottom": 0.0391
+  "ar": 0.5682,
+  "pad_top": 0.042,
+  "pad_bottom": 0.0392
  },
  "ranger-f": {
   "frames": 48,
-  "ar": 0.4318,
-  "pad_top": 0.0423,
-  "pad_bottom": 0.0394
+  "ar": 0.6091,
+  "pad_top": 0.0424,
+  "pad_bottom": 0.0395
  },
  "ranger-m": {
   "frames": 48,
-  "ar": 0.4136,
-  "pad_top": 0.0413,
-  "pad_bottom": 0.0386
+  "ar": 0.6091,
+  "pad_top": 0.0416,
+  "pad_bottom": 0.0388
  },
  "shopkeeper-f": {
   "frames": 48,
-  "ar": 0.4045,
-  "pad_top": 0.0413,
-  "pad_bottom": 0.0386
+  "ar": 0.4455,
+  "pad_top": 0.0414,
+  "pad_bottom": 0.0387
  },
  "shopkeeper-m": {
   "frames": 48,
-  "ar": 0.3455,
+  "ar": 0.5,
   "pad_top": 0.0424,
   "pad_bottom": 0.0394
  },
  "spacekid-f": {
   "frames": 48,
-  "ar": 0.5,
+  "ar": 0.5182,
   "pad_top": 0.0421,
   "pad_bottom": 0.0393
  },
  "spacekid-m": {
   "frames": 48,
-  "ar": 0.4864,
+  "ar": 0.6182,
   "pad_top": 0.0423,
   "pad_bottom": 0.0394
  },
  "spacepolice-f": {
   "frames": 48,
-  "ar": 0.4409,
+  "ar": 0.6136,
   "pad_top": 0.0424,
   "pad_bottom": 0.0395
  },
  "spacepolice-m": {
   "frames": 48,
-  "ar": 0.4318,
+  "ar": 0.6045,
   "pad_top": 0.0424,
   "pad_bottom": 0.0395
  },
  "teacher": {
   "frames": 48,
-  "ar": 0.3818,
-  "pad_top": 0.0411,
-  "pad_bottom": 0.0381
+  "ar": 0.5409,
+  "pad_top": 0.0412,
+  "pad_bottom": 0.0382
  }
 }
