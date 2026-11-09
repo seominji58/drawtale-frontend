@@ -50,7 +50,16 @@ export default function S03Draw() {
   const [width, setWidth] = useState(PEN_WIDTHS[1].px);
   /** 그린 차례. 지우개가 먼저 그린 선을 지우게 한다 */
   const order = useRef(0);
-  const [drawing, setDrawing] = useState<Drawing>(emptyDrawing);
+  // 그리던 그림은 이 탭에 남긴다 (11/9 사용자 「분석이 오래 걸려 튕기면 다시 그려야 한다」) — 오류 화면에서 「화면에 그리기」로
+  // 돌아오거나 뒤로 와도 이어 그린다. 형태마다 따로, 처음부터(resetAll) 하면 지운다
+  const draftKey = `storyblanks.draft.${form}`;
+  const [drawing, setDrawing] = useState<Drawing>(() => {
+    try { const v = sessionStorage.getItem(draftKey); return v ? (JSON.parse(v) as Drawing) : emptyDrawing(); }
+    catch { return emptyDrawing(); }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(draftKey, JSON.stringify(drawing)); } catch { /* 저장 공간이 모자라면 이번 화면에서만 */ }
+  }, [draftKey, drawing]);
   /** 채우기로 누른 곳이 선으로 닫힌 칸이 아니었다 */
   const [fillMiss, setFillMiss] = useState(false);
   /** 「다 그렸어요」를 눌렀는데 떨어진 조각이 있다 — 고칠지 이대로 갈지 묻는다 */

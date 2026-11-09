@@ -4,8 +4,9 @@
 let fails = 0;
 
 /** 반복 셈에 넣는 오류인지 */
+// 시간 초과(ENGINE_TIMEOUT)도 그림 탓이 아니다 — 세면 두 번째에 「화면에 그리기」로 보내 그린 그림을 다시 그려야 했다 (11/9 사용자)
 export const isPictureError = (code: string | null) =>
-  !!code && code !== "ENGINE_ERROR" && code !== "CONTENT_BLOCKED" && code !== "BUSY";
+  !!code && code !== "ENGINE_ERROR" && code !== "CONTENT_BLOCKED" && code !== "BUSY" && code !== "ENGINE_TIMEOUT";
 
 /** S-04 분석 결과를 센다. 성공이면 null */
 export function countAnalysis(code: string | null) {

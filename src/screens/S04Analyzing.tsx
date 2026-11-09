@@ -12,8 +12,11 @@ import { countAnalysis } from "@/store/retry";
 
 /** 백엔드 job 상태(계약 1-3)를 대기 점 세 개로 보여준다 */
 const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, failed: 0 };
-/** 분석 대기 한도 (pt_docs 05 S-04 「30초를 넘기면 E-01 ENGINE_TIMEOUT」) */
-const LIMIT_MS = 30_000;
+/** 분석 대기 (pt_docs 05 S-04 「30초를 넘기면 E-01 ENGINE_TIMEOUT」). 30초가 넘으면 「조금 더 걸려요」로 알리고 계속 기다린다 —
+ *  서버를 새로 켠 직후(배포)에는 첫 분석이 1분 가까이 걸려, 30초에 끊으면 다 된 분석을 버리고 그림을 다시 올려야 했다 (11/9 사용자).
+ *  LIMIT_MS 를 넘기면 그때 E-01 (그림은 그대로 두고 「다시 시도하기」) */
+const SLOW_MS = 30_000;
+const LIMIT_MS = 120_000;
 
 interface Run {
   file: File;
@@ -54,12 +57,14 @@ export default function S04Analyzing() {
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
   const [showStop, setShowStop] = useState(false);
+  const [slow, setSlow] = useState(false);
 
   useEffect(() => {
     if (!file) { nav("/upload", { replace: true }); return; }
     const run = startAnalysis(file, useSettings.getState().keepOriginal, form);
     let live = true;   // 이 화면이 아직 붙어 있는지 — 떨어진 화면은 결과로 이동하지 않는다
     const t = setTimeout(() => setShowStop(true), 3000);
+    const s = setTimeout(() => setSlow(true), Math.max(0, SLOW_MS - (performance.now() - run.started)));
     const timeout = setTimeout(() => {
       cancelAnalysis();
       countAnalysis("ENGINE_TIMEOUT"); setError("ENGINE_TIMEOUT"); nav("/error");
@@ -84,7 +89,7 @@ export default function S04Analyzing() {
         countAnalysis(code); setError(code); nav("/error");
       });
 
-    return () => { live = false; clearTimeout(t); clearTimeout(timeout); };
+    return () => { live = false; clearTimeout(t); clearTimeout(s); clearTimeout(timeout); };
   }, [file, form, nav, setCharacter, setError]);
 
   const stop = () => { cancelAnalysis(); nav("/upload"); };
@@ -92,7 +97,7 @@ export default function S04Analyzing() {
   return (
     <Screen back={stop} speech="친구를 만들고 있어요" segment={2} adultKey={false}
       acts={showStop ? <BigButton onClick={stop}>그만하기</BigButton> : undefined}>
-      <Waiting message="친구를 만들고 있어요" steps={3} current={step}
+      <Waiting message={slow ? "조금 더 걸리고 있어요. 그림은 그대로 있으니 기다려 주세요" : "친구를 만들고 있어요"} steps={3} current={step}
                diagnostics={diagnostics ? diag : null} art={<Friend wave />} />
     </Screen>
   );

@@ -88,6 +88,8 @@ export const useSession = create<SessionState>((set, get) => ({
   setError: (code) => set({ errorCode: code }),
   resetStory: () => set({ picks: {}, said: {}, story: null }),
   resetAll: () => {
+    // 그리던 그림(S03Draw)도 지운다 — 처음부터 시작
+    try { Object.keys(sessionStorage).filter((k) => k.startsWith("storyblanks.draft.")).forEach((k) => sessionStorage.removeItem(k)); } catch { /* 없으면 그만 */ }
     const prev = get().imageUrl;
     if (prev) URL.revokeObjectURL(prev);
     set({ file: null, imageUrl: null, form: "biped", drawnAs: null, character: null, keypoints: null, name: null,
