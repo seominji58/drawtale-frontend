@@ -207,18 +207,25 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   const skyMove = (rising: boolean) => (REDUCE ? "none"
     : `left 2.8s linear, top 2.8s ${rising ? "cubic-bezier(.15,.75,.35,1)" : "cubic-bezier(.65,0,.85,.3)"}`);
 
-  const hero = plan.hero;
-  const heroX = phase === 0 ? hero.from : hero.to;
   // 주인공 크기: 첫 장의 그림 키가 hero.h 가 되게 칸을 키우고, 발끝을 foot 에 맞춘다
   const H = layout.hero;
-  let heroStyle: CSSProperties;
-  /** 그려진 주인공의 폭 · 키 (화면 너비 · 높이 대비) — 입에 묾 · 등에 태움 자리를 잰다 */
-  let drawn = { w: 0, h: 0 };
   // 프레임 칸 높이(화면 높이 대비). 칸은 정사각이라 그림 폭 w · 키 h(칸 대비)에 칸 높이를 곱하면 화면 높이 단위가 된다.
   // 키 기준이면 그림 키가 hero.h, 몸길이 기준이면 몸길이가 hero.h × WIDE_LEN (키는 hero.h × WIDE_MAX_H 까지)
   const scaleFor = (w: number, h: number) => size * (fit === "width"
     ? Math.min((H.h * WIDE_LEN) / Math.max(0.05, w), (H.h * WIDE_MAX_H) / Math.max(0.05, h))
     : H.h / Math.max(0.05, h));
+  // 주인공 폭의 절반 (화면 너비 대비). 팔을 넓게 벌린 그림이면 옆 인물을 그만큼 바깥으로 민다 (겹치지 않게)
+  const heroHalf = spr ? ((spr.box[2] - spr.box[0]) * scaleFor(spr.box[2] - spr.box[0], spr.box[3] - spr.box[1]) / aspect) / 2
+    : stillAr ? ((fit === "width" ? Math.min(H.h * WIDE_LEN, H.h * WIDE_MAX_H * stillAr) : H.h * stillAr) / aspect) / 2 : 0.1;
+  // 주인공 자리는 몸 전체가 화면 안에 들게 — 장면 자리(0.16 ~ 0.84)는 사람 폭 기준이라 옆으로 긴 4족형은
+  // 몸 절반이 화면 밖으로 나갔다 (11/9 형태 버그 2). 폭이 화면보다 넓으면 가운데
+  const edge = Math.min(0.5, heroHalf + 0.02);
+  const inside = (x: number) => Math.min(1 - edge, Math.max(edge, x));
+  const hero = { ...plan.hero, from: inside(plan.hero.from), to: inside(plan.hero.to) };
+  const heroX = phase === 0 ? hero.from : hero.to;
+  let heroStyle: CSSProperties;
+  /** 그려진 주인공의 폭 · 키 (화면 너비 · 높이 대비) — 입에 묾 · 등에 태움 자리를 잰다 */
+  let drawn = { w: 0, h: 0 };
   if (spr) {
     const [l, t, r, b] = spr.box;
     const cellH = scaleFor(r - l, b - t);               // 칸 높이 (화면 높이 대비)
@@ -240,9 +247,6 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
 
   const prop = (id: PropId): Spot | undefined => layout.props[id]
     ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: PEOPLE[id].foot ?? 0.93, h: PEOPLE[id].h } : undefined);
-  // 주인공 폭의 절반 (화면 너비 대비). 팔을 넓게 벌린 그림이면 옆 인물을 그만큼 바깥으로 민다 (겹치지 않게)
-  const heroHalf = spr ? ((spr.box[2] - spr.box[0]) * scaleFor(spr.box[2] - spr.box[0], spr.box[3] - spr.box[1]) / aspect) / 2
-    : stillAr ? ((fit === "width" ? Math.min(H.h * WIDE_LEN, H.h * WIDE_MAX_H * stillAr) : H.h * stillAr) / aspect) / 2 : 0.1;
   // 옆에 서는 것들(인물 · 표지판)의 자리: 주인공과 서로를 피해, 칸 안에서. 원하는 쪽이 꽉 차면 반대쪽으로
   const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf]];
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);
@@ -292,6 +296,12 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   const look = hero.move !== "none" && goes !== 0 ? goes
     : near && Math.abs(near.spot.x - hero.to) > 0.02 ? Math.sign(near.spot.x - hero.to) : hero.face ?? 0;
   if (facing !== 0 && look !== 0 && look !== facing) {
+    // 칸 가운데를 축으로 뒤집으니 칸 한쪽에 치우친 몸은 반대쪽으로 옮겨졌다 — 뒤집힌 몸 가운데가 heroX 에 오게 (11/9 형태 버그 2)
+    if (spr) {
+      const [l, , r] = spr.box;
+      const cellW = scaleFor(r - l, spr.box[3] - spr.box[1]) / aspect;
+      heroStyle = { ...heroStyle, left: `${(heroX + ((l + r) / 2 - 0.5) * cellW) * 100}%` };
+    }
     heroStyle = { ...heroStyle, transform: hero.fallen
       ? "translateX(-50%) translateY(5%) rotate(-9deg) scaleX(-1)" : "translateX(-50%) scaleX(-1)" };
   }
