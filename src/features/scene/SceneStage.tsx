@@ -13,7 +13,7 @@ import { hasSkyBodies, isIndoor, isPerson } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
 import HANDS from "./hands.json";
-import WALK from "./people-walk.json";
+import MOVES from "./people-moves.json";
 
 /** 오린 그림의 가로 ÷ 세로 (없으면 기본값) */
 const arOf = (src: string, fallback: number) => (AR as Record<string, number>)[src] ?? fallback;
@@ -59,8 +59,11 @@ export const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
   bat: { h: 0.16, w: arOf("props/bat.webp", 1.4), foot: 0.5 }, bird: { h: 0.14, w: arOf("props/bird.webp", 0.9), foot: 0.6 },
 };
 
-/** 등장인물 걸음 그림띠 자리 (tools/people-walk/make.py): 장 수, 칸 가로세로 비, 멈춘 그림 키 대비 위 · 아래 여유 */
-interface WalkStrip { frames: number; ar: number; pad_top: number; pad_bottom: number }
+/** 등장인물 동작 그림띠 (tools/people-moves/make.py, 11/9): 장 수, 한 번 도는 시간(초), 칸 가로세로 비, 멈춘 그림 키 대비 위 · 아래 여유 */
+interface MoveStrip { frames: number; sec: number; ar: number; pad_top: number; pad_bottom: number }
+type PersonMoves = Partial<Record<"walk" | "wave" | "hooray", MoveStrip>>
+/** 쪽 동작이 기쁨이면 옆 인물도 같이 만세 */
+const CHEER_ACTIONS = new Set(["hooray", "jump", "dance"]);
 /** 인물이 걸어 들어오는 시간 (ui.css .scene-person-walk · .after-walk 와 같게) */
 const ENTER_MS = 2400;
 
@@ -95,6 +98,8 @@ interface Props {
   prevEnv: Env | null;
   /** 이 쪽 동작의 프레임 묶음. 없으면 멈춘 그림(still) */
   sprite?: { url: string; frames: number; box: [number, number, number, number] } | null;
+  /** 사람형 걷기 · 뛰기의 왼쪽 걸음 (sprite 는 오른쪽으로 내딛는다). 왼쪽으로 옮겨 가는 쪽은 이것 — 그림을 뒤집지 않는다 */
+  spriteLeft?: { url: string; frames: number; box: [number, number, number, number] } | null;
   /** 배경을 잘라 낸 주인공 정지 그림 */
   still?: string | null;
   /** 정지 그림 안 주인공 손 위치 (서버 still_hands) — 대본에서 주인공이 든 소품을 손에 */
@@ -114,8 +119,10 @@ interface Props {
    *  앞 쪽 하늘에서 이 쪽 하늘로 천천히 바뀐다. 없으면 쪽에 들어올 때 바로 (11/9 테스트 5번) */
   narration?: number;
   envAt?: number;
-  /** 이 쪽 글 — 이름이 나온 인물(말하는 사람)은 들어올 때 통통 */
+  /** 이 쪽 글 — 이름이 나온 인물(말하는 사람)은 손을 흔든다 */
   text?: string;
+  /** 이 쪽 주인공 동작 (book page action) — 기쁨이면 옆 인물도 만세 */
+  pageAction?: string;
   /** 주인공 형태 (forms/*.json id). 4족형이면 든 소품을 입에 물고 · 등에 태운다 (pt_docs 20 2-a) */
   form?: string;
 }
@@ -123,8 +130,10 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt, text = "" }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt, text = "", pageAction = "" }: Props) {
   const play = mode === "play";
+  // 왼쪽으로 옮겨 가는 쪽이면 왼쪽 걸음 (사람형, 11/9 「좌우 바뀌면 안 되지」). 없으면(예전 이야기) 받은 걸음 그대로 — 뒤집지 않는다
+  const sprite = plan.hero.move !== "none" && plan.hero.to < plan.hero.from && spriteLeft ? spriteLeft : spriteRight;
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
   // 0 = 시작 모습, 1 = 끝 모습. play 가 아니면 처음부터 끝 모습
@@ -287,11 +296,13 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf]];
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);
   /** 자리 { x, back } — back 이면 설 자리가 없어 조금 뒤(작게 · 약간 위)에 선다. 그림책에서 뒤에 선 사람처럼 */
-  const personX = (x: number, h: number, wRatio = 0.45, sameSide = false): { x: number; back: boolean } => {
+  // enterFrom: 걸어 들어오는 쪽 — 그쪽(주인공 기준)에만 선다. 오른쪽에서 들어온 친구가 주인공 뒤를 지나 왼쪽에 섰다 (11/9 사용자)
+  const personX = (x: number, h: number, wRatio = 0.45, sameSide = false, enterFrom?: "left" | "right"): { x: number; back: boolean } => {
     const half = (h * wRatio / aspect) / 2;   // 친구 · 어른 그림은 키의 4~5할 폭
     const gap = 0.015, lo = half + 0.01, hi = 1 - half - 0.01;
     const want = Math.min(hi, Math.max(lo, x));
-    const right = want >= hero.to;
+    if (enterFrom) sameSide = true;
+    const right = enterFrom ? enterFrom === "right" : want >= hero.to;
     const tries = [want];
     for (let k = 1; k <= 40; k++) tries.push(want + (right ? 1 : -1) * k * 0.02, want - (right ? 1 : -1) * k * 0.02);
     // 표지판은 주인공이 달려가는 쪽에만 — 반대쪽(지나온 길)으로 밀리면 표지판을 지나쳐 달려간 것처럼 보였다 (11/4)
@@ -299,7 +310,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     const at = tries.find((c) => c >= lo && c <= hi && side(c) && free(c - half - gap, c + half + gap));
     if (at !== undefined) { placed.push([at - half, at + half]); return { x: at, back: false }; }
     // 표지판은 틈이 없어도 가는 쪽 끝에 (좁은 화면 · 팔 넓은 그림에서 손끝과 조금 닿는 정도) — 반대편 뒤로 가지 않게
-    if (sameSide) { const ex = right ? hi : lo; placed.push([ex - half, ex + half]); return { x: ex, back: false }; }
+    // 들어온 사람은 그쪽 끝 조금 뒤에 (작아져 주인공과 겹쳐도 앞뒤로 읽힌다)
+    if (sameSide) { const ex = right ? hi : lo; placed.push([ex - half, ex + half]); return { x: ex, back: !!enterFrom }; }
     // 남는 공간이 많은 쪽 끝 — 뒤에 서서 작아지니 겹쳐도 앞뒤로 읽힌다
     const leftRoom = Math.min(...placed.map(([l]) => l)), rightRoom = 1 - Math.max(...placed.map(([, r]) => r));
     const bx = rightRoom >= leftRoom ? hi - 0.02 : lo + 0.02;
@@ -317,9 +329,12 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
       ? hero.to + travel * (heroHalf + (base0.h * wRatio / aspect) / 2 + 0.015) : undefined;
     const s = ahead !== undefined && ahead > 0.05 && ahead < 0.95 ? { ...base0, x: ahead }
       : p.x !== undefined ? { ...base0, x: p.x } : base0;
-    const spot = personX(s.x, s.h, wRatio, p.id === "sign");
+    // 주인공이 다가가는 사람은 주인공이 가는 쪽에서 들어온다 — 왼쪽에서 들어와 왼쪽에 서면 주인공이 그 사람에게서 멀어지는
+    // 쪽으로 달려갔다 (11/9 「어른에게 달려갔어요」)
+    const enter: "left" | "right" | undefined = p.enter && ahead !== undefined ? (travel > 0 ? "right" : "left") : p.enter;
+    const spot = personX(s.x, s.h, wRatio, p.id === "sign", enter);
     const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
-    return { p, s, spot, sb };
+    return { p: enter === p.enter ? p : { ...p, enter }, s, spot, sb };
   });
   // 옆모습(4족형 · 사슬형 · 지느러미형) 주인공이 보는 쪽 — 그림의 머리 쪽(facing)과 다르면 좌우로 뒤집는다.
   // 옮겨 가면 가는 쪽(렌더가 머리 쪽으로 걷는다, 11/4 「얼굴 방향에 따라 < 인지 > 인지」), 제자리면 가장 가까운 인물 · 동물 쪽,
@@ -548,21 +563,33 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         const idle = p.id === "bird" || p.id === "bat" ? "m-float" : p.id === "rabbit" || p.id === "squirrel" ? "p-hop"
           : talks ? "p-talk" : "p-breathe";
         const beat = { animationDelay: `${-((k * 1.37) % 3.6).toFixed(2)}s` };
-        // 걸음 그림띠가 있는 사람(tools/people-walk)은 들어오는 동안 실제로 걷는다 — 그림띠 칸을 멈춘 그림과 같은 키 · 발끝에 두고,
-        // 다 들어오면 멈춘 그림으로 바꾼다. 그림띠가 없으면(동물 · 아기 · 반 친구들) 예전처럼 통통 들썩이며 들어온다
-        const walk = p.enter && play && !REDUCE ? (WALK as Record<string, WalkStrip>)[p.id] : undefined;
-        if (walk && phase === 1) {
-          const tall = sb.h * (1 + walk.pad_top + walk.pad_bottom);
+        // 관절로 렌더한 동작 그림띠 (11/9 「등장인물도 관절 애니메이션」, tools/people-moves) — 들어오면 걷기, 기쁜 쪽이면 만세,
+        // 쪽 글에 이름이 나오면(말하는 사람) 손 흔들기. 그림띠를 멈춘 그림과 같은 키 · 발끝에 두고, 끝나면 멈춘 그림(숨쉬기)으로
+        // 시작 모습(phase 0)부터 같은 요소로 둔다 — 끝 모습에서 새로 붙이면 left 가 옮겨 가지 않고 제자리에 나타났다
+        const moves = play && !REDUCE ? (MOVES as Record<string, PersonMoves>)[p.id] : undefined;
+        const pick: [keyof PersonMoves, number] | null = !moves ? null
+          : p.enter && moves.walk ? ["walk", ENTER_MS]
+          : CHEER_ACTIONS.has(pageAction) && moves.hooray ? ["hooray", moves.hooray.sec * 2000]
+          : talks && moves.wave ? ["wave", moves.wave.sec * 2000]
+          : null;
+        if (moves && pick) {
+          const [name, until] = pick;
+          const m = moves[name]!;
+          const tall = sb.h * (1 + m.pad_top + m.pad_bottom);
+          // 같은 쪽 인물끼리 박자를 엇갈린다 (들어오기는 함께)
+          const walking = name === "walk";
+          const lag = walking ? 0 : 300 + k * 450;
+          const vars = { ["--until" as string]: `${until + lag}ms`, ["--lag" as string]: `${lag}ms`, ["--dur" as string]: `${m.sec}s` };
           return [
-            <div key={`${p.id}-${p.name ?? k}-walk`} className="scene-obj scene-person-walk"
-                 style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * walk.pad_bottom }), aspectRatio: `${walk.ar}`, ...move,
-                   // 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다, 11/9 사용자)
-                   ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" }}>
-              <img src={`${base}../people-walk/${p.id}.webp`} alt=""
-                   style={{ width: `${walk.frames * 100}%`, animationTimingFunction: `steps(${walk.frames})` }} />
+            <div key={`${p.id}-${p.name ?? k}-${name}`} className={`scene-obj scene-person-strip s-${walking ? "walk" : name}`}
+                 style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * m.pad_bottom }), aspectRatio: `${m.ar}`, ...move, ...vars,
+                   // 걸어 들어올 때 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다)
+                   ...(walking ? { ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" } : {}) }}>
+              <img src={`${base}../people-moves/${p.id}.${name}.webp`} alt=""
+                   style={{ width: `${m.frames * 100}%`, animationTimingFunction: `steps(${m.frames})` }} />
             </div>,
-            <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person after-walk ${idle}`}
-                 src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move }} />,
+            <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person after-strip ${idle === "p-talk" ? "p-breathe" : idle}`}
+                 src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move, ...vars }} />,
           ];
         }
         return (
@@ -586,7 +613,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
                ["--roll" as string]: t.x < hero.to ? -1 : 1 }} />
       ))}
       {spr
-        ? <canvas ref={canvas} width={384} height={384} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}
+        // 캔버스는 렌더 칸 크기 그대로 — 384 로 줄여 그린 뒤 화면에서 2~3배로 키워 선이 뭉개지고 계단처럼 보였다 (11/9 사용자 「렌더링이 깨지고 울퉁불퉁」)
+        ? <canvas ref={canvas} width={spr.cell} height={spr.cell} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}
                   style={{ ...heroStyle, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
         : still
           ? <img className={`scene-hero ${hero.fallen ? "fallen" : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""}`}

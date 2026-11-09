@@ -39,5 +39,6 @@ export async function loadSprite(url: string, meta: { frames: number; box: [numb
 export function drawFrame(g: CanvasRenderingContext2D, s: Sprite, i: number) {
   const sx = (i % SPRITE_COLS) * s.cell, sy = Math.floor(i / SPRITE_COLS) * s.cell;
   g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  g.imageSmoothingQuality = "high";
   g.drawImage(s.img, sx, sy, s.cell, s.cell, 0, 0, g.canvas.width, g.canvas.height);
 }

@@ -94,6 +94,8 @@ interface ServerStory {
       /** 바탕이 투명한 프레임 묶음 (계약 2-6, 2026-11-03). 예전 서버 · 예전 이야기는 없음 */
       sprite_url?: string | null;
       sprite_frames?: number; sprite_box?: [number, number, number, number];
+      /** 사람형 걷기 · 뛰기의 왼쪽 걸음 (11/9). 왼쪽으로 옮겨 가는 쪽에 쓴다 — 그림을 뒤집지 않으려고 */
+      sprite_left_url?: string | null; sprite_left_frames?: number; sprite_left_box?: [number, number, number, number];
       /** 배경 그림 계획 (10/27). 화면은 세부 장소(location · background 낱말)만 쓴다. AI 실패면 null */
       scene?: {
         hero_on_page: boolean;
@@ -230,6 +232,8 @@ function toStory(s: ServerStory): Story {
         audioUrl: p.audio_url ?? null, animationUrl: p.animation_url ?? null,
         spriteUrl: p.sprite_url ?? null,
         sprite: p.sprite_url && p.sprite_frames ? { frames: p.sprite_frames, box: p.sprite_box ?? [0, 0, 1, 1] } : null,
+        spriteLeft: p.sprite_left_url && p.sprite_left_frames
+          ? { url: p.sprite_left_url, frames: p.sprite_left_frames, box: p.sprite_left_box ?? [0, 0, 1, 1] } : null,
         scene: p.scene ? { location: p.scene.location ?? "", background: p.scene.background ?? "", characters: p.scene.characters ?? [] } : null,
       })),
       orderPages: s.book.order_pages,

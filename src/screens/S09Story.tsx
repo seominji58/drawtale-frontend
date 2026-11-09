@@ -469,9 +469,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
           <FitStage ar={null}>
             <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode} fit={heroFit} facing={heroFacing} lift={heroForm.hero?.float ?? 0} size={heroForm.hero?.size ?? 1} form={heroForm.id}
-              sprite={pgI.sprite && pgI.spriteUrl ? { url: pgI.spriteUrl, ...pgI.sprite } : null} still={still}
+              sprite={pgI.sprite && pgI.spriteUrl ? { url: pgI.spriteUrl, ...pgI.sprite } : null} spriteLeft={pgI.spriteLeft ?? null} still={still}
               heroHands={story.stillHands ?? null} heroBody={story.stillBody ?? null}
-              narration={i === pg && sceneMode === "play" ? frac : undefined} envAt={envCueAt(pages[i].text)} text={pages[i].text} />
+              narration={i === pg && sceneMode === "play" ? frac : undefined} envAt={envCueAt(pages[i].text)} text={pages[i].text} pageAction={pages[i].action} />
           </FitStage>
           {pageText(i, active, top)}
           {top && <>
