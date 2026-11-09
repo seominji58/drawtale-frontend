@@ -110,6 +110,10 @@ interface Props {
   size?: number;
   /** 옆모습 그림의 머리 방향 (-1 왼쪽 · 1 오른쪽 · 0 모름/정면). 머리 반대쪽으로 옮겨 갈 때 좌우로 뒤집는다 */
   facing?: -1 | 0 | 1;
+  /** 이 쪽 나레이션 진행 (0~1)과 밤낮 · 날씨가 바뀌는 말의 자리(envCueAt). 둘 다 있으면 나레이션이 그 자리에 왔을 때
+   *  앞 쪽 하늘에서 이 쪽 하늘로 천천히 바뀐다. 없으면 쪽에 들어올 때 바로 (11/9 테스트 5번) */
+  narration?: number;
+  envAt?: number;
   /** 주인공 형태 (forms/*.json id). 4족형이면 든 소품을 입에 물고 · 등에 태운다 (pt_docs 20 2-a) */
   form?: string;
 }
@@ -117,7 +121,7 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt }: Props) {
   const play = mode === "play";
   const [layout, setLayout] = useState<Layout | null>(null);
   const [spr, setSpr] = useState<Sprite | null>(null);
@@ -174,7 +178,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   // 이미 숨은 쪽 · 끝 모습은 첫 그림부터 숨김 (효과가 돌기 전 한 번 보였다 사라지지 않게)
   const heroGone = hidden || plan.hero.hide === "gone" || (!!plan.hero.hide && (mode === "end" || REDUCE));
 
-  const timing = moveTiming(plan.hero.move, Math.abs(plan.hero.to - plan.hero.from), layout?.hero.h ?? 0.45, aspect);
+  // 거리는 맞춘 자리 전 값 — 아래 heroFrom 이 1/4 보다 짧은 걸음은 1/4 로 늘이니 시간도 그만큼 (걸음과 옮기는 빠르기가 맞게)
+  const timing = moveTiming(plan.hero.move, Math.max(0.25, Math.abs(plan.hero.to - plan.hero.from)), layout?.hero.h ?? 0.45, aspect);
 
   // 주인공 프레임: 옮겨 가는 동안은 계속, 제자리 동작은 loops 번, 그다음 첫 장에서 멈춘다.
   // 「애니메이션 줄이기」(Windows 애니메이션 효과 끔도 이것)에서도 돈다 — 그림이 움직이는 것이 이 책의 내용이라서.
@@ -205,7 +210,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
 
   if (!layout) return <div className="scene" ref={root} />;
 
-  const env = phase === 0 && prevEnv ? prevEnv : plan.env;
+  const cueHeard = narration === undefined || envAt === undefined || envAt <= 0 || narration >= envAt;
+  const env = (phase === 0 || !cueHeard) && prevEnv ? prevEnv : plan.env;
   const night = env.night;
   // 해 · 달: 밤이면 달이 높이, 해가 뜬 쪽이면 해가 높이. 앞 쪽에서 바뀌면 동→서 곡선
   const sunPos = env.sun ? SKY.sunHigh : prevEnv?.sun && !plan.env.sun ? SKY.west : SKY.east;
@@ -227,7 +233,16 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   // 몸 절반이 화면 밖으로 나갔다 (11/9 형태 버그 2). 폭이 화면보다 넓으면 가운데
   const edge = Math.min(0.5, heroHalf + 0.02);
   const inside = (x: number) => Math.min(1 - edge, Math.max(edge, x));
-  const hero = { ...plan.hero, from: inside(plan.hero.from), to: inside(plan.hero.to) };
+  const heroTo = inside(plan.hero.to);
+  let heroFrom = inside(plan.hero.from);
+  // 걷기 · 뛰기인데 화면 안으로 맞추고 나니 출발 · 도착이 거의 같으면(몸이 긴 4족형은 설 자리가 좁다) 제자리 걸음만 보였다
+  // (11/9 테스트 2번) — 가던 쪽 그대로 화면 폭의 1/4 은 옮겨 가게 출발점을 뒤로 뺀다
+  if (plan.hero.move !== "none" && Math.abs(heroTo - heroFrom) < 0.25) {
+    const dir = Math.sign(plan.hero.to - plan.hero.from) || 1;
+    heroFrom = inside(heroTo - dir * 0.25);
+    if (Math.abs(heroTo - heroFrom) < 0.1) heroFrom = inside(heroTo + dir * 0.25);
+  }
+  const hero = { ...plan.hero, from: heroFrom, to: heroTo };
   const heroX = phase === 0 ? hero.from : hero.to;
   let heroStyle: CSSProperties;
   /** 그려진 주인공의 폭 · 키 (화면 너비 · 높이 대비) — 입에 묾 · 등에 태움 자리를 잰다 */
@@ -574,7 +589,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
 /** 물에 뜨는 소품의 발끝 높이 — 바다 물결 띠(배경판에서 잰 55~60%). 물이 뚜렷한 배경만 */
 const WATER: Record<string, number> = { sea: 0.6 };
 /** 쪽에 들어올 때 한 번만 하는 움직임 — 끝 모습(떠나는 쪽 · 뒤로 넘긴 쪽)에서는 하지 않는다 */
-const ONCE = new Set(["roll", "pop"]);
+const ONCE = new Set(["roll", "pop", "spin", "grow", "shrink", "shake"]);
 /** 옆으로 쥐는 소품 (손잡이를 손에) — 나머지는 윗부분을 쥐고 매단다 */
 const SIDE_GRIP = new Set(["props/flashlight.webp"]);
 /** 그림 이름으로 본 물건 종류 — 꽃밭 그림이 둘(flowers · flowerbed)이라 하나로 */

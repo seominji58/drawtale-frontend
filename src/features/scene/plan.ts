@@ -158,6 +158,8 @@ export interface ThingPlan {
   spot?: Spot;
   /** 내 소품이면 그 이름 (그림 설명) */
   name?: string;
+  /** 쪽 글에서 이 물건이 나온 자리 (글자 위치) — 그 문장의 말로 움직임을 고른다 */
+  at?: number;
   /** 소품 움직임 (thingMotion) — 없으면 가만히 */
   motion?: ThingMotion;
   /** 대본 문장이 말한 자리 · 움직임 (thingPose) — 없으면 주인공 옆 땅 */
@@ -219,7 +221,8 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
 /** 소품 움직임 (11/4 사용자 시안 https://claude.ai/artifact/FJL8Cu7vPSt9YzPdbxJBTw 「이렇게 진행해」).
  *  하늘 소품은 놓이면 늘 천천히, 공은 쪽 글에 굴렸어요 · 찼어요 · 던졌어요가 있을 때 한 번, 깃발 · 우산 · 나뭇잎은 바람 부는 쪽만.
  *  의자 · 상자 · 바위처럼 움직이지 않는 물건은 가만히 */
-export type ThingMotion = "flutter" | "float" | "glide" | "sway" | "swim" | "drift" | "roll" | "wind" | "bounce" | "pop";
+export type ThingMotion = "flutter" | "float" | "glide" | "sway" | "swim" | "drift" | "roll" | "wind" | "bounce" | "pop"
+  | "spin" | "glow" | "grow" | "shrink" | "shake";
 const ALWAYS_MOVING: Record<string, ThingMotion> = {
   "props/butterfly.webp": "flutter", "props/bird.webp": "float", "props/bat.webp": "float", "props/seagull.webp": "glide",
   "props/balloons.webp": "sway", "props/fish.webp": "swim", "props/planet.webp": "drift", "props/earth.webp": "drift",
@@ -233,6 +236,11 @@ function thingMotion(t: ThingPlan, text: string, weather: Weather | null): Thing
   if (t.name !== undefined) return t.pose ? undefined : mineMotion(text, t.name, weather);
   if (ALWAYS_MOVING[src]) return ALWAYS_MOVING[src];
   if (src === "props/ball.webp" && BALL_MOVES.test(text)) return "roll";
+  // 장면 물건도 그 물건이 나온 문장의 말대로 (11/9 테스트 4번 「소품 연출이 고정적」) — 반짝 · 빙글 · 커짐 · 사라짐 · 흔들림 …
+  if (t.at !== undefined && t.at >= 0 && !t.pose) {
+    const m = sentenceMotion(text, t.at);
+    if (m) return m;
+  }
   if (weather === "wind" && WIND_MOVING.has(src)) return "wind";
   return undefined;
 }
@@ -243,6 +251,12 @@ function thingMotion(t: ThingPlan, text: string, weather: Weather | null): Thing
  *  바람 부는 쪽이면 바람에 흔들림. 아무 말이 없으면 쪽에 들어올 때 한 번 통통 — 「내가 그린 것이 나왔다」를 알아보게.
  *  자리(손에 듦 · 떠내려감 …)는 장면 그림과 같이 thingPose 가 정한다 */
 const MINE_MOVES: [ThingMotion, RegExp][] = [
+  // 11/9 — 빙글 · 반짝 · 커짐 · 사라짐 · 흔들림 (테스트 4번). 위에서부터 먼저 맞는 것
+  ["shrink", /사라졌|사라지|사라져|녹았|녹아|작아졌|작아지|꺼졌/],
+  ["grow", /커졌|커지|자랐|자라났|부풀|활짝|피어났|피었|펼쳐졌/],
+  ["spin", /빙글|뱅글|빙그르|핑그르|팽그르|돌았|돌아갔|뱅뱅|빙빙/],
+  ["glow", /반짝|빛났|빛나|번쩍|환하게|깜빡|초롱초롱|눈부/],
+  ["shake", /덜컹|부르르|덜덜|흔들렸|흔들리|들썩였|쿵쾅|와르르/],
   ["roll", /굴러|굴렸|굴리|데굴|떼굴/],
   ["float", /둥실|둥둥|떠다니|날아다니|훨훨|떠올랐|떠올라/],
   ["sway", /흔들|살랑|하늘하늘|나풀|펄럭/],
@@ -250,13 +264,16 @@ const MINE_MOVES: [ThingMotion, RegExp][] = [
 ];
 export function mineMotion(text: string, name: string, weather: Weather | null): ThingMotion {
   const at = mentionAt(text, name);
-  if (at >= 0) {
-    // 소품부터 그 문장 끝까지 (앞 문장의 말이 걸리지 않게)
-    const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, at)).filter((i) => i >= 0);
-    const after = text.slice(at, ends.length ? Math.min(...ends) + 1 : text.length);
-    for (const [m, re] of MINE_MOVES) if (re.test(after)) return m;
-  }
-  return weather === "wind" ? "wind" : "pop";
+  const m = at >= 0 ? sentenceMotion(text, at) : undefined;
+  return m ?? (weather === "wind" ? "wind" : "pop");
+}
+
+/** 물건이 나온 자리부터 그 문장 끝까지의 말로 고른 움직임 (앞 문장의 말이 걸리지 않게). 없으면 undefined */
+function sentenceMotion(text: string, at: number): ThingMotion | undefined {
+  const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, at)).filter((i) => i >= 0);
+  const after = text.slice(at, ends.length ? Math.min(...ends) + 1 : text.length);
+  for (const [m, re] of MINE_MOVES) if (re.test(after)) return m;
+  return undefined;
 }
 
 /** 내 소품이 글에 나온 자리 (없으면 -1). 한 글자 이름은 낱말 단위 — 「꽃집 앞에서 깡충깡충 … 빨간 꽃」의 꽃은 뒤의 것 */
@@ -305,7 +322,7 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     const lead0 = wordRe && /^[^가-힣]/.test(m[0]) ? 1 : 0;
     const word = wordRe ? m[0].slice(lead0).replace(/(?:을|를|이|가|은|는|과|와|도|랑|들|한 마리|의)$/, "") : m[0];
     const at = m.index + lead0;
-    hits.push({ at, t: { src, h, ar: ar(src), spot, ...thingPose(text, at, at + word.length, spot, indoor) }, key: m[0] });
+    hits.push({ at, t: { src, h, ar: ar(src), spot, at, ...thingPose(text, at, at + word.length, spot, indoor) }, key: m[0] });
   }
   return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
 }
@@ -402,6 +419,14 @@ const WEATHER: [Weather, RegExp, RegExp][] = [
   ["rainbow", /무지개/, /\brainbows?\b/i],
 ];
 /** 그 쪽의 날씨. 실내 · 바닷속 · 우주 · 행성은 늘 없음 */
+/** 쪽 글에서 밤낮 · 날씨가 바뀌는 말이 처음 나오는 자리 (글 길이 대비 0~1). 없으면 0 — 장면은 나레이션이 이 자리에
+ *  왔을 때 어두워지고 해가 달로 바뀐다. 쪽에 들어오자마자 바뀌어 나레이션보다 먼저 밤이 됐다 (11/9 테스트 5번) */
+export function envCueAt(text: string): number {
+  const hits = [NIGHT_TEXT, MORNING_TEXT, ...WEATHER.map(([, ko]) => ko)]
+    .map((re) => text.search(re)).filter((k) => k >= 0);
+  return hits.length && text.length ? Math.min(...hits) / text.length : 0;
+}
+
 export function weatherFor(text: string, background: string, location: string): Weather | null {
   if (!hasSkyBodies(location)) return null;
   for (const [w, ko, en] of WEATHER) if (ko.test(text) || en.test(background)) return w;

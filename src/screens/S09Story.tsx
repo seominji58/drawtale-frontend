@@ -11,7 +11,7 @@ import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
 import SceneStage from "@/features/scene/SceneStage";
-import { planPages } from "@/features/scene/plan";
+import { envCueAt, planPages } from "@/features/scene/plan";
 import { formOf } from "@/features/character/forms";
 import { ORDER_GAME, useSettings } from "@/store/settings";
 import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak, trackAudio } from "@/lib";
@@ -468,7 +468,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
           <FitStage ar={null}>
             <SceneStage plan={scenes[i]} prevEnv={prevEnv} mode={sceneMode} fit={heroFit} facing={heroFacing} lift={heroForm.hero?.float ?? 0} size={heroForm.hero?.size ?? 1} form={heroForm.id}
               sprite={pgI.sprite && pgI.spriteUrl ? { url: pgI.spriteUrl, ...pgI.sprite } : null} still={still}
-              heroHands={story.stillHands ?? null} heroBody={story.stillBody ?? null} />
+              heroHands={story.stillHands ?? null} heroBody={story.stillBody ?? null}
+              narration={i === pg && sceneMode === "play" ? frac : undefined} envAt={envCueAt(pages[i].text)} />
           </FitStage>
           {pageText(i, active, top)}
           {top && <>

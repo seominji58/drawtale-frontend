@@ -37,7 +37,7 @@ export default function SPropView() {
       <h2 className="question">{prop.name}</h2>
       <p className="hint">장면에서 보일 크기를 고를 수 있어요</p>
       <div className="stage" style={{ padding: 24 }}>
-        <div style={{ width: "min(100%, 520px)" }}>
+        <div style={{ width: "min(100%, 520px)", height: "100%", minHeight: 0 }}>
           <PropSizePicker png={prop.png} size={prop.size ?? "m"} onSize={(size) => update(prop.id, { size })} />
         </div>
       </div>

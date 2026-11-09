@@ -7,15 +7,17 @@ export default function PropSizePicker({ png, size, onSize }: {
   png: string; size: PropSize; onSize: (s: PropSize) => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-      {/* 장면 칸 미리 보기 (4:3) — 소품이 장면에서 차지할 크기 */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0, width: "100%", height: "100%", minHeight: 0 }}>
+      {/* 장면 칸 미리 보기 (4:3) — 소품이 장면에서 차지할 크기. 남는 높이에 맞춰 줄어든다 — 폭 기준이면 가로 화면(아이패드)에서
+          미리 보기가 칸보다 높아져 크기 버튼 · 아래 버튼과 겹쳐 잘렸다 (11/9 테스트 6번) */}
       <div aria-hidden="true" style={{
-        aspectRatio: "4 / 3", width: "100%", borderRadius: 16, background: "var(--milk)",
+        aspectRatio: "4 / 3", flex: "1 1 0", minHeight: 0, maxWidth: "100%", alignSelf: "center",
+        borderRadius: 16, background: "var(--milk)",
         display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
       }}>
         <img src={png} alt="" style={{ height: `${propHeight(size) * 100}%`, maxWidth: "60%", objectFit: "contain" }} />
       </div>
-      <div role="radiogroup" aria-label="소품 크기" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+      <div role="radiogroup" aria-label="소품 크기" style={{ flex: "none", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
         {PROP_SIZES.map((x) => (
           <button key={x.id} type="button" className="btn" role="radio" aria-checked={size === x.id}
             onClick={() => onSize(x.id)}
