@@ -274,6 +274,17 @@ export default function S13Settings() {
             ))}
           </span>
         </Row>
+        {/* 지금 나레이션을 누구 목소리로 읽는지 한눈에 (11/9 사용자 「어떤 걸로 선택됐는지 어떻게 확인하냐」).
+            나레이터는 하나만 — 아래 두 스위치 중 켜진 것. 둘 다 꺼져 있으면 기본 나레이터 */}
+        <Row name="지금 읽어 주는 목소리"
+          desc={mode !== "member" ? "로그인하면 보호자 · 아이 목소리를 고를 수 있습니다"
+            : "새로 만드는 이야기부터 이 목소리로 읽습니다. 바꾸려면 보호자 칸의 「내 목소리로 읽어주기」 · 「아이 목소리로 읽어주기」를 켜거나 끄세요 (이 기기에 저장)"}>
+          <strong style={{ whiteSpace: "nowrap" }}>
+            {guardian && s.childNarrator && kidVoice?.registered ? "아이 목소리"
+              : guardian && s.guardianNarrator && myVoice?.registered ? "보호자 목소리"
+              : "기본 나레이터"}
+          </strong>
+        </Row>
         <Row name="화면 안내 다시 보기" desc="화면마다 처음 한 번 나오는 말풍선 도움말을 다시 보여 줍니다">
           <button className="btn link" disabled={coachReset} onClick={() => { resetCoach(); setCoachReset(true); }}>
             {coachReset ? "다시 보여 줄게요" : "다시 보기"}
