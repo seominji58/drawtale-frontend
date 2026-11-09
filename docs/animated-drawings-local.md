@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/7 보호자 목소리 청취 시험 준비 | 로컬 `.env` 에 `TTS_PROVIDER` 가 없어 openai 로 읽힌다. 시험은 덮어쓰기 설정(로컬 DB · `TTS_PROVIDER=elevenlabs` · CORS 5173)으로 백엔드를 띄우고 `dev_login --front http://localhost:5173` 링크로 녹음 · 등록. 끝나면 `docker compose up -d backend` 로 원래 설정 |
 | 11/7 실제 모드 형태 고르기 · 사람 아닌 주인공 점검 | **고침**: 세로 형태 카드, AI 4족형 그림 영역(넓게 그린 그림). 시험 프론트를 5173 이 아닌 포트로 띄우면 백엔드 `CORS_ORIGINS` 에 그 포트를 더해야 캐릭터 영상 바탕이 지워진다 |
 | 11/6 밤 화면 점검(가로 1024 · 세로 768 · 폰 390, 목 엔진) | **고침**: 세로 태블릿 그리기 · 첫 화면 · 책 제목 · S-11, 폰 위 줄 점. 형태 고르기 · 사람 아닌 주인공 화면은 목 엔진이 건너뛰어 실제 모드로 따로 볼 것 (`docs/worklog.md` 맨 위) |
 | 11/6 밤 로컬 `.env`: 공유 개발 DB `psql-drawtale-dev` · Blob `stdrawtaledev` · `STORAGE_BACKEND=azure` | **끝**, 도커 안 백엔드는 `AI_SERVICE_URL=http://host.docker.internal:8001` 이어야 AI 에 닿는다(`127.0.0.1` 이면 형태가 사람 하나만 나옴). 공유 DB 를 건드리지 않고 시험하려면 `DATABASE_URL` 을 로컬 `db` 로 덮어쓴다 |
