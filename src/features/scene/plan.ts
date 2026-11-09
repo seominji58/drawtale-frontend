@@ -674,20 +674,13 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     let from = x, to = x;
     let goal: string | undefined;
     if (move !== "none") {
-      // 표지판으로 달려가면 표지판(0.87) 바로 앞에 멈춘다 — 0.7 이면 표지판이 주인공 자리에 걸려 길 중간으로 밀려나
-      // 주인공이 표지판을 지나쳐 달려갔다 (11/4 자리 검사). 어른 · 친구는 카드로 세운 장소 그림(cardAdult · cardFriend)도 본다
-      const target = props.some((q) => q.id === "sign") ? 0.6
-        : props.some((q) => q.id === "adult" || q.id === cardAdult) ? 0.42
-        : props.some((q) => q.id === "friend" || q.id === cardFriend) ? 0.58 : SLOT;
+      // 걷기 · 뛰기는 늘 같은 길로 (11/9 사용자 결정) — 화면 왼쪽 1/3 에서 출발해 2/3 까지 오른쪽으로 간다.
+      // 다가가는 사람 · 표지판(goal)은 그 앞(오른쪽 끝 쪽)에 선다(SceneStage). 전에는 앞 쪽의 자리에서 출발해, 자리가 겹치면
+      // 출발 · 도착이 거의 같아 제자리 걸음이 되거나 쪽마다 방향이 바뀌었다
       goal = (props.find((q) => q.id === "sign") ?? props.find((q) => q.id === "adult" || q.id === cardAdult)
         ?? props.find((q) => q.id === "friend" || q.id === cardFriend))?.id;
-      // 제자리면 옆에서 들어온다 — 「걸어갔어요」가 보이게
-      from = Math.abs(x - target) < 0.08 ? (target > 0.5 ? 0.16 : 0.84) : x;
-      if (target === SLOT && from === 0.84) from = 0.16;
-      // 다가가는 인물 · 표지판은 오른쪽에 선다 — 주인공이 목표 자리보다 오른쪽이면 왼쪽으로 가며 그 사람에게서 멀어졌다.
-      // 「제자리면 옆에서 들어온다」처럼 왼쪽 끝에서 들어와 오른쪽의 그 사람에게 간다 (11/5, 옆모습 · 몸이 긴 주인공에서 보였다)
-      if (goal && from > target) from = 0.16;
-      to = target;
+      from = 1 / 3;
+      to = 2 / 3;
     }
     const hiding = p.stage === "action" && picks.action === "hide";
     const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
