@@ -15,7 +15,7 @@ const REJECTED = "이 그림은 열 수 없어요. 다른 그림을 골라 볼�
 
 export default function S03Upload() {
   const nav = useNavigate();
-  const { imageUrl, file, setFile, drawnAs } = useSession();
+  const { imageUrl, file, setFile, drawnAs, setDrawnAs } = useSession();
   /** 「돌리기」: 고른 원본과 돌린 횟수(시계 방향 90도씩). 누를 때마다 원본에서 새로 돌려 보인다 — 돌린 그림을 또 돌리면 화질이 준다 */
   const [orig, setOrig] = useState<File | null>(null);
   const [turn, setTurn] = useState(0);
@@ -24,7 +24,10 @@ export default function S03Upload() {
     if (!base) return;
     const t = (turn + 1) % 4;
     setBusy(true);
-    try { setFile(await rotateFile(base, t)); setOrig(base); setTurn(t); } finally { setBusy(false); }
+    // 돌려도 같은 그림 — 화면에 그린 그림이면 그릴 때 고른 형태를 그대로 둔다 (setFile 이 지워서 「이 그림으로」 뒤에
+    // 「누구를 그렸어요?」를 또 물었다, 11/9)
+    const kept = drawnAs;
+    try { setFile(await rotateFile(base, t)); if (kept) setDrawnAs(kept); setOrig(base); setTurn(t); } finally { setBusy(false); }
   };
   const album = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
