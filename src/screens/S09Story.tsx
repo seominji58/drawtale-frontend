@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import Coach from "@/components/Coach";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
@@ -535,8 +534,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
       // C-02 다시 듣기: 이 쪽을 처음부터 다시 읽는다 (쪽 음성 파일이 있으면 그 목소리로 — 브라우저 음성과 겹치지 않게)
       onReplay={() => setReplay((r) => r + 1)}>
-      {/* 아이 말풍선 — 처음 한 번 (pt_docs 20 3-2-1) */}
-      <Coach id="story" at="bottom" lines={["「다음 쪽」을 누르면 이야기가 넘어가요"]} />
+      {/* 「다음 쪽」 안내 말풍선은 뺐다 — 첫 쪽 이야기 읽어 주기와 안내 목소리가 겹쳤다 (11/9 사용자) */}
       {/* 가로 화면: 장면이 높이를 거의 다 쓰고, 오른쪽 좁은 칸에 글 + 조작 (2026-11-03 사용자 「대본을 작게, 장면이 커야」).
           조작 줄은 넘기는 쪽과 함께 넘어가지 않게 펼침면 밖에 두고, 가로 화면에서는 글 칸 아래에 겹쳐 놓는다 (ui.css .book-area) */}
       <div className={`book-area ${stageAr ? "fit" : ""}`} ref={areaRef}
