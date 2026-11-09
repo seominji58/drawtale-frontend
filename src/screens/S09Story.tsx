@@ -83,19 +83,19 @@ export default function S09Story() {
 
   if (story.book && story.book.pages.length) {
     return <BookView story={story} imageUrl={imageUrl} keypoints={keypoints} muteAll={muteAll}
-      onDone={() => nav(ORDER_GAME ? "/order" : "/done")} />;
+      onDone={() => nav(ORDER_GAME ? "/order" : "/done", { replace: true })} />;
   }
   // 짧은 이야기도 네 쪽(장소 · 문제 · 행동 · 결과)으로 나눠 같은 책 화면으로 — 장면 층 · 세부 배경 · 밤낮 · 물건 · 내 소품 ·
   // 쪽에 들어오면 읽기가 똑같이 (2026-11-03 사용자 「짧은 쪽 이야기에는 지금까지 개발한 것들이 적용 안 된 거 같은데」)
   const short = shortBook(story, lines);
   if (short) {
     return <BookView story={{ ...story, book: short }} imageUrl={imageUrl} keypoints={keypoints} muteAll={muteAll}
-      onDone={() => nav(ORDER_GAME ? "/order" : "/done")} />;
+      onDone={() => nav(ORDER_GAME ? "/order" : "/done", { replace: true })} />;
   }
 
   return (
     <Screen back="/" speech={story.text} segment={4} autoSpeak={false}
-      acts={<BigButton go onClick={() => { stop(); nav(ORDER_GAME ? "/order" : "/done"); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>}>
+      acts={<BigButton go onClick={() => { stop(); nav(ORDER_GAME ? "/order" : "/done", { replace: true }); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>}>
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (피드백 2026-10-19).
           좁은 화면에서는 위아래로 쌓인다 (ui.css `.spread`) */}
       <div className="spread">

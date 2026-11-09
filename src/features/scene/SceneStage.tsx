@@ -262,7 +262,9 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   if (plan.hero.move !== "none" && Math.abs(heroTo - heroFrom) < 0.25) {
     const dir = Math.sign(plan.hero.to - plan.hero.from) || 1;
     heroFrom = inside(heroTo - dir * 0.25);
-    if (Math.abs(heroTo - heroFrom) < 0.1) heroFrom = inside(heroTo + dir * 0.25);
+    // 몸이 커서(옆으로 긴 4족형) 화면 안에 옮겨 갈 자리가 없으면 화면 밖에서 걸어 들어온다 — 전에는 반대쪽으로 다시 맞춰
+    // 출발 · 도착이 거의 같아 제자리에서 다리만 움직였다 (11/9 사용자 「제자리 총총총, > 방향으로 안 움직임」)
+    if (Math.abs(heroTo - heroFrom) < 0.2) heroFrom = dir > 0 ? -heroHalf : 1 + heroHalf;
   }
   const hero = { ...plan.hero, from: heroFrom, to: heroTo };
   const heroX = phase === 0 ? hero.from : hero.to;

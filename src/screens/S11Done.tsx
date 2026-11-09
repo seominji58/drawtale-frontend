@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
-import { ORDER_GAME } from "@/store/settings";
 import BigButton from "@/components/BigButton";
 import { Party } from "@/components/illust";
 import { useSession } from "@/store/session";
@@ -40,7 +39,9 @@ export default function S11Done() {
   const art = saved?.cover ?? (ENGINE === "mock" ? imageUrl : null);
 
   return (
-    <Screen back={ORDER_GAME ? "/order" : "/story"} speech="다 했어요!" segment={4}
+    // 다 만든 뒤에는 만들기 흐름(카드 고르기 · 만드는 중)으로 돌아가지 않는다 — 뒤로는 책장으로 (11/9 사용자 「책장으로 자연스럽게,
+    // 뒤로 가면 못 가게」). 다시 보기는 제목 아래 글자 버튼
+    <Screen back={() => nav("/stories", { replace: true })} speech="다 했어요!" segment={4}
       acts={
         <>
           {/* 큰 버튼은 둘만 (11/9 사용자 「저장하고 나서 버튼이 4개나」). 다시 보기는 제목 아래 글자 버튼 · 뒤로 버튼,
