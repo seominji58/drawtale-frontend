@@ -164,6 +164,15 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const base = sceneBase(plan.location);
 
   useEffect(() => { let live = true; loadLayout(plan.location).then((l) => live && setLayout(l)).catch(() => {}); return () => { live = false; }; }, [plan.location]);
+  // 정지 그림 비율 — 렌더 묶음을 쓸 때도 재 둔다 (위 화면 안 맞춤)
+  useEffect(() => {
+    if (!still) return;
+    let live = true;
+    const im = new Image();
+    im.onload = () => { if (live) setStillAr(im.naturalWidth / Math.max(1, im.naturalHeight)); };
+    im.src = still;
+    return () => { live = false; };
+  }, [still]);
   useEffect(() => {
     let live = true;
     setSpr(null);
@@ -253,7 +262,10 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     : stillAr ? ((fit === "width" ? Math.min(H.h * WIDE_LEN, H.h * WIDE_MAX_H * stillAr) : H.h * stillAr) / aspect) / 2 : 0.1;
   // 주인공 자리는 몸 전체가 화면 안에 들게 — 장면 자리(0.16 ~ 0.84)는 사람 폭 기준이라 옆으로 긴 4족형은
   // 몸 절반이 화면 밖으로 나갔다 (11/9 형태 버그 2). 폭이 화면보다 넓으면 가운데
-  const edge = Math.min(0.5, heroHalf + 0.02);
+  // 화면 안 맞춤은 정지 그림 폭으로 — 동작마다 렌더 칸 폭이 달라(걷기는 다리를 벌려 넓다) 쪽을 넘길 때 같은 자리가
+  // 옆으로 튀었다 (11/9 걷기 0.57 → 다음 쪽 0.71). 정지 그림 비율을 모르면 지금 동작 폭
+  const stillHalf = stillAr ? ((fit === "width" ? Math.min(H.h * WIDE_LEN, H.h * WIDE_MAX_H * stillAr) : H.h * stillAr) * size / aspect) / 2 : null;
+  const edge = Math.min(0.5, (stillHalf ?? heroHalf) + 0.02);
   const inside = (x: number) => Math.min(1 - edge, Math.max(edge, x));
   const heroTo = inside(plan.hero.to);
   let heroFrom = inside(plan.hero.from);
@@ -626,7 +638,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       ))}
       {spr
         // 캔버스는 렌더 칸 크기 그대로 — 384 로 줄여 그린 뒤 화면에서 2~3배로 키워 선이 뭉개지고 계단처럼 보였다 (11/9 사용자 「렌더링이 깨지고 울퉁불퉁」)
-        ? <canvas ref={canvas} width={spr.cell} height={spr.cell} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}
+        ? <canvas ref={canvas} width={spr.cell} height={spr.cell} data-hero-x={heroX.toFixed(3)} className={`scene-hero ${hero.fallen ? "fallen" : ""}`}
                   style={{ ...heroStyle, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
         : still
           ? <img className={`scene-hero ${hero.fallen ? "fallen" : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""}`}
