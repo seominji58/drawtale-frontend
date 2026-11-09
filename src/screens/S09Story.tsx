@@ -4,13 +4,13 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
-import { propHeight, propsForStage, useProps } from "@/features/props/props";
+import { propHeight, propShowHeight, propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
 import { ENGINE } from "@/api";
 import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
-import SceneStage from "@/features/scene/SceneStage";
+import SceneStage, { preloadStripsFor } from "@/features/scene/SceneStage";
 import { envCueAt, planPages } from "@/features/scene/plan";
 import { formOf } from "@/features/character/forms";
 import { ORDER_GAME, useSettings } from "@/store/settings";
@@ -379,10 +379,12 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게
     () => (pages.some((p) => p.sprite)
       ? planPages(pages, { ...story.picks, place: placeOf(story) }, book.characterSheet,
-          story.guardian ? mine.map((p) => ({ name: p.name, png: p.png, height: SCENE_PROP_H[p.size ?? "m"] })) : [])
+          story.guardian ? mine.map((p) => ({ name: p.name, png: p.png, height: propHeight(p.size) })) : [])
       : null),
     [pages, story, mine],
   );
+  // 등장인물 그림띠는 책을 열 때 미리 읽어 둔다, 처음 붙을 때 안 읽혀 있으면 첫 장들이 휙휙 지나갔다 (11/9)
+  useEffect(() => { if (scenes) preloadStripsFor(scenes); }, [scenes]);
   // 들어온 쪽과 그 앞에 보던 쪽 — 앞으로 넘겨 들어왔을 때만 움직인다
   const [entered, setEntered] = useState<{ pg: number; from: number | null }>({ pg: 0, from: null });
   useEffect(() => { setEntered((e) => (e.pg === pg ? e : { pg, from: e.pg })); }, [pg]);
@@ -493,7 +495,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
                   ? <div style={{ position: "absolute", inset: 0, display: "flex", gap: "5%", alignItems: "center", justifyContent: "center" }}>
                       {shown.map((p) => (
                         <img key={p.id} src={p.png} alt={`내가 그린 ${p.name}`}
-                          style={{ height: `${propHeight(p.size) * 100}%`, maxWidth: `${Math.floor(85 / shown.length)}%`, objectFit: "contain" }} />
+                          style={{ height: `${propShowHeight(p.size) * 100}%`, maxWidth: `${Math.floor(85 / shown.length)}%`, objectFit: "contain" }} />
                       ))}
                     </div>
                   // 가만히 있는 쪽은 잘라 낸 정지 그림 — 영상 첫 장면은 동작 도중 자세일 수 있다
@@ -508,7 +510,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
             ? <div style={{ display: "flex", gap: "5%", alignItems: "center", justifyContent: "center", width: "92%", height: "100%" }}>
                 {shown.map((p) => (
                   <img key={p.id} src={p.png} alt={`내가 그린 ${p.name}`}
-                    style={{ height: `${propHeight(p.size) * 100}%`, maxWidth: `${Math.floor(85 / shown.length)}%`, objectFit: "contain" }} />
+                    style={{ height: `${propShowHeight(p.size) * 100}%`, maxWidth: `${Math.floor(85 / shown.length)}%`, objectFit: "contain" }} />
                 ))}
               </div>
             : clipI
@@ -609,8 +611,6 @@ const REDUCE_MOTION = typeof window !== "undefined" && window.matchMedia("(prefe
 
 /** 소품 장면을 보여 주는 시간. 그 뒤 같은 쪽에서 주인공 장면으로 바뀐다 */
 const PROP_MS = 2200;
-/** 장면 층에서 내 소품 키 (화면 높이 대비) — 주인공(약 0.52) 옆에 놓인다 */
-const SCENE_PROP_H = { s: 0.12, m: 0.2, l: 0.3 } as const;
 
 /** 쪽 동작 → 브라우저 캔버스 동작 (목 엔진). 캔버스에는 뛰기 · 춤이 없어 걷기 · 점프로 */
 const CANVAS_MOTION: Record<string, MotionId> = {

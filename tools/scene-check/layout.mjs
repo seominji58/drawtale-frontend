@@ -17,6 +17,7 @@ const url = (i, n) => `${BASE}?f=${FILE}&i=${i}&n=${n}`;
 const area = (r) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
 const inter = (a, b) => area({ x0: Math.max(a.x0, b.x0), x1: Math.min(a.x1, b.x1), y0: Math.max(a.y0, b.y0), y1: Math.min(a.y1, b.y1) });
 const outside = (r) => 1 - inter(r, { x0: 0, x1: 1, y0: 0, y1: 1 }) / Math.max(1e-6, area(r));
+const BIG_THINGS = new Set(["gate", "tent", "spaceship", "rocket"]);
 const HELD = new Set(["hand", "head", "mouth", "back", "window", "high", "water", "blown"]);
 // 배경 그림의 물건 · 쪽 글 소품 중 같은 것 (이름이 달라 bgKinds 가 못 거른다)
 const SAME = [["castle", "sandcastle", "sea-castle"], ["tree", "pine"], ["flowers", "flowerbed", "flower"], ["rock", "rocks", "stone"]];
@@ -58,7 +59,9 @@ function issuesOf(s) {
       if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose))) out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
     }
     const h = t.y1 - t.y0;
-    if (!held && h > heroH * 1.05) out.push(["소품이 주인공보다 큼", `${t.name} ${(h / heroH).toFixed(2)}배`]);
+    // 대문 · 텐트 · 우주선 · 로켓은 실제로 아이보다 크다 (11/9 소품 키를 실제 크기 기준으로), 1.25 배까지
+    const big = BIG_THINGS.has(t.name);
+    if (!held && h > heroH * (big ? 1.25 : 1.05)) out.push(["소품이 주인공보다 큼", `${t.name} ${(h / heroH).toFixed(2)}배`]);
     if (!held && t.spot === "ground" && t.y1 < 0.86) out.push(["땅 소품이 떠 있음", `${t.name} 발끝 ${t.y1.toFixed(2)}`]);
   });
   return out;

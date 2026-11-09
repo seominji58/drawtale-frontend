@@ -29,6 +29,9 @@ const FILE = q.get("f") ?? "cases.json";
 const W = Number(q.get("w") ?? 700), H = Number(q.get("h") ?? 470);
 // 재생 모드(11/9): ?play=hooray 처럼 쪽 동작 이름을 주면 끝 모습 대신 쪽에 들어온 재생으로 그린다 (등장인물 그림띠 확인)
 const PLAY = q.get("play") ?? "";
+// ?flip=800: 책 화면처럼 쪽을 넘기는 동안(이 ms) 시작 모습으로 기다렸다가 재생으로 바꾼다 (등장인물 그림띠 시작 확인, 11/9)
+const FLIP = Number(q.get("flip") ?? 0);
+const MINE = (q.get("mine") ?? "").split(",").filter(Boolean).map((name) => ({ name, png: `${import.meta.env.BASE_URL}scenes/props/drum.webp`, height: 0.28 }));
 const NAME = "토토";
 // 백엔드가 채우는 이름 자리 (`{이름}{조사:는}`) — 받침 없는 이름이라 조사는 적힌 그대로
 const fill = (t: string) => t.replace(/\{이름\}/g, NAME).replace(/\{조사:([^}]+)\}/g, "$1");
@@ -40,7 +43,8 @@ function plansOf(c: Case): PagePlan[] {
   const picks = { place: idOf("place", c.place), problem, action: idIn("action", c.action, problem), result: idIn("result", c.result, problem) };
   const pages = c.book ? c.book.pages.map((p) => ({ ...p, text: fill(p.text), childWords: p.child_words ?? "" })) as BookPage[]
     : shortPages(fill(textOf(c)));
-  return planPages(pages, picks, c.book?.character_sheet ?? {});
+  // ?mine=노란 우산,공룡 인형: 보호자 「내 소품」을 넣어 본다 (그림은 기본 소품 그림을 빌려 쓴다, 크기 보통)
+  return planPages(pages, picks, c.book?.character_sheet ?? {}, MINE);
 }
 
 /** 짧은 이야기를 네 쪽으로 — S09Story shortBook 과 같은 나눔 (행동 쪽만 움직임, 장면 계획 없음) */
@@ -75,6 +79,8 @@ function measure(el: HTMLElement) {
 
 function App() {
   const [cases, setCases] = useState<Case[] | null>(null);
+  const [flipped, setFlipped] = useState(!FLIP);
+  useEffect(() => { if (FLIP && cases) { const t = window.setTimeout(() => setFlipped(true), FLIP); return () => clearTimeout(t); } }, [cases]);
   useEffect(() => { void fetch(`./out/${FILE}`).then((r) => r.json()).then((all: Case[]) => setCases(all.slice(FROM, FROM + N))); }, []);
   useEffect(() => {
     if (!cases) return;
@@ -93,7 +99,7 @@ function App() {
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
         <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage plan={plan} prevEnv={null} still={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} mode={PLAY ? "play" : "end"} pageAction={PLAY} />
+          <SceneStage plan={plan} prevEnv={null} still={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} mode={PLAY ? (flipped ? "play" : "start") : "end"} pageAction={PLAY} text={pageText(c, plans, pi)} />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {plan.location}</span>
         </div>
       )))}

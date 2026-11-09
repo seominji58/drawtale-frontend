@@ -68,6 +68,37 @@ const CHEER_ACTIONS = new Set(["hooray", "jump", "dance"]);
 /** 인물이 걸어 들어오는 시간 (ui.css .scene-person-walk · .after-walk 와 같게) */
 const ENTER_MS = 2400;
 
+/** 등장인물 그림띠 미리 읽기 (11/9 사용자 「소품 캐릭터들 초반에 여러 프레임 휙휙 뜨는 문제」).
+ *  그림띠는 48장을 가로로 이은 긴 그림(약 9000px)이라 처음 붙을 때 아직 읽히지 않았으면, 시간은 흐르는데 비어 있다가
+ *  몇 장 지난 자리부터 튀어나와 첫 장들이 휙휙 지나갔다(Chrome 에서 보이기 시작한 순간 그림이 안 읽혀 있었다).
+ *  책을 열 때 이야기에 나올 그림띠를 다 읽고 풀어 두고(preloadStripsFor), 장면은 풀린 그림띠만 쓴다 */
+const stripReady = new Set<string>();
+const stripWait = new Map<string, Promise<void>>();
+const stripUrl = (id: string, name: string) => `${sceneBase("people-moves")}${id}.${name}.webp`;
+/** 소품 그림 주소, 장면 그림은 「장소/파일」, 내 소품은 data URL(아이가 그린 것) · 절대 주소는 그대로.
+ *  손에 듦 · 머리에 씀 자리는 data URL 을 장소 경로로 잘못 붙여 아이가 그린 소품이 깨진 그림으로 나왔다 (11/9) */
+const thingSrc = (src: string) => (/^(?:data:|blob:|https?:|\/)/.test(src) ? src : `${sceneBase(src.split("/")[0])}${src.split("/")[1]}`);
+function preloadStrip(url: string): Promise<void> {
+  if (stripReady.has(url)) return Promise.resolve();
+  let w = stripWait.get(url);
+  if (!w) {
+    const im = new Image();
+    im.src = url;
+    w = (typeof im.decode === "function" ? im.decode() : new Promise<void>((ok, no) => { im.onload = () => ok(); im.onerror = no; }))
+      .then(() => { stripReady.add(url); }, () => { stripWait.delete(url); });
+    stripWait.set(url, w);
+  }
+  return w;
+}
+/** 이 이야기 장면들에 나오는 등장인물의 그림띠를 미리 읽어 둔다 (S-09 이 책을 열 때) */
+export function preloadStripsFor(plans: PagePlan[]): void {
+  const ids = new Set(plans.flatMap((pl) => pl.props.map((q) => q.id)));
+  for (const id of ids) {
+    const m = (MOVES as Record<string, PersonMoves>)[id];
+    if (m) for (const name of Object.keys(m)) void preloadStrip(stripUrl(id, name));
+  }
+}
+
 const REDUCE = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const FPS = 12;
 // 걷기 · 뛰기는 AI 가 제자리로 렌더하고(11/3 저녁) 화면이 그림 칸째 옮긴다. 옮기는 속도가 렌더의 걸음 속도와
@@ -133,6 +164,12 @@ const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
 export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt, text = "", pageAction = "" }: Props) {
   const play = mode === "play";
+  // 그림띠가 풀리면 다시 그린다. 걸어 들어오기는 재생을 시작할 때 풀려 있던 것만 (도중에 붙으면 걷다가 그림이 바뀐다),
+  // 인사는 늦게 풀려도 그때부터 손을 든다
+  const [, setStripTick] = useState(0);
+  const readyAtPlay = useRef<Set<string> | null>(null);
+  if (!play) readyAtPlay.current = null;
+  else if (!readyAtPlay.current) readyAtPlay.current = new Set(stripReady);
   // 왼쪽으로 옮겨 가는 쪽이면 왼쪽 걸음 (사람형, 11/9 「좌우 바뀌면 안 되지」). 없으면(예전 이야기) 받은 걸음 그대로 — 뒤집지 않는다
   const sprite = plan.hero.move !== "none" && plan.hero.to < plan.hero.from && spriteLeft ? spriteLeft : spriteRight;
   const [layout, setLayout] = useState<Layout | null>(null);
@@ -516,12 +553,22 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const things = (plan.things ?? []).map((t) => (indoor && !t.pose && TO_WINDOW.has(t.src) ? { ...t, pose: "window" as const } : t));
   const posedSpots = things.filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }))
     .filter((v) => v.t.pose !== "window" || v.at);   // 창밖 소품은 창이 없으면 방 안에 놓지 않는다
+  // 배경 물건(땅에 선 것)이 차지한 가로 범위, 큰 소품은 먼저 이것을 피해 본다 (11/9 소품 키를 실제 크기로 키우자 대문이 집 앞을,
+  // 깃발 · 우체통이 벤치 · 가판대 앞을 가렸다). 배경 그림 주소는 장소 폴더 기준이라 props-ar.json 열쇠로 바꾼다
+  const bgSpans: [number, number][] = layout.objects.filter((o) => o.foot !== undefined).map((o) => {
+    const key = o.src.startsWith("../") ? o.src.slice(3) : `${plan.location}/${o.src}`;
+    const half = (o.h * arOf(key, 1) / aspect) / 2;
+    return [o.x - half, o.x + half];
+  });
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
     const air = t.spot === "air";
     const list = air ? airPlaced : placed;
-    const open = (a: number, b: number) => list.every(([l, r]) => b <= l || a >= r);
+    // 큰 땅 소품은 배경 물건과 겹치지 않는 자리를 먼저(원래 크기 · 0.75 배까지), 없으면 겹쳐도. 사람 · 소품끼리는 늘 피한다.
     // 넓은 물건(시소 · 다리 · 텐트 · 바위)은 자리가 없으면 조금 작게라도 놓는다 — 전에는 통째로 빠졌다(좁은 화면에서 11%)
-    for (const scale of air ? [1] : [1, 0.75, 0.55]) {
+    const tryList: [boolean, number][] = air ? [[false, 1]]
+      : t.h >= 0.28 ? [[true, 1], [true, 0.75], [false, 1], [false, 0.75], [false, 0.55]] : [[false, 1], [false, 0.75], [false, 0.55]];
+    for (const [avoidBg, scale] of tryList) {
+      const open = (a: number, b: number) => list.every(([l, r]) => b <= l || a >= r) && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r));
       const h = t.h * scale, half = (h * t.ar / aspect) / 2;
       const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
       const tries: number[] = [];
@@ -582,12 +629,18 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
         // 쪽 글에 이름이 나오면(말하는 사람) 손 흔들기. 그림띠를 멈춘 그림과 같은 키 · 발끝에 두고, 끝나면 멈춘 그림(숨쉬기)으로
         // 시작 모습(phase 0)부터 같은 요소로 둔다 — 끝 모습에서 새로 붙이면 left 가 옮겨 가지 않고 제자리에 나타났다
         const moves = play && !REDUCE ? (MOVES as Record<string, PersonMoves>)[p.id] : undefined;
+        const ready = (name: keyof PersonMoves, atStart = false) => {
+          const url = stripUrl(p.id, name);
+          if ((atStart ? readyAtPlay.current : stripReady)?.has(url)) return true;
+          if (!stripReady.has(url)) void preloadStrip(url).then(() => setStripTick((n) => n + 1));
+          return false;
+        };
         const pick: [keyof PersonMoves, number] | null = !moves ? null
-          : p.enter && moves.walk ? ["walk", ENTER_MS]
+          : p.enter && moves.walk ? (ready("walk", true) ? ["walk", ENTER_MS] : null)
           : CHEER_ACTIONS.has(pageAction) && moves.hooray ? ["hooray", moves.hooray.sec * 2000]
           // 만세 그림띠는 몸통이 불룩해져 뺐다(11/9). 기쁜 쪽도 손 흔들기로. 인사는 손을 든 채 쪽이 바뀔 때까지 흔든다
           // (사용자 「손 들고 계속 흔드는 거 무한 유지」, loop_from)
-          : (talks || CHEER_ACTIONS.has(pageAction)) && moves.wave ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
+          : (talks || CHEER_ACTIONS.has(pageAction)) && moves.wave && ready("wave") ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
           : null;
         if (moves && pick) {
           const [name, until] = pick;
@@ -609,7 +662,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
                  style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * m.pad_bottom }), aspectRatio: `${m.ar}`, ...move, ...vars,
                    // 걸어 들어올 때 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다)
                    ...(walking ? { ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" } : {}) }}>
-              <img src={`${base}../people-moves/${p.id}.${name}.webp`} alt=""
+              <img src={stripUrl(p.id, name)} alt=""
                    style={{ width: `${m.frames * 100}%`, ...run }} />
             </div>,
             <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person after-strip ${idle === "p-talk" ? "p-breathe" : idle}`}
@@ -624,13 +677,13 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       })}
       {posedSpots.filter((v) => v.at && !v.at.top).map(({ t, at }, k) => (
         <img key={`posed-${k}-${t.src.slice(0, 40)}`} className={`scene-obj scene-thing ${at!.cls}`} alt="" data-pose={t.pose}
-             src={`${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`} style={at!.style} />
+             src={thingSrc(t.src)} style={at!.style} />
       ))}
       {thingSpots.map((t, k) => (
         <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
              className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
-             src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
+             src={thingSrc(t.src)}
              style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
                : { src: t.src, x: t.x, foot: t.spot === "air" ? 0.3 : 0.95, h: t.h }),
                // 공은 주인공 반대쪽으로 굴러간다 (주인공과 부딪치지 않게)
@@ -655,7 +708,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       {/* 주인공 머리에 쓴 것은 주인공 위에 */}
       {posedSpots.filter((v) => v.at?.top).map(({ t, at }, k) => (
         <img key={`posed-top-${k}`} className="scene-obj scene-thing" alt="" data-pose={t.pose}
-             src={`${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`} style={at!.style} />
+             src={thingSrc(t.src)} style={at!.style} />
       ))}
       {front.map((p) => (
         <img key={p.src} className="scene-obj scene-cover" src={`${sceneBase(p.src!.split("/")[0])}${p.src!.split("/")[1]}`} alt=""

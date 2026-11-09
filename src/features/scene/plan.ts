@@ -50,13 +50,17 @@ const COVERS: [RegExp, string, number][] = [
  *  놓는 자리: ground 땅(발끝), air 공중(새 · 박쥐 · 풍선), wall 벽(시계 — 실내에서만, 바깥이면 뺌) */
 type Spot = "ground" | "air" | "wall";
 const W1 = (w: string) => new RegExp(`(?:^|[^가-힣])${w}(?:을|를|이|가|은|는|과|와|도|랑|들|한 마리|의)?(?=[^가-힣]|$)`);
+/** 소품 키는 주인공 키(장소 hero.h 0.52 = 아이 약 1.1m) 기준 실제 크기로 (11/9 사용자 「가로등 같은 것들은 사이즈가 여유가 있어야 하는데
+ *  작은 소품들이랑 같은 사이즈인 것들이 있다」). 의자 · 울타리 · 대문 · 우체통 · 깃발 · 텐트 · 표지판 · 배 · 우주선 · 로켓이 0.14~0.36 이라
+ *  손에 드는 물건과 비슷했다. 아주 큰 것은 화면에 들어오게 줄여 잡는다(텐트 · 우주선 · 로켓 0.55~0.6, 대문은 0.55 면 마을 집보다 커 0.45).
+ *  자리가 없으면 SceneStage 가 0.75 · 0.55 배로 줄여 놓는다 */
 const THINGS: [RegExp, string, number, Spot][] = [
   [/손전등/, "props/flashlight.webp", 0.1, "ground"],
   [/랜턴|등불/, "props/lantern.webp", 0.17, "ground"],
   [W1("공"), "props/ball.webp", 0.12, "ground"],
-  [/빵(?!빵)/, "props/bread.webp", 0.12, "ground"],
-  [/의자/, "props/chair.webp", 0.2, "ground"],
-  [/벤치/, "town-park/bench.webp", 0.18, "ground"],
+  [/빵(?!빵)/, "props/bread.webp", 0.08, "ground"],
+  [/의자/, "props/chair.webp", 0.3, "ground"],
+  [/벤치/, "town-park/bench.webp", 0.28, "ground"],
   [/반창고/, "props/bandage.webp", 0.08, "ground"],
   [/풍선/, "props/balloons.webp", 0.3, "air"],
   // 11/3 밤 30장
@@ -64,19 +68,19 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/크레파스|크레용|도화지/, "props/crayons.webp", 0.1, "ground"],
   [/쿠션|방석/, "props/cushion.webp", 0.1, "ground"],
   [/깔개|매트|러그/, "props/rug.webp", 0.07, "ground"],
-  [/울타리/, "props/fence.webp", 0.16, "ground"],
-  [/대문/, "props/gate.webp", 0.32, "ground"],
+  [/울타리/, "props/fence.webp", 0.28, "ground"],
+  [/대문/, "props/gate.webp", 0.45, "ground"],
   [/조개|불가사리/, "props/shells.webp", 0.07, "ground"],
   [/웅덩이/, "props/puddle.webp", 0.05, "ground"],
-  [/^(?!.*등대).*계단/s, "props/stairs.webp", 0.22, "ground"],   // 등대 돌계단 · 등대 안 계단에 장난감 계단이 섰다 (11/4)
+  [/^(?!.*등대).*계단/s, "props/stairs.webp", 0.3, "ground"],   // 등대 돌계단 · 등대 안 계단에 장난감 계단이 섰다 (11/4)
   [/가방|배낭/, "props/backpack.webp", 0.14, "ground"],
   [/시계/, "props/clock.webp", 0.13, "wall"],
   [/모자/, "props/hat.webp", 0.08, "ground"],
-  [/블록|블럭/, "props/blocks.webp", 0.14, "ground"],
+  [/블록|블럭/, "props/blocks.webp", 0.1, "ground"],
   // 「책도 · 책들 · 책은」도 (11/4 「책을 떨어트렸어요」에 책이 안 나왔다). 「산책을」 · 「책상」 · 「책장」 빼고
   [/그림책|동화책|공책|(?<!산)책(?=을|이|도|들|은|는|과|만|한 권| 한)|책장을 넘/, "props/books.webp", 0.1, "ground"],
   [/갈매기/, "props/seagull.webp", 0.07, "air"],   // 11/4 나는 모습(가로로 긴 그림)이라 키를 낮춤
-  [/우주선/, "props/spaceship.webp", 0.36, "ground"],
+  [/우주선/, "props/spaceship.webp", 0.6, "ground"],
   [/양동이|삽으로|삽을|모래 삽/, "props/sandtoys.webp", 0.12, "ground"],
   [/우유|코코아|보리차|컵/, "props/milk.webp", 0.08, "ground"],
   [/도토리|솔방울/, "props/acorns.webp", 0.06, "ground"],
@@ -84,12 +88,12 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/인형/, "props/teddy.webp", 0.14, "ground"],
   // 「게」는 앞 글자와 떨어진 것만 — 「가게를」 · 「빨래집게가」에 꽃게가 섰다 (11/9 배치 검사)
   [/꽃게|작은 게|(?<![가-힣])게(?: 한|가|를|도)(?![가-힣])/, "props/crab.webp", 0.07, "ground"],
-  [/깃발/, "props/flag.webp", 0.3, "ground"],
-  [/우체통/, "props/mailbox.webp", 0.26, "ground"],
-  [/다리를 건|나무다리|돌다리|다리 위|작은 다리/, "props/bridge.webp", 0.16, "ground"],
+  [/깃발/, "props/flag.webp", 0.48, "ground"],
+  [/우체통/, "props/mailbox.webp", 0.44, "ground"],
+  [/다리를 건|나무다리|돌다리|다리 위|작은 다리/, "props/bridge.webp", 0.22, "ground"],
   [/수건|손수건/, "props/towel.webp", 0.07, "ground"],
   [/케이크|쿠키|과자|간식/, "props/cake.webp", 0.1, "ground"],
-  [/우산/, "props/umbrella.webp", 0.24, "ground"],
+  [/우산/, "props/umbrella.webp", 0.34, "ground"],
   // 장난감 기차 그림이라 진짜 기차를 타는 말은 빼고 — 「기차에서 엄마에게 기대어 잠이 들었어요」에 동굴 바닥 장난감 기차 (11/9 배치 검사)
   [/기차(?!에서|를 ?타|에 ?타|를 탔|에 올|역|표|길|소리|가 (?:출발|도착|달|지나|멈|떠))/, "props/toytrain.webp", 0.1, "ground"],
   [/화분/, "props/flowerpot.webp", 0.16, "ground"],
@@ -99,19 +103,19 @@ const THINGS: [RegExp, string, number, Spot][] = [
     "props/bird.webp", 0.12, "air"],
   [/박쥐/, "props/bat.webp", 0.14, "air"],
   [/토끼/, "props/rabbit.webp", 0.16, "ground"],
-  [/다람쥐/, "props/squirrel.webp", 0.16, "ground"],
+  [/다람쥐/, "props/squirrel.webp", 0.11, "ground"],
   // pt_docs 18 「장면 소품 보강」 (11/4) — A. 숨는 곳 그림을 옆에 놓인 물건으로도 (가림막보다 작게)
   [/담요|이불/, "props/blanket.webp", 0.12, "ground"],
   [/상자|박스/, "props/box.webp", 0.16, "ground"],
   [/모래 언덕/, "props/dune.webp", 0.16, "ground"],   // 「언덕」만이면 뒷산 언덕도 걸린다
-  [/시소/, "props/seesaw.webp", 0.2, "ground"],
-  [/텐트/, "props/tent.webp", 0.34, "ground"],
+  [/시소/, "props/seesaw.webp", 0.26, "ground"],
+  [/텐트/, "props/tent.webp", 0.55, "ground"],
   // B. 장소 배경에만 있던 그림을 다른 장소에서도 (배경에 이미 있으면 SceneStage 가 또 놓지 않는다)
   // 「돌았어요」 · 「돌아왔어요」 빼고, 짧은 「돌」은 앞 글자와 떨어진 것만 — 「곰돌이 컵」에 부엌 바닥 돌멩이 (11/9 전체 배치 검사)
   [/돌멩이|작은 돌|돌탑|(?<![가-힣])돌(?:들|을 |이 | 위)/, "forest-stream/rocks.webp", 0.09, "ground"],
-  [/바위/, "cave/rocks.webp", 0.2, "ground"],
+  [/바위/, "cave/rocks.webp", 0.3, "ground"],
   [/꽃(?!게)/, "forest-flowers/flowers.webp", 0.12, "ground"],
-  [/식탁/, "home-kitchen/table.webp", 0.26, "ground"],
+  [/식탁/, "home-kitchen/table.webp", 0.34, "ground"],
   // 등대는 소품으로 세우지 않는다 — 주인공 옆 땅에 아이 키만 한 등대가 장난감처럼 섰다 (11/4 사용자). 등대는 부두 배경(sea-pier)에 크게 있다
   [/버섯/, "forest/mushroom.webp", 0.1, "ground"],
   // C. 새로 그린 12장 (tools/art/gen_scene_props.py)
@@ -119,7 +123,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/운동화|신발/, "props/sneakers.webp", 0.07, "ground"],
   [W1("나비"), "props/butterfly.webp", 0.08, "air"],
   [/발자국/, "props/footprints.webp", 0.04, "ground"],
-  [/화살표/, "props/arrow.webp", 0.22, "ground"],
+  [/화살표/, "props/arrow.webp", 0.4, "ground"],
   [/모래성/, "props/sandcastle.webp", 0.13, "ground"],
   [/행성/, "props/planet.webp", 0.14, "air"],
   [W1("지구"), "props/earth.webp", 0.14, "air"],
@@ -130,7 +134,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   // D. 2차 14장 (11/6, tools/art/gen_scene_props2.py) — 카드 이야기 512편에서 글에 나오는데 그림이 없던 손에 드는 물건.
   // 「배가 꼬르륵」 · 「사과했어요」 · 「북쪽」 · 「소라게」처럼 다른 뜻은 빼고
   [/(?:작은|큰|나무|고깃|돛단|나룻|종이|아빠) ?배(?=를|가|에|는|도| 한| 하나|[^가-힣]|$)|배 한 척|배를 타|배에 (?:타|올)|배가 (?:들어|떠|둥둥|통통|출렁)|배 위에|배에서 내/,
-    "props/boat.webp", 0.14, "ground"],
+    "props/boat.webp", 0.28, "ground"],
   [/별똥별/, "props/shootingstar.webp", 0.1, "air"],
   [/헬멧/, "props/helmet.webp", 0.1, "ground"],
   [/(?:빨간|노란|초록|맛있는|커다란|작은) 사과|사과 (?:한|두|세|하나)|사과를 (?:따|먹|사각|건네|깎|닦|주|받|골|사)|사과(?:와|,)|사과가 (?:수북|주렁|떨어|데굴|열)/,
@@ -144,7 +148,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/(?<!우주 |우주|우주복 )장갑/, "props/mittens.webp", 0.06, "ground"],
   [/(?:^|[^가-힣])북(?:을|를|이|가|은|는|과|와|도|에|소리를|소리가)?(?=[^가-힣]|$)/, "props/drum.webp", 0.11, "ground"],
   [/소라(?!게|빵)/, "props/conch.webp", 0.07, "ground"],
-  [/로켓/, "props/rocket.webp", 0.3, "ground"],
+  [/로켓/, "props/rocket.webp", 0.6, "ground"],
 ];
 /** 오린 그림의 가로 ÷ 세로 (tools/art/process_cast2.py 가 잰다). 없으면 1 */
 const ar = (src: string) => (AR as Record<string, number>)[src] ?? 1;

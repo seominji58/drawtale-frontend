@@ -26,12 +26,16 @@ export const MAX_PROPS = 30;
  *  이 상자 안에 비율을 지켜 맞춰 들어간다 */
 export type PropSize = "s" | "m" | "l";
 export const PROP_SIZES: { id: PropSize; name: string; height: number }[] = [
-  { id: "s", name: "작게", height: 0.3 },
-  { id: "m", name: "보통", height: 0.45 },
-  { id: "l", name: "크게", height: 0.6 },
+  // 장면 소품과 같은 기준(주인공 키 0.52 = 아이 약 1.1m): 작게 = 인형 · 컵, 보통 = 가방 · 의자, 크게 = 자전거 · 나무 (11/9).
+  // 전에는 작게 0.3 이라 컵도 깃발만 했다
+  { id: "s", name: "작게", height: 0.14 },
+  { id: "m", name: "보통", height: 0.28 },
+  { id: "l", name: "크게", height: 0.48 },
 ];
 export const propHeight = (size: PropSize | undefined) =>
   (PROP_SIZES.find((x) => x.id === size) ?? PROP_SIZES[1]).height;
+/** S-09 소품 소개(그 단계 첫 쪽에 소품만 2.2초)는 주인공 없이 소품만 보여 주니 크게 (11/9 전 크기 그대로) */
+export const propShowHeight = (size: PropSize | undefined) => ({ s: 0.3, m: 0.45, l: 0.6 })[size ?? "m"];
 export const MAX_PROP_NAME = 12;
 
 /** 카드 → 그 단계 쪽에 나올 수 있는 물건 낱말. 내 소품 이름이 이 낱말로 끝나면 그 쪽에 소품 장면이 생긴다

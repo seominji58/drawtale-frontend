@@ -13,9 +13,11 @@ export default function PropSizePicker({ png, size, onSize }: {
       <div aria-hidden="true" style={{
         aspectRatio: "4 / 3", flex: "1 1 0", minHeight: 0, maxWidth: "100%", alignSelf: "center",
         borderRadius: 16, background: "var(--milk)",
-        display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+        display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "6%", paddingBottom: "7%", boxSizing: "border-box", overflow: "hidden",
       }}>
-        <img src={png} alt="" style={{ height: `${propHeight(size) * 100}%`, maxWidth: "60%", objectFit: "contain" }} />
+        {/* 장면 주인공 키(0.52)로 옆에 세워 크기를 가늠하게 (11/9 소품 키를 실제 크기 기준으로 바꾸며, 작게는 인형 · 컵만 하다) */}
+        <img src={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} alt="" style={{ height: "52%", opacity: 0.55 }} />
+        <img src={png} alt="" style={{ height: `${propHeight(size) * 100}%`, maxWidth: "50%", objectFit: "contain" }} />
       </div>
       <div role="radiogroup" aria-label="소품 크기" style={{ flex: "none", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
         {PROP_SIZES.map((x) => (
