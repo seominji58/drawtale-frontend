@@ -130,6 +130,8 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
   // 0 = 시작 모습, 1 = 끝 모습. play 가 아니면 처음부터 끝 모습
   const [phase, setPhase] = useState<0 | 1>(mode !== "end" && !REDUCE ? 0 : 1);
   const [hidden, setHidden] = useState(false);
+  // 정면 그림(사람형) 주인공이 옮겨 가는 동안 가는 쪽으로 기울인다 (11/9 사용자 — 정면 제자리 걸음으로 옆으로 미끄러져 어색)
+  const [leaning, setLeaning] = useState(false);
   // 멈춘 그림의 가로세로 비율 — 옆 인물을 비켜 세울 때 주인공 폭을 잰다
   const [stillAr, setStillAr] = useState<number | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -182,6 +184,14 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
 
   // 거리는 맞춘 자리 전 값 — 아래 heroFrom 이 1/4 보다 짧은 걸음은 1/4 로 늘이니 시간도 그만큼 (걸음과 옮기는 빠르기가 맞게)
   const timing = moveTiming(plan.hero.move, Math.max(0.25, Math.abs(plan.hero.to - plan.hero.from)), layout?.hero.h ?? 0.45, aspect);
+
+  useEffect(() => {
+    if (!play || REDUCE || plan.hero.move === "none" || phase !== 1) { setLeaning(false); return; }
+    setLeaning(true);
+    const a = window.setTimeout(() => setLeaning(false), Math.max(400, timing.ms - 300));
+    return () => clearTimeout(a);
+  }, [plan, play, phase, timing.ms]);
+
 
   // 주인공 프레임: 옮겨 가는 동안은 계속, 제자리 동작은 loops 번, 그다음 첫 장에서 멈춘다.
   // 「애니메이션 줄이기」(Windows 애니메이션 효과 끔도 이것)에서도 돈다 — 그림이 움직이는 것이 이 책의 내용이라서.
@@ -266,7 +276,10 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     drawn = { w: stillAr ? stillH * stillAr / aspect : 0, h: stillH };
   }
   // 같은 빠르기로 (속도가 바뀌면 걸음과 어긋나 발이 미끄러진다)
-  const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease`;
+  const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease, rotate .35s ease`;
+  if (leaning && facing === 0 && hero.move !== "none" && phase === 1) {
+    heroStyle = { ...heroStyle, rotate: `${Math.sign(hero.to - hero.from) * (hero.move === "run" ? 7 : 4)}deg`, transformOrigin: "0 100%" };
+  }
 
   const prop = (id: PropId): Spot | undefined => layout.props[id]
     ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: PEOPLE[id].foot ?? 0.93, h: PEOPLE[id].h } : undefined);
@@ -534,7 +547,9 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
           const tall = sb.h * (1 + walk.pad_top + walk.pad_bottom);
           return [
             <div key={`${p.id}-${p.name ?? k}-walk`} className="scene-obj scene-person-walk"
-                 style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * walk.pad_bottom }), aspectRatio: `${walk.ar}`, ...move }}>
+                 style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * walk.pad_bottom }), aspectRatio: `${walk.ar}`, ...move,
+                   // 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다, 11/9 사용자)
+                   ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" }}>
               <img src={`${base}../people-walk/${p.id}.webp`} alt=""
                    style={{ width: `${walk.frames * 100}%`, animationTimingFunction: `steps(${walk.frames})` }} />
             </div>,

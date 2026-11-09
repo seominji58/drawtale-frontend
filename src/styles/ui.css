@@ -1044,7 +1044,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-person.p-hop { transform-origin: 0 100%; animation: person-hop 2.6s ease-out infinite; }
 @keyframes person-hop { 0%, 62%, 100% { translate: 0 0; } 72% { translate: 0 -14%; } 82% { translate: 0 0; } 88% { translate: 0 -5%; } }
 /* 걸어 들어오는 사람: 걸음 그림띠를 넘기며 들어오고(4초에 한 걸음 주기 — 렌더 48장 · 12장/초), 다 들어오면 멈춘 그림으로 */
-.scene-person-walk { overflow: hidden; pointer-events: none; animation: walk-hide 0s 2.4s forwards; }
+.scene-person-walk { overflow: hidden; pointer-events: none; transform-origin: 0 100%; rotate: var(--lean, 0deg);
+  animation: walk-hide 0s 2.4s forwards, walk-bob .34s ease-in-out 7 alternate; }
+@keyframes walk-bob { to { translate: 0 -2.5%; } }
 .scene-person-walk > img { display: block; height: 100%; max-width: none; animation: walk-strip 4s infinite; }
 @keyframes walk-strip { to { transform: translateX(-100%); } }
 @keyframes walk-hide { to { visibility: hidden; } }
