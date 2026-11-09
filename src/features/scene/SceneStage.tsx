@@ -393,6 +393,9 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
     const x = heroX + headSide * drawn.w * 0.34;
     return { x, cls: "", top: true, style: { ...spotStyle({ src: t.src, x, foot: topY + h * 0.55, h }), ...withHero } };
   };
+  // 창밖 소품 수와 몇 번째인지 (창 안에서 나란히 놓으려고)
+  const winCount = (plan.things ?? []).filter((t) => t.pose === "window" || (indoor && !t.pose && SKY_ONLY.has(t.src))).length;
+  let winAt = 0;
   const posed = (t: NonNullable<typeof plan.things>[number]): { x: number; style: CSSProperties; cls: string; top?: boolean } | null => {
     const thingW = (h: number) => h * t.ar / aspect;
     const holder = t.holder ? people.find((v) => v && (v.p.name === t.holder || v.p.id === t.holder)) : null;
@@ -471,12 +474,17 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         const win = w && w.top !== undefined ? { x: w.x, y: w.top + w.h * 0.4, h: w.h } : layout.window;
         if (!win) return null;
         const h = Math.min(t.h, win.h * 0.3);
-        return { x: win.x, cls: t.motion ? `m-${t.motion}` : "", style: spotStyle({ src: t.src, x: win.x, foot: win.y + h / 2, h }) };
+        // 창밖 소품이 둘이면 창 안에서 나란히 — 「지구 옆으로 별똥별이」에 둘이 한 자리에 겹쳤다 (11/9 배치 검사)
+        const k = winAt++;
+        const x = winCount < 2 ? win.x : win.x + (k === 0 ? -1 : 1) * (win.h * 0.22) / aspect;
+        return { x, cls: t.motion ? `m-${t.motion}` : "", style: spotStyle({ src: t.src, x, foot: win.y + h / 2, h }) };
       }
       default: return null;
     }
   };
-  const posedSpots = (plan.things ?? []).filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }))
+  // 실내에서 하늘에만 있는 것(별똥별 · 행성 · 지구)은 창 안에 — 우주선 방 안 공중에 별똥별이 떠서 창 속 지구를 가렸다 (11/9 배치 검사)
+  const things = (plan.things ?? []).map((t) => (indoor && !t.pose && SKY_ONLY.has(t.src) ? { ...t, pose: "window" as const } : t));
+  const posedSpots = things.filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }))
     .filter((v) => v.t.pose !== "window" || v.at);   // 창밖 소품은 창이 없으면 방 안에 놓지 않는다
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
     const air = t.spot === "air";
@@ -564,11 +572,11 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
         );
       })}
       {posedSpots.filter((v) => v.at && !v.at.top).map(({ t, at }, k) => (
-        <img key={`posed-${k}-${t.src.slice(0, 40)}`} className={`scene-obj scene-thing ${at!.cls}`} alt=""
+        <img key={`posed-${k}-${t.src.slice(0, 40)}`} className={`scene-obj scene-thing ${at!.cls}`} alt="" data-pose={t.pose}
              src={`${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`} style={at!.style} />
       ))}
       {thingSpots.map((t, k) => (
-        <img key={`thing-${k}-${t.src.slice(0, 40)}`}
+        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
              className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={t.src.startsWith("data:") ? t.src : `${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`}
@@ -594,7 +602,7 @@ export default function SceneStage({ plan, prevEnv, sprite, still, mode, heroHan
       )}
       {/* 주인공 머리에 쓴 것은 주인공 위에 */}
       {posedSpots.filter((v) => v.at?.top).map(({ t, at }, k) => (
-        <img key={`posed-top-${k}`} className="scene-obj scene-thing" alt=""
+        <img key={`posed-top-${k}`} className="scene-obj scene-thing" alt="" data-pose={t.pose}
              src={`${sceneBase(t.src.split("/")[0])}${t.src.split("/")[1]}`} style={at!.style} />
       ))}
       {front.map((p) => (
@@ -614,8 +622,12 @@ const SIDE_GRIP = new Set(["props/flashlight.webp"]);
 /** 그림 이름으로 본 물건 종류 — 꽃밭 그림이 둘(flowers · flowerbed)이라 하나로 */
 const kindOf = (src: string) => {
   const name = src.split("/").pop()?.replace(/\.webp$/, "") ?? src;
-  return name === "flowerbed" ? "flowers" : name;
+  return SAME_KIND[name] ?? name;
 };
+/** 하늘에만 있는 것 — 실내면 창 안에만 놓는다 */
+const SKY_ONLY = new Set(["props/shootingstar.webp", "props/planet.webp", "props/earth.webp"]);
+/** 이름이 달라도 같은 물건 — 바다 배경에 모래성(castle) · 바위(rock)가 있는데 쪽 글의 「모래성」 · 「바위」로 하나 더 섰다 (11/9 배치 검사) */
+const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks" };
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */
 const LEAVES: [number, number, string][] = [[20, 0, "#E8A33C"], [46, 1.1, "#8DBA5A"], [34, 2.2, "#D9663B"], [60, 3.3, "#B9C94A"],
   [28, 4.4, "#E2B04A"], [54, 5.5, "#7FAE4E"]];

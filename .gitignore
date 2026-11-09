@@ -4,3 +4,4 @@ dist/
 *.log
 *.tsbuildinfo
 tools/device-check/shots/
+tools/scene-check/out/

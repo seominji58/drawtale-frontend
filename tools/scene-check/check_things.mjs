@@ -55,7 +55,32 @@ const SUBJ_CASES = [
   ["친구가 공을 손에 꼭 쥐었어요.", "props/ball.webp", "친구"],
   ["나비가 꽃잎 위에서 공을 꼭 안았어요.", "props/ball.webp", "나비"],
 ];
+// 장소 · 진짜 물건인지 (11/9 배치 검사, 카드 이야기 160편에서 찾은 것) — [쪽 글, 장소, 실내?, 놓여야 할 그림 | null(이 그림은 안 됨), 볼 그림]
+const PLACE_CASES = [
+  ["과일 가게를 하는 할머니였어요.", "town-market", false, null, "props/crab.webp"],
+  ["빨래집게가 달그락달그락 부딪혀요.", "home-living", true, null, "props/crab.webp"],
+  ["작은 게 한 마리가 모래 위를 기어갔어요.", "sea", false, "props/crab.webp", "props/crab.webp"],
+  ["꽃게가 집게발을 번쩍 들었어요.", "sea", false, "props/crab.webp", "props/crab.webp"],
+  ["바닷속 물고기 그림이 하나씩 나왔어요.", "school-library", true, null, "props/fish.webp"],
+  ["작은 물고기가 지나가요.", "school-library", true, null, "props/fish.webp"],
+  ["작은 물고기가 돌 사이로 지나가요.", "forest-stream", false, "props/fish.webp", "props/fish.webp"],
+  ["창가에 내가 그린 꽃 그림이 보였어요.", "school-classroom", true, null, "forest-flowers/flowers.webp"],
+  ["“우리 돌멩이 박사님, 이쪽이야.”", "space-ship", true, null, "forest-stream/rocks.webp"],
+  ["나는 소행성 돌멩이를 꺼내 놓았어요.", "space-ship", true, "forest-stream/rocks.webp", "forest-stream/rocks.webp"],
+  ["양동이 속 장미들이 바람에 살랑 흔들렸어요.", "town-market", false, null, "props/sandtoys.webp"],
+  ["내 파란 양동이가 파도에 떠내려갔어.", "sea", false, "props/sandtoys.webp", "props/sandtoys.webp"],
+  ["길 옆 커다란 웅덩이가 까맣게 보였어요.", "space", false, null, "props/puddle.webp"],
+  ["운동장 웅덩이마다 파란 하늘이 비쳤어요.", "school-classroom", true, null, "props/puddle.webp"],
+  ["비가 그치고 웅덩이에 하늘이 비쳤어요.", "playground", false, "props/puddle.webp", "props/puddle.webp"],
+  ["텐트 천장에는 작은 별 스티커가 붙어 있었어요.", "school-library", true, "props/tent.webp", "props/tent.webp"],
+];
 let bad = 0;
+for (const [text, loc, indoor, want, look] of PLACE_CASES) {
+  const got = thingsFor(text, [], indoor, new Set(), loc).map((t) => t.src);
+  const ok = want ? got.includes(want) : !got.includes(look);
+  if (!ok) bad++;
+  console.log(`${ok ? "OK " : "XX "} 장소 ${loc.padEnd(16)} ${(want ?? `(${look.split("/").pop()} 없음)`).padEnd(26)} 놓인 것 ${got.join(", ") || "-"} ← ${text}`);
+}
 for (const [text, src, who] of SUBJ_CASES) {
   const t = thingsFor(text, [], false).find((x) => x.src === src);
   const ok = (t?.subject === "hero" ? "hero" : t?.subject) === who;
@@ -76,5 +101,5 @@ for (const [text, want] of CASES) {
   if (!ok || dup) bad++;
   console.log(`${ok && !dup ? "OK " : "XX "} ${(want ?? "(없음)").padEnd(26)} 놓인 것 ${got.join(", ") || "-"} ← ${text}`);
 }
-console.log(bad ? `\n틀림 ${bad}` : `\n모두 통과 (${CASES.length + POSE_CASES.length + SUBJ_CASES.length})`);
+console.log(bad ? `\n틀림 ${bad}` : `\n모두 통과 (${CASES.length + POSE_CASES.length + SUBJ_CASES.length + PLACE_CASES.length})`);
 process.exit(bad ? 1 : 0);

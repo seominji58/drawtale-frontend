@@ -82,7 +82,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/도토리|솔방울/, "props/acorns.webp", 0.06, "ground"],
   [/선물/, "props/gift.webp", 0.12, "ground"],
   [/인형/, "props/teddy.webp", 0.14, "ground"],
-  [/꽃게|작은 게|게 한|게가|게를|게도/, "props/crab.webp", 0.07, "ground"],
+  // 「게」는 앞 글자와 떨어진 것만 — 「가게를」 · 「빨래집게가」에 꽃게가 섰다 (11/9 배치 검사)
+  [/꽃게|작은 게|(?<![가-힣])게(?: 한|가|를|도)(?![가-힣])/, "props/crab.webp", 0.07, "ground"],
   [/깃발/, "props/flag.webp", 0.3, "ground"],
   [/우체통/, "props/mailbox.webp", 0.26, "ground"],
   [/다리를 건|나무다리|돌다리|다리 위|작은 다리/, "props/bridge.webp", 0.16, "ground"],
@@ -297,9 +298,29 @@ function mentions(text: string, name: string): boolean {
   return flat.includes(last);
 }
 
-/** 쪽마다 놓을 물건 — 내 소품이 먼저(같은 낱말이면 내가 그린 것), 그다음 장면 그림. 글에서 먼저 나온 순 */
+/** 낱말 바로 뒤가 이러면 그 물건이 아니라 그림 · 이야기 · 별명이다 — 「물고기 그림」 · 「꽃 그림」 · 「물고기 이야기」 ·
+ *  「돌멩이 박사님」 · 「별 스티커」 · 「토끼 인형」에 도서실 바닥 물고기 · 교실 꽃밭 · 우주선 안 돌멩이가 섰다 (11/9 배치 검사, 카드 이야기 160편) */
+const NOT_REAL = /^ ?(?:그림|이야기|스티커|인형|장난감|사진|모양|무늬|박사|노래|풍선)/;
+/** 그 장소에서만 놓는 물건. 물에 사는 것 · 모래 놀이는 바다 · 물가 · 모래밭에서만 — 「양동이 속 장미」(꽃집)에 모래놀이 양동이,
+ *  달의 「웅덩이」에 물웅덩이가 섰다 (11/9). 장소 이름(세부 장소 포함)의 앞 낱말로 본다 */
+const WATER = /^(?:sea|forest-stream|cave-lake)/, SAND = /^(?:sea|playground)/;
+const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
+  "props/fish.webp": (l) => WATER.test(l),
+  "props/crab.webp": (l) => l.startsWith("sea"),
+  "props/shells.webp": (l) => l.startsWith("sea"),
+  "props/conch.webp": (l) => l.startsWith("sea"),
+  "props/seagull.webp": (l) => l.startsWith("sea"),
+  "props/sandcastle.webp": (l) => SAND.test(l) && l !== "sea-underwater",
+  "props/sandtoys.webp": (l) => SAND.test(l) && l !== "sea-underwater",
+  "props/dune.webp": (l) => l.startsWith("sea") && l !== "sea-underwater",
+  // 창밖 운동장 웅덩이가 교실 바닥에 섰다. 우주의 「웅덩이」는 물이 아니다
+  "props/puddle.webp": (l, indoor) => !indoor && !l.startsWith("space"),
+};
+
+/** 쪽마다 놓을 물건 — 내 소품이 먼저(같은 낱말이면 내가 그린 것), 그다음 장면 그림. 글에서 먼저 나온 순.
+ *  loc 은 그 쪽의 장소 (모르면 장소로 거르지 않는다) */
 export function thingsFor(text: string, mine: { name: string; png: string; height: number }[] = [], indoor = false,
-  skip: Set<string> = new Set()): ThingPlan[] {
+  skip: Set<string> = new Set(), loc = ""): ThingPlan[] {
   const hits: { at: number; t: ThingPlan; key: string }[] = [];
   for (const p of mine) {
     if (!mentions(text, p.name)) continue;
@@ -313,6 +334,7 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     if (!m) continue;
     if (spot === "wall" && !indoor) continue;   // 바깥에는 걸 벽이 없다
     if (skip.has(src)) continue;
+    if (loc && ONLY_AT[src] && !ONLY_AT[src](loc, indoor)) continue;
     // 내 소품이 같은 낱말이면 장면 그림은 빼고 내가 그린 것만
     if (hits.some((x) => m[0].includes(x.key) || x.key.includes(m[0].replace(/[^가-힣]/g, "").slice(0, 3)))) continue;
     // 낱말 단위 정규식(W1)은 앞 글자와 뒤 조사까지 잡는다 — 자리 판단(thingPose)은 낱말 바로 뒤의 조사를 보므로 낱말만으로 줄인다.
@@ -322,6 +344,7 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     const lead0 = wordRe && /^[^가-힣]/.test(m[0]) ? 1 : 0;
     const word = wordRe ? m[0].slice(lead0).replace(/(?:을|를|이|가|은|는|과|와|도|랑|들|한 마리|의)$/, "") : m[0];
     const at = m.index + lead0;
+    if (NOT_REAL.test(text.slice(at + word.length))) continue;
     hits.push({ at, t: { src, h, ar: ar(src), spot, at, ...thingPose(text, at, at + word.length, spot, indoor) }, key: m[0] });
   }
   return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
@@ -680,7 +703,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
         : thingsFor(p.text, mine, isIndoor(loc), new Set([
           ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
           ...(loc === "space-ship" ? ["props/spaceship.webp", "props/rocket.webp"] : []),
-        ])).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props) })),
+        ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props) })),
     });
     x = to;
   }
