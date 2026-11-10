@@ -7,7 +7,7 @@ const facing = process.argv[2] ?? "0";
 const OUT = "tools/scene-check/out";
 const TEXTS = ["나는 아주머니에게 꾸벅 인사했어요.", "나는 고개를 끄덕끄덕했어요.", "나는 무서워서 덜덜 떨었어요.",
   "나는 날개를 꼭 오므리고 웅크렸어요.", "나는 빙글빙글 돌았어요.", "친구가 덜덜 떨었어요.",
-  "나는 햇볕 아래에서 꾸벅꾸벅 졸았어요.", "나는 덜덜 떨다가 빙글 돌았어요."];
+  "나는 햇볕 아래에서 꾸벅꾸벅 졸았어요.", "나는 꾸벅 인사하고 빙글 돌았어요."];
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(`${OUT}/gestures.json`, JSON.stringify([{ id: "gestures", place: "바다", problem: "친구가 울고 있었어요",
   action: "옆에서 기다려 줬어요", result: "모두 기뻐했어요", book: { title: "몸짓", pages: TEXTS.map((text, i) => ({
