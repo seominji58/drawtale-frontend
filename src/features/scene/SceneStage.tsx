@@ -52,6 +52,9 @@ export const PEOPLE: Record<string, { h: number; w: number; foot?: number }> = {
   // 11/4 — 아이 우주복(아이 키) · 이모
   "spacekid-m": { h: 0.46, w: arOf("props/spacekid-m.webp", 0.5) }, "spacekid-f": { h: 0.46, w: arOf("props/spacekid-f.webp", 0.5) },
   aunt: { h: 0.58, w: arOf("props/aunt.webp", 0.32) },
+  // 11/10: 바닷속 잠수부 (어른 · 아이 키)
+  "diver-m": { h: 0.58, w: arOf("props/diver-m.webp", 0.45) }, "diver-f": { h: 0.58, w: arOf("props/diver-f.webp", 0.45) },
+  "diverkid-m": { h: 0.46, w: arOf("props/diverkid-m.webp", 0.46) }, "diverkid-f": { h: 0.46, w: arOf("props/diverkid-f.webp", 0.46) },
   nurse: { h: 0.58, w: arOf("props/nurse.webp", 0.42) }, busdriver: { h: 0.58, w: arOf("props/busdriver.webp", 0.42) },
   classmates: { h: 0.46, w: arOf("props/classmates.webp", 1.2) }, alien: { h: 0.34, w: arOf("props/alien.webp", 0.8) },
   rabbit: { h: 0.2, w: arOf("props/rabbit.webp", 0.8) }, squirrel: { h: 0.2, w: arOf("props/squirrel.webp", 0.8) },

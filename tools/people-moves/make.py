@@ -27,7 +27,8 @@ import os
 BASE = os.environ.get("AI_URL", "http://127.0.0.1:8001") + "/internal/v1"
 JOBS = ["caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper", "keeper", "police", "cook", "mail", "spacepolice"]
 PEOPLE = (["friend", "friend2", "adult", "grandma", "grandpa", "mom", "dad", "teacher", "aunt", "nurse", "busdriver",
-           "spacekid-m", "spacekid-f"] + [f"{k}-{g}" for k in JOBS for g in ("m", "f")])
+           "spacekid-m", "spacekid-f", "diver-m", "diver-f", "diverkid-m", "diverkid-f"]   # 잠수부: 바닷속 쪽 인물 (11/10)
+          + [f"{k}-{g}" for k in JOBS for g in ("m", "f")])
 # 동작 → (AI 동작 이름, 한 번 도는 시간(초)). AI 렌더는 동작을 48장으로 고르게 줄이므로 시간은 BVH 길이 그대로다.
 # 등장인물용으로 관절 각도로 만든 동작 (AI runtime/tools/make_scene_motions.py, 11/9 사용자 「인사 동작 자체가 이상, 한 팔만
 # 위로 올려서 흔들면」 「걷기 다리 움직임도 이상」): 예전 걷기(walk_front)는 무릎을 앞으로 드는 걸음이라 앞에서 보면 다리가

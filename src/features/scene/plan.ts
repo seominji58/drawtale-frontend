@@ -8,7 +8,7 @@ import AR from "./props-ar.json";
 
 /** 남녀 그림이 따로 있는 직업 (2026-11-03 사용자 「인물 묶음별로 남녀 그림」) — 그림 이름은 `${종류}-m` · `${종류}-f` */
 const GENDERED = ["caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper", "keeper", "police", "cook", "mail",
-  "spacepolice", "spacekid"] as const;
+  "spacepolice", "spacekid", "diver", "diverkid"] as const;
 type Gendered = (typeof GENDERED)[number];
 export type PersonId = "friend" | "friend2" | "adult" | "grandma" | "grandpa" | "mom" | "dad" | "teacher" | "baby" | "dog" | "cat"
   | `${Gendered}-${"m" | "f"}` | "nurse" | "busdriver" | "classmates" | "bat" | "bird" | "rabbit" | "squirrel" | "alien" | "aunt";
@@ -326,7 +326,8 @@ const NOT_MARK = /가슴이 (?:쿵|두근)|마음이 쿵/;
 const GESTURES: [HeroGesture, RegExp][] = [
   ["bow", /꾸벅|허리를 (?:숙여|굽혀|굽히)|고개 숙여 인사|고개를 숙여 인사|절을 (?:했|하)/],
   ["nod", /끄덕/],
-  ["shiver", /덜덜|부들부들|오들오들|벌벌|바들바들|후들후들|몸을 떨|떨렸|떨리|떨었|떨며|떨고/],
+  // 몸 털기(「툭툭 털고 달려갔어요」 카드)도 좌우로 잘게 흔들기로. 「털어놓았어요」는 빼고
+  ["shiver", /덜덜|부들부들|오들오들|벌벌|바들바들|후들후들|몸을 떨|떨렸|떨리|떨었|떨며|떨고|털었|털고|털어(?!놓)/],
   ["crouch", /웅크|움츠|오므리|오므렸|날개를 (?:꼭 |살며시 |가만히 )?접|쪼그|몸을 (?:작게|낮추|낮췄|낮춰|동그랗게)/],
 ];
 const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
@@ -674,6 +675,8 @@ const KINDS: [Kind, RegExp, RegExp][] = [
   ["spacepolice", /\b(space police|police\b.*\b(space|helmet))\b/, /우주 ?경찰/],
   ["astronaut", /\b(astronaut|spacesuit|space suit|space police|space guide|spaceship captain|space station|space explorer|moon base)\b/, /우주|선장|대장/],
   ["ranger", /\b(forest ranger|ranger|forest guide)\b/, /숲 지킴이|숲 해설|숲 선생/],
+  // 잠수부 (11/10, 바닷속 쪽 인물): 안전 요원보다 먼저 (「diver」 생김새에 lifeguard 가 같이 나올 때)
+  ["diver", /\b(scuba|diver|divers|wetsuit|diving suit|diving mask)\b/, /잠수/],
   ["lifeguard", /\blifeguard\b/, /안전 ?요원|바다 지킴이|바닷가 지킴이|해변 지킴이|구조대/],
   ["caveguide", /\bguide\b.*\bcave\b|\bcave\b.*\bguide\b/, /안내원/],
   ["police", /\bpolice\b/, /경찰/],
@@ -716,11 +719,23 @@ export function personKind(desc: string, name = ""): PersonId | null {
   // 아이 친구는 옷차림(우주복 · 구명조끼 …)보다 아이 그림이 먼저 — 우주 이야기의 「친구」(a little girl … space suit) 15명이
   // 어른 우주비행사 그림으로 섰다 (11/4 대본 검사). 외계인 · 동물은 그대로
   // 우주복 입은 아이는 아이 우주복 그림 (11/4)
-  if (CHILD.test(d) && !GROWN.test(d) && !NOT_KID.has(k)) return SPACE_SUIT.test(d) ? `spacekid-${genderOf(d, name)}` : "friend";
+  if (CHILD.test(d) && !GROWN.test(d) && !NOT_KID.has(k)) {
+    return SPACE_SUIT.test(d) ? `spacekid-${genderOf(d, name)}` : DIVE_SUIT.test(d) ? `diverkid-${genderOf(d, name)}` : "friend";
+  }
   return (GENDERED as readonly string[]).includes(k) ? (`${k}-${genderOf(d, name)}` as PersonId) : (k as PersonId);
 }
 const CHILD = /\b(?:(?:little|small|young) (?:girl|boy)|girl|boy|child|kid|toddler)\b/;
 const SPACE_SUIT = /\b(space ?suit|spacesuit|astronaut)\b/;
+const DIVE_SUIT = /\b(scuba|diver|wetsuit|diving suit|diving mask|swim goggles)\b/;
+/** 바닷속 쪽 인물은 잠수부 그림으로 (11/10 사용자 「바다 속에 등장하는 인물 캐릭터는 잠수부로」). 아이는 아이 잠수복, 동물 · 외계인 · 아기는 그대로.
+ *  대본이 생김새에 diving suit 를 넣게 했지만(백엔드 UNDERWATER_RULE) 바닷가 쪽에서 정한 생김새가 그대로 오기도 해 화면에서도 바꾼다 */
+const KID_IDS = new Set(["friend", "friend2", "spacekid-m", "spacekid-f", "diverkid-m", "diverkid-f"]);
+const KEEP_UNDERWATER = new Set(["dog", "cat", "bat", "bird", "rabbit", "squirrel", "alien", "baby", "classmates"]);
+export function asDiver(id: PersonId): PersonId {
+  if (KEEP_UNDERWATER.has(id) || id.startsWith("diver")) return id;
+  const sex = id === "friend2" ? "f" : id === "friend" ? "m" : personSex(id) ?? (id === "teacher" ? "f" : "m");
+  return KID_IDS.has(id) ? `diverkid-${sex}` : `diver-${sex}`;
+}
 const GROWN = /\b(?:adult|man|woman|mother|father|grand\w*|teacher|officer|owner)\b/;
 const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "cat", "baby", "classmates", "friend", "friend2"]);
 
@@ -880,6 +895,10 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
         ?? props.find((q) => q.id === "friend" || q.id === cardFriend))?.id;
       from = 1 / 3;
       to = 2 / 3;
+    }
+    if (loc === "sea-underwater") {
+      for (const q of props) if (isPerson(q.id)) q.id = asDiver(q.id as PersonId);
+      if (goal && isPerson(goal as PropId)) goal = asDiver(goal as PersonId);
     }
     const hiding = p.stage === "action" && picks.action === "hide";
     const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
