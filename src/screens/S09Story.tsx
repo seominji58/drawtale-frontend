@@ -372,11 +372,20 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const heroFit = heroForm.hero?.fit ?? "height";
   // 옆모습 형태의 머리 방향 — 서버가 알려 준 쪽(hero_facing). 예전 서버면 세션 관절에서 목이 엉덩이보다 왼쪽이면 왼쪽.
   // 세션 관절만 보던 때는 새로고침 · 책장에서 연 이야기가 머리 반대쪽으로 갈 때 뒤집지 못해 뒷걸음질했다 (11/4 운영)
+  // 머리 · 몸 뒤쪽의 가로 차이가 관절 전체 폭의 12% 도 안 되면 앞모습(0), 백엔드 facing_of 의 FRONT_DX 와 같다 (11/10:
+  // 앞에서 그린 새가 아무 쪽으로나 정해져 몸짓 연출에서 옆으로 숙였다). 서버가 null 을 주는 앞모습도 여기서 다시 0
+  const sideOf = (a?: { x: number }, b?: { x: number }): -1 | 0 | 1 | undefined => {
+    if (!a || !b || !keypoints) return undefined;
+    const xs = Object.values(keypoints).map((p) => p.x);
+    const spread = Math.max(...xs) - Math.min(...xs), dx = a.x - b.x;
+    return spread > 0 && Math.abs(dx) >= 0.12 * spread ? (dx < 0 ? -1 : 1) : 0;
+  };
   const heroFacing: -1 | 0 | 1 = heroForm.hero?.facing !== "auto" ? 0
     : story.heroFacing ? (story.heroFacing === "left" ? -1 : 1)
-    : keypoints?.neck && keypoints?.hip ? (keypoints.neck.x < keypoints.hip.x ? -1 : 1)
-    : keypoints?.head && keypoints?.tail ? (keypoints.head.x < keypoints.tail.x ? -1 : 1)   // 사슬형 · 지느러미형
-    : keypoints?.head && keypoints?.body ? (keypoints.head.x < keypoints.body.x ? -1 : 1) : 0;   // 날개형
+    : sideOf(keypoints?.neck, keypoints?.hip)
+      ?? sideOf(keypoints?.head, keypoints?.tail)   // 사슬형 · 지느러미형
+      ?? sideOf(keypoints?.head, keypoints?.body)   // 날개형
+      ?? 0;
   const scenes = useMemo(
     // 내 소품은 보호자 모드 이야기에서만 (팀원 의견). 쪽 글에 이름이 나오면 그 쪽 장면 안 주인공 옆에 (11/3 사용자 추천안 —
     // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게

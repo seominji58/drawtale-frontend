@@ -1112,17 +1112,19 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-hero.spin { animation: hero-spin .7s ease-in-out 3; }
 @keyframes hero-spin { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
   50% { transform: translateX(-50%) scaleX(calc(var(--flip, 1) * -1)); } }
-/* 몸짓 (11/10): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. 축은 발끝 가운데. --lean 은 머리 쪽으로 기우는 각도
-   (옆모습이면 머리 쪽 ±9도, 앞모습이면 0 이라 숙이는 대신 키만 살짝 줄어든다). 나레이션이 그 말에 오면 한 번 */
-.scene-hero.g-bow, .scene-hero.g-nod, .scene-hero.g-crouch { transform-origin: 50% 100%; }
+/* 몸짓 (11/10): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. 나레이션이 그 말에 오면 한 번.
+   --lean 은 머리 쪽으로 기우는 각도(옆모습만, 몸이 길수록 작게, 앞모습은 0 이라 키만 살짝 줄어든다),
+   --pivot 은 축을 화면에서 머리 쪽 몸 끝으로 옮기는 거리, --foot 은 발끝 높이, --tip 은 앞모습일 때 위쪽을 앞으로 젖히는 각도 (SceneStage gestureVars).
+   뒤집기(--flip)는 가운데를 축으로 먼저 하고 그 뒤에 축을 옮겨 돌린다 (축을 옮긴 채 뒤집으면 그림이 제 폭만큼 밀린다) */
+.scene-hero.g-bow, .scene-hero.g-nod, .scene-hero.g-crouch { transform-origin: 50% var(--foot, 100%); }
 /* 꾸벅: 머리 쪽으로 숙였다가 잠깐 멈추고 돌아오기 */
 .scene-hero.g-bow { animation: hero-bow 1.3s ease-in-out 1; }
 @keyframes hero-bow { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
-  35%, 60% { transform: translateX(-50%) rotate(var(--lean, 0deg)) scale(var(--flip, 1), .93); } }
+  35%, 60% { transform: translateX(-50%) perspective(300px) translateX(var(--pivot, 0%)) rotate(var(--lean, 0deg)) rotateX(var(--tip, 0deg)) translateX(calc(-1 * var(--pivot, 0%))) scale(var(--flip, 1), .93); } }
 /* 끄덕: 작게 두 번 */
 .scene-hero.g-nod { animation: hero-nod .45s ease-in-out 2; }
 @keyframes hero-nod { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
-  50% { transform: translateX(-50%) rotate(calc(var(--lean, 0deg) * .45)) scale(var(--flip, 1), .97); } }
+  50% { transform: translateX(-50%) perspective(300px) translateX(var(--pivot, 0%)) rotate(calc(var(--lean, 0deg) * .45)) rotateX(calc(var(--tip, 0deg) * .45)) translateX(calc(-1 * var(--pivot, 0%))) scale(var(--flip, 1), .97); } }
 /* 떨기: 좌우로 잘게 */
 .scene-hero.g-shiver { animation: hero-shiver .09s linear 14; }
 @keyframes hero-shiver { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
