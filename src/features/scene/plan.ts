@@ -270,13 +270,13 @@ export function readAt(text: string, i: number): number {
 export type JoyKind = "heart" | "star" | "flower";
 export type HeroGesture = "bow" | "nod" | "shiver" | "crouch";
 export interface SceneFx {
-  bright: number; tears: { at: number; sentence: string }[]; spins: { at: number; before: string }[];
+  bright: number; tears: { at: number; sentence: string; other?: boolean }[]; spins: { at: number; before: string }[];
   /** 주인공 몸짓 (11/10 사용자 「꾸벅 끄덕 떨기 웅크리기 연출」): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. before 는 빙글과 같다 */
   gestures: { at: number; before: string; kind: HeroGesture }[];
   /** 만화 기호 연출 (11/10 「보글보글 물방울 같은 연출이 아쉽다」) — 그 문장의 사람 머리 옆 · 발밑 · 몸 둘레에 */
   marks: { at: number; sentence: string; kind: MarkKind }[];
   /** 기쁨 · 고마움 (11/10 사용자 「고맙다 · 기쁘다 긍정일 땐 하트 · 꽃 같은 기분 좋은 연출」) — 그 사람 머리 위로 피어오른다 */
-  joys: { at: number; sentence: string; kind: JoyKind }[];
+  joys: { at: number; sentence: string; kind: JoyKind; other?: boolean }[];
   /** 울음이 그친 자리 (눈물을 닦았어요 · 울음을 그쳤어요) — 그 사람 눈물이 멈춘다 */
   calms: { at: number; sentence: string }[];
 }
@@ -284,8 +284,9 @@ export interface SceneFx {
 const JOYS: [JoyKind, RegExp][] = [
   ["heart", /고마워|고맙|고마운|감사|사랑|좋아해|좋아한|친구가 (?:됐|되었|되어)|단짝|꼭 안|안아 주|따뜻해졌|마음이 따뜻/],
   ["star", /기뻤|기뻐|기쁜|기쁨|신났|신나|신이 나|해냈|성공|최고|야호|만세|와아|우와|뿌듯|자랑스러|좋은 생각|생각이 (?:번쩍|떠올|났)|번뜩/],
-  ["flower", /행복|활짝 웃|웃음꽃|웃었|웃으며|웃으면서|웃는|까르르|웃기 시작|웃음이|웃음을 (?:터|참|짓)|웃음보|웃음소리|빵 터|푸하하|하하|호호|헤헤|킥킥|낄낄|키득|깔깔|방긋|싱긋|빙그레|미소|즐거|재미있|재밌|반가/],
+  ["flower", /행복|활짝 웃|웃게 (?:했|만들|해)|웃겼|웃음을 (?:주|선물)|웃음꽃|웃었|웃으며|웃으면서|웃는|까르르|웃기 시작|웃음이|웃음을 (?:터|참|짓)|웃음보|웃음소리|빵 터|푸하하|하하|호호|헤헤|킥킥|낄낄|키득|깔깔|방긋|싱긋|빙그레|미소|즐거|재미있|재밌|반가/],
 ];
+const MAKE_HAPPY = /(?:를|을) (?:웃게|웃겼|기쁘게|행복하게|즐겁게)/;
 const NOT_JOY = /않았|않아|않고|못 했|못했|비웃|아니었/;
 /** 슬프거나 걱정하는 쪽 — 옆 인물이 손을 흔들지 않는다 (11/10 「우는데 손 흔들면서 웃어버리니 이상」) */
 /** 인사하는 말 — 이 말이 있는 쪽에서만 등장인물이 손을 흔든다 (11/10 「등장하고 나서 기본값이 손 흔들기 같아」 — 전에는 이름만 나와도 흔들었다) */
@@ -328,6 +329,8 @@ const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌�
 const NOT_CRY = /그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었/;
 /** 따옴표 말 뒤에 이어지는 말 (“…” 하고 · 라고 · 하며) — 앞 문장과 이어 누가 하는지 본다 */
 const CONT = /^\s*(?:하고|라고|하며|하면서|하자|하니|하는|이라고|고 )/;
+/** 이어 붙인 문장(앞 문장 + 이 조각)에서 찾은 자리를 글 전체 자리로 — 앞 문장에서 찾았으면 이 조각 첫머리 */
+const posIn = (m: RegExpExecArray, sen: string, i: number) => m.index + Math.max(0, i - (sen.length - m[0].length));
 export function sceneFx(text: string): SceneFx {
   const b = BRIGHT.exec(text);
   const tears: SceneFx["tears"] = [];
@@ -338,9 +341,12 @@ export function sceneFx(text: string): SceneFx {
     prev = sen;
     // 자리는 우는 말(「울었어요」)이 나오는 곳 — 문장 첫머리면 「민지가 혼자」를 읽을 때 벌써 떨어졌다 (11/10)
     // 묻는 말 · 따옴표 대사는 우는 것이 아니다 — 「“왜 울어?” 하고 나는 물었어요」에서 주인공 눈에 눈물이 났다 (11/10)
-    if (sen.includes("?") || sen.trimStart().startsWith("“")) continue;
+    // 「왜 울어?」 · 「왜 울고 있지?」처럼 우는 걸 묻는 말, 「훌쩍이는 소리가 들렸어요」는 상대(등장인물)가 우는 것 —
+    // 전에는 주어가 없어 주인공이 먼저 울었고, 묻는 말을 빼니 다음 쪽에서 친구가 울지 않았다 (11/10)
+    const asks = sen.includes("?") || /소리가 (?:들|났|나)|소리를 들/.test(sen);
+    if (!asks && sen.trimStart().startsWith("“")) continue;
     const c = CRY.exec(sen);
-    if (c && !NOT_CRY.test(sen)) tears.push({ at: readAt(text, m.index + c.index), sentence: sen });
+    if (c && !NOT_CRY.test(sen)) tears.push({ at: readAt(text, posIn(m, sen, c.index)), sentence: sen, other: asks || undefined });
   }
   // 도는 말: 그 문장에서 그 말 앞부분(누가 도는지 — 장면이 정한다)과 자리
   const spins: SceneFx["spins"] = [];
@@ -369,12 +375,13 @@ export function sceneFx(text: string): SceneFx {
     const sen = CONT.test(m[0]) ? prev3 + m[0] : m[0];
     prev3 = sen;
     const cm = CALM.exec(sen);
-    if (cm) calms.push({ at: readAt(text, m.index + cm.index), sentence: sen });
+    if (cm) calms.push({ at: readAt(text, posIn(m, sen, cm.index)), sentence: sen });
     // 묻는 말(「어떻게 하면 웃을까?」)은 기쁨이 아니다. 따옴표 대사(「“고마워!”」)는 기쁨
     if (NOT_JOY.test(sen) || sen.includes("?")) continue;
     for (const [kind, re] of JOYS) {
       const j = re.exec(sen);
-      if (j) { joys.push({ at: readAt(text, m.index + j.index), sentence: sen, kind }); break; }
+      // 「친구를 웃게 했어요」 · 「기쁘게 해 주었어요」는 「~를」 쪽 사람이 기뻐한다 (주어 「나는」이 있어도)
+      if (j) { joys.push({ at: readAt(text, posIn(m, sen, j.index)), sentence: sen, kind, other: MAKE_HAPPY.test(sen) || undefined }); break; }
     }
   }
   const marks: SceneFx["marks"] = [];

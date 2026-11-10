@@ -675,10 +675,11 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   // cx · foot: 몸 가운데 · 발끝 (먼지 · 물보라 · 반짝이 자리), dir: 머리 쪽(옆모습) — 앞모습은 1
   type Who = { key: string; x: number; face: number; head: number; top: number; h: number; scale: number; side: boolean; follow: boolean; enter: boolean;
     cx: number; foot: number; dir: number };
-  const whoOf = (sentence: string, thanks = false): Who | null => {
-    const me = /(?:^|[^가-힣])(?:나는|내가|나도|내 눈|내 마음)/.test(sentence);
+  // other: 상대(등장인물)가 하는 것 — 「나는 친구를 웃게 했어요」 · 「왜 울어?」. 주어 「나」를 보지 않는다
+  const whoOf = (sentence: string, thanks = false, other0 = false): Who | null => {
+    const me = !other0 && /(?:^|[^가-힣])(?:나는|내가|나도|내 눈|내 마음)/.test(sentence);
     const named = visiblePeople.find((v) => v.p.name && sentence.includes(v.p.name));
-    const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(sentence) || thanks ? visiblePeople[0] : undefined));
+    const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(sentence) || thanks || other0 ? visiblePeople[0] : undefined));
     if (other) {
       const h = other.sb.h, foot = other.sb.foot ?? 0.93;
       return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, top: foot - h, h, scale: h, side: false, follow: false, enter: !!other.p.enter || !!other.follow,
@@ -698,16 +699,17 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const ready = (w: Who | null): w is Who => !!w && (!w.enter || arrived);
   // 그친 자리: 같은 사람이 그 뒤에 눈물을 닦거나 기뻐하면 눈물이 멈춘다 (전에는 쪽 끝까지 계속 떨어졌다)
   const stopsAt = [...fx.calms.map((c) => ({ at: c.at, who: whoOf(c.sentence) })),
-    ...fx.joys.map((jy) => ({ at: jy.at, who: whoOf(jy.sentence, jy.kind === "heart") }))].filter((c) => heard(c.at));
+    ...fx.joys.map((jy) => ({ at: jy.at, who: whoOf(jy.sentence, jy.kind === "heart", !!jy.other) }))].filter((c) => heard(c.at));
   const crying = fx.tears.filter((t) => heard(t.at)).map((t) => {
-    const w = whoOf(t.sentence);
+    const w = whoOf(t.sentence, false, !!t.other);
+    if (t.other && w?.key === "hero") return null;   // 상대가 울어야 하는데 옆에 인물이 없으면 아무도 울지 않는다
     if (!ready(w)) return null;
     if (stopsAt.some((c) => c.at > t.at && c.who?.key === w.key)) return null;
     return { key: w.key, x: w.x, y: w.face, size: Math.max(w.scale * (w.side ? 0.085 : 0.06), 0.028), gap: w.side ? 0 : (w.scale * (w.follow ? 0.04 : 0.032)) / aspect, follow: w.follow };
   }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((w) => w?.key === v.key) === k);
   // 기쁨 · 고마움: 그 사람 머리 위로 하트 · 별 · 꽃이 피어오른다 (나레이션이 그 말에 오면 한 번)
   const joyful = fx.joys.filter((jy) => play && heard(jy.at)).map((jy, k) => {
-    const w = whoOf(jy.sentence, jy.kind === "heart");
+    const w = whoOf(jy.sentence, jy.kind === "heart", !!jy.other);
     if (!ready(w)) return null;
     // 머리 둘레를 감싼다 — 칸 가운데가 얼굴 높이, 칸 크기는 그 사람 키 기준 (11/10 「별이 머리 주변에 가득 있어야」)
     // 옆모습(새 · 4족 …)은 머리가 그림 끝에 작게 있어 몸 키 기준이면 별이 얼굴 · 눈을 덮었다 — 작게 · 머리 위쪽으로 (11/10)
