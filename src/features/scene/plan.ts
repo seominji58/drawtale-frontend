@@ -340,7 +340,7 @@ const GESTURES: [HeroGesture, RegExp][] = [
 const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
 // 「멀리서 불빛이 보였어요」 · 「별이 빛났어요」는 장면 전체가 밝아지는 것이 아니다 (저장 이야기 점검 11/10)
-const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)|불빛에|불빛이 (?:비|퍼|가득|환)/;
+const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)|불빛에|불빛이 (?:비|퍼|가득|환|새어|새)|새어 나왔/;
 const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
 const NOT_CRY = /그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었|쏙 들어|들어갔|참았|참고|꾹 참|눈물이 (?:싹|쏙)|눈물이 뚝 (?:그|멈)|눈물을 (?:거두|멈)/;   // 「눈물이 뚝뚝 떨어졌어요」는 우는 것 (11/10)
 /** 문장의 주인 (저장 이야기 3,069편 점검 11/10 — 「천장에서 물방울이 떨어졌어요」 · 「새들이 노래했어요」의 연출이 주인공에게 났다).
@@ -603,6 +603,8 @@ export interface HeroPlan {
   /** 「숨었어요」 — out: 이 쪽에서 앞 물건 뒤로 천천히 사라지고 그대로 숨어 있다, gone: 이미 숨어 있다(행동 단계 다음 쪽).
    *  다시 나타나지 않는다 (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 「2초 뒤 다시 나타난다」와 다름) */
   hide: "out" | "gone" | null;
+  /** 날고 있는지 (날개형) — 날아오르는 말부터 앉는 · 걷는 말까지 이어진다 */
+  fly?: boolean;
   /** 주인공이 보는 쪽 (-1 왼쪽 · 1 오른쪽 · 0 정하지 않음). 옮겨 가면 가는 쪽, 제자리면 앞 쪽에서 보던 쪽을 잇는다 —
    *  옮겨 갈 때만 뒤집으면 다음 쪽에서 원래 그림 방향으로 돌아가 옆 친구에게 등을 돌렸다 (11/5 사용자, 옆모습 주인공) */
   face: -1 | 0 | 1;
@@ -618,8 +620,10 @@ export interface Env {
   sun: boolean;
   /** 그 쪽의 날씨 효과 (쪽 글 · 배경 설명에 나올 때만, 바깥 장소만 — weatherFor) */
   weather: Weather | null;
-  /** 어두운 곳 (11/10 「어두운 숲 · 캄캄한 동굴」) — 밤은 아니라 해 · 달 · 별은 그대로, 장면만 어둑하게. 그 쪽에서만 */
+  /** 어두운 곳 (11/10 「어두운 숲 · 캄캄한 동굴」) — 밤은 아니라 해 · 달 · 별은 그대로, 장면만 어둑하게 */
   dim?: boolean;
+  /** 이 쪽에서 실내 불이 켜진다 — 나레이션이 불빛 말에 오면 밤 어둠도 걷힌다 */
+  lightsOn?: boolean;
 }
 
 export type Weather = "rain" | "storm" | "snow" | "fog" | "wind" | "rainbow";
@@ -652,6 +656,13 @@ export const hasSkyBodies = (location: string) => !INDOOR.has(location) && !NO_S
 // 밤은 밤을 바로 말할 때만 (11/10 사용자 「어두워졌어요에 밤이 직접 없으면 그냥 어두워져야」) — 「어두워졌어요 · 깜깜해」는 어두운 곳(DARK_TEXT)
 const NIGHT_TEXT = /밤이 (?:되|깊|왔)|(?:캄캄한|깜깜한|어두운|까만|컴컴한) 밤|밤하늘|해가 (?:졌|지|저물|뉘엿)|노을|저녁이 (?:되|왔)|달이 (?:떴|떠올|휘영)|별이 (?:떴|반짝)/;
 /** 어두운 곳 — 「어두운 숲 · 캄캄한 동굴 · 깜깜한 방 · 어둠 속 · 불이 꺼졌어요」. 「어둡지 않았어요」 · 「어두운 색」은 아니다 */
+/** 나는 말 — 날개형 주인공을 띄운다. 「날개를 팔랑팔랑 흔들며 도착했어요」처럼 날갯짓하며 옮겨 가는 것도 */
+export const FLY_TEXT = /날아|날았|날고|날며|날면서|날개를 (?:활짝 )?(?:펴|펼|펄럭|파닥)|날개를 [가-힣]+ (?:흔들|펄럭|파닥|퍼덕)이?(?:며|면서|고) [가-힣 ]{0,12}(?:도착|갔|왔|날|올라|다녔|돌)|훨훨|하늘(?:로|을|에서|높이)|높이 (?:올라|떠)|파닥파닥 (?:날|올)|퍼덕퍼덕 (?:날|올)/;
+/** 내려앉는 말 — 날기를 멈춘다 */
+const LAND_TEXT = /앉았|앉아|내려앉|내려왔|내려와|착지|땅에 (?:내려|섰)|걸었|걸어|총총|아장|뒤뚱/;
+/** 실내 불이 켜지는 말 (11/10 「불빛이 한 번 켜진 이야기에서 다음에 또 꺼진다」) — 한 번 켜지면 꺼진다는 말까지 밝다 */
+const LIGHTS_ON = /불빛이 (?:새어|새|나|보|비|퍼|가득|환|켜)|새어 나오|불이 (?:켜졌|켜져|켜지|들어왔|들어와)|불을 (?:켰|켜|밝)|환한 (?:교실|방|복도|불)|밝은 (?:교실|방|불)|전등|등불을 (?:켰|켜)|환해|밝아(?:졌|지|져)/;
+const LIGHTS_OFF = /불이 (?:꺼졌|꺼지|꺼져|나갔)|불을 (?:껐|끄)|정전/;
 export const DARK_TEXT = /(?:어두운|어둑한|어둑어둑한|캄캄한|깜깜한|컴컴한|껌껌한|새까만|시커먼) (?!색|옷|머리|털|눈)[가-힣]+|어둑어둑|어두웠|어두워(?:졌|지|져)|캄캄해|깜깜해|컴컴해|껌껌해|어둠 속|어둠이 (?:깔|내려|가득|짙)|(?:불|전등|등불)이 (?:꺼졌|꺼지|나갔|탁 꺼)|정전/;
 // 「밤새 깜깜했던 바다가 금빛으로」처럼 지나간 어둠은 아니다
 const NOT_DARK = /어둡지 않|안 어두|어둠이 (?:무섭지|사라|걷)|(?:깜깜|캄캄|어두웠|컴컴|어둑)(?:했)?던 /;
@@ -804,7 +815,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   mine: { name: string; png: string; height: number }[] = []): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
-  let x = SLOT, loc: string | undefined, night = false, dimOn = false;
+  let x = SLOT, loc: string | undefined, night = false, dimOn = false, lit = false, flying: boolean = false;
   let face: -1 | 0 | 1 = 0;
   const stageIdx = (s: string) => ["place", "problem", "action", "result"].indexOf(s);
   // 숨는 곳은 행동 쪽들의 글에서 한 번 정해 쪽이 바뀌어도 같은 물건
@@ -867,6 +878,17 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const dimNow = !night && (dimOn || darkHere);
     if (darkHere) dimOn = true;
     if (BRIGHT.test(p.text) || MORNING_TEXT.test(p.text) || (p.stage === "result" && picks.result === "sun")) dimOn = false;
+    // 실내 불: 켜지면 꺼진다는 말이 있을 때까지 밤이어도 밝다 (실내만 — 바깥 밤하늘은 그대로)
+    const indoorHere = !!loc && isIndoor(loc);
+    const turnsOn = indoorHere && LIGHTS_ON.test(p.text) && !LIGHTS_OFF.test(p.text);
+    const litHere = indoorHere && lit;
+    if (LIGHTS_OFF.test(p.text)) lit = false;
+    else if (turnsOn) lit = true;
+    // 날기: 날아오르는 말부터 앉는 · 걷는 말까지 (쪽마다 오르내리지 않게)
+    const flyHere = FLY_TEXT.test(p.text);
+    const landHere = !flyHere && LAND_TEXT.test(p.text);
+    const fly: boolean = flyHere || (flying && !landHere);
+    flying = fly;
 
     const props: PropPlan[] = [];
     const actionProp = picks.action ? ACTION_PROP[picks.action] : undefined;
@@ -953,8 +975,8 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const weather = weatherFor(p.text, p.scene?.background ?? "", loc);
     out.push({
       location: loc,
-      env: { night, sun, weather, dim: dimNow },
-      hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide,
+      env: { night: night && !litHere, sun, weather, dim: dimNow && !litHere, lightsOn: turnsOn && !litHere },
+      hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,
         calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다

@@ -158,8 +158,8 @@ interface Props {
   text?: string;
   /** 이 쪽 주인공 동작 (book page action) — 기쁨이면 옆 인물도 만세 */
   pageAction?: string;
-  /** 앞 쪽 글 — 날개형이 앞 쪽에서 날고 있었는지(높이를 이어 붙인다) */
-  prevText?: string | null;
+  /** 앞 쪽에서 날고 있었는지 (날개형 높이를 이어 붙인다) */
+  prevFly?: boolean | null;
   /** 주인공 이름 (연출의 「누가」를 가린다 — 「별이는 잠이 들었어요」) */
   heroName?: string | null;
   /** 주인공 형태 (forms/*.json id). 4족형이면 든 소품을 입에 물고 · 등에 태운다 (pt_docs 20 2-a) */
@@ -169,14 +169,16 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift: formLift = 0, size = 1, form, narration, envAt, text = "", pageAction = "", prevText = null }: Props) {
+export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift: formLift = 0, size = 1, form, narration, envAt, text = "", pageAction = "", prevFly = null }: Props) {
   // 새(날개형)는 나는 쪽에서만 띄운다 — 늘 화면 높이 4할 위에 떠 있어 「옆에서 지켜봤어요」에도 공중에 있었고
   // 땅에 선 인물들과 높이가 맞지 않았다 (11/10). 헤엄치는 친구(지느러미형)는 그대로 뜬다
   // 날고 있는 쪽 높이 — 앞 쪽과 다르면 쪽에 들어올 때 앞 쪽 높이에서 천천히 날아오르거나 내려앉는다 (11/10 「갑자기 낮게 날다 떨어져 걷고」).
   // 전에는 쪽을 넘길 때마다 순간이동하듯 위아래로 튀었다
-  const liftOf = (t: string | null | undefined) => (form === "winged" && !FLY_TEXT.test(t ?? "") ? 0 : formLift);
-  const liftNow = liftOf(text);
-  const liftPrev = prevText == null ? liftNow : liftOf(prevText);
+  // 날고 있는지는 이야기 흐름으로 정한다(plan hero.fly) — 한 번 날아오르면 앉거나 걷는다는 말이 있을 때까지 계속 난다
+  // (11/10 사용자 「날다가 내려오는 느낌이 별로」 — 전에는 쪽마다 그 쪽 글만 보고 오르내렸다)
+  const liftOf = (fly: boolean | null | undefined) => (form === "winged" && !fly ? 0 : formLift);
+  const liftNow = liftOf(plan.hero.fly);
+  const liftPrev = prevFly == null ? liftNow : liftOf(prevFly);
   const play = mode === "play";
   // 그림띠가 풀리면 다시 그린다. 걸어 들어오기는 재생을 시작할 때 풀려 있던 것만 (도중에 붙으면 걷다가 그림이 바뀐다),
   // 인사는 늦게 풀려도 그때부터 손을 든다
@@ -333,7 +335,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
 
   const cueHeard = narration === undefined || envAt === undefined || envAt <= 0 || narration >= envAt;
   const env = (phase === 0 || !cueHeard) && prevEnv ? prevEnv : plan.env;
-  const night = env.night;
+  // 불을 켠 실내(env.lightsOn): 나레이션이 불빛 말에 오면 밤 어둠도 걷힌다 — 다음 쪽부터는 plan 이 밤을 끈다
+  const brightAt0 = plan.env.lightsOn ? sceneFx(text).bright : -1;
+  const fx0Bright = brightAt0 >= 0 && (mode === "end" || (play && phase === 1 && (narration === undefined || narration >= brightAt0)));
+  const night = env.night && !(plan.env.lightsOn && fx0Bright);
   // 해 · 달: 밤이면 달이 높이, 해가 뜬 쪽이면 해가 높이. 앞 쪽에서 바뀌면 동→서 곡선
   const sunPos = env.sun ? SKY.sunHigh : prevEnv?.sun && !plan.env.sun ? SKY.west : SKY.east;
   const moonPos = night ? SKY.moonHigh : prevEnv?.night && !plan.env.night ? SKY.west : SKY.east;
@@ -1046,8 +1051,6 @@ const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
   flower: "M12 9.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm0 12a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM6 15.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm12 0a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM12 14.6a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2z",
 };
 /** 나는 말 — 새 주인공을 띄운다 */
-// 「날개를 팔랑팔랑 흔들며 도착했어요」처럼 날갯짓하며 옮겨 가는 것도 난다
-const FLY_TEXT = /날아|날았|날고|날며|날면서|날개를 (?:활짝 )?(?:펴|펼|펄럭|파닥)|날개를 [가-힣]+ (?:흔들|펄럭|파닥|퍼덕)이?(?:며|면서|고) [가-힣 ]{0,12}(?:도착|갔|왔|날|올라|다녔|돌)|훨훨|하늘(?:로|을|에서|높이)|높이 (?:올라|떠)|파닥파닥 (?:날|올)|퍼덕퍼덕 (?:날|올)/;
 /** 떨어지는 물방울 [가로 %, 늦게 시작(초), 떨어지는 깊이 %] */
 const DRIPS: [number, number, number][] = [[18, 0, 72], [34, 0.9, 64], [52, 0.4, 70], [66, 1.5, 60], [81, 0.7, 74], [9, 1.9, 58], [92, 1.2, 66]];
 /** 기호 연출 조각 — 모양은 CSS(.scene-mark.k-*)가 그린다 */
