@@ -238,14 +238,20 @@ const ALWAYS_MOVING: Record<string, ThingMotion> = {
 const WIND_MOVING = new Set(["props/flag.webp", "props/umbrella.webp", "props/leaves.webp"]);
 const BALL_MOVES = /굴렸|굴러|굴리|데굴|찼어|차서|뻥 찼|던졌|던져/;
 const LIGHT_SRC = new Set(["props/flashlight.webp", "props/lantern.webp"]);
-const LIGHT_ON = /켰|켜졌|켜지|켜 ?두|불이 들어|불을 밝|밝혔|밝게|비췄|비추|환하게|환히|반짝|빛났|빛나|번쩍/;
+/** 빛 · 밝음 말 (11/10 사용자 「환해졌어요 — 빛 관련 표현 범위를 넓혀서 불이 들어오게」). 소품 빛남 · 장면 밝아짐이 같이 쓴다.
+ *  켜다 · 밝다 · 환하다 · 비추다 · 빛 · 반짝 · 번쩍 · 눈부시다 · 불빛 · 햇살 · 달빛 · 별빛 · 반딧불 … */
+const LIGHT_WORDS = /켰|켜졌|켜지|켜져|켜 ?두|켜 ?놓|불이 (?:들어|켜|반짝|환)|불을 (?:밝|켜|비)|불빛|밝혔|밝혀|밝아|밝게|밝은 빛|밝았|환해|환하|환히|환한|비췄|비추|비춰|빛나|빛났|빛이|빛을|빛으로|반짝|번쩍|눈부|초롱초롱|깜빡|햇살|햇빛|달빛|별빛|반딧불|은은하게/;
+const LIGHT_ON = LIGHT_WORDS;
+/** 불이 꺼짐 — 손전등 · 등불이 빛나지 않는다 */
+const LIGHT_OFF = /꺼졌|꺼지|꺼져|껐|끄고|끄니/;
 
 /** 쪽 연출 (11/10 사용자 「빛 번짐 · 환해졌다 · 눈물 같은 연출이 없다」). 쪽 글의 말로만 고른다 — 대본 AI 를 바꾸지 않는다.
  *  bright: 장면이 환해지는 말의 자리 (나레이션이 그 자리에 오면 따뜻한 빛이 번진다). 없으면 -1
  *  tears: 우는 문장들 — 누가 우는지는 장면(SceneStage)이 그 문장의 인물 이름 · 「나」로 정한다.
  *  「울음을 그쳤어요」 · 「눈물을 닦았어요」 · 「울지 않았어요」는 울지 않는 것 */
 export interface SceneFx { bright: number; tears: { at: number; sentence: string }[] }
-const BRIGHT = /환해졌|환해지|환해|환하게 (?:빛|비|밝)|밝아졌|밝아지|빛이 (?:났|나|들|비|퍼|쏟|가득|번)|햇살이 (?:비|들|쏟|가득)|햇빛이 (?:비|들|쏟|가득)|불이 (?:켜졌|들어왔)|불을 켰/;
+/** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
+const BRIGHT = /환해|환하게|환히|환한 빛|밝아|밝혔|밝혀|밝은 빛|빛이 (?:났|나|들|비|퍼|쏟|가득|번|환)|빛으로 (?:가득|환)|햇살|햇빛|달빛이|불빛이|불이 (?:켜졌|켜지|들어왔|들어오)|불을 (?:켰|켜|밝)|눈부/;
 const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
 const NOT_CRY = /그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었/;
 export function sceneFx(text: string): SceneFx {
@@ -265,7 +271,8 @@ function thingMotion(t: ThingPlan, text: string, weather: Weather | null): Thing
   if (ALWAYS_MOVING[src]) return ALWAYS_MOVING[src];
   if (src === "props/ball.webp" && BALL_MOVES.test(text)) return "roll";
   // 손전등 · 등불은 쪽 글에 불을 켬 · 밝힘 · 비춤이 있으면 (어느 문장이든) 빛난다 — 「손전등을 들고 … 앞을 비췄어요」
-  if (LIGHT_SRC.has(src) && LIGHT_ON.test(text)) return "glow";
+  // 꺼지면 빛나지도 사라지지도 않고 그대로 놓여 있다 (「등불이 꺼졌어요」가 사라짐 shrink 에 걸렸다)
+  if (LIGHT_SRC.has(src)) return LIGHT_OFF.test(text) ? undefined : LIGHT_ON.test(text) ? "glow" : undefined;
   // 장면 물건도 그 물건이 나온 문장의 말대로 (11/9 테스트 4번 「소품 연출이 고정적」) — 반짝 · 빙글 · 커짐 · 사라짐 · 흔들림 …
   if (t.at !== undefined && t.at >= 0 && !t.pose) {
     const m = sentenceMotion(text, t.at);
@@ -286,7 +293,7 @@ const MINE_MOVES: [ThingMotion, RegExp][] = [
   ["grow", /커졌|커지|자랐|자라났|부풀|활짝|피어났|피었|펼쳐졌/],
   ["spin", /빙글|뱅글|빙그르|핑그르|팽그르|돌았|돌아갔|뱅뱅|빙빙/],
   // 불을 켬 · 밝힘도 빛남 (11/10 사용자 「소품에 불이 들어오거나 그러지 않네」) — 전에는 「손전등을 켰어요」가 걸리지 않았다
-  ["glow", /반짝|빛났|빛나|번쩍|환하게|환히|깜빡|초롱초롱|눈부|켰|켜졌|켜지|켜 ?두|불이 들어|불을 밝|밝혔|밝게|비췄|비추/],
+  ["glow", LIGHT_WORDS],
   ["shake", /덜컹|부르르|덜덜|흔들렸|흔들리|들썩였|쿵쾅|와르르/],
   ["roll", /굴러|굴렸|굴리|데굴|떼굴/],
   ["float", /둥실|둥둥|떠다니|날아다니|훨훨|떠올랐|떠올라/],
