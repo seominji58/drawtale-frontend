@@ -743,6 +743,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const gesture = canMove ? fx.gestures.filter((g) => heard(g.at) && !otherSpins(g.before)).pop() : undefined;
   const heroSpin = spinAt >= 0 && !(gesture && gesture.at > spinAt);
   const heroMove = heroSpin ? "spin" : gesture ? `g-${gesture.kind}` : "";
+  // 어두운 곳: 「불을 켜니 환해졌어요」처럼 같은 쪽에서 밝아지면 그 말부터 어둑함이 걷힌다
+  const dim = !!env.dim && !brightOn;
   // 만화 기호 연출 (11/10): 그 문장의 사람에게. 자리 · 크기는 연출마다 (화면 높이 · 너비 대비, 칸 가운데가 자리)
   const marks = fx.marks.filter((mk) => play && heard(mk.at)).map((mk) => {
     const w = whoOf(mk.sentence);
@@ -772,7 +774,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const sadPage = SAD_TEXT.test(text);
 
   return (
-    <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" ? "gloomy" : ""} ${weather === "storm" ? "stormy" : ""}`} aria-hidden ref={root}>
+    <div className={`scene ${night ? "night" : ""} ${dim ? "dim" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" ? "gloomy" : ""} ${weather === "storm" ? "stormy" : ""}`} aria-hidden ref={root}>
       <img className="scene-plate scene-bg" src={base + layout.plate} alt="" />
       <div className="scene-tint" />
       {!indoor && (

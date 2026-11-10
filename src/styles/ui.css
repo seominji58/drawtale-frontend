@@ -957,6 +957,13 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-obj, .scene-hero, .scene-sun, .scene-moon { transform: translateX(-50%); pointer-events: none; user-select: none; }
 .scene-bg { transition: filter 2.6s ease; }
 .scene.night .scene-bg { filter: brightness(.45) saturate(.6); }
+/* 어두운 곳 (11/10): 밤보다 덜 어둡고 해 · 달은 그대로. 사람 · 소품도 조금 어둑하게, 밝아지면 천천히 걷힌다 */
+.scene .scene-bg, .scene .scene-thing { transition: filter 1.8s ease; }
+.scene.dim .scene-bg { filter: brightness(.55) saturate(.7); }
+.scene.dim .scene-tint { opacity: .4; }
+/* 어두운 숲에 웃는 해가 떠 있으면 어색했다 — 어둑한 동안 해는 숨는다 */
+.scene.dim .scene-sun { opacity: 0 !important; }
+.scene.dim .scene-person, .scene.dim .scene-hero, .scene.dim .scene-thing:not(.m-glow) { filter: brightness(.8) saturate(.9); }
 .scene-tint { inset: 0; background: #2C3D72; mix-blend-mode: multiply; opacity: 0; transition: opacity 2.6s ease; pointer-events: none; }
 .scene.night .scene-tint { opacity: .55; }
 .scene-sky { left: 0; top: 0; width: 100%; overflow: hidden; }

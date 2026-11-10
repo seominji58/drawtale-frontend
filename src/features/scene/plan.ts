@@ -602,6 +602,8 @@ export interface Env {
   sun: boolean;
   /** 그 쪽의 날씨 효과 (쪽 글 · 배경 설명에 나올 때만, 바깥 장소만 — weatherFor) */
   weather: Weather | null;
+  /** 어두운 곳 (11/10 「어두운 숲 · 캄캄한 동굴」) — 밤은 아니라 해 · 달 · 별은 그대로, 장면만 어둑하게. 그 쪽에서만 */
+  dim?: boolean;
 }
 
 export type Weather = "rain" | "storm" | "snow" | "fog" | "wind" | "rainbow";
@@ -631,7 +633,11 @@ export const isIndoor = (location: string) => INDOOR.has(location);
 const NO_SKY_BODIES = new Set(["sea-underwater", "space", "space-planet"]);
 export const hasSkyBodies = (location: string) => !INDOOR.has(location) && !NO_SKY_BODIES.has(location);
 /** 쪽 글로 밤 · 아침 (「돌아왔어요」처럼 엉뚱한 말이 걸리지 않게 말 덩어리로) */
-const NIGHT_TEXT = /밤이 (?:되|깊|왔)|캄캄해|깜깜해|어두워졌|해가 (?:졌|지|저물|뉘엿)|노을|저녁이 (?:되|왔)|달이 (?:떴|떠올|휘영)|별이 (?:떴|반짝)/;
+const NIGHT_TEXT = /밤이 (?:되|깊|왔)|(?:캄캄한|깜깜한|어두운|까만|컴컴한) 밤|밤하늘|캄캄해|깜깜해|어두워졌|해가 (?:졌|지|저물|뉘엿)|노을|저녁이 (?:되|왔)|달이 (?:떴|떠올|휘영)|별이 (?:떴|반짝)/;
+/** 어두운 곳 — 「어두운 숲 · 캄캄한 동굴 · 깜깜한 방 · 어둠 속 · 불이 꺼졌어요」. 「어둡지 않았어요」 · 「어두운 색」은 아니다 */
+export const DARK_TEXT = /(?:어두운|어둑한|어둑어둑한|캄캄한|깜깜한|컴컴한|껌껌한|새까만|시커먼) (?!색|옷|머리|털|눈)[가-힣]+|어둑어둑|어두웠|캄캄했|깜깜했|컴컴했|껌껌했|어둠 속|어둠이 (?:깔|내려|가득|짙)|(?:불|전등|등불)이 (?:꺼졌|꺼지|나갔|탁 꺼)|정전/;
+// 「밤새 깜깜했던 바다가 금빛으로」처럼 지나간 어둠은 아니다
+const NOT_DARK = /어둡지 않|안 어두|어둠이 (?:무섭지|사라|걷)|(?:깜깜|캄캄|어두웠|컴컴|어둑)(?:했)?던 /;
 const MORNING_TEXT = /아침이 (?:밝|됐|되|왔)|해가 (?:떴|떠올|뜨|솟)|날이 밝/;
 /** 날씨 — [종류, 쪽 글, 배경 설명(영어)]. 앞에 있는 것이 먼저 (폭풍이면 비도 함께 그린다).
  *  「눈이 반짝」(사람 눈) · 「비가 그쳤어요」 · rainbow 속 rain 은 걸리지 않게 (11/4 사용자 「민감하지 않은 선에서만」) */
@@ -907,7 +913,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const weather = weatherFor(p.text, p.scene?.background ?? "", loc);
     out.push({
       location: loc,
-      env: { night, sun, weather },
+      env: { night, sun, weather, dim: !night && DARK_TEXT.test(p.text) && !NOT_DARK.test(p.text) },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide,
         calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal },
       props,
