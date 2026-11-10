@@ -409,7 +409,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const bx = rightRoom >= leftRoom ? hi - 0.02 : lo + 0.02;
     return { x: bx, back: true };
   };
-  const behind = plan.props.filter((p) => isPerson(p.id) || p.id === "sign");
+  // 배경 그림에 이미 표지판이 있으면(숲길) 카드 표지판을 또 세우지 않는다 — 표지판이 둘 · 셋 겹쳐 섰다 (11/10)
+  const bgHasSign = layout.objects.some((o) => kindOf(o.src) === "sign") || (plan.things ?? []).some((t) => kindOf(t.src) === "sign");
+  const behind = plan.props.filter((p) => isPerson(p.id) || (p.id === "sign" && !bgHasSign));
   // 인물 자리는 미리 잡는다 — 대본에서 그 사람이 든 · 쓴 소품을 손 · 머리에 놓으려면 자리를 알아야 한다 (11/4)
   // 다가가는 인물(hero.goal)은 주인공이 가는 쪽 바로 앞에 — 남는 자리에 서면 그 사람 반대쪽으로 달려갔다 (11/5)
   const travel = Math.sign(hero.to - hero.from);
@@ -637,7 +639,13 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const half = (o.h * arOf(key, 1) / aspect) / 2;
     return [o.x - half, o.x + half];
   });
+  // 둥지는 배경 나무 가지 사이에 — 「높은 나뭇가지에 새 둥지」가 늘 땅에 놓였다 (11/10). 나무가 없으면 보통 자리
+  const trees = layout.objects.filter((o) => /pine|tree/.test(o.src) && o.foot !== undefined);
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
+    if (kindOf(t.src) === "nest" && trees.length) {
+      const tr = trees.reduce((a, b) => (Math.abs(b.x - hero.to) > Math.abs(a.x - hero.to) ? b : a));   // 주인공과 먼 나무
+      return { ...t, h: Math.min(t.h, tr.h * 0.16), x: tr.x, footY: tr.foot! - tr.h * 0.42 };
+    }
     const air = t.spot === "air";
     const list = air ? airPlaced : placed;
     // 큰 땅 소품은 배경 물건과 겹치지 않는 자리를 먼저(원래 크기 · 0.75 배까지), 없으면 겹쳐도. 사람 · 소품끼리는 늘 피한다.
@@ -877,7 +885,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={thingSrc(t.src)}
              style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
-               : { src: t.src, x: t.x, foot: t.spot === "air" ? 0.3 : 0.95, h: t.h }),
+               : { src: t.src, x: t.x, foot: "footY" in t && t.footY !== undefined ? t.footY : t.spot === "air" ? 0.3 : 0.95, h: t.h }),
                // 공은 주인공 반대쪽으로 굴러간다 (주인공과 부딪치지 않게)
                ["--roll" as string]: t.x < hero.to ? -1 : 1 }} />
       ))}
@@ -985,7 +993,7 @@ const kindOf = (src: string) => {
 const TO_WINDOW = new Set(["props/shootingstar.webp", "props/planet.webp", "props/earth.webp",
   "props/butterfly.webp", "props/bird.webp", "props/seagull.webp", "props/balloons.webp"]);
 /** 이름이 달라도 같은 물건 — 바다 배경에 모래성(castle) · 바위(rock)가 있는데 쪽 글의 「모래성」 · 「바위」로 하나 더 섰다 (11/9 배치 검사) */
-const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks" };
+const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign" };   // 화살표 그림은 표지판
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */
 const LEAVES: [number, number, string][] = [[20, 0, "#E8A33C"], [46, 1.1, "#8DBA5A"], [34, 2.2, "#D9663B"], [60, 3.3, "#B9C94A"],
   [28, 4.4, "#E2B04A"], [54, 5.5, "#7FAE4E"]];
