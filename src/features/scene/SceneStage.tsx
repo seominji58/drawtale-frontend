@@ -9,7 +9,7 @@
  *         end: 끝 모습 그대로 (떠나는 쪽 · 뒤로 넘긴 쪽) */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Env, PagePlan, PropId } from "./plan";
-import { hasSkyBodies, isIndoor, isPerson } from "./plan";
+import { hasSkyBodies, isIndoor, isPerson, sceneFx } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
 import HANDS from "./hands.json";
@@ -588,6 +588,28 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       ? { ...t, motion: "pop" as const } : t));
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
+  // 쪽 연출 (11/10): 환해짐 · 눈물. 나레이션이 그 말의 자리에 오면 보인다 (나레이션이 없으면 쪽에 들어올 때, 끝 모습이면 처음부터)
+  const fx = sceneFx(text);
+  const heard = (at: number) => !play || narration === undefined || narration >= at;
+  const brightOn = fx.bright >= 0 && heard(fx.bright);
+  // 누가 우나: 그 문장에 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 아니면 옆 인물(「친구가 울고 있었어요」), 없으면 주인공
+  const visiblePeople = people.filter((v): v is NonNullable<typeof v> => !!v && v.p.id !== "sign");
+  const crying = fx.tears.filter((t) => heard(t.at)).map((t) => {
+    const me = /(?:^|[^가-힣])(?:나는|내가|나도|나를|내 눈)/.test(t.sentence);
+    const named = visiblePeople.find((v) => v.p.name && t.sentence.includes(v.p.name));
+    const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(t.sentence) ? visiblePeople[0] : undefined));
+    if (other) {
+      const h = other.sb.h, foot = other.sb.foot ?? 0.93;
+      return { key: `p-${other.p.id}`, x: other.spot.x, y: foot - h * 0.8, size: h * 0.06, gap: (h * 0.032) / aspect, follow: false };
+    }
+    if (heroGone || !drawn.h) return null;
+    const hd = heroBody ? bodyAt(heroBody.head) : null;
+    const side = facing !== 0 && !upright;
+    const x = hd ? hd.x + (side ? headSide * drawn.w * 0.04 : 0) : heroX + (side ? headSide * drawn.w * 0.33 : 0);
+    const y = hd ? hd.y + drawn.h * 0.14 : topY + drawn.h * (side ? 0.26 : 0.16);
+    return { key: "hero", x, y, size: drawn.h * 0.06, gap: side ? 0 : (drawn.h * 0.04) / aspect, follow: true };
+  }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((w) => w?.key === v.key) === k);
+
   return (
     <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" ? "gloomy" : ""} ${weather === "storm" ? "stormy" : ""}`} aria-hidden ref={root}>
       <img className="scene-plate scene-bg" src={base + layout.plate} alt="" />
@@ -706,6 +728,16 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           ))}
         </div>
       )}
+      {/* 장면이 환해짐: 위에서 따뜻한 빛이 번진다 (화면 섞기 — 그림 위에 흰 막을 덮지 않는다) */}
+      {fx.bright >= 0 && <div className={`scene-bright ${brightOn ? "on" : ""}`} />}
+      {/* 눈물: 우는 사람 눈 아래로 방울이 두 줄 떨어진다 */}
+      {crying.map((c) => (
+        <div key={c.key} className="scene-tears"
+             style={{ left: `${c.x * 100}%`, top: `${c.y * 100}%`, height: `${c.size * 100}%`, width: `${Math.max(c.gap * 2, (c.size * 0.4) / aspect) * 100}%`,
+               ...(c.follow ? withHero : {}) }}>
+          <i /><i />
+        </div>
+      ))}
       {/* 주인공 머리에 쓴 것은 주인공 위에 */}
       {posedSpots.filter((v) => v.at?.top).map(({ t, at }, k) => (
         <img key={`posed-top-${k}`} className="scene-obj scene-thing" alt="" data-pose={t.pose}

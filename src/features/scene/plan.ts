@@ -237,12 +237,35 @@ const ALWAYS_MOVING: Record<string, ThingMotion> = {
 };
 const WIND_MOVING = new Set(["props/flag.webp", "props/umbrella.webp", "props/leaves.webp"]);
 const BALL_MOVES = /굴렸|굴러|굴리|데굴|찼어|차서|뻥 찼|던졌|던져/;
+const LIGHT_SRC = new Set(["props/flashlight.webp", "props/lantern.webp"]);
+const LIGHT_ON = /켰|켜졌|켜지|켜 ?두|불이 들어|불을 밝|밝혔|밝게|비췄|비추|환하게|환히|반짝|빛났|빛나|번쩍/;
+
+/** 쪽 연출 (11/10 사용자 「빛 번짐 · 환해졌다 · 눈물 같은 연출이 없다」). 쪽 글의 말로만 고른다 — 대본 AI 를 바꾸지 않는다.
+ *  bright: 장면이 환해지는 말의 자리 (나레이션이 그 자리에 오면 따뜻한 빛이 번진다). 없으면 -1
+ *  tears: 우는 문장들 — 누가 우는지는 장면(SceneStage)이 그 문장의 인물 이름 · 「나」로 정한다.
+ *  「울음을 그쳤어요」 · 「눈물을 닦았어요」 · 「울지 않았어요」는 울지 않는 것 */
+export interface SceneFx { bright: number; tears: { at: number; sentence: string }[] }
+const BRIGHT = /환해졌|환해지|환해|환하게 (?:빛|비|밝)|밝아졌|밝아지|빛이 (?:났|나|들|비|퍼|쏟|가득|번)|햇살이 (?:비|들|쏟|가득)|햇빛이 (?:비|들|쏟|가득)|불이 (?:켜졌|들어왔)|불을 켰/;
+const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
+const NOT_CRY = /그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었/;
+export function sceneFx(text: string): SceneFx {
+  const b = BRIGHT.exec(text);
+  const tears: SceneFx["tears"] = [];
+  const re = /[^.!?”]+[.!?”]*/g;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const sen = m[0];
+    if (CRY.test(sen) && !NOT_CRY.test(sen)) tears.push({ at: m.index / Math.max(1, text.length), sentence: sen });
+  }
+  return { bright: b ? b.index / Math.max(1, text.length) : -1, tears };
+}
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;
   // 내 소품: 대본 자리가 있으면 그 자리의 움직임(떨어짐 · 떠내려감 …)만 — 둘이 겹치면 한쪽이 지워진다
   if (t.name !== undefined) return t.pose ? undefined : mineMotion(text, t.name, weather);
   if (ALWAYS_MOVING[src]) return ALWAYS_MOVING[src];
   if (src === "props/ball.webp" && BALL_MOVES.test(text)) return "roll";
+  // 손전등 · 등불은 쪽 글에 불을 켬 · 밝힘 · 비춤이 있으면 (어느 문장이든) 빛난다 — 「손전등을 들고 … 앞을 비췄어요」
+  if (LIGHT_SRC.has(src) && LIGHT_ON.test(text)) return "glow";
   // 장면 물건도 그 물건이 나온 문장의 말대로 (11/9 테스트 4번 「소품 연출이 고정적」) — 반짝 · 빙글 · 커짐 · 사라짐 · 흔들림 …
   if (t.at !== undefined && t.at >= 0 && !t.pose) {
     const m = sentenceMotion(text, t.at);
@@ -262,7 +285,8 @@ const MINE_MOVES: [ThingMotion, RegExp][] = [
   ["shrink", /사라졌|사라지|사라져|녹았|녹아|작아졌|작아지|꺼졌/],
   ["grow", /커졌|커지|자랐|자라났|부풀|활짝|피어났|피었|펼쳐졌/],
   ["spin", /빙글|뱅글|빙그르|핑그르|팽그르|돌았|돌아갔|뱅뱅|빙빙/],
-  ["glow", /반짝|빛났|빛나|번쩍|환하게|깜빡|초롱초롱|눈부/],
+  // 불을 켬 · 밝힘도 빛남 (11/10 사용자 「소품에 불이 들어오거나 그러지 않네」) — 전에는 「손전등을 켰어요」가 걸리지 않았다
+  ["glow", /반짝|빛났|빛나|번쩍|환하게|환히|깜빡|초롱초롱|눈부|켰|켜졌|켜지|켜 ?두|불이 들어|불을 밝|밝혔|밝게|비췄|비추/],
   ["shake", /덜컹|부르르|덜덜|흔들렸|흔들리|들썩였|쿵쾅|와르르/],
   ["roll", /굴러|굴렸|굴리|데굴|떼굴/],
   ["float", /둥실|둥둥|떠다니|날아다니|훨훨|떠올랐|떠올라/],

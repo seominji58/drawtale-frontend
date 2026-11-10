@@ -1051,9 +1051,30 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
    그림 가운데가 칸의 왼쪽 끝(0)에 있다 — 돌기 · 커지기의 축을 0 에 두어야 옆으로 밀리지 않는다 */
 .scene .m-spin { transform-origin: 0 50%; animation: thing-spin 1.4s ease-in-out .4s 2 both; }
 @keyframes thing-spin { to { rotate: 360deg; } }
-.scene .m-glow { animation: thing-glow 1.3s ease-in-out infinite alternate; }
-@keyframes thing-glow { from { filter: brightness(1) drop-shadow(0 0 0 rgba(255, 236, 160, 0)); }
-  to { filter: brightness(1.2) drop-shadow(0 0 14px rgba(255, 236, 160, .95)); } }
+/* 빛남: 불이 들어오듯 밝아지고 둘레로 빛이 번진다 (11/10 「불이 들어오거나 빛 번짐」 — 전에는 테두리만 옅게 빛나 잘 안 보였다) */
+.scene .m-glow { animation: thing-light .9s ease-out .3s 1 both, thing-glow 1.6s ease-in-out 1.2s infinite alternate; }
+@keyframes thing-light { from { filter: brightness(.85) drop-shadow(0 0 0 rgba(255, 226, 130, 0)); }
+  60% { filter: brightness(1.45) drop-shadow(0 0 22px rgba(255, 226, 130, 1)) drop-shadow(0 0 48px rgba(255, 200, 90, .8)); }
+  to { filter: brightness(1.25) drop-shadow(0 0 16px rgba(255, 226, 130, .95)) drop-shadow(0 0 38px rgba(255, 200, 90, .6)); } }
+@keyframes thing-glow { from { filter: brightness(1.25) drop-shadow(0 0 16px rgba(255, 226, 130, .95)) drop-shadow(0 0 38px rgba(255, 200, 90, .6)); }
+  to { filter: brightness(1.4) drop-shadow(0 0 22px rgba(255, 226, 130, 1)) drop-shadow(0 0 56px rgba(255, 200, 90, .8)); } }
+/* 장면이 환해짐: 위쪽에서 따뜻한 빛이 번져 내려온다. screen 섞기라 어두운 곳은 밝아지고 흰 곳은 그대로 */
+.scene-bright { position: absolute; inset: 0; z-index: 6; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 75% 65% at 50% 18%, rgba(255, 232, 160, .85), rgba(255, 214, 130, .35) 45%, rgba(255, 214, 130, 0) 75%);
+  transition: opacity 2.2s ease; }
+.scene-bright.on { opacity: 1; animation: bright-breathe 3.2s ease-in-out 2.2s infinite alternate; }
+@keyframes bright-breathe { from { opacity: 1; } to { opacity: .78; } }
+.scene.night .scene-bright { background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(255, 220, 140, .7), rgba(255, 200, 110, .25) 45%, rgba(255, 200, 110, 0) 75%); }
+/* 눈물: 눈 아래 두 줄로 방울이 떨어진다. 칸(.scene-tears) 높이가 방울 크기, 폭이 두 눈 사이 */
+.scene-tears { position: absolute; z-index: 7; translate: -50% 0; pointer-events: none; }
+.scene-tears i { position: absolute; top: 0; width: auto; height: 100%; aspect-ratio: 3 / 4;
+  background: radial-gradient(circle at 40% 35%, #FFFFFF 0 18%, #9FD3F5 30%, #4F9FDC 100%);
+  border-radius: 50% 50% 50% 50% / 62% 62% 40% 40%; clip-path: polygon(50% 0, 100% 62%, 92% 88%, 50% 100%, 8% 88%, 0 62%);
+  opacity: 0; animation: tear-drop 1.5s ease-in infinite; }
+.scene-tears i:first-child { left: 0; translate: -50% 0; }
+.scene-tears i:last-child { right: 0; translate: 50% 0; animation-delay: .75s; }
+@keyframes tear-drop { 0% { opacity: 0; transform: translateY(0) scale(.6); } 15% { opacity: 1; transform: translateY(0) scale(1); }
+  85% { opacity: .9; transform: translateY(260%); } 100% { opacity: 0; transform: translateY(300%); } }
 .scene .m-grow { transform-origin: 0 100%; animation: thing-grow 1.5s cubic-bezier(.3, 1.5, .5, 1) .4s 1 both; }
 @keyframes thing-grow { from { scale: .45; } to { scale: 1; } }
 .scene .m-shrink { transform-origin: 0 100%; animation: thing-shrink 1.6s ease-in 1.4s 1 both; }
@@ -1110,6 +1131,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .scene .m-flutter, .scene .m-float, .scene .m-glide, .scene .m-sway, .scene .m-swim, .scene .m-drift, .scene .m-roll, .scene .m-wind,
   .scene .m-drift-away, .scene .m-stuck, .scene .m-drop, .scene .m-bounce, .scene .m-pop,
   .scene .m-spin, .scene .m-glow, .scene .m-grow, .scene .m-shake { animation: none; }
+  .scene .m-glow { filter: brightness(1.25) drop-shadow(0 0 16px rgba(255, 226, 130, .95)); }
+  .scene-bright.on { animation: none; }
+  .scene-tears i { animation: none; opacity: .9; transform: translateY(80%); }
   .scene .m-blow { animation: none; opacity: 0; }
 }
 
