@@ -6,7 +6,7 @@ import { Scene } from "@/components/illust";
 import CharacterCanvas from "@/features/character/CharacterCanvas";
 import { propHeight, propShowHeight, propsForStage, useProps } from "@/features/props/props";
 import { useSession } from "@/store/session";
-import { ENGINE } from "@/api";
+import { ENGINE, fetchPageAudio } from "@/api";
 import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
@@ -156,7 +156,33 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const pages = book.pages;
   const [pg, setPg] = useState(0);
   const audio = useRef<HTMLAudioElement | null>(null);
-  const perPage = pages.some((p) => p.audioUrl);
+  // 첫 쪽만으로 연 책 (11/10 「첫 쪽만 만들고 책 열기」): 나머지 쪽 음성은 서버가 읽는 동안 만든다. 다시 물어 받은 주소는 여기에만
+  // 두고 pages 는 그대로 둔다(장면 계획을 다시 짜지 않게). 처음부터 주소가 있던 쪽은 새 주소(서명이 바뀜)로 바꾸지 않는다
+  const [late, setLate] = useState<{ urls: (string | null)[]; pending: boolean[] } | null>(null);
+  const audioOf = (i: number) => pages[i].audioUrl ?? late?.urls[i] ?? null;
+  const pendingOf = (i: number) => !audioOf(i) && (late ? !!late.pending[i] : !!pages[i].audioPending);
+  const perPage = pages.some((p) => p.audioUrl || p.audioPending);
+  // 쪽은 차례로만 (11/10 사용자 「만들어지는 동안 다음 페이지 버튼 비활성화, 만들어지면 활성화」): 다음 쪽 음성이 아직이면
+  // 「다음 쪽」 단추와 밀어 넘기기를 막는다. 소리를 껐으면 기다릴 음성이 없으니 막지 않는다
+  const nextLocked = !muteAll && pg < pages.length - 1 && pendingOf(pg + 1);
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    if (!pages.some((p) => p.audioPending)) return;
+    let alive = true, tries = 0, timer = 0;
+    const tick = async () => {
+      const got = await fetchPageAudio(story.storyId);
+      if (!alive) return;
+      if (got && got.urls.length === pages.length) {
+        setLate(got);
+        if (!got.pending.some(Boolean)) return;
+      }
+      // 서버도 10분이 지나면 「만드는 중」을 뗀다 (AUDIO_PENDING_MAX_SECONDS). 그보다 조금 더 묻고 그만둔다
+      if (++tries < LATE_AUDIO_TRIES) timer = window.setTimeout(tick, LATE_AUDIO_MS);
+      else setLate((l) => ({ urls: l?.urls ?? pages.map((p) => p.audioUrl ?? null), pending: pages.map(() => false) }));
+    };
+    timer = window.setTimeout(tick, LATE_AUDIO_MS);
+    return () => { alive = false; clearTimeout(timer); };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   /** 지금 쪽 진행 (0~1). 쪽에 들어올 때마다 0 에서 시작해 그 쪽 음성(없으면 글 길이로 어림한 나레이션) 길이에 맞춰 찬다.
    *  들려주는 동안은 실제 재생 시각을 따른다 (2026-10-27 사용자 「쪽마다 하나의 바, 음성 · 영상 길이에 맞춰 회색이 초록으로」) */
   const [frac, setFrac] = useState(0);
@@ -252,7 +278,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     const d = drag.current;
     if (!d) return;
     const dx = (e.clientX - d.x) / d.w;
-    if (dx < -0.02 && pg < pages.length - 1) {
+    if (dx < -0.02 && pg < pages.length - 1 && !nextLocked) {
       if (!d.moved) { d.moved = true; stop(); e.currentTarget.setPointerCapture(e.pointerId); turnP.current = 0; setTurn({ from: pg, to: pg + 1, dir: 1, drag: true }); }
       turnFrame(Math.min(0.85, -dx * 1.1));
     }
@@ -271,10 +297,14 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 쪽에 들어오면 그 쪽을 읽고, 바는 실제 재생 시각대로 찬다. 쪽 음성 파일이 있으면 그것, 예전 이야기의 전체 음성이면
   // 그 쪽 구간만, 없으면 브라우저 TTS. 소리를 껐거나 브라우저가 소리를 막으면(누른 적 없는 탭) 글 길이로 바만 채운다
   const [replay, setReplay] = useState(0);
+  const pageUrl = audioOf(pg), pagePending = pendingOf(pg);
   useEffect(() => {
     setFrac(0);
     stop();
     let alive = true;
+    // 이 쪽 음성을 서버가 아직 만드는 중이면 바를 채우지 않고 기다린다. 주소가 오면 이 효과가 다시 돌아 읽는다
+    setWaiting(pagePending && !muteAll);
+    if (pagePending && !muteAll) return () => { alive = false; };
     const text = pages[pg].text;
     const est = Math.max(1.2, text.length / (TTS_CHARS_PER_SEC * speechRate()));
     const fill = (sec: number) => {
@@ -303,7 +333,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     // 넘김 움직임이 끝나고 장면이 자리 잡은 뒤 읽기 시작한다
     const t = window.setTimeout(() => {
       if (!alive) return;
-      const url = pages[pg].audioUrl;
+      const url = pageUrl;
       if (muteAll) { fill(est); return; }
       if (url) {
         const a = trackAudio(new Audio(url));
@@ -334,7 +364,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       }
     }, 250);
     return () => { alive = false; clearTimeout(t); stop(); };
-  }, [pg, replay]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pg, replay, pageUrl, pagePending]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const page = pages[pg];
   const last = pg === pages.length - 1;
@@ -572,7 +602,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       {/* 진행 바 (2026-10-27 사용자) — 이 쪽 하나의 바. 쪽에 들어올 때마다 비어서 시작해
           그 쪽 음성 길이에 맞춰 회색이 초록으로 찬다. 글자를 몰라도 이 쪽이 얼마나 남았는지 보인다 */}
       <div className="bar-row">
-        <div className="progress" role="progressbar" aria-label="이 쪽 진행"
+        <div className={`progress${waiting ? " is-waiting" : ""}`} role="progressbar" aria-label="이 쪽 진행" aria-busy={waiting}
           aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(frac * 100)}>
           <i style={{ width: `${frac * 100}%` }} />
         </div>
@@ -585,7 +615,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         {/* 마지막 쪽에서는 「다음 쪽」 자리에 「다 봤어요」 (pt_docs 05 S-09-03 · S-09-08 — 마지막 장면에서만) */}
         {last
           ? <BigButton className="next" go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>
-          : <BigButton className="next" onClick={() => go(pg + 1)} nudgeOnDisabled={false}>다음 쪽</BigButton>}
+          // 다음 쪽 음성을 만드는 동안은 꺼 두고, 눌러도 흔들림으로 아직이라고만 알린다
+          : <BigButton className={`next${nextLocked ? " is-waiting" : ""}`} disabled={nextLocked} onClick={() => go(pg + 1)}>다음 쪽</BigButton>}
       </div>
 
       <AiNotice />
@@ -612,6 +643,10 @@ function SpeedSeg({ onChange }: { onChange: (rate: number) => void }) {
 
 /** 브라우저 TTS 가 1초에 읽는 글자 수 어림 (rate 0.95, 한국어) — 진행 바용 */
 const TTS_CHARS_PER_SEC = 6.5;
+
+/** 첫 쪽만으로 연 책의 나머지 쪽 음성을 이 간격으로 다시 묻는다, 최대 횟수 (약 11분: 서버는 10분 지나면 「만드는 중」을 뗀다) */
+const LATE_AUDIO_MS = 2000;
+const LATE_AUDIO_TRIES = 330;
 
 /** 쪽 넘김 (2026-11-03): 한 번 넘기는 시간, 귀퉁이가 처음 · 가장 클 때 크기 (펼침면 폭에 대한 %).
  *  쉬는 동안 귀퉁이를 보이지 않으므로 처음 크기는 0 (예시 N2 — 시안 페이지 https://claude.ai/artifact/Ud35qMbtTzVLhyXz37XSFN) */

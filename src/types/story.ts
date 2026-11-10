@@ -88,6 +88,8 @@ export interface BookPage {
   childWords: string;
   /** 이 쪽 MP3. 없으면 브라우저 TTS 로 읽는다 */
   audioUrl?: string | null;
+  /** 이 쪽 음성을 서버가 아직 만드는 중 (첫 쪽만으로 책을 먼저 연다, 11/10). S-09 가 다시 물어 audioUrl 을 기다린다 */
+  audioPending?: boolean;
   /** 이 쪽 동작 MP4 (같은 동작이면 같은 파일). 없으면 멈춘 그림 · 목 엔진은 캔버스 */
   animationUrl?: string | null;
   /** 같은 동작의 바탕이 투명한 프레임 묶음 WebP (정사각 칸 · 가로 8칸, 2026-11-03).

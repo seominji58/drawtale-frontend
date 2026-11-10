@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/10 첫 쪽만으로 책 열기 | **끝**: 첫 쪽 음성이 나오면 책을 열고 나머지 쪽은 뒤에서 채움(백엔드 `finish_page_audio` · 쪽 `audio_pending`, 화면 `BookView` 가 2초마다 다시 묻고, 다음 쪽 음성이 아직이면 「다음 쪽」 · 밀어 넘기기를 막음). 로컬 시험 책으로 브라우저 확인, 실제 녹음 목소리 시간은 아직 |
 | 11/10 사람 아닌 주인공 카드 대본 운영 반영 | **끝**: 날개형 512 · 사슬 · 4족 고친 314 · draft 12 approved, 마이그레이션 `a2b3c4d5e6f7` 까지 배포 확인(운영 approved 사슬 511 · 4족 509 · 날개 508). 로컬 Postgres(5433)도 `alembic upgrade head` 로 형태 칸 · 씨앗까지. 운영 DB 읽기: `ssh -i ~/.ssh/drawtale-v_key.pem azureuser@20.196.129.38` → `cd ~/drawtale/drawtale-backend/deploy && sudo docker compose -f docker-compose.prod.yml exec db psql -U drawtale -d drawtale` (SELECT 만, IP 가 바뀌면 VM 방화벽 22번) |
 | 11/10 잠수부 · AI 머리 자리 | **끝**: 바닷속 쪽 인물은 잠수부 그림 · 그림띠, AI 눈 찾기로 날개 · 사슬 · 지느러미형 머리(로컬 AI 컨테이너에 반영) |
 | 11/10 주인공 몸짓 연출 · 몸 규칙 검사 | **끝**: 꾸벅 · 끄덕 · 떨기 · 웅크리기 화면 연출(그림을 통째로, 어느 형태든), 확인 `node tools/scene-check/gesture.mjs`. 백엔드 몸 규칙에 화면 몸짓을 넣고 걷기 · 손 · 쫑긋은 자동 검사(`book.body_problems`) → 틀린 쪽만 고치기. 날개형 대본 시험 Sonnet · Opus 결과는 worklog |

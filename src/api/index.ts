@@ -91,6 +91,8 @@ interface ServerStory {
     pages: {
       page: number; stage: StepKind; action: string; text: string; child_words: string;
       audio_url?: string | null; animation_url?: string | null;
+      /** 이 쪽 음성을 아직 만드는 중 (첫 쪽만으로 책을 먼저 연다, 계약 2-6 · 11/10). 예전 서버는 없음 */
+      audio_pending?: boolean;
       /** 바탕이 투명한 프레임 묶음 (계약 2-6, 2026-11-03). 예전 서버 · 예전 이야기는 없음 */
       sprite_url?: string | null;
       sprite_frames?: number; sprite_box?: [number, number, number, number];
@@ -230,7 +232,7 @@ function toStory(s: ServerStory): Story {
       title: s.book.title,
       pages: s.book.pages.map((p) => ({
         page: p.page, stage: p.stage, action: p.action, text: p.text, childWords: p.child_words ?? "",
-        audioUrl: p.audio_url ?? null, animationUrl: p.animation_url ?? null,
+        audioUrl: p.audio_url ?? null, audioPending: p.audio_pending ?? false, animationUrl: p.animation_url ?? null,
         spriteUrl: p.sprite_url ?? null,
         sprite: p.sprite_url && p.sprite_frames ? { frames: p.sprite_frames, box: p.sprite_box ?? [0, 0, 1, 1] } : null,
         spriteLeft: p.sprite_left_url && p.sprite_left_frames
@@ -588,6 +590,18 @@ export async function saveStoryTitle(storyId: string, title: string): Promise<bo
     return r.ok;
   } catch {
     return false;
+  }
+}
+
+/** 첫 쪽만으로 연 책의 쪽 음성 주소 · 만드는 중인지 (계약 2-6 쪽 `audio_pending`, 11/10 「첫 쪽만 만들고 책 열기」).
+ *  S-09 가 아직 없는 쪽 음성을 기다리며 다시 묻는다. 못 받으면 null (다음에 다시) */
+export async function fetchPageAudio(storyId: string): Promise<{ urls: (string | null)[]; pending: boolean[] } | null> {
+  if (useMock) return null;
+  try {
+    const pages = (await call<ServerStory>(`/stories/${storyId}`, { headers: authHeader() })).book?.pages ?? [];
+    return { urls: pages.map((p) => p.audio_url ?? null), pending: pages.map((p) => !!p.audio_pending) };
+  } catch {
+    return null;
   }
 }
 
