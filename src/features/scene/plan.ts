@@ -856,7 +856,8 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       let k = renamed.get(c.name) ?? kindOfName(c.name);
       if (!k) continue;
       if (used.has(k)) {
-        k = k === "friend" ? "friend2" : k === "friend2" ? "friend" : k === "mom" ? "aunt" : k === "teacher" ? "adult" : k;
+        // 성별은 바꾸지 않는다 — 남자아이 둘째가 여자아이 그림으로 서서 목소리와 어긋났다 (11/10). 친구는 같은 그림 그대로
+        k = k === "mom" ? "aunt" : k === "teacher" ? "aunt" : k;
         if (!renamed.has(c.name)) renamed.set(c.name, k);
       }
       used.add(k);
@@ -921,7 +922,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const usedKinds = new Set<PersonId>();
     for (const v of scripted) {
       if (usedKinds.has(v.kind)) {
-        v.kind = v.kind === "friend" ? "friend2" : v.kind === "friend2" ? "friend" : v.kind === "mom" ? "aunt" : v.kind === "teacher" ? "adult" : v.kind;
+        v.kind = v.kind === "mom" ? "aunt" : v.kind === "teacher" ? "aunt" : v.kind;
         renamed.set(v.c.name, v.kind);
       }
       usedKinds.add(v.kind);
