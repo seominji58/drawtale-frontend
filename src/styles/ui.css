@@ -1294,6 +1294,8 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .sound-vol-name { font-family: "Gaegu", sans-serif; font-weight: 700; font-size: calc(var(--t-button) * .85); padding-left: 4px; }
 .sound-vol .seg { display: grid; grid-template-columns: repeat(3, 1fr); }
 .sound-vol .seg > button { min-height: var(--tap); font-size: calc(var(--t-button) * .8); }
+/* 등록 안 한 목소리 칸은 흐리게 (읽어 주는 목소리, 11/10) */
+.sound-vol .seg > button:disabled:not(.on) { opacity: .35; }
 
 /* 보호자 비밀번호 창 (components/GuardianGate, pt_docs 20 3장, 2026-11-06). 어른 창이지만 숫자 단추는 크게 */
 .pin-card { width: min(420px, 100%); align-items: center; text-align: center; gap: 12px; }

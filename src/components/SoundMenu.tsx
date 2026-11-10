@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useSettings } from "@/store/settings";
+import { useSettings, useWithAdult } from "@/store/settings";
+import { getMyVoice, voiceSampleUrl } from "@/api";
+import type { VoiceKind } from "@/api";
 import { applyVolume, resumeAll, silenceAll } from "@/lib";
 import { SoundIcon } from "./Screen";
 
@@ -43,6 +45,37 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
 
   const near = (v: number) => VOLUMES.reduce((a, b) => (Math.abs(b[1] - v) < Math.abs(a[1] - v) ? b : a))[1];
 
+  // 읽어 주는 목소리 (11/10 사용자 「설정에만 있어 답답, 위 소리 버튼에서도 토글처럼」) — 보호자 모드 · 로그인일 때만.
+  // 등록한 목소리만 고를 수 있고, 고른 칸 옆 ▶ 로 그 목소리를 미리 듣는다. 새로 만드는 이야기부터 적용된다
+  const adult = useWithAdult();
+  const narrator: "base" | VoiceKind = adult.childVoice ? "child" : adult.myVoice ? "guardian" : "base";
+  const [has, setHas] = useState<Record<VoiceKind, boolean>>({ guardian: false, child: false });
+  useEffect(() => {
+    if (!open || !adult.guardian) return;
+    let alive = true;
+    void Promise.all([getMyVoice("guardian").catch(() => null), getMyVoice("child").catch(() => null)])
+      .then(([g, c]) => { if (alive) setHas({ guardian: !!g?.registered, child: !!c?.registered }); });
+    return () => { alive = false; };
+  }, [open, adult.guardian]);
+  const pickNarrator = (k: "base" | VoiceKind) => {
+    set("guardianNarrator", k === "guardian");
+    set("childNarrator", k === "child");
+  };
+  const [hearing, setHearing] = useState(false);
+  const hearNarrator = async () => {
+    if (narrator === "base" || hearing) return;
+    setHearing(true);
+    try {
+      const url = await voiceSampleUrl(narrator);
+      if (!url) return;
+      const a = new Audio(url);
+      a.onended = a.onerror = () => { URL.revokeObjectURL(url); setHearing(false); };
+      await a.play();
+      return;
+    } catch { /* 못 들려줘도 고르기는 된다 */ }
+    setHearing(false);
+  };
+
   return (
     <span className="sound-key" ref={box}>
       <button className={`round ${open ? "on" : ""}`} onClick={() => setOpen((o) => !o)}
@@ -68,6 +101,23 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
             }}>
             {muteAll ? <><SoundIcon /> 소리 켜기</> : <><MuteIcon /> 소리 끄기</>}
           </button>
+          {adult.guardian && (
+            <div className="sound-vol" role="group" aria-label="읽어 주는 목소리">
+              <span className="sound-vol-name">읽어 주는 목소리</span>
+              <span className="seg">
+                {(["base", "guardian", "child"] as const).map((k) => (
+                  <button key={k} className={narrator === k ? "on" : ""} aria-pressed={narrator === k}
+                    disabled={k !== "base" && !has[k]} title={k !== "base" && !has[k] ? "설정에서 먼저 등록해 주세요" : undefined}
+                    onClick={() => pickNarrator(k)}>{k === "base" ? "기본" : k === "guardian" ? "보호자" : "아이"}</button>
+                ))}
+              </span>
+              {narrator !== "base" && (
+                <button className="btn sound-row" disabled={hearing || muteAll} onClick={() => void hearNarrator()}>
+                  <SoundIcon /> {hearing ? "듣는 중…" : "미리 듣기"}
+                </button>
+              )}
+            </div>
+          )}
           <div className="sound-vol" role="group" aria-label="소리 크기">
             <span className="sound-vol-name">소리 크기</span>
             <span className="seg">
