@@ -661,6 +661,8 @@ export interface Env {
   dim?: boolean;
   /** 이 쪽에서 실내 불이 켜진다 — 나레이션이 불빛 말에 오면 밤 어둠도 걷힌다 */
   lightsOn?: boolean;
+  /** 앞 쪽에서 환해진 빛(불빛 · 환하게 빛났어요)이 이어진다 — 쪽 처음부터 따뜻한 빛이 번져 있다 (바깥 밤이어도) */
+  glow?: boolean;
 }
 
 export type Weather = "rain" | "storm" | "snow" | "fog" | "wind" | "rainbow";
@@ -881,7 +883,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   mine: { name: string; png: string; height: number }[] = []): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
-  let x = SLOT, loc: string | undefined, night = false, dimOn = false, lit = false, flying: boolean = false;
+  let x = SLOT, loc: string | undefined, night = false, dimOn = false, lit = false, glow = false, flying: boolean = false;
   let face: -1 | 0 | 1 = 0;
   // 이야기 열쇠: 글로 만든 짧은 값이라 다시 계획해도(새로고침 · 주소 새로 받음) 같다
   const story = [...pages.map((p) => p.text).join("|")].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7).toString(36);
@@ -952,6 +954,11 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const dimNow = !night && (dimOn || darkHere);
     if (darkHere) dimOn = true;
     if (BRIGHT.test(p.text) || MORNING_TEXT.test(p.text) || (p.stage === "result" && picks.result === "sun")) dimOn = false;
+    // 환해진 빛은 이야기가 바꾸기 전까지 이어진다 (11/10 사용자 「환해진 화면이 다음 쪽에 다시 까매진다 — 연출은 이야기가 바뀌지 않으면 유지」).
+    // 바깥도 — 밤하늘은 그대로 두고 빛만 번져 있다. 꺼졌어요 · 다시 어두워졌어요 · 아침(낮이 되면 빛이 필요 없다)에서 끝난다
+    const glowIn = glow;
+    if (LIGHTS_OFF.test(p.text) || DARK_TEXT.test(p.text) || MORNING_TEXT.test(p.text)) glow = false;
+    if (BRIGHT.test(p.text) && !MORNING_TEXT.test(p.text) && !LIGHTS_OFF.test(p.text)) glow = true;
     // 실내 불: 켜지면 꺼진다는 말이 있을 때까지 밤이어도 밝다 (실내만 — 바깥 밤하늘은 그대로)
     const indoorHere = !!loc && isIndoor(loc);
     const turnsOn = indoorHere && LIGHTS_ON.test(p.text) && !LIGHTS_OFF.test(p.text);
@@ -1109,7 +1116,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const seat = move === "none" ? seatOf(p.text) : undefined;
     out.push({
       location: loc,
-      env: { night: night && !litHere, sun, weather, dim: dimNow && !litHere, lightsOn: turnsOn && !litHere },
+      env: { night: night && !litHere, sun, weather, dim: dimNow && !litHere && !glowIn, lightsOn: turnsOn && !litHere, glow: glowIn && !litHere && !MORNING_TEXT.test(p.text) },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,
         calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal, seat, stay: move === "none" && pi > 0 && prevLoc === loc && !hiding },
       props,

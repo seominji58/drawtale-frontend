@@ -1111,7 +1111,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         </div>
       )}
       {/* 장면이 환해짐: 위에서 따뜻한 빛이 번진다 (화면 섞기 — 그림 위에 흰 막을 덮지 않는다) */}
-      {fx.bright >= 0 && <div className={`scene-bright ${brightOn ? "on" : ""}`} />}
+      {(fx.bright >= 0 || plan.env.glow) && <div className={`scene-bright ${brightOn || plan.env.glow ? "on" : ""}`} />}
       {fx.drip >= 0 && heard(fx.drip) && (
         <div className="scene-drip">{DRIPS.map(([x, d, h], k) => <i key={k} style={{ left: `${x}%`, animationDelay: `${d}s`, ["--fall" as string]: `${h}%` }} />)}</div>
       )}
