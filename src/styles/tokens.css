@@ -86,4 +86,27 @@
 @media (max-width: 767px) {
   :root { --pad: 14px; --gap: 12px; --t-question: 36px; --t-button: 26px; --icon: 100px; --tap: 76px; }
 }
+/* 큰 화면 (TV · 큰 모니터, 2026-11-10 사용자 「큰 티비화면에서 깨진다」). 위 값은 태블릿(1024~1366) 기준이라
+   1920 · 4K 에서도 글자 · 단추는 태블릿 크기 그대로인데 카드 · 무대는 화면만큼 커져 따로 놀았다.
+   폭과 높이가 둘 다 클 때만 키운다 — 1366×1024 태블릿 · 1920×1080 아래 노트북 창은 그대로 */
+@media (min-width: 1600px) and (min-height: 900px) {
+  :root, :root[data-level] {
+    --tap: 112px; --gap: 26px; --pad: 32px;
+    --t-title: 50px; --t-button: 50px; --t-body: 23px; --t-label: 21px;
+  }
+  :root, :root[data-level="2"] { --icon: 166px; --t-question: 62px; }
+  :root[data-level="1"] { --icon: 208px; --t-question: 68px; }
+  :root[data-level="3"] { --icon: 135px; --t-question: 55px; }
+  [data-audience="adult"] { --tap: 74px; --gap: 17px; --pad: 26px; --t-question: 39px; --t-title: 39px; --t-button: 29px; --t-body: 21px; }
+}
+@media (min-width: 2400px) and (min-height: 1300px) {
+  :root, :root[data-level] {
+    --tap: 168px; --gap: 38px; --pad: 46px;
+    --t-title: 72px; --t-button: 72px; --t-body: 34px; --t-label: 30px;
+  }
+  :root, :root[data-level="2"] { --icon: 243px; --t-question: 92px; }
+  :root[data-level="1"] { --icon: 304px; --t-question: 99px; }
+  :root[data-level="3"] { --icon: 198px; --t-question: 80px; }
+  [data-audience="adult"] { --tap: 110px; --gap: 25px; --pad: 38px; --t-question: 57px; --t-title: 57px; --t-button: 42px; --t-body: 30px; }
+}
 @media (prefers-reduced-motion: reduce) { :root { --dur: 1ms; --ease: linear; } }

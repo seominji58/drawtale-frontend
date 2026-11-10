@@ -215,7 +215,7 @@ export default function S12Stories() {
         <div className="stage empty" style={{ flexDirection: "column", gap: 20, padding: 32 }}>
           <p className="question">아직 이야기가 없어요</p>
           <p className="hint">상상한 이야기를 만들어 보세요</p>
-          <div style={{ width: 280 }}>
+          <div style={{ width: "min(100%, calc(var(--t-button) * 7.4))" }}>{/* 글자 크기를 따라 — 280 고정이면 큰 화면(TV)에서 두 줄로 꺾였다 */}
             <BigButton go onClick={() => nav("/guide")}>이야기 만들기</BigButton>
           </div>
         </div>

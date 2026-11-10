@@ -275,8 +275,23 @@
 .name-side > div:first-child { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gap); }
 @media (orientation: landscape) {
   .name-layout { flex-direction: row; align-items: stretch; }
-  .name-layout > .stage { flex: 1 1 0; max-width: 560px; }
+  /* 무대는 높이를 따라 3:4 로 — 폭만 막으면(560px) 높은 화면(4K)에서 가늘고 긴 막대가 됐다 (11/10) */
+  .name-layout > .stage { flex: 0 1 auto; aspect-ratio: 3 / 4; min-width: 0; max-width: 50%; }
   .name-side { flex: 1 1 0; max-width: 520px; }
+}
+/* 큰 화면 (TV, 11/10): 이름 칸 · 확인 상자도 글자와 같이 키우고, 확인 단추는 화면 끝까지 늘어나지 않게 */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .name-side { max-width: 720px; }
+  .box:has(> .row) { width: min(100%, 1100px); align-self: center; }
+  .box > .row > * { flex: 1 1 0; }
+  .acts > * { max-width: 620px; }
+  .step { padding: .45em 1em; gap: .5em; }
+  .step i { width: .7em; height: .7em; }
+}
+@media (min-width: 2400px) and (min-height: 1300px) {
+  .name-side { max-width: 1040px; }
+  .box:has(> .row) { width: min(100%, 1600px); }
+  .acts > * { max-width: 900px; }
 }
 @media (orientation: portrait) {
   .name-layout { flex-direction: column; }
