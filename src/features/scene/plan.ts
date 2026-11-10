@@ -85,7 +85,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/우유|코코아|보리차|컵/, "props/milk.webp", 0.08, "ground"],
   [/도토리|솔방울/, "props/acorns.webp", 0.06, "ground"],
   [/선물/, "props/gift.webp", 0.12, "ground"],
-  [/인형/, "props/teddy.webp", 0.14, "ground"],
+  // 곰 인형 그림 하나뿐이라, 다른 동물 인형(토끼 · 강아지 인형 …)은 곰 인형으로 그리지 않는다 (11/10 「토끼 소품이 곰돌이」)
+  [/(?<!토끼 ?|강아지 ?|고양이 ?|오리 ?|공룡 ?|펭귄 ?|원숭이 ?|코끼리 ?|기린 ?|돼지 ?|병아리 ?|사자 ?|양 ?|말 ?|인어 ?|공주 ?)인형/, "props/teddy.webp", 0.14, "ground"],
   // 「게」는 앞 글자와 떨어진 것만 — 「가게를」 · 「빨래집게가」에 꽃게가 섰다 (11/9 배치 검사)
   [/꽃게|작은 게|(?<![가-힣])게(?: 한|가|를|도)(?![가-힣])/, "props/crab.webp", 0.07, "ground"],
   [/깃발/, "props/flag.webp", 0.48, "ground"],
