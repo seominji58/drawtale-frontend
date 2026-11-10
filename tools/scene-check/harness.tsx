@@ -35,6 +35,12 @@ const MINE = (q.get("mine") ?? "").split(",").filter(Boolean).map((name) => ({ n
 // ?still=out/_bird.png&facing=1: 주인공 그림 · 머리 쪽을 바꿔 본다 (몸짓 연출 확인, 11/10). 없으면 사람 서 있는 그림 · 앞모습
 const STILL = q.get("still") ?? `${import.meta.env.BASE_URL}illust/hero-stand.webp`;
 const FACING = Number(q.get("facing") ?? 0) as -1 | 0 | 1;
+// ?sprite=out/real/dog_side.webp&frames=48&box=0.35,0.36,0.8,0.7&fit=width: AI 가 렌더한 그림띠를 주인공으로 (실제 이야기와 같은 캔버스 길, 11/10)
+const SPRITE = q.get("sprite") ? { url: q.get("sprite")!, frames: Number(q.get("frames") ?? 1),
+  box: (q.get("box") ?? "0,0,1,1").split(",").map(Number) as [number, number, number, number] } : null;
+const FIT = (q.get("fit") ?? "height") as "height" | "width";
+// ?label=1: 칸 위에 쪽 글도 적는다 (사람이 눈으로 볼 때)
+const LABEL = q.get("label") === "1";
 const NAME = "토토";
 // 백엔드가 채우는 이름 자리 (`{이름}{조사:는}`) — 받침 없는 이름이라 조사는 적힌 그대로
 const fill = (t: string) => t.replace(/\{이름\}/g, NAME).replace(/\{조사:([^}]+)\}/g, "$1");
@@ -102,8 +108,8 @@ function App() {
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
         <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage plan={plan} prevEnv={null} still={STILL} facing={FACING} mode={PLAY ? (flipped ? "play" : "start") : "end"} pageAction={PLAY} text={pageText(c, plans, pi)} />
-          <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {plan.location}</span>
+          <SceneStage plan={plan} prevEnv={null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY ? (flipped ? "play" : "start") : "end"} pageAction={PLAY} text={pageText(c, plans, pi)} />
+          <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {LABEL ? pageText(c, plans, pi) : plan.location}</span>
         </div>
       )))}
     </div>

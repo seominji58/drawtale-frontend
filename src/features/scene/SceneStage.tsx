@@ -462,6 +462,21 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   // 서버가 그림에서 잰 자리(still_body)가 있으면 그것, 머리가 큰 · 목이 긴 그림도 맞는다 (11/6). 그림 기준이라 화면에서
   // 뒤집었으면(머리 반대쪽으로 갈 때) 좌우를 바꾼다. 없으면(예전 이야기) 아래 어림
   const flipped = facing !== 0 && look !== 0 && look !== facing;
+  // 몸짓 축 · 기울기 (11/10 옆모습 시험): 옆모습은 화면에서 머리 쪽 발끝을 축으로 숙인다. 가운데 발밑을 축으로 9도 돌렸더니
+  // 몸이 긴 뱀 · 지렁이 · 물고기 · 4족형은 머리 쪽이 땅에 파묻히고 꼬리 쪽 다리가 떴다. 몸이 길수록 덜 기울여 꼬리 쪽이
+  // 몸 키의 14% 넘게 뜨지 않게 (최대 9도). 앞모습은 기울지 않고 키만 줄어든다. 그림띠는 칸 안 몸 자리(box) 기준
+  const [bx0, , bx1, by1] = spr ? spr.box : [0, 0, 1, 1];
+  const [edgeL, edgeR] = flipped ? [1 - bx1, 1 - bx0] : [bx0, bx1];
+  const sideView = facing !== 0 && headSide !== 0;
+  const bodyRatio = drawn.h > 0 ? (drawn.w * aspect) / drawn.h : 0;
+  const leanDeg = sideView ? headSide * Math.min(9, (Math.asin(Math.min(1, 0.14 / Math.max(bodyRatio, 0.01))) * 180) / Math.PI) : 0;
+  const gestureVars = {
+    "--lean": `${leanDeg.toFixed(1)}deg`,
+    "--pivot": `${sideView ? (((headSide > 0 ? edgeR : edgeL) - 0.5) * 100).toFixed(1) : 0}%`,
+    "--foot": `${(by1 * 100).toFixed(1)}%`,
+    // 앞모습(사람 · 문어 …)은 옆으로 기울 수 없어 위쪽을 보는 사람 쪽으로 젖혀 숙인 것처럼 (원근, 키만 줄이면 거의 안 보였다)
+    "--tip": sideView ? "0deg" : "-28deg",
+  } as CSSProperties;
   const bodyAt = (p: number[]) => ({ x: heroX + ((flipped ? 1 - p[0] : p[0]) - 0.5) * drawn.w, y: topY + p[1] * drawn.h });
   const onQuad = (t: NonNullable<typeof plan.things>[number], where: "mouth" | "back" | "head") => {
     const thingW = (h: number) => h * t.ar / aspect;
@@ -810,10 +825,10 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       {spr
         // 캔버스는 렌더 칸 크기 그대로 — 384 로 줄여 그린 뒤 화면에서 2~3배로 키워 선이 뭉개지고 계단처럼 보였다 (11/9 사용자 「렌더링이 깨지고 울퉁불퉁」)
         ? <canvas ref={canvas} width={spr.cell} height={spr.cell} data-hero-x={heroX.toFixed(3)} className={`scene-hero ${hero.fallen ? "fallen" : ""} ${heroMove}`}
-                  style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ["--lean" as string]: `${facing !== 0 ? headSide * 9 : 0}deg`, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
+                  style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ...gestureVars, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
         : still
           ? <img className={`scene-hero ${hero.fallen ? "fallen" : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""} ${heroMove}`}
-                 src={still} alt="" style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ["--lean" as string]: `${facing !== 0 ? headSide * 9 : 0}deg`, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
+                 src={still} alt="" style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ...gestureVars, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
                  onLoad={(e) => setStillAr(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight))} />
           : null}
       {weather && weather !== "rainbow" && (
