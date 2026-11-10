@@ -630,7 +630,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   };
   // 실내에서 하늘에만 있는 것(별똥별 · 행성 · 지구)은 창 안에 — 우주선 방 안 공중에 별똥별이 떠서 창 속 지구를 가렸다 (11/9 배치 검사)
   const things = (plan.things ?? []).map((t) => (indoor && !t.pose && TO_WINDOW.has(t.src) ? { ...t, pose: "window" as const } : t));
-  const posedSpots = things.filter((t) => !bgKinds.has(kindOf(t.src))).map((t) => ({ t, at: t.pose ? posed(t) : null }))
+  // 같은 종류는 하나만, 화분이 있으면 꽃은 화분 꽃이라 또 놓지 않는다 (「화분에 꽃이 피었어요」에 화분 · 꽃밭이 같이 섰다)
+  const hasPot = things.some((t) => kindOf(t.src) === "flowerpot");
+  const posedSpots = things.filter((t, i) => !bgKinds.has(kindOf(t.src)) && things.findIndex((o) => kindOf(o.src) === kindOf(t.src)) === i
+      && !(hasPot && kindOf(t.src) === "flowers")).map((t) => ({ t, at: t.pose ? posed(t) : null }))
     .filter((v) => v.t.pose !== "window" || v.at);   // 창밖 소품은 창이 없으면 방 안에 놓지 않는다
   // 배경 물건(땅에 선 것)이 차지한 가로 범위, 큰 소품은 먼저 이것을 피해 본다 (11/9 소품 키를 실제 크기로 키우자 대문이 집 앞을,
   // 깃발 · 우체통이 벤치 · 가판대 앞을 가렸다). 배경 그림 주소는 장소 폴더 기준이라 props-ar.json 열쇠로 바꾼다
@@ -993,7 +996,8 @@ const kindOf = (src: string) => {
 const TO_WINDOW = new Set(["props/shootingstar.webp", "props/planet.webp", "props/earth.webp",
   "props/butterfly.webp", "props/bird.webp", "props/seagull.webp", "props/balloons.webp"]);
 /** 이름이 달라도 같은 물건 — 바다 배경에 모래성(castle) · 바위(rock)가 있는데 쪽 글의 「모래성」 · 「바위」로 하나 더 섰다 (11/9 배치 검사) */
-const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign" };   // 화살표 그림은 표지판
+// 화살표 그림은 표지판, 벤치는 의자, 장난감 상자는 상자, 북은 북들 (저장 이야기 점검 11/10 — 배경에 있는데 또 놓였다)
+const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign", bench: "chair", toybox: "box", drum: "drums" };
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */
 const LEAVES: [number, number, string][] = [[20, 0, "#E8A33C"], [46, 1.1, "#8DBA5A"], [34, 2.2, "#D9663B"], [60, 3.3, "#B9C94A"],
   [28, 4.4, "#E2B04A"], [54, 5.5, "#7FAE4E"]];
