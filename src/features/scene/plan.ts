@@ -138,7 +138,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/물고기/, "props/fish.webp", 0.08, "air"],
   // D. 2차 14장 (11/6, tools/art/gen_scene_props2.py) — 카드 이야기 512편에서 글에 나오는데 그림이 없던 손에 드는 물건.
   // 「배가 꼬르륵」 · 「사과했어요」 · 「북쪽」 · 「소라게」처럼 다른 뜻은 빼고
-  [/(?:작은|큰|나무|고깃|돛단|나룻|아빠) ?배(?=를|가|에|는|도| 한| 하나|[^가-힣]|$)|(?<!종이)배 한 척|(?<!종이)배를 타|배에 (?:타|올)|배가 (?:들어|떠|둥둥|통통|출렁)|배 위에|배에서 내/,
+  [/(?:작은|큰|나무|고깃|돛단|나룻|종이|아빠) ?배(?=를|가|에|는|도| 한| 하나|[^가-힣]|$)|배 한 척|배를 타|배에 (?:타|올)|배가 (?:들어|떠|둥둥|통통|출렁)|배 위에|배에서 내/,
     "props/boat.webp", 0.28, "ground"],
   [/별똥별/, "props/shootingstar.webp", 0.1, "air"],
   [/헬멧/, "props/helmet.webp", 0.1, "ground"],
@@ -524,10 +524,6 @@ const NOT_REAL = /^ ?(?:그림|이야기|스티커|인형|장난감|사진|모�
 const WATER = /^(?:sea|forest-stream|cave-lake)/, SAND = /^(?:sea|playground)/;
 const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   "props/fish.webp": (l) => WATER.test(l),
-  // 이불 · 베개 · 방석은 집 · 실내 · 캠핑(숲 · 바다 · 동굴)에서만 — 「집에 와 이불에서 잠들었어요」가 마을 거리에 이불로 섰다 (11/10 점검)
-  "props/blanket.webp": (l, indoor) => indoor || /^(?:home|forest|sea|cave)/.test(l),
-  "props/pillow.webp": (l, indoor) => indoor || /^(?:home|forest|sea|cave)/.test(l),
-  "props/cushion.webp": (l, indoor) => indoor || l.startsWith("home"),
   "props/crab.webp": (l) => l.startsWith("sea"),
   "props/shells.webp": (l) => l.startsWith("sea"),
   "props/conch.webp": (l) => l.startsWith("sea"),
@@ -975,8 +971,13 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const heroHides = p.text.split(/(?<=[.!?”])\s*/).some((sen) => HIDE_TEXT.test(sen) && !sen.includes("?") && !sen.trimStart().startsWith("“")
       && !/숨바꼭질|숨은 그림|숨을 (?:쉬|크게|고르|내쉬|들이)/.test(sen) && subjectOf(sen.slice(0, sen.search(HIDE_TEXT)), []) === "hero");
     const hidingText = heroHides && !OUT_TEXT.test(p.text);
+    // 앞 쪽에서 숨은 주인공은 이 쪽 글이 「아직 숨어 있다」고 할 때만 계속 숨는다 — 그 밖에는 다시 보인다.
+    // 전에는 나온다는 말이 없으면 끝까지 숨어 주인공 없이 이야기가 이어졌다 (11/10 「한 번 숨은 주인공이 다시 나타나지 않았다」)
+    const STILL_HIDING = /숨어 (?:있|서|지켜|기다)|숨은 채|꼭꼭 숨|숨죽|가만히 (?:숨|있|기다|웅크)|몸을 (?:웅크|낮)/;
     const stillHidden = !hidingCard && !hidingText && out.length > 0 && out[out.length - 1].hero.hide !== null && !OUT_TEXT.test(p.text)
-      && !/(?:^|[^가-힣])(?:나는|내가) [가-힣 ]{0,20}(?:걸|뛰|달|날|기어|다가|갔|왔)/.test(p.text);
+      && (p.text.split(/(?<=[.!?”])\s*/).some((sen) => STILL_HIDING.test(sen) && subjectOf(sen.slice(0, sen.search(STILL_HIDING)), []) === "hero")
+        // 「친구가 나를 찾으러 왔어요」 — 찾는 중이면 아직 숨어 있다 (찾았어요 · 발견하면 보인다)
+        || (/(?:를|을) 찾(?:으러|고 있|아 ?다니|는)|찾으며|술래/.test(p.text) && !/찾았|발견|여기 있/.test(p.text)));
     const hiding = hidingCard || hidingText || stillHidden;
     const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
     if (hiding) { from = to = SLOT; }
