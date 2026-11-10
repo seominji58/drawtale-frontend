@@ -249,6 +249,20 @@ const LIGHT_OFF = /꺼졌|꺼지|꺼져|껐|끄고|끄니/;
  *  bright: 장면이 환해지는 말의 자리 (나레이션이 그 자리에 오면 따뜻한 빛이 번진다). 없으면 -1
  *  tears: 우는 문장들 — 누가 우는지는 장면(SceneStage)이 그 문장의 인물 이름 · 「나」로 정한다.
  *  「울음을 그쳤어요」 · 「눈물을 닦았어요」 · 「울지 않았어요」는 울지 않는 것 */
+/** 글자 자리 → 나레이션 진행(0~1) 어림 (11/10 사용자 「타이밍도 맞춘 거야?」). 글자 수 비율이면 문장 사이 쉼 · 따옴표 대사의
+ *  쉼이 빠져 쪽 뒷부분일수록 연출이 일찍 나왔다. 글자마다 읽는 시간에 쉬는 자리(마침표 · 쉼표 · 따옴표 …)의 쉼을 더해 잰다 */
+const PAUSE: Record<string, number> = { ".": 4.5, "!": 4.5, "?": 4.5, "…": 4, ",": 2.5, "“": 1.5, "”": 2, "\"": 1.5, "'": 0.8, "~": 1, "\n": 3 };
+const readCost = (ch: string) => PAUSE[ch] ?? (ch === " " ? 0.35 : /[가-힣A-Za-z0-9]/.test(ch) ? 1 : 0.5);
+export function readAt(text: string, i: number): number {
+  let before = 0, all = 0;
+  for (let k = 0; k < text.length; k++) {
+    const c = readCost(text[k]);
+    if (k < i) before += c;
+    all += c;
+  }
+  return all ? Math.min(1, before / all) : 0;
+}
+
 export type JoyKind = "heart" | "star" | "flower";
 export interface SceneFx {
   bright: number; tears: { at: number; sentence: string }[]; spins: { at: number; before: string }[];
@@ -279,14 +293,14 @@ export function sceneFx(text: string): SceneFx {
     const sen = m[0];
     // 자리는 우는 말(「울었어요」)이 나오는 곳 — 문장 첫머리면 「민지가 혼자」를 읽을 때 벌써 떨어졌다 (11/10)
     const c = CRY.exec(sen);
-    if (c && !NOT_CRY.test(sen)) tears.push({ at: (m.index + c.index) / Math.max(1, text.length), sentence: sen });
+    if (c && !NOT_CRY.test(sen)) tears.push({ at: readAt(text, m.index + c.index), sentence: sen });
   }
   // 도는 말: 그 문장에서 그 말 앞부분(누가 도는지 — 장면이 정한다)과 자리
   const spins: SceneFx["spins"] = [];
   const re2 = /[^.!?”]+[.!?”]*/g;
   for (let m = re2.exec(text); m; m = re2.exec(text)) {
     const c = SPIN.exec(m[0]);
-    if (c) spins.push({ at: (m.index + c.index) / Math.max(1, text.length), before: m[0].slice(0, c.index) });
+    if (c) spins.push({ at: readAt(text, m.index + c.index), before: m[0].slice(0, c.index) });
   }
   const joys: SceneFx["joys"] = [];
   const calms: SceneFx["calms"] = [];
@@ -294,14 +308,14 @@ export function sceneFx(text: string): SceneFx {
   for (let m = re3.exec(text); m; m = re3.exec(text)) {
     const sen = m[0];
     const cm = CALM.exec(sen);
-    if (cm) calms.push({ at: (m.index + cm.index) / Math.max(1, text.length), sentence: sen });
+    if (cm) calms.push({ at: readAt(text, m.index + cm.index), sentence: sen });
     if (NOT_JOY.test(sen)) continue;
     for (const [kind, re] of JOYS) {
       const j = re.exec(sen);
-      if (j) { joys.push({ at: (m.index + j.index) / Math.max(1, text.length), sentence: sen, kind }); break; }
+      if (j) { joys.push({ at: readAt(text, m.index + j.index), sentence: sen, kind }); break; }
     }
   }
-  return { bright: b ? b.index / Math.max(1, text.length) : -1, tears, spins, joys, calms };
+  return { bright: b ? readAt(text, b.index) : -1, tears, spins, joys, calms };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;
@@ -523,7 +537,7 @@ const WEATHER: [Weather, RegExp, RegExp][] = [
 export function envCueAt(text: string): number {
   const hits = [NIGHT_TEXT, MORNING_TEXT, ...WEATHER.map(([, ko]) => ko)]
     .map((re) => text.search(re)).filter((k) => k >= 0);
-  return hits.length && text.length ? Math.min(...hits) / text.length : 0;
+  return hits.length && text.length ? readAt(text, Math.min(...hits)) : 0;
 }
 
 export function weatherFor(text: string, background: string, location: string): Weather | null {
