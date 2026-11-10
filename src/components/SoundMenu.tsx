@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/store/auth";
 import { useSettings, useWithAdult } from "@/store/settings";
 import { getMyVoice, voiceSampleUrl } from "@/api";
 import type { VoiceKind } from "@/api";
@@ -45,10 +47,17 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
 
   const near = (v: number) => VOLUMES.reduce((a, b) => (Math.abs(b[1] - v) < Math.abs(a[1] - v) ? b : a))[1];
 
-  // 읽어 주는 목소리 (11/10 사용자 「설정에만 있어 답답, 위 소리 버튼에서도 토글처럼」) — 보호자 모드 · 로그인일 때만.
-  // 등록한 목소리만 고를 수 있고, 고른 칸 옆 ▶ 로 그 목소리를 미리 듣는다. 새로 만드는 이야기부터 적용된다
+  // 읽어 주기 네 가지 (11/10 사용자): 나레이션 · 캐릭터(대사는 등장인물 목소리) · 보호자 · 아이 — 한 줄에서 하나.
+  // 설정의 「읽어주기(나레이션 · 캐릭터)」와 「읽어 주는 목소리(기본 · 보호자 · 아이)」 두 칸과 같은 값이라 여기서 바꾸면 설정에도 그대로.
+  // 이야기를 만들기 전 화면에서만 보인다 — 만드는 중 · 책을 보는 동안 바꿔도 그 책은 바뀌지 않는다
   const adult = useWithAdult();
-  const narrator: "base" | VoiceKind = adult.childVoice ? "child" : adult.myVoice ? "guardian" : "base";
+  const member = useAuth((a) => a.mode === "member");
+  const voiceMode = useSettings((s) => s.voiceMode);
+  const { pathname } = useLocation();
+  const beforeStory = !["/generating", "/story", "/order", "/done", "/stories"].includes(pathname);
+  type Pick = "narration" | "characters" | VoiceKind;
+  const current: Pick = adult.childVoice ? "child" : adult.myVoice ? "guardian" : voiceMode === "characters" ? "characters" : "narration";
+  const narrator: "base" | VoiceKind = current === "child" || current === "guardian" ? current : "base";
   const [has, setHas] = useState<Record<VoiceKind, boolean>>({ guardian: false, child: false });
   useEffect(() => {
     if (!open || !adult.guardian) return;
@@ -57,15 +66,18 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
       .then(([g, c]) => { if (alive) setHas({ guardian: !!g?.registered, child: !!c?.registered }); });
     return () => { alive = false; };
   }, [open, adult.guardian]);
-  // 바꾸면 「새로 만드는 이야기부터」라고 잠깐 알린다 — 이미 만든 책은 만들 때의 목소리로 읽는다 (11/10 사용자 「바로 적용되는 줄」)
+  // 바꾸면 「새로 만드는 이야기부터」라고 잠깐 알린다 — 이미 만든 책은 만들 때의 목소리로 읽는다
   const [note, setNote] = useState<string | null>(null);
   const noteTimer = useRef<number>();
-  const pickNarrator = (k: "base" | VoiceKind) => {
-    if (k === narrator) return;
+  const LABEL: Record<Pick, string> = { narration: "나레이션", characters: "캐릭터", guardian: "보호자", child: "아이" };
+  const pickVoice = (k: Pick) => {
+    if (k === current) return;
     set("guardianNarrator", k === "guardian");
     set("childNarrator", k === "child");
-    const who = k === "base" ? "기본 목소리" : k === "guardian" ? "보호자 목소리" : "아이 목소리";
-    setNote(`다음에 만드는 이야기부터 ${who}로 읽어요. 이미 만든 책은 그대로예요.`);
+    // 나레이션 · 캐릭터는 읽어주기 방식, 보호자 · 아이는 나레이터 목소리 (읽어주기 방식은 그대로 둔다 — 대사는 등장인물 목소리일 수 있다)
+    if (k === "narration" || k === "characters") set("voiceMode", k);
+    const what = k === "narration" ? "나레이터 한 사람이" : k === "characters" ? "대사는 등장인물 목소리로" : `${LABEL[k]} 목소리로`;
+    setNote(`다음에 만드는 이야기부터 ${what} 읽어요. 이미 만든 책은 그대로예요.`);
     clearTimeout(noteTimer.current);
     noteTimer.current = window.setTimeout(() => setNote(null), 5000);
   };
@@ -110,15 +122,18 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
             }}>
             {muteAll ? <><SoundIcon /> 소리 켜기</> : <><MuteIcon /> 소리 끄기</>}
           </button>
-          {adult.guardian && (
-            <div className="sound-vol" role="group" aria-label="읽어 주는 목소리">
-              <span className="sound-vol-name">읽어 주는 목소리</span>
-              <span className="seg">
-                {(["base", "guardian", "child"] as const).map((k) => (
-                  <button key={k} className={narrator === k ? "on" : ""} aria-pressed={narrator === k}
-                    disabled={k !== "base" && !has[k]} title={k !== "base" && !has[k] ? "설정에서 먼저 등록해 주세요" : undefined}
-                    onClick={() => pickNarrator(k)}>{k === "base" ? "기본" : k === "guardian" ? "보호자" : "아이"}</button>
-                ))}
+          {member && beforeStory && (
+            <div className="sound-vol" role="group" aria-label="읽어 주기">
+              <span className="sound-vol-name">읽어 주기</span>
+              <span className="seg seg4">
+                {(["narration", "characters", "guardian", "child"] as const).map((k) => {
+                  const off = (k === "guardian" || k === "child") && (!adult.guardian || !has[k]);
+                  return (
+                    <button key={k} className={current === k ? "on" : ""} aria-pressed={current === k} disabled={off}
+                      title={off ? (adult.guardian ? "설정에서 먼저 등록해 주세요" : "보호자 모드에서 쓸 수 있어요") : undefined}
+                      onClick={() => pickVoice(k)}>{LABEL[k]}</button>
+                  );
+                })}
               </span>
               {note && <span className="sound-note" role="status">{note}</span>}
               {narrator !== "base" && (
