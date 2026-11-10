@@ -1085,6 +1085,8 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-bright.on { opacity: 1; animation: bright-breathe 3.2s ease-in-out 2.2s infinite alternate; }
 @keyframes bright-breathe { from { opacity: 1; } to { opacity: .78; } }
 .scene.night .scene-bright { background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(255, 220, 140, .7), rgba(255, 200, 110, .25) 45%, rgba(255, 200, 110, 0) 75%); }
+/* 빛을 낸 물건(등대 꼭대기 · 등불 · 가로등 · 창) 자리에서 퍼진다 (11/10) — 가운데가 밝고 둘레로 번진다 */
+.scene-bright.spot, .scene.night .scene-bright.spot { background: radial-gradient(circle at var(--gx) var(--gy), rgba(255, 236, 170, .95) 0, rgba(255, 220, 140, .6) 9%, rgba(255, 206, 120, .28) 26%, rgba(255, 200, 110, 0) 52%); }
 /* 눈물: 눈 아래 두 줄로 방울이 떨어진다. 칸(.scene-tears) 높이가 방울 크기, 폭이 두 눈 사이 */
 .scene-tears { position: absolute; z-index: 7; translate: -50% 0; pointer-events: none; }
 .scene-tears i { position: absolute; top: 0; width: auto; height: 100%; aspect-ratio: 3 / 4;

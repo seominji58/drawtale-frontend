@@ -852,6 +852,39 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const brightOn = fx.bright >= 0 && heard(fx.bright);
   // 누가 우나: 그 문장에 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 아니면 옆 인물(「친구가 울고 있었어요」), 없으면 주인공
   const visiblePeople = people.filter((v): v is NonNullable<typeof v> => !!v && v.p.id !== "sign");
+  // 빛이 퍼지는 자리 (11/10 사용자 「불빛이 밝아졌다는 건 그 소품이랑 맞거나 화면 한 자리에서 — 화면 위 가운데 고정이 아니라」).
+  // 등대 → 등대 꼭대기, 등불 · 손전등 → 그 소품이나 든 사람, 가로등 → 가로등, 창 → 창. 해 · 햇살 · 모르면 위 가운데(전과 같음)
+  const glowAt = ((): { x: number; y: number } | null => {
+    if (!(fx.bright >= 0 || plan.env.glow)) return null;
+    const said = text.replace(/“[^”]*”/g, " ");
+    const LIGHT_KIND = /lantern|flashlight|candle|lamp|torch/;
+    const objAt = (re: RegExp) => {
+      const o = layout.objects.find((v) => re.test(v.src));
+      return o ? { x: o.x, y: o.foot !== undefined ? o.foot - o.h * 0.85 : (o.top ?? 0.2) + o.h * 0.3 } : null;
+    };
+    if (/해가|해님|햇살|햇빛|아침/.test(said) && !/등대|등불|손전등|랜턴|불빛|촛불|가로등/.test(said)) return null;
+    if (/등대/.test(said)) { const o = objAt(/lighthouse/); if (o) return o; }
+    if (/가로등/.test(said)) { const o = objAt(/lamp/); if (o) return o; }
+    const held = (plan.things ?? []).find((t) => t.holder && LIGHT_KIND.test(t.src));
+    if (held?.holder === "hero" && !heroGone) return { x: heroX, y: topY + drawn.h * 0.45 };
+    if (held) {
+      const v = visiblePeople.find((q) => q.p.id === held.holder || q.p.name === held.holder);
+      if (v) return { x: v.spot.x, y: (v.sb.foot ?? 0.93) - v.sb.h * 0.5 };
+    }
+    const lamp = thingSpots.find((t) => LIGHT_KIND.test(t.src));
+    if (lamp) return { x: lamp.x, y: ("footY" in lamp && lamp.footY !== undefined ? lamp.footY : lamp.spot === "air" ? 0.3 : 0.95) - lamp.h * 0.7 };
+    // 사람이 든다고 적힌 등불(「아저씨가 등불을 들고」) — 그 사람
+    if (/등불|손전등|랜턴|초롱/.test(said)) {
+      const v = visiblePeople.find((q) => q.p.name && new RegExp(`${q.p.name}[^.!?]{0,12}(?:등불|손전등|랜턴|초롱)|(?:등불|손전등|랜턴|초롱)[^.!?]{0,8}든 ${q.p.name}`).test(said));
+      if (v) return { x: v.spot.x, y: (v.sb.foot ?? 0.93) - v.sb.h * 0.5 };
+    }
+    if (/불빛|등불|촛불/.test(said)) { const o = objAt(/lighthouse|lantern|lamp/); if (o) return o; }
+    if (/창/.test(said)) {
+      if (layout.window) return { x: layout.window.x, y: layout.window.y };
+      const o = objAt(/window/); if (o) return o;
+    }
+    return null;
+  })();
   // 문장의 주인 (눈물 · 기쁨이 누구에게 나나): 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 「친구 · 아이 …」면 옆 인물.
   // 고마워(heart)는 도움을 받은 쪽이 하는 말이라 「나」가 없고 옆에 인물이 있으면 그 사람. 없으면 주인공
   // scale: 연출 크기 기준 (화면 높이 대비). 사람은 키, 옆으로 긴 그림(뱀 · 물고기 · 새 · 4족)은 키가 작아 눈물 · 별이 점처럼
@@ -1111,7 +1144,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         </div>
       )}
       {/* 장면이 환해짐: 위에서 따뜻한 빛이 번진다 (화면 섞기 — 그림 위에 흰 막을 덮지 않는다) */}
-      {(fx.bright >= 0 || plan.env.glow) && <div className={`scene-bright ${brightOn || plan.env.glow ? "on" : ""}`} />}
+      {(fx.bright >= 0 || plan.env.glow) && <div className={`scene-bright ${brightOn || plan.env.glow ? "on" : ""} ${glowAt ? "spot" : ""}`}
+        style={glowAt ? { ["--gx" as string]: `${(glowAt.x * 100).toFixed(1)}%`, ["--gy" as string]: `${(glowAt.y * 100).toFixed(1)}%` } : undefined} />}
       {fx.drip >= 0 && heard(fx.drip) && (
         <div className="scene-drip">{DRIPS.map(([x, d, h], k) => <i key={k} style={{ left: `${x}%`, animationDelay: `${d}s`, ["--fall" as string]: `${h}%` }} />)}</div>
       )}

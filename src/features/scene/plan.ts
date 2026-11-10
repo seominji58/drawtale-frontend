@@ -373,7 +373,7 @@ const GESTURES: [HeroGesture, RegExp][] = [
 const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
 // 「멀리서 불빛이 보였어요」 · 「별이 빛났어요」는 장면 전체가 밝아지는 것이 아니다 (저장 이야기 점검 11/10)
-const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)|불빛에|불빛이 (?:비|퍼|가득|환|새어|새)|빛이 새어 나왔|환한 (?:불빛|빛)|빛이 (?:반짝 )?들어|해가 (?:떴|떠올|솟)|아침이 (?:밝|됐|되)/;
+const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)|불빛에|불빛이 (?:비|퍼|가득|환|새어|새)|빛이 새어 나왔|환한 (?:불빛|빛)|빛이 (?:반짝 )?들어|해가 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟)|해님이 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟|방긋|얼굴을)|밤이 지나|동이 트|날이 (?:밝|새|샜)|아침 해|아침이 (?:밝|됐|되)/;
 const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
 const NOT_CRY = /그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었|쏙 들어|들어갔|참았|참고|꾹 참|눈물이 (?:싹|쏙)|눈물이 뚝 (?:그|멈)|눈물을 (?:거두|멈)/;   // 「눈물이 뚝뚝 떨어졌어요」는 우는 것 (11/10)
 /** 문장의 주인 (저장 이야기 3,069편 점검 11/10 — 「천장에서 물방울이 떨어졌어요」 · 「새들이 노래했어요」의 연출이 주인공에게 났다).
@@ -719,7 +719,7 @@ export const DARK_TEXT = /(?:어두운|어둑한|어둑어둑한|캄캄한|깜�
 // 「밤새 깜깜했던 바다가 금빛으로」처럼 지나간 어둠은 아니다
 const NOT_DARK = /어둡지 않|안 어두|어둠이 (?:무섭지|사라|걷)|(?:깜깜|캄캄|어두웠|컴컴|어둑)(?:했)?던 /;
 // 햇살 · 햇빛이 들어오면 낮 (11/10 점검: 우주선 창으로 금빛 햇살이 들어왔는데 밤이었다)
-const MORNING_TEXT = /아침이 (?:밝|됐|되|왔)|해가 (?:떴|떠올|뜨|솟)|날이 밝|햇살이 (?:들|비|쏟|가득|창)|햇빛이 (?:들|비|쏟|가득)/;
+const MORNING_TEXT = /아침이 (?:밝|됐|되|왔)|해가 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟)|해님이 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟|방긋|얼굴을)|밤이 지나|동이 트|날이 (?:밝|새|샜)|아침 해|햇살이 (?:들|비|쏟|가득|창)|햇빛이 (?:들|비|쏟|가득)/;
 /** 날씨 — [종류, 쪽 글, 배경 설명(영어)]. 앞에 있는 것이 먼저 (폭풍이면 비도 함께 그린다).
  *  「눈이 반짝」(사람 눈) · 「비가 그쳤어요」 · rainbow 속 rain 은 걸리지 않게 (11/4 사용자 「민감하지 않은 선에서만」) */
 const WEATHER: [Weather, RegExp, RegExp][] = [
@@ -894,6 +894,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   mine: { name: string; png: string; height: number }[] = [], heroName?: string | null, form?: string | null): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
+  let darkCard = false;
   let x = SLOT, loc: string | undefined, night = false, dimOn = false, lit = false, glow = false, flying: boolean = false;
   let face: -1 | 0 | 1 = 0;
   // 이야기 열쇠: 글로 만든 짧은 값이라 다시 계획해도(새로고침 · 주소 새로 받음) 같다
@@ -955,7 +956,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const st = stageIdx(p.stage);
     // 밤: 「어두워졌어요」부터 이어진다. 결과 「해가 떴어요」에서 밝아지고, 「잠이 들었어요」는 밤.
     // 카드가 아니어도 쪽 글에 밤이 되거나(해가 졌어요 · 밤이 되었어요) 아침이 오면(해가 떴어요) 그 쪽부터 바꾼다 (11/4)
-    if (picks.problem === "dark" && st >= 1) night = true;
+    if (picks.problem === "dark" && st >= 1 && !darkCard) { night = true; darkCard = true; }
     if (NIGHT_TEXT.test(p.text)) night = true;
     if (MORNING_TEXT.test(p.text)) night = false;
     if (p.stage === "result" && picks.result === "sun") night = false;
@@ -964,7 +965,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     // 어두운 곳: 그 쪽에서 어두워지면 다음 쪽들도 어둑하다 — 밝아지는 말(불빛 · 환해졌어요) · 아침이 오면 걷힌다.
     // 같은 쪽에서 밝아지면 장면이 그 말에서 걷어 낸다(SceneStage). 밤이면 밤이 이긴다
     const darkHere = DARK_TEXT.test(p.text) && !NOT_DARK.test(p.text);
-    const dimNow = !night && (dimOn || darkHere);
+    const dimNow = !night && (dimOn || darkHere) && !MORNING_TEXT.test(unquoted(p.text));
     if (darkHere) dimOn = true;
     const said = unquoted(p.text);
     if (BRIGHT.test(said) || MORNING_TEXT.test(said) || (p.stage === "result" && picks.result === "sun")) dimOn = false;
