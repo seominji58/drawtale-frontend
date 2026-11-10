@@ -820,6 +820,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     if (t.keep && !PINS.has(t.keep)) PINS.set(t.keep, { x: at.x, h: at.h, footY: at.footY });
     return at;
   };
+  const lead = form && form !== "biped" ? (headSide !== 0 ? headSide : hero.face) : 0;
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
     const pin = pinOf(t);
     if (pin) return { ...t, h: pin.h, x: pin.x, footY: pin.footY };
@@ -850,7 +851,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       const tries: number[] = [];
       for (let d = 0; d <= 40; d++) {
         const off = (air ? 0 : heroHalf) + half + gap + d * 0.02;
-        if (k % 2 === 0) tries.push(hero.to - off, hero.to + off); else tries.push(hero.to + off, hero.to - off);
+        // 사람이 아닌 주인공(4족 · 사슬 · 날개 · 물고기 …)은 소품을 머리 쪽 — 가는 쪽 · 보는 쪽 앞에 먼저 둔다 (11/10 사용자
+        // 「비휴머노이드는 머리 근처, 움직이는 종착 방향으로 — 도토리가 오른쪽에 있어야」). 사람 주인공은 전처럼 양옆을 번갈아
+        if (lead) tries.push(hero.to + lead * off, hero.to - lead * off);
+        else if (k % 2 === 0) tries.push(hero.to - off, hero.to + off); else tries.push(hero.to + off, hero.to - off);
       }
       const x = tries.find((c) => c >= lo && c <= hi && open(c - half - gap, c + half + gap));
       if (x === undefined) continue;
