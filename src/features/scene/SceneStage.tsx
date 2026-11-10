@@ -179,6 +179,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const [hidden, setHidden] = useState(false);
   // 정면 그림(사람형) 주인공이 옮겨 가는 동안 가는 쪽으로 기울인다 (11/9 사용자 — 정면 제자리 걸음으로 옆으로 미끄러져 어색)
   const [leaning, setLeaning] = useState(false);
+  // 걸어 들어오는 인물이 제자리에 다 온 뒤 (눈물 · 연출은 그 뒤에)
+  const [arrived, setArrived] = useState(false);
   // 멈춘 그림의 가로세로 비율 — 옆 인물을 비켜 세울 때 주인공 폭을 잰다
   const [stillAr, setStillAr] = useState<number | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -234,6 +236,14 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     const t = window.setTimeout(() => setPhase(1), 60);
     return () => clearTimeout(t);
   }, [mode, layout, plan, waitSprite]);
+
+  useEffect(() => {
+    if (!play || REDUCE) { setArrived(true); return; }
+    setArrived(false);
+    if (phase !== 1) return;
+    const a = window.setTimeout(() => setArrived(true), ENTER_MS);
+    return () => clearTimeout(a);
+  }, [plan, play, phase]);
 
   // 「숨었어요」: 0.8초 뒤 1초에 걸쳐 사라지고 그대로 숨어 있다. 다음 쪽(같은 행동 단계)은 숨은 채로 시작
   // (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 는 2초 뒤 다시 나타남)
@@ -599,7 +609,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
 
   // 쪽 연출 (11/10): 환해짐 · 눈물. 나레이션이 그 말의 자리에 오면 보인다 (나레이션이 없으면 쪽에 들어올 때, 끝 모습이면 처음부터)
   const fx = sceneFx(text);
-  const heard = (at: number) => !play || narration === undefined || narration >= at;
+  // 나레이션이 없으면(소리 끔 · 읽기 전) 쪽에 들어와 자리를 잡은 뒤에. 끝 모습이면 처음부터
+  const heard = (at: number) => !play || (phase === 1 && (narration === undefined || narration >= at));
   const brightOn = fx.bright >= 0 && heard(fx.bright);
   // 누가 우나: 그 문장에 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 아니면 옆 인물(「친구가 울고 있었어요」), 없으면 주인공
   const visiblePeople = people.filter((v): v is NonNullable<typeof v> => !!v && v.p.id !== "sign");
@@ -608,6 +619,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     const named = visiblePeople.find((v) => v.p.name && t.sentence.includes(v.p.name));
     const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(t.sentence) ? visiblePeople[0] : undefined));
     if (other) {
+      // 걸어 들어오는 사람은 제자리에 다 온 뒤에 운다 — 전에는 화면 밖에서 오는 중인데 설 자리에 눈물부터 떨어졌다 (11/10)
+      if (other.p.enter && !arrived) return null;
       const h = other.sb.h, foot = other.sb.foot ?? 0.93;
       return { key: `p-${other.p.id}`, x: other.spot.x, y: foot - h * 0.8, size: h * 0.06, gap: (h * 0.032) / aspect, follow: false };
     }

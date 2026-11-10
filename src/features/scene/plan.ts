@@ -260,7 +260,9 @@ export function sceneFx(text: string): SceneFx {
   const re = /[^.!?”]+[.!?”]*/g;
   for (let m = re.exec(text); m; m = re.exec(text)) {
     const sen = m[0];
-    if (CRY.test(sen) && !NOT_CRY.test(sen)) tears.push({ at: m.index / Math.max(1, text.length), sentence: sen });
+    // 자리는 우는 말(「울었어요」)이 나오는 곳 — 문장 첫머리면 「민지가 혼자」를 읽을 때 벌써 떨어졌다 (11/10)
+    const c = CRY.exec(sen);
+    if (c && !NOT_CRY.test(sen)) tears.push({ at: (m.index + c.index) / Math.max(1, text.length), sentence: sen });
   }
   return { bright: b ? b.index / Math.max(1, text.length) : -1, tears };
 }
