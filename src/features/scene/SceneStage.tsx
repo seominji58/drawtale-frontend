@@ -357,7 +357,31 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const stillHalf = stillAr ? ((fit === "width" ? Math.min(H.h * WIDE_LEN, H.h * WIDE_MAX_H * stillAr) : H.h * stillAr) * size / aspect) / 2 : null;
   const edge = Math.min(0.5, (stillHalf ?? heroHalf) + 0.02);
   const inside = (x: number) => Math.min(1 - edge, Math.max(edge, x));
-  const heroTo = inside(plan.hero.to);
+  // 쪽 글이 말하는데 배경 그림에 이미 있어 따로 놓지 않는 물건(표지판 · 모래성 · 북 · 장난감 상자 …)의 가로 범위.
+  // 주인공 · 인물이 그 앞에 서서 가리지 않게 한다 (11/10 소품 점검 38쪽: 「표지판으로 달려갔어요」에 주인공이 표지판 바로 앞에
+  // 멈춰 표지판이 몸 뒤로 사라졌다. 소품을 또 세우지 않게 되면서 글의 그 물건은 배경 것 하나뿐이다)
+  const saidKinds = new Set((plan.things ?? []).map((t) => kindOf(t.src)));
+  // 카드 표지판 대신 배경 표지판, 글에 표지판이 나오기만 해도(「표지판아, 고마워」 같은 말은 소품 낱말로 잡히지 않는다)
+  if (plan.props.some((p) => p.id === "sign") || /표지판|화살표/.test(text)) saidKinds.add("sign");
+  const spanOf = (o: { src: string; x: number; h: number }): [number, number] => {
+    const key = o.src.startsWith("../") ? o.src.slice(3) : `${plan.location}/${o.src}`;
+    const half = (o.h * arOf(key, 1) / aspect) / 2;
+    return [o.x - half, o.x + half];
+  };
+  const saidSpans = layout.objects.filter((o) => o.foot !== undefined && saidKinds.has(kindOf(o.src))).map(spanOf);
+  /** 주인공 몸(가운데 6할)이 그 물건을 3할 넘게 가리면 옆에 선다: 옮겨 오면 다가온 쪽, 제자리면 가까운 쪽. 자리가 없으면 그대로 */
+  const besideSaid = (x: number, dir: number) => {
+    const core = heroHalf * 0.6;
+    for (const [l, r] of saidSpans) {
+      if (Math.min(x + core, r) - Math.max(x - core, l) <= (r - l) * 0.3) continue;
+      const before = l - heroHalf * 0.75, after = r + heroHalf * 0.75;
+      const first = dir > 0 ? before : dir < 0 ? after : x < (l + r) / 2 ? before : after;
+      const ok = (c: number) => Math.abs(inside(c) - c) < 1e-6;
+      return ok(first) ? first : ok(first === before ? after : before) ? (first === before ? after : before) : x;
+    }
+    return x;
+  };
+  const heroTo = inside(besideSaid(inside(plan.hero.to), plan.hero.to - plan.hero.from));
   let heroFrom = inside(plan.hero.from);
   // 걷기 · 뛰기인데 화면 안으로 맞추고 나니 출발 · 도착이 거의 같으면(몸이 긴 4족형은 설 자리가 좁다) 제자리 걸음만 보였다
   // (11/9 테스트 2번) — 가던 쪽 그대로 화면 폭의 1/4 은 옮겨 가게 출발점을 뒤로 뺀다
@@ -398,7 +422,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const prop = (id: PropId): Spot | undefined => layout.props[id]
     ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: PEOPLE[id].foot ?? 0.93, h: PEOPLE[id].h } : undefined);
   // 옆에 서는 것들(인물 · 표지판)의 자리: 주인공과 서로를 피해, 칸 안에서. 원하는 쪽이 꽉 차면 반대쪽으로
-  const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf]];
+  // 글이 말하는 배경 물건 앞도 비워 둔다 (위 saidSpans): 인물 · 소품이 그 앞에 서지 않는다
+  const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf], ...saidSpans];
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);
   /** 자리 { x, back } — back 이면 설 자리가 없어 조금 뒤(작게 · 약간 위)에 선다. 그림책에서 뒤에 선 사람처럼 */
   // enterFrom: 걸어 들어오는 쪽 — 그쪽(주인공 기준)에만 선다. 오른쪽에서 들어온 친구가 주인공 뒤를 지나 왼쪽에 섰다 (11/9 사용자)
@@ -1050,7 +1075,8 @@ const TO_WINDOW = new Set(["props/shootingstar.webp", "props/planet.webp", "prop
   "props/butterfly.webp", "props/bird.webp", "props/seagull.webp", "props/balloons.webp"]);
 /** 이름이 달라도 같은 물건 — 바다 배경에 모래성(castle) · 바위(rock)가 있는데 쪽 글의 「모래성」 · 「바위」로 하나 더 섰다 (11/9 배치 검사) */
 // 화살표 그림은 표지판, 벤치는 의자, 장난감 상자는 상자, 북은 북들 (저장 이야기 점검 11/10 — 배경에 있는데 또 놓였다)
-const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign", bench: "chair", toybox: "box", drum: "drums" };
+// 돌 하나(pebble)도 돌 무더기와 같은 종류: 동굴 · 시냇가처럼 배경에 돌이 있으면 또 놓지 않는다 (11/10)
+const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign", bench: "chair", toybox: "box", drum: "drums", pebble: "rocks" };
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */
 const LEAVES: [number, number, string][] = [[20, 0, "#E8A33C"], [46, 1.1, "#8DBA5A"], [34, 2.2, "#D9663B"], [60, 3.3, "#B9C94A"],
   [28, 4.4, "#E2B04A"], [54, 5.5, "#7FAE4E"]];

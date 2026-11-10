@@ -1,8 +1,8 @@
 {
  "cave/rocks.webp": 2.334,
- "forest/mushroom.webp": 1.321,
  "forest-flowers/flowers.webp": 1.193,
  "forest-stream/rocks.webp": 0.843,
+ "forest/mushroom.webp": 1.321,
  "home-kitchen/table.webp": 1.831,
  "props/acorns.webp": 1.273,
  "props/adult.webp": 0.507,
@@ -88,6 +88,7 @@
  "props/nurse.webp": 0.419,
  "props/octopus.webp": 1.109,
  "props/pavilion.webp": 1.18,
+ "props/pebble.webp": 2.1,
  "props/pillow.webp": 1.259,
  "props/planet.webp": 1.643,
  "props/podium.webp": 2.724,
