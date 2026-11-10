@@ -23,8 +23,9 @@ import type { Recording } from "@/features/voice/record";
  *  어른이 기능을 시험할 때만 쓴다 (팀 결정). open-decisions 0-20 */
 export const CONSENT_VERSION = "2026-11-02";
 export const CHILD_CONSENT_VERSION = "2026-11-09-child";
-/** 녹음을 보내는 곳이 Modal(자체 음성 서버)일 때의 안내문 판 (2026-11-10) — 받는 곳이 바뀌면 판도 바뀐다 */
-const MODAL_SUFFIX = "-modal";
+/** 녹음을 보내는 곳이 Modal(자체 음성 서버)일 때의 안내문 판 (2026-11-10) — 받는 곳이 바뀌면 판도 바뀐다.
+ *  서버 · DB 가 판 이름을 20자까지만 받는다 — 「-modal」이면 아이 판이 22자라 등록이 422 로 거절됐다 */
+const MODAL_SUFFIX = "-md";
 /** 받는 곳 — 서버 provider (GET /me/voice). elevenlabs: ElevenLabs, qwen: 자체 음성 서버가 도는 Modal */
 const RECIPIENT = {
   elevenlabs: { who: "ElevenLabs, Inc.", what: "음성 합성 업체", del: "ElevenLabs 의 목소리" },
