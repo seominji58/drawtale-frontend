@@ -1140,6 +1140,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   animation: person-talk .42s ease-out .5s 3 alternate, person-breathe 2.2s ease-in-out 1.8s infinite alternate; }
 @keyframes person-talk { from { translate: 0 0; } to { translate: 0 -5%; } }
 .scene-person.p-hop { transform-origin: 0 100%; animation: person-hop 2.6s ease-out infinite; }
+/* 기쁨 · 빙글 (11/10): 좌우로 뒤집었다 돌아오기 세 번, 그다음 숨쉬기. 가운데 맞추기(translateX) 뒤라 축은 0 (그림 가운데) */
+.scene-person.p-spin { transform-origin: 0 100%; animation: person-spin .7s ease-in-out 3, person-breathe 2.2s ease-in-out 2.1s infinite alternate; }
+@keyframes person-spin { 0%, 100% { scale: 1 1; } 50% { scale: -1 1; } }
 @keyframes person-hop { 0%, 62%, 100% { translate: 0 0; } 72% { translate: 0 -14%; } 82% { translate: 0 0; } 88% { translate: 0 -5%; } }
 /* 등장인물 동작 그림띠 (관절 렌더, tools/people-moves, 11/9) — --lag 뒤에 그림띠를 넘기다(한 번 --dur) --until 에 멈춘 그림으로.
    그림띠가 보이기 전(--lag)에는 멈춘 그림이 서 있다 */

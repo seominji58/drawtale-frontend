@@ -668,7 +668,9 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     const w = whoOf(jy.sentence, jy.kind === "heart");
     if (!ready(w)) return null;
     // 머리 둘레를 감싼다 — 칸 가운데가 얼굴 높이, 칸 크기는 그 사람 키 기준 (11/10 「별이 머리 주변에 가득 있어야」)
-    return { key: `${w.key}-${k}`, x: w.x, y: (w.head + w.face) / 2, size: w.h, kind: jy.kind, follow: w.follow };
+    // 옆모습(새 · 4족 …)은 머리가 그림 끝에 작게 있어 몸 키 기준이면 별이 얼굴 · 눈을 덮었다 — 작게 · 머리 위쪽으로 (11/10)
+    const size = w.side ? w.h * 0.62 : w.h;
+    return { key: `${w.key}-${k}`, who: w.key, x: w.x, y: w.side ? w.head + w.h * 0.02 : (w.head + w.face) / 2, size, kind: jy.kind, follow: w.follow };
   }).filter((v): v is NonNullable<typeof v> => !!v);
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
@@ -682,6 +684,17 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const gesture = canMove ? fx.gestures.filter((g) => heard(g.at) && !otherSpins(g.before)).pop() : undefined;
   const heroSpin = spinAt >= 0 && !(gesture && gesture.at > spinAt);
   const heroMove = heroSpin ? "spin" : gesture ? `g-${gesture.kind}` : "";
+  // 등장인물도 기쁘거나(별 · 꽃 · 하트) 그 사람이 도는 말이면 좌우로 뒤집었다 돌아온다 (11/10 「손 인사 말고도 기쁜 상황에서 뒤집기」).
+  // 손 인사 그림띠를 보이는 중이면 그때 멈춘 그림으로 바꿔 돈다
+  const personSpin = new Set<string>(REDUCE || !play ? [] : [
+    ...joyful.filter((jy) => jy.who.startsWith("p-")).map((jy) => jy.who),
+    ...fx.spins.filter((sp) => heard(sp.at) && otherSpins(sp.before)).map((sp) => {
+      const v = visiblePeople.find((q) => q.p.name && sp.before.includes(q.p.name)) ?? visiblePeople[0];
+      return v && (!v.p.enter || arrived) ? `p-${v.p.id}` : "";
+    }).filter(Boolean),
+  ]);
+  // 슬프거나 걱정하는 쪽 — 인물이 손을 흔들거나 만세하지 않는다
+  const sadPage = SAD_TEXT.test(text);
 
   return (
     <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" ? "gloomy" : ""} ${weather === "storm" ? "stormy" : ""}`} aria-hidden ref={root}>
@@ -717,7 +730,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
         const move: CSSProperties = { transition: REDUCE || !play ? "none" : `left ${ENTER_MS}ms cubic-bezier(.3,.15,.45,1), filter 2.6s ease` };
         // 가만히 있는 동안 숨쉬기 · 깡충 (11/9 「등장인물이 다 가만히 있다」) — 사람마다 박자를 엇갈려 같이 들썩이지 않게
         // 슬프거나 걱정하는 쪽에서는 이름이 나와도 손을 흔들지 않는다 (우는 친구가 손을 흔들며 웃었다, 11/10)
-        const talks = !!p.name && play && text.includes(p.name) && !SAD_TEXT.test(text);
+        const talks = !!p.name && play && text.includes(p.name) && !sadPage;
+        const spinning = personSpin.has(`p-${p.id}`);
         const idle = p.id === "bird" || p.id === "bat" ? "m-float" : p.id === "rabbit" || p.id === "squirrel" ? "p-hop"
           : talks ? "p-talk" : "p-breathe";
         const beat = { animationDelay: `${-((k * 1.37) % 3.6).toFixed(2)}s` };
@@ -731,13 +745,13 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           if (!stripReady.has(url)) void preloadStrip(url).then(() => setStripTick((n) => n + 1));
           return false;
         };
-        const pick: [keyof PersonMoves, number] | null = !moves ? null
+        const pick: [keyof PersonMoves, number] | null = !moves || spinning ? null
           : p.enter && moves.walk ? (ready("walk", true) ? ["walk", ENTER_MS] : null)
           // 그림띠를 다 받기 전에 바꿔 끼우면 멈춘 그림은 숨고 그림띠는 비어 있어 깜빡였다 — 받은 뒤에만 (11/9)
-          : CHEER_ACTIONS.has(pageAction) && moves.hooray && ready("hooray") ? ["hooray", moves.hooray.sec * 2000]
+          : CHEER_ACTIONS.has(pageAction) && !sadPage && moves.hooray && ready("hooray") ? ["hooray", moves.hooray.sec * 2000]
           // 만세 그림띠는 몸통이 불룩해져 뺐다(11/9). 기쁜 쪽도 손 흔들기로. 인사는 손을 든 채 쪽이 바뀔 때까지 흔든다
           // (사용자 「손 들고 계속 흔드는 거 무한 유지」, loop_from)
-          : (talks || CHEER_ACTIONS.has(pageAction)) && moves.wave && ready("wave") ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
+          : (talks || (CHEER_ACTIONS.has(pageAction) && !sadPage)) && moves.wave && ready("wave") ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
           : null;
         if (moves && pick) {
           const [name, until] = pick;
@@ -768,7 +782,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
         }
         return (
           <img key={`${p.id}-${p.name ?? k}`}
-               className={`scene-obj scene-person ${phase === 0 || !p.enter ? idle : "walking-in"}`}
+               className={`scene-obj scene-person ${spinning ? "p-spin" : phase === 0 || !p.enter ? idle : "walking-in"}`}
                src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move, ...(phase === 0 || !p.enter ? (idle === "p-talk" ? { animationDelay: `${0.5 + k * 0.3}s, ${1.8 + k * 0.45}s` } : beat) : {}) }} />
         );
       })}
