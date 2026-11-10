@@ -14,7 +14,7 @@ import SceneStage, { preloadStripsFor } from "@/features/scene/SceneStage";
 import { envCueAt, planPages } from "@/features/scene/plan";
 import { formOf } from "@/features/character/forms";
 import { ORDER_GAME, useSettings } from "@/store/settings";
-import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopSpeak, trackAudio } from "@/lib";
+import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopAllAudio, stopSpeak, trackAudio } from "@/lib";
 import type { Book, BookPage, MotionId, Story } from "@/types/story";
 import type { Keypoints } from "@/types/character";
 
@@ -184,8 +184,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
 
   useEffect(() => () => { stopSpeak(); audio.current?.pause(); stopTts(); }, []);
 
+  // 쪽을 넘기거나 떠날 때: 지금 쪽 소리만이 아니라 나고 있는 소리 모두 (stopAllAudio, 11/10 소리 겹침)
   const stop = () => {
-    stopSpeak(); audio.current?.pause(); stopTts();
+    stopAllAudio(); audio.current?.pause(); stopTts();
   };
   // ---- 쪽 넘김 (2026-11-03 사용자 결정 N2: M 「비스듬한 말림 띠」, 쉬는 동안 귀퉁이 표시는 없음 —
   //      「접혀 있는 게 애매, 없는 게 더 자연스러움」. 넘길 때 · 손가락으로 잡을 때만 귀퉁이가 생긴다) ----
@@ -311,6 +312,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         a.ontimeupdate = () => { if (a.duration) setFrac(a.currentTime / a.duration); };
         a.onended = () => { if (alive) setFrac(1); };
         a.onerror = tts;
+        // 느린 네트워크에서는 play() 뒤 한참 있다 소리가 난다. 그사이 쪽을 넘겼으면 나는 순간 멈춘다 (11/10 소리 겹침)
+        a.onplaying = () => { if (!alive || audio.current !== a) a.pause(); };
         void a.play().catch(() => fill(est));
       } else if (!perPage && story.audioUrl) {
         const a = audio.current && audio.current.src.includes(story.audioUrl.split("?")[0]) ? audio.current : trackAudio(new Audio(story.audioUrl));

@@ -90,6 +90,13 @@ export function stopSpeak() {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
+/** 지금 나는 소리를 모두 멈춘다: 안내 음성 · 브라우저 음성(stopSpeak)과 trackAudio 로 튼 소리 전부 (11/10 사용자 「빠르게 페이지 넘길 때
+ *  소리 겹치는 문제」). 책 화면이 쪽을 넘길 때 지금 쪽 소리 하나만 멈추면, 다른 경로로 남은 소리가 다음 쪽과 겹칠 수 있었다 */
+export function stopAllAudio() {
+  stopSpeak();
+  for (const a of [...live]) a.pause();
+}
+
 /** S-03 「돌리기」 — 시계 방향으로 90도 × quarter 만큼 돌린 새 그림 (2026-11-04, pt_docs 19 7-1).
  *  아이는 종이를 돌려 가며 그리고 사진도 돌아가 찍힌다. 사람 관절 모델은 똑바로 선 그림으로 배워서 누운 사진은
  *  거절하거나 엉뚱하게 찍는다. 휴대폰 사진의 방향 정보(EXIF)는 createImageBitmap 이 먼저 반영한다 — 보이는 그대로 돌린다 */
