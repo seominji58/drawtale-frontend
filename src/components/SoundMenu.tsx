@@ -57,10 +57,19 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
       .then(([g, c]) => { if (alive) setHas({ guardian: !!g?.registered, child: !!c?.registered }); });
     return () => { alive = false; };
   }, [open, adult.guardian]);
+  // 바꾸면 「새로 만드는 이야기부터」라고 잠깐 알린다 — 이미 만든 책은 만들 때의 목소리로 읽는다 (11/10 사용자 「바로 적용되는 줄」)
+  const [note, setNote] = useState<string | null>(null);
+  const noteTimer = useRef<number>();
   const pickNarrator = (k: "base" | VoiceKind) => {
+    if (k === narrator) return;
     set("guardianNarrator", k === "guardian");
     set("childNarrator", k === "child");
+    const who = k === "base" ? "기본 목소리" : k === "guardian" ? "보호자 목소리" : "아이 목소리";
+    setNote(`다음에 만드는 이야기부터 ${who}로 읽어요. 이미 만든 책은 그대로예요.`);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = window.setTimeout(() => setNote(null), 5000);
   };
+  useEffect(() => () => clearTimeout(noteTimer.current), []);
   const [hearing, setHearing] = useState(false);
   const hearNarrator = async () => {
     if (narrator === "base" || hearing) return;
@@ -111,6 +120,7 @@ export default function SoundMenu({ onReplay }: { onReplay?: () => void }) {
                     onClick={() => pickNarrator(k)}>{k === "base" ? "기본" : k === "guardian" ? "보호자" : "아이"}</button>
                 ))}
               </span>
+              {note && <span className="sound-note" role="status">{note}</span>}
               {narrator !== "base" && (
                 <button className="btn sound-row" disabled={hearing || muteAll} onClick={() => void hearNarrator()}>
                   <SoundIcon /> {hearing ? "듣는 중…" : "미리 듣기"}

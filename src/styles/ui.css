@@ -1297,6 +1297,10 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 /* 큰 화면(TV · 큰 모니터): 글자가 커지니 메뉴 폭도 넓게 — 320px 그대로면 「읽어 주는 목소리」 세 칸 중 「아이」가 끝에 걸렸다 (11/10) */
 @media (min-width: 1600px) and (min-height: 900px) { .sound-menu { width: min(420px, calc(100vw - 32px)); } }
 @media (min-width: 2400px) and (min-height: 1300px) { .sound-menu { width: min(600px, calc(100vw - 32px)); } }
+/* 목소리를 바꾸면 잠깐 뜨는 안내 (11/10) */
+.sound-note { display: block; padding: 8px 12px; border-radius: 12px; background: #FFF3D2; border: 1px solid #E8C77A; color: #7A5413;
+  font-size: var(--t-label); line-height: 1.45; animation: note-in .25s ease-out; }
+@keyframes note-in { from { opacity: 0; transform: translateY(-4px); } }
 /* 등록 안 한 목소리 칸은 흐리게 (읽어 주는 목소리, 11/10) */
 .sound-vol .seg > button:disabled:not(.on) { opacity: .35; }
 
