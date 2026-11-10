@@ -5,7 +5,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
 import { useSettings } from "@/store/settings";
-import { ApiError, getMyVoice, registerMyVoice } from "@/api";
+import { ApiError, getMyVoice, registerMyVoice, voiceSampleUrl } from "@/api";
 import type { VoiceKind } from "@/api";
 import { MAX_SECONDS, MIN_SECONDS, recordSupported, startRecording, toWav } from "@/features/voice/record";
 import type { Recording } from "@/features/voice/record";
@@ -179,9 +179,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
       const wav = await toWav(take);
       await registerMyVoice(wav, { collect, transfer, ownVoice, version: (child ? CHILD_CONSENT_VERSION : CONSENT_VERSION) + (provider === "qwen" ? MODAL_SUFFIX : "") }, kind);
       setTake(null);   // 보낸 녹음은 이 화면에서도 버린다
-      // 나레이터는 하나만 — 방금 등록한 목소리로 켜고 다른 쪽은 끈다
-      setSetting(child ? "childNarrator" : "guardianNarrator", true);
-      setSetting(child ? "guardianNarrator" : "childNarrator", false);
+      // 나레이터는 바로 바꾸지 않는다 — 들어 보고 「이 목소리로 읽어 주기」를 고를 때만 (11/10 사용자 「등록하면 바로 적용돼 답답」)
       setStep("done");
     } catch (e) {
       const code = e instanceof ApiError ? e.serverCode ?? "" : "";
@@ -191,6 +189,30 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
   };
 
   const recording = step === "record" && rec.current !== null;
+  // 등록한 목소리 들어 보기 (서버가 그 목소리로 짧은 문장을 읽어 준다) · 나레이터로 쓰기
+  const [hearing, setHearing] = useState(false);
+  const [hearError, setHearError] = useState<string | null>(null);
+  const hearNew = async () => {
+    stopPlayer(); setHearing(true); setHearError(null);
+    try {
+      const url = await voiceSampleUrl(kind);
+      if (!url) { setHearing(false); return; }
+      const a = new Audio(url);
+      player.current = a;
+      a.onended = a.onerror = () => { URL.revokeObjectURL(url); setHearing(false); };
+      await a.play();
+    } catch {
+      setHearError("목소리를 들려주지 못했어요. 잠시 뒤에 다시 눌러 주세요.");
+      setHearing(false);
+    }
+  };
+  const useThisVoice = () => {
+    // 나레이터는 하나만 — 이 목소리로 켜고 다른 쪽은 끈다
+    setSetting(child ? "childNarrator" : "guardianNarrator", true);
+    setSetting(child ? "guardianNarrator" : "childNarrator", false);
+    stopPlayer();
+    nav("/settings");
+  };
 
   return (
     <Screen back={step === "consent" || step === "done" ? "/settings" : () => { rec.current?.cancel(); clearInterval(timer.current); setStep("consent"); }}
@@ -205,7 +227,10 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
             <BigButton go disabled={takeSec < minSec} onClick={() => void send()}>이 목소리로 등록</BigButton>
           </>
         : step === "sending" ? <BigButton go disabled>등록하는 중…</BigButton>
-        : <BigButton go onClick={() => nav("/settings")}>설정으로</BigButton>
+        : <>
+            <BigButton onClick={() => { stopPlayer(); nav("/settings"); }}>지금 목소리 그대로 두기</BigButton>
+            <BigButton go onClick={useThisVoice}>이 목소리로 읽어 주기</BigButton>
+          </>
       }>
       <div className="list scroll" data-audience="adult">
         {step === "consent" && child && <>
@@ -293,13 +318,19 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
           </div>
         </>}
 
-        {step === "done" && (
-          <Clause title="등록했습니다">
-            {child ? "이제 새로 만드는 이야기의 나레이션을 아이 목소리로 읽어 줍니다." : "이제 새로 만드는 이야기의 나레이션을 보호자님 목소리로 읽어 드립니다."}
-            {" "}설정 → 보호자 → 「읽어 주는 목소리」에서 다른 목소리(기본 · 보호자 · 아이)로 바꿀 수 있고, 「들어 보기」로 이 목소리를 확인할 수 있습니다.
-            처음 읽을 때는 음성을 만드는 데 조금 더 걸릴 수 있습니다.
-          </Clause>
-        )}
+        {step === "done" && <>
+          <div className="item">
+            <span className="grow">
+              <span className="name">등록했습니다</span>
+              <span className="desc">
+                먼저 들어 보고, 이야기 나레이션을 {child ? "아이" : "이"} 목소리로 읽을지 골라 주세요. 지금 고르지 않아도
+                설정 → 보호자 → 「읽어 주는 목소리」에서 언제든 바꿀 수 있습니다.
+              </span>
+            </span>
+            <button className="btn link" disabled={hearing} onClick={() => void hearNew()}>{hearing ? "듣는 중…" : "들어보기"}</button>
+          </div>
+          {hearError && <div className="item"><span className="grow"><span className="desc" style={{ color: "var(--berry)", marginTop: 0 }}>{hearError}</span></span></div>}
+        </>}
         {error && <div className="item"><span className="grow"><span className="desc" style={{ color: "var(--berry)", marginTop: 0 }}>{error}</span></span></div>}
       </div>
     </Screen>
