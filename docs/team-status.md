@@ -44,7 +44,7 @@ S-01~S-11 이 끝까지 돈다. 백엔드는 **`dev` 하나에 합쳤고**, 프�
   몸 안에 닫힌 칸으로 그린 날개는 안 퍼덕이고 꼬리 세모가 날개로 퍼덕이는 것은 원래 설계라 손대지 않았다. 새는 옆모습만 쓰니 같이 보면 좋겠다.
   `scripts/batch_form_stories` 에 고치기 · 검수 단계를 붙였다. 빙글 연출은 「덜덜 떨며 도는」 문장에선 안 도는 것(6f4927c)과 함께 잘 돈다.
 - **서민지 님 (TTS)**: drawtale-tts 를 ElevenLabs · 오픈소스와 같은 조건으로 재 보려 한다(`experiments/tts-bench`). 주소 · 토큰을 따로 주시면 값은 어디에도 적지 않고 측정에만 쓴다. 쪽 하나 만드는 실제 시간 · 서버를 몇 대까지 늘리는지도 알려 주시면 좋겠다.
-- **서민지 님 (장면)**: `SceneStage.tsx` 에 쪽 사이 자리 기억(`PINS` · `HERO_AT` · `PEOPLE_AT`)과 소품 나타나는 때 · 주기(`appear` · `handStyle`), `plan.ts` 에 이어짐(`KEEP_THINGS`) · 앉는 자리(`seatOf`) · 주기(`giveOf`)를 넣었다. 그리고 「글이 말하는 배경 물건 앞 비우기」(`saidSpans` · `besideSaid`)를 넣었다. 주인공 도착 자리(`heroTo`)와 인물 · 소품 자리(`placed`)가 그 범위를 피한다. 이 파일을 고치실 때 pull 먼저 부탁. 검사는 `node tools/scene-check/layout.mjs 1024 16 all-long.json`(목 엔진 5174)
+- **서민지 님 (장면, 11/10 합침)**: 같은 때 고치신 밤낮 · 인물 자리 커밋과 충돌해 합쳤습니다(`f58ba48`). 겹친 곳은 서민지 님 것을 쓰고, 제 것은 굴 밖 낮 · 주인공 이름 · 물건 이어짐 · 앉기 · 주기 · 소품 사람 뒤 그리기만 얹었습니다. 검사 도구의 앞 쪽 끝 모습 셈은 책 화면 셈을 옮긴 `plan.envAfter` 입니다. 책 화면 셈을 바꾸시면 이 함수도 같이 바꿔 주세요. 그 전 작업: `SceneStage.tsx` 에 쪽 사이 자리 기억(`PINS` · `HERO_AT` · `PEOPLE_AT`)과 소품 나타나는 때 · 주기(`appear` · `handStyle`), `plan.ts` 에 이어짐(`KEEP_THINGS`) · 앉는 자리(`seatOf`) · 주기(`giveOf`)를 넣었다. 그리고 「글이 말하는 배경 물건 앞 비우기」(`saidSpans` · `besideSaid`)를 넣었다. 주인공 도착 자리(`heroTo`)와 인물 · 소품 자리(`placed`)가 그 범위를 피한다. 이 파일을 고치실 때 pull 먼저 부탁. 검사는 `node tools/scene-check/layout.mjs 1024 16 all-long.json`(목 엔진 5174)
 - **모두**: 운영 DB 내용은 마이그레이션으로만 바꾼다. VM 접속 키는 저장소 밖에 두고, 운영 DB 는 읽기만.
 
 ---
