@@ -71,6 +71,8 @@ export interface Story {
   form?: string;
   /** 옆모습 주인공의 머리 쪽 (서버 hero_facing, 11/4). 렌더는 머리 쪽으로 걷는다 — 반대쪽으로 옮겨 갈 때 장면이 뒤집는다 */
   heroFacing?: "left" | "right" | null;
+  /** 주인공 이름 (서버 protagonist_name) — 장면 연출이 「누가」를 가리는 데 쓴다 */
+  heroName?: string | null;
   /** 책장(S-12) 표지에 쓸 아이 그림 작은 사본 (data URL, 프론트만 · 서버에 보내지 않음). 없으면 고른 장소 그림 */
   cover?: string;
 }

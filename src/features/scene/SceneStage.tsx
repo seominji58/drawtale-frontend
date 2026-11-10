@@ -9,7 +9,7 @@
  *         end: 끝 모습 그대로 (떠나는 쪽 · 뒤로 넘긴 쪽) */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Env, MarkKind, PagePlan, PropId } from "./plan";
-import { FOLLOW_TEXT, GREET_TEXT, SAD_TEXT, hasSkyBodies, isIndoor, isPerson, sceneFx } from "./plan";
+import { FOLLOW_TEXT, GREET_TEXT, SAD_TEXT, hasSkyBodies, isIndoor, isPerson, sceneFx, subjectOf } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
 import HANDS from "./hands.json";
@@ -155,6 +155,8 @@ interface Props {
   text?: string;
   /** 이 쪽 주인공 동작 (book page action) — 기쁨이면 옆 인물도 만세 */
   pageAction?: string;
+  /** 주인공 이름 (연출의 「누가」를 가린다 — 「별이는 잠이 들었어요」) */
+  heroName?: string | null;
   /** 주인공 형태 (forms/*.json id). 4족형이면 든 소품을 입에 물고 · 등에 태운다 (pt_docs 20 2-a) */
   form?: string;
 }
@@ -162,7 +164,7 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift: formLift = 0, size = 1, form, narration, envAt, text = "", pageAction = "" }: Props) {
+export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift: formLift = 0, size = 1, form, narration, envAt, text = "", pageAction = "" }: Props) {
   // 새(날개형)는 나는 쪽에서만 띄운다 — 늘 화면 높이 4할 위에 떠 있어 「옆에서 지켜봤어요」에도 공중에 있었고
   // 땅에 선 인물들과 높이가 맞지 않았다 (11/10). 헤엄치는 친구(지느러미형)는 그대로 뜬다
   const lift = form === "winged" && !FLY_TEXT.test(text) ? 0 : formLift;
@@ -677,9 +679,14 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     cx: number; foot: number; dir: number };
   // other: 상대(등장인물)가 하는 것 — 「나는 친구를 웃게 했어요」 · 「왜 울어?」. 주어 「나」를 보지 않는다
   const whoOf = (sentence: string, thanks = false, other0 = false): Who | null => {
-    const me = !other0 && /(?:^|[^가-힣])(?:나는|내가|나도|내 눈|내 마음)/.test(sentence);
-    const named = visiblePeople.find((v) => v.p.name && sentence.includes(v.p.name));
-    const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(sentence) || thanks || other0 ? visiblePeople[0] : undefined));
+    // 문장의 주인 (subjectOf). 사람이 아닌 것이 주어면 아무도 아니다. 이름 없는 사람(친구 · 아저씨)은 옆 인물, 그 쪽에 인물이
+    // 없으면 아무도 아니다 (주인공에게 대신 나지 않게). 고마워 · 묻는 말 · 웃게 했어요(other0)는 상대
+    const subj = subjectOf(sentence, visiblePeople.map((v) => v.p.name ?? ""), heroName);
+    if (subj === null && !other0) return null;
+    const me = !other0 && subj === "hero" && !(thanks && /^\s*“/.test(sentence));
+    const named = subj && subj !== "hero" && subj !== "other" ? visiblePeople.find((v) => v.p.name === subj) : undefined;
+    const other = !me && (named ?? visiblePeople[0]);
+    if (!me && !other) return null;
     if (other) {
       const h = other.sb.h, foot = other.sb.foot ?? 0.93;
       return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, top: foot - h, h, scale: h, side: false, follow: false, enter: !!other.p.enter || !!other.follow,
@@ -723,8 +730,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((o) => o?.who === v.who && o?.kind === v.kind) === k);   // 한 사람에 같은 연출 하나
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
-  const otherSpins = (before: string) => visiblePeople.some((v) => v.p.name && before.includes(v.p.name))
-    || /친구(?:가|는|도|랑)|아이(?:가|는)|동생(?:이|은)|언니(?:가|는)|오빠(?:가|는)|형(?:이|은)|누나(?:가|는)|아기(?:가|는)/.test(before);
+  // 그 말 앞의 주어가 주인공이 아니면(친구 · 이름 · 박쥐들이 · 돌들이 …) 주인공은 돌지 않는다
+  const otherSpins = (before: string) => subjectOf(before, visiblePeople.map((v) => v.p.name ?? ""), heroName) !== "hero";
   const canMove = play && !REDUCE && !hero.fallen && !heroGone;
   const spinAt = canMove && !(plan.things ?? []).some((t) => t.motion === "spin")
     ? Math.max(-1, ...fx.spins.filter((sp) => heard(sp.at) && !otherSpins(sp.before)).map((sp) => sp.at)) : -1;

@@ -211,6 +211,7 @@ function toStory(s: ServerStory): Story {
     storyId: s.id,
     characterId: s.character_id,
     title: s.title || s.book?.title || `${s.place}에 간 날`,
+    heroName: (s as { protagonist_name?: string | null }).protagonist_name ?? null,
     createdAt: s.created_at.slice(0, 10),
     place: s.place,
     text: s.text ?? "",
