@@ -249,7 +249,22 @@ const LIGHT_OFF = /꺼졌|꺼지|꺼져|껐|끄고|끄니/;
  *  bright: 장면이 환해지는 말의 자리 (나레이션이 그 자리에 오면 따뜻한 빛이 번진다). 없으면 -1
  *  tears: 우는 문장들 — 누가 우는지는 장면(SceneStage)이 그 문장의 인물 이름 · 「나」로 정한다.
  *  「울음을 그쳤어요」 · 「눈물을 닦았어요」 · 「울지 않았어요」는 울지 않는 것 */
-export interface SceneFx { bright: number; tears: { at: number; sentence: string }[]; spins: { at: number; before: string }[] }
+export type JoyKind = "heart" | "star" | "flower";
+export interface SceneFx {
+  bright: number; tears: { at: number; sentence: string }[]; spins: { at: number; before: string }[];
+  /** 기쁨 · 고마움 (11/10 사용자 「고맙다 · 기쁘다 긍정일 땐 하트 · 꽃 같은 기분 좋은 연출」) — 그 사람 머리 위로 피어오른다 */
+  joys: { at: number; sentence: string; kind: JoyKind }[];
+  /** 울음이 그친 자리 (눈물을 닦았어요 · 울음을 그쳤어요) — 그 사람 눈물이 멈춘다 */
+  calms: { at: number; sentence: string }[];
+}
+/** 기쁨 말 → 연출. 위에서부터 먼저 맞는 것. 「~지 않았어요 · 못 · 비웃」은 기쁨이 아니다 */
+const JOYS: [JoyKind, RegExp][] = [
+  ["heart", /고마워|고맙|고마운|감사|사랑|좋아해|좋아한|친구가 (?:됐|되었|되어)|단짝|꼭 안|안아 주|따뜻해졌|마음이 따뜻/],
+  ["star", /기뻤|기뻐|기쁜|기쁨|신났|신나|신이 나|해냈|성공|최고|야호|만세|와아|우와|뿌듯|자랑스러/],
+  ["flower", /행복|활짝 웃|웃음꽃|웃었|웃기 시작|웃음이|웃음소리|키득|깔깔|방긋|싱긋|빙그레|미소|즐거|재미있|재밌|반가/],
+];
+const NOT_JOY = /않았|않아|않고|못 했|못했|비웃|아니었/;
+const CALM = /울음을 그쳤|울음이 그쳤|울음을 멈|눈물을 닦|눈물이 그쳤|눈물이 멈|뚝 그쳤|울지 않았/;
 /** 빙글 돌기 (11/10 사용자 「돌았어요는 그림을 좌우 반전으로 왔다 갔다」). 「돌아왔어요 · 돌고래 · 돌멩이」는 걸리지 않게 */
 const SPIN = /빙글|뱅글|빙그르|핑그르|팽그르|뱅뱅|빙빙|한 바퀴|두 바퀴|세 바퀴|빙 돌|돌았어|맴돌|제자리에서 돌/;
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
@@ -273,7 +288,20 @@ export function sceneFx(text: string): SceneFx {
     const c = SPIN.exec(m[0]);
     if (c) spins.push({ at: (m.index + c.index) / Math.max(1, text.length), before: m[0].slice(0, c.index) });
   }
-  return { bright: b ? b.index / Math.max(1, text.length) : -1, tears, spins };
+  const joys: SceneFx["joys"] = [];
+  const calms: SceneFx["calms"] = [];
+  const re3 = /[^.!?”]+[.!?”]*/g;
+  for (let m = re3.exec(text); m; m = re3.exec(text)) {
+    const sen = m[0];
+    const cm = CALM.exec(sen);
+    if (cm) calms.push({ at: (m.index + cm.index) / Math.max(1, text.length), sentence: sen });
+    if (NOT_JOY.test(sen)) continue;
+    for (const [kind, re] of JOYS) {
+      const j = re.exec(sen);
+      if (j) { joys.push({ at: (m.index + j.index) / Math.max(1, text.length), sentence: sen, kind }); break; }
+    }
+  }
+  return { bright: b ? b.index / Math.max(1, text.length) : -1, tears, spins, joys, calms };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;

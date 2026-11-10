@@ -614,23 +614,41 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const brightOn = fx.bright >= 0 && heard(fx.bright);
   // 누가 우나: 그 문장에 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 아니면 옆 인물(「친구가 울고 있었어요」), 없으면 주인공
   const visiblePeople = people.filter((v): v is NonNullable<typeof v> => !!v && v.p.id !== "sign");
-  const crying = fx.tears.filter((t) => heard(t.at)).map((t) => {
-    const me = /(?:^|[^가-힣])(?:나는|내가|나도|나를|내 눈)/.test(t.sentence);
-    const named = visiblePeople.find((v) => v.p.name && t.sentence.includes(v.p.name));
-    const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(t.sentence) ? visiblePeople[0] : undefined));
+  // 문장의 주인 (눈물 · 기쁨이 누구에게 나나): 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 「친구 · 아이 …」면 옆 인물.
+  // 고마워(heart)는 도움을 받은 쪽이 하는 말이라 「나」가 없고 옆에 인물이 있으면 그 사람. 없으면 주인공
+  type Who = { key: string; x: number; face: number; head: number; h: number; side: boolean; follow: boolean; enter: boolean };
+  const whoOf = (sentence: string, thanks = false): Who | null => {
+    const me = /(?:^|[^가-힣])(?:나는|내가|나도|나를|내 눈|내 마음)/.test(sentence);
+    const named = visiblePeople.find((v) => v.p.name && sentence.includes(v.p.name));
+    const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(sentence) || thanks ? visiblePeople[0] : undefined));
     if (other) {
-      // 걸어 들어오는 사람은 제자리에 다 온 뒤에 운다 — 전에는 화면 밖에서 오는 중인데 설 자리에 눈물부터 떨어졌다 (11/10)
-      if (other.p.enter && !arrived) return null;
       const h = other.sb.h, foot = other.sb.foot ?? 0.93;
-      return { key: `p-${other.p.id}`, x: other.spot.x, y: foot - h * 0.8, size: h * 0.06, gap: (h * 0.032) / aspect, follow: false };
+      return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, h, side: false, follow: false, enter: !!other.p.enter };
     }
     if (heroGone || !drawn.h) return null;
     const hd = heroBody ? bodyAt(heroBody.head) : null;
     const side = facing !== 0 && !upright;
     const x = hd ? hd.x + (side ? headSide * drawn.w * 0.04 : 0) : heroX + (side ? headSide * drawn.w * 0.33 : 0);
-    const y = hd ? hd.y + drawn.h * 0.14 : topY + drawn.h * (side ? 0.26 : 0.16);
-    return { key: "hero", x, y, size: drawn.h * 0.06, gap: side ? 0 : (drawn.h * 0.04) / aspect, follow: true };
+    const face = hd ? hd.y + drawn.h * 0.14 : topY + drawn.h * (side ? 0.26 : 0.16);
+    return { key: "hero", x, face, head: hd ? hd.y : topY, h: drawn.h, side, follow: true, enter: false };
+  };
+  // 걸어 들어오는 사람은 제자리에 다 온 뒤에 운다 · 기뻐한다 — 전에는 화면 밖에서 오는 중인데 설 자리에 눈물부터 떨어졌다 (11/10)
+  const ready = (w: Who | null): w is Who => !!w && (!w.enter || arrived);
+  // 그친 자리: 같은 사람이 그 뒤에 눈물을 닦거나 기뻐하면 눈물이 멈춘다 (전에는 쪽 끝까지 계속 떨어졌다)
+  const stopsAt = [...fx.calms.map((c) => ({ at: c.at, who: whoOf(c.sentence) })),
+    ...fx.joys.map((jy) => ({ at: jy.at, who: whoOf(jy.sentence, jy.kind === "heart") }))].filter((c) => heard(c.at));
+  const crying = fx.tears.filter((t) => heard(t.at)).map((t) => {
+    const w = whoOf(t.sentence);
+    if (!ready(w)) return null;
+    if (stopsAt.some((c) => c.at > t.at && c.who?.key === w.key)) return null;
+    return { key: w.key, x: w.x, y: w.face, size: w.h * 0.06, gap: w.side ? 0 : (w.h * (w.follow ? 0.04 : 0.032)) / aspect, follow: w.follow };
   }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((w) => w?.key === v.key) === k);
+  // 기쁨 · 고마움: 그 사람 머리 위로 하트 · 별 · 꽃이 피어오른다 (나레이션이 그 말에 오면 한 번)
+  const joyful = fx.joys.filter((jy) => play && heard(jy.at)).map((jy, k) => {
+    const w = whoOf(jy.sentence, jy.kind === "heart");
+    if (!ready(w)) return null;
+    return { key: `${w.key}-${k}`, x: w.x, y: w.head, size: w.h * 0.17, kind: jy.kind, follow: w.follow };
+  }).filter((v): v is NonNullable<typeof v> => !!v);
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
   const otherSpins = (before: string) => visiblePeople.some((v) => v.p.name && before.includes(v.p.name))
@@ -766,6 +784,17 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           <i /><i />
         </div>
       ))}
+      {joyful.map((jy) => (
+        <div key={jy.key} className={`scene-joy j-${jy.kind}`}
+             style={{ left: `${jy.x * 100}%`, top: `${jy.y * 100}%`, height: `${jy.size * 100}%`, width: `${((jy.size * 3) / aspect) * 100}%`,
+               ...(jy.follow ? withHero : {}) }}>
+          {JOY_BITS.map(([dx, delay, sz], k) => (
+            <svg key={k} viewBox="0 0 24 24" style={{ left: `${dx}%`, animationDelay: `${delay}s`, width: `${sz * 100}%` }}>
+              <path d={JOY_PATH[jy.kind]} />
+            </svg>
+          ))}
+        </div>
+      ))}
       {/* 주인공 머리에 쓴 것은 주인공 위에 */}
       {posedSpots.filter((v) => v.at?.top).map(({ t, at }, k) => (
         <img key={`posed-top-${k}`} className="scene-obj scene-thing" alt="" data-pose={t.pose}
@@ -781,6 +810,13 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
 
 /** 물에 뜨는 소품의 발끝 높이 — 바다 물결 띠(배경판에서 잰 55~60%). 물이 뚜렷한 배경만 */
 const WATER: Record<string, number> = { sea: 0.6 };
+/** 기쁨 연출 조각 [가로 자리 %, 늦게 시작(초), 칸 폭 대비 크기] — 머리 위에서 엇갈려 피어오른다 */
+const JOY_BITS: [number, number, number][] = [[18, 0, 0.34], [50, 0.35, 0.42], [80, 0.7, 0.3], [34, 1.1, 0.28], [66, 1.45, 0.34]];
+const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
+  heart: "M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 4.3 2.4h2c.7-1.2 2.1-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z",
+  star: "M12 1.5l2.9 7.1 7.6.6-5.8 5 1.8 7.4L12 17.6l-6.5 4 1.8-7.4-5.8-5 7.6-.6z",
+  flower: "M12 9.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm0 12a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM6 15.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm12 0a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM12 14.6a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2z",
+};
 /** 쪽에 들어올 때 한 번만 하는 움직임 — 끝 모습(떠나는 쪽 · 뒤로 넘긴 쪽)에서는 하지 않는다 */
 const ONCE = new Set(["roll", "pop", "spin", "grow", "shrink", "shake"]);
 /** 옆으로 쥐는 소품 (손잡이를 손에) — 나머지는 윗부분을 쥐고 매단다 */

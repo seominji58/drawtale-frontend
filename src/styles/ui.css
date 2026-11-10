@@ -1073,6 +1073,16 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   opacity: 0; animation: tear-drop 1.5s ease-in infinite; }
 .scene-tears i:first-child { left: 0; translate: -50% 0; }
 .scene-tears i:last-child { right: 0; translate: 50% 0; animation-delay: .75s; }
+/* 기쁨 · 고마움 (11/10): 머리 위로 하트 · 별 · 꽃이 엇갈려 피어올라 사라진다 (두 번) */
+.scene-joy { position: absolute; z-index: 7; translate: -50% -100%; pointer-events: none; }
+.scene-joy svg { position: absolute; bottom: 0; height: auto; translate: -50% 0; opacity: 0; animation: joy-rise 2.2s ease-out 2 both;
+  stroke: rgba(58, 46, 38, .55); stroke-width: 1.2; stroke-linejoin: round; paint-order: stroke; }
+.scene-joy.j-heart svg { fill: #F2557A; }
+.scene-joy.j-star svg { fill: #FFCF3F; }
+.scene-joy.j-flower svg { fill: #FF6FA8; }
+@keyframes joy-rise { 0% { opacity: 0; transform: translateY(40%) scale(.3) rotate(-12deg); }
+  18% { opacity: 1; transform: translateY(0) scale(1.1) rotate(6deg); } 30% { transform: translateY(-20%) scale(1) rotate(-4deg); }
+  100% { opacity: 0; transform: translateY(-240%) scale(.85) rotate(8deg); } }
 @keyframes tear-drop { 0% { opacity: 0; transform: translateY(0) scale(.6); } 15% { opacity: 1; transform: translateY(0) scale(1); }
   85% { opacity: .9; transform: translateY(260%); } 100% { opacity: 0; transform: translateY(300%); } }
 .scene .m-grow { transform-origin: 0 100%; animation: thing-grow 1.5s cubic-bezier(.3, 1.5, .5, 1) .4s 1 both; }
@@ -1138,6 +1148,7 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .scene .m-glow { filter: brightness(1.25) drop-shadow(0 0 16px rgba(255, 226, 130, .95)); }
   .scene-bright.on { animation: none; }
   .scene-tears i { animation: none; opacity: .9; transform: translateY(80%); }
+  .scene-joy svg { animation: none; opacity: 1; transform: translateY(-60%); }
   .scene .m-blow { animation: none; opacity: 0; }
 }
 
