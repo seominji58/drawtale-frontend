@@ -215,8 +215,10 @@ const POSES: [ThingPose, RegExp][] = [
   ["back", /(?<!발)등에 (?:태우|태웠|태워|업|얹|싣|실|올려|올렸)/],   // 「발등에 올려」 빼고
   ["head", /머리에 (?:쓰|썼|얹)|^\s*(?:(?:꾹|푹|눌러|살짝)\s*)*(?:쓰고|썼|써)/],
   // 「풍선이 둥실 내려와 친구 품에 쏙 안겼어요」 — 품에 · 손에 와 안겼 사이에 쏙 · 폭 · 꼭이 끼어도 (11/10)
-  ["hand", /손에 (?:들|쥐|꼭)|(?:들고|쥐고) |(?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐)\s*)?(?:안|들어|잡|쥐)|꼭 안|껴안|안고 /],
+  ["hand", /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) [가-힣]|손에 (?:들|쥐|꼭)|(?:들고|쥐고) |(?:높이|번쩍|두 손으로|살짝) 들(?:었|어|고)|들어 (?:주|보이|올리)|(?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐)\s*)?(?:안|들어|잡|쥐)|꼭 안|껴안|안고 /],
 ];
+/** 사람을 가리키는 말 끝 (「~도」 주어를 사람일 때만 볼 때) */
+const PERSON_TAIL = /(?:친구|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|안내원|선장님?|박사님?|요원|경찰관|지킴이|등대지기|소방관|의사|간호사)$/;
 function thingPose(text: string, at: number, end: number, spot: Spot, indoor = false): { pose?: ThingPose; subject?: string } {
   const from = Math.max(text.lastIndexOf(".", at), text.lastIndexOf("!", at), text.lastIndexOf("?", at), text.lastIndexOf("”", at)) + 1;
   const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, end)).filter((i) => i >= 0);
@@ -234,11 +236,17 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   const before = text.slice(from, at);
   const subj = [...before.matchAll(/([가-힣{}:]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|께서)\s/g)].pop()?.[1];
   // 「오늘 나는」처럼 주어 앞에 꾸밈말이 붙어도 마지막 낱말로 본다 (11/6 — 「오늘 나」가 주인공이 아닌 것으로 읽혔다)
+  // 「할아버지도 손전등을 들고」 — 사람 말에 「도」가 붙으면 그 사람 (11/10 전수 점검: 주인공 손에 쥐여졌다)
+  const also = [...before.matchAll(/([가-힣]+(?: [가-힣]+){0,2}?)도\s/g)].pop();
+  if (also && PERSON_TAIL.test(also[1]) && (!subj || before.lastIndexOf(also[0]) > before.lastIndexOf(subj))) return pose === "hand" || pose === "head" ? { pose, subject: also[1] } : { pose };
   const subjLast = subj?.split(/\s+/).pop() ?? "";
   // 「나」 · 「내가」 와 같을 때만 — 「나비가」 · 「나무가」 는 주인공이 아니다
   const me = isMe;
   // 「친구 품에 안겼어요」 · 「아저씨 손에 들어왔어요」 — 품 · 손의 주인이 든 사람 (소품이 주어라 앞에서 주어를 찾으면 주인공이 됐다)
   const owner = /([가-힣]+(?: [가-힣]+)?)(?:의)? (?:품|손)에/.exec(rest)?.[1];
+  // 「손전등을 든 엄마 · 등불을 든 동굴 안내원이」 — 든 사람이 뒤에 온다 (11/10 전수 점검: 땅에 놓였다)
+  const heldBy = /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) ([가-힣]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|도|와|과|께서|였|이었|이에요|예요|$|[\s,.!])/.exec(rest)?.[1];
+  if (heldBy && pose === "hand") return { pose, subject: me(heldBy) ? "hero" : heldBy };
   if (owner && pose === "hand" && !/^(?:내|나의|제)$/.test(owner)) return { pose, subject: owner };
   const subject = /내 손|내 품|나에게|내게/.test(rest) || !subj || me(subj) || me(subjLast) ? "hero" : subj;
   // 입에 묾 · 등에 태움은 소품이 목적어(「공을 물고」)일 때만 — 「새가 벌레를 물고」의 새는 무는 쪽이다
@@ -264,7 +272,7 @@ export function giveOf(text: string, at: number): { giver: string; receiver: str
   const stop = ends.length ? Math.min(...ends) + 1 : text.length;
   const after = text.slice(at, stop);
   // 「사과를」 · 「꽃 한 송이를」 · 「사과 두 개를」처럼 수량이 끼어도 그 물건이 목적어
-  if (!/^[가-힣]+(?:\s(?:한|두|세|네|몇)\s?[가-힣]{0,2})?(?:을|를)(?=[\s,]|$)/.test(after)) return null;
+  if (!/^[가-힣]+(?:\s(?:하나|한|두|세|네|몇)\s?[가-힣]{0,2})?(?:을|를)(?=[\s,]|$)/.test(after)) return null;
   const g = GIVE.exec(after);
   if (!g) return null;
   const before = text.slice(from, at);
@@ -273,7 +281,8 @@ export function giveOf(text: string, at: number): { giver: string; receiver: str
   const giver = !subj || me(subj) || me(subj.split(/\s+/).pop() ?? "") ? "hero" : subj;
   // 받는 사람: 「…에게」 바로 앞 낱말 하나 (「솔방울을 토토에게」가 「솔방울을 토토」로 잡혔다). 「과일 가게 할머니께」처럼 호칭이면 앞 낱말까지
   const toM = /([가-힣{}:]+)(?:에게|한테|께)(?=[\s,]|$)/.exec(text.slice(from, stop));
-  const to = toM?.[1];
+  // 「친구 손에 · 친구 품에 쥐여 주었어요」도 받는 사람 (11/10 전수 점검: 주인공 손에 남았다)
+  const to = toM?.[1] ?? /([가-힣{}:]+)(?:의)? (?:손|품|손바닥)에(?=[\s,]|$)/.exec(text.slice(from, stop))?.[1];
   const receiver = to ? (me(to) || /^(?:나|내|저)$/.test(to) ? "hero" : to) : giver === "hero" ? null : "hero";
   return { giver, receiver, verb: at + g.index };
 }
@@ -633,7 +642,20 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     const word = wordRe ? m[0].slice(lead0).replace(/(?:을|를|이|가|은|는|과|와|도|랑|들|한 마리|의)$/, "") : m[0];
     const at = m.index + lead0;
     if (NOT_REAL.test(text.slice(at + word.length))) continue;
-    hits.push({ at, t: { src, h, ar: ar(src), spot, at, ...thingPose(text, at, at + word.length, spot, indoor) }, key: m[0] });
+    // 처음 나온 자리에서 자리 말이 없으면 뒤에 다시 나온 자리에서 손 · 머리를 찾는다 — 「노란 등불이 다가왔어요. 등불을 든 엄마가」
+    // 처음 문장만 보아 등불이 땅에 놓였다 (11/10 전수 점검)
+    let pose = thingPose(text, at, at + word.length, spot, indoor);
+    if (!pose.pose) {
+      const g = new RegExp(re.source, "g");
+      g.lastIndex = m.index + m[0].length;
+      for (let m2 = g.exec(text); m2; m2 = g.exec(text)) {
+        const l2 = wordRe && /^[^가-힣]/.test(m2[0]) ? 1 : 0;
+        const w2 = wordRe ? m2[0].slice(l2).replace(/(?:을|를|이|가|은|는|과|와|도|랑|들|한 마리|의)$/, "") : m2[0];
+        const p2 = thingPose(text, m2.index + l2, m2.index + l2 + w2.length, spot, indoor);
+        if (p2.pose === "hand" || p2.pose === "head") { pose = p2; break; }
+      }
+    }
+    hits.push({ at, t: { src, h, ar: ar(src), spot, at, ...pose }, key: m[0] });
   }
   return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
 }
@@ -878,9 +900,11 @@ const GROWN = /\b(?:adult|man|woman|mother|father|grand\w*|teacher|officer|owner
 const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "cat", "baby", "classmates", "friend", "friend2"]);
 
 /** 손에 듦 · 머리에 씀: 문장의 주어를 그 쪽에 선 인물로 (이름 낱말이 겹치거나 같은 그림 종류). 못 찾으면 자리 없이 땅에 */
-function holderOf(t: ThingPlan, props: PropPlan[]): Partial<ThingPlan> {
+function holderOf(t: ThingPlan, props: PropPlan[], heroName?: string | null): Partial<ThingPlan> {
   if (t.pose !== "hand" && t.pose !== "head" && t.pose !== "mouth" && t.pose !== "back") return {};
-  if (t.subject === "hero") return { holder: "hero", subject: undefined };
+  // 이야기 글에는 아이 이름이 들어가 있다 — 「하루가 손전등을 들고 · 하루 손에 쥐여 주며」도 주인공 (11/10 전수 점검: 땅에 놓였다)
+  const heroSubj = !!heroName && !!t.subject && t.subject.replace(/\s+/g, "").startsWith(heroName);
+  if (t.subject === "hero" || heroSubj) return { holder: "hero", subject: undefined };
   // 입에 묾 · 등에 태움은 4족형 주인공만 (다른 인물이면 보통 자리로)
   if (t.pose === "mouth" || t.pose === "back") return { pose: undefined, subject: undefined };
   const subj = (t.subject ?? "").replace(/\s+/g, "");
@@ -892,7 +916,10 @@ function holderOf(t: ThingPlan, props: PropPlan[]): Partial<ThingPlan> {
       || (kind && (q.id === kind || q.id.split("-")[0] === kind.split("-")[0]))
       || (/친구/.test(subj) && /^(?:friend|friend2|spacekid)/.test(q.id));
   });
-  return who ? { holder: who.name ?? who.id, subject: undefined } : { pose: undefined, subject: undefined };
+  // 「숲 지킴이 아저씨가」처럼 이름이 「지킴이」에서 잘려 「아저씨」만 남아도, 그 쪽에 사람이 하나면 그 사람 (11/10 전수 점검)
+  const only = props.filter((q) => isPerson(q.id));
+  const one = !who && only.length === 1 && PERSON_TAIL.test(subj) ? only[0] : undefined;
+  return who ?? one ? { holder: (who ?? one)!.name ?? (who ?? one)!.id, subject: undefined } : { pose: undefined, subject: undefined };
 }
 
 /** 손이 거의 안 움직이는 쪽 동작 — 주인공이 든 소품은 이때만 손에 (손 흔들기 · 춤처럼 팔이 움직이면 소품이 손에서 떨어져 보인다) */
@@ -1198,11 +1225,13 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     if (hiding) { from = to = SLOT; }
     if (to !== from) face = to > from ? 1 : -1;
     const weather = weatherFor(p.text, p.scene?.background ?? "", loc);
-    const fresh: ThingPlan[] = p.stage === "action" && picks.action === "hide" ? []
-      : thingsFor(p.text, mine, isIndoor(loc), new Set([
+    // 숨기 카드 쪽은 숨을 것만 — 단 다른 사람이 손에 든 것(「손전등을 든 엄마가 찾으러 왔어요」)은 그 사람 손에 (11/10 전수 점검)
+    const hideCard = p.stage === "action" && picks.action === "hide";
+    const fresh: ThingPlan[] = thingsFor(p.text, mine, isIndoor(loc), new Set([
         ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
         ...(loc === "space-ship" ? ["props/spaceship.webp", "props/rocket.webp"] : []),
-      ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props) }));
+      ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props, heroName) }))
+      .filter((t) => !hideCard || (!!t.holder && t.holder !== "hero"));
     // 배경이 바뀌면 이어 오던 물건은 여기서 끝 (숨기 쪽도 그대로 둔다: 숨은 곳 앞에서 사라지면 어색하다)
     if (loc !== keptLoc) { kept = []; keptLoc = loc; lastKeys = new Map(); }
     // 주기: 「할머니가 사과를 쥐여 주었어요」면 할머니 손 → 받는 사람 손. 받는 사람을 모르면(주인공이 줬는데 「…에게」가 없음) 그 쪽 첫 인물
@@ -1210,7 +1239,7 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       if (t.at === undefined || t.name !== undefined) continue;
       const gv = giveOf(p.text, t.at);
       if (!gv) continue;
-      const holderFor = (who: string) => (who === "hero" ? "hero" : holderOf({ ...t, pose: "hand", subject: who }, props).holder);
+      const holderFor = (who: string) => (who === "hero" ? "hero" : holderOf({ ...t, pose: "hand", subject: who }, props, heroName).holder);
       const firstPerson = props.find((q) => isPerson(q.id));
       const from = holderFor(gv.giver);
       const to = gv.receiver ? holderFor(gv.receiver) : firstPerson ? (firstPerson.name ?? firstPerson.id) : undefined;
