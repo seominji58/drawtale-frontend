@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
@@ -168,7 +168,31 @@ export default function S12Stories() {
     const t = window.setInterval(() => void check(), 10_000);
     return () => { live = false; clearInterval(t); };
   }, [ids, add, removePending]);
-  const shelves = Array.from({ length: Math.ceil(stories.length / per) }, (_, r) => stories.slice(r * per, r * per + per));
+  const allShelves = Array.from({ length: Math.ceil(stories.length / per) }, (_, r) => stories.slice(r * per, r * per + per));
+  // 책장 쪽 넘기기 (11/10 사용자 「책이 많이 쌓이면 끝없이 내리는 방식이 별로 — 1쪽 · 2쪽으로」): 화면에 들어가는 선반 수만큼 한 쪽.
+  // 선반 하나의 높이를 재서 몇 줄 들어가는지 정한다 (처음엔 2줄)
+  const shelfBox = useRef<HTMLDivElement>(null);
+  const [rowsFit, setRowsFit] = useState(2);
+  useLayoutEffect(() => {
+    const el = shelfBox.current;
+    if (!el) return;
+    const fit = () => {
+      const row = el.querySelector<HTMLElement>(".shelf-row");
+      if (!row) return;
+      const gap = parseFloat(getComputedStyle(el).rowGap) || 34;
+      const pad = parseFloat(getComputedStyle(el).paddingTop) + parseFloat(getComputedStyle(el).paddingBottom);
+      setRowsFit(Math.max(1, Math.floor((el.clientHeight - pad + gap) / (row.offsetHeight + gap))));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stories.length, per]);
+  const pages = Math.max(1, Math.ceil(allShelves.length / rowsFit));
+  const [shelfPage, setShelfPage] = useState(0);
+  const pageNow = Math.min(shelfPage, pages - 1);
+  const shelves = allShelves.slice(pageNow * rowsFit, pageNow * rowsFit + rowsFit);
+  const firstRow = pageNow * rowsFit;
 
   return (
     <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}
@@ -185,14 +209,14 @@ export default function S12Stories() {
       {pending.length > 0 && !renaming && <p className="hint shelf-hint">만들고 있는 이야기가 있어요. 다 되면 여기에 꽂혀요</p>}
 
       {stories.length > 0 ? (
-        <div className="shelf">
+        <div className={`shelf ${pages > 1 ? "paged" : ""}`} ref={shelfBox}>
           {/* 나무 선반에 세운 하드커버 그림책 (시안 「책장 3 다듬기」 + G 색종이 탭, 2026-10-28 사용자).
               표지 그림 창에는 아이 그림(없으면 고른 장소 그림) */}
           {shelves.map((row, r) => (
             <div key={r} className="shelf-row">
               <div className="shelf-books">
                 {row.map((st, j) => {
-                  const { style, tabs, long } = look(st, r * per + j);
+                  const { style, tabs, long } = look(st, (firstRow + r) * per + j);
                   return (
                     <button key={st.storyId} className={`book ${long ? "long" : "short"} ${opening?.st.storyId === st.storyId ? "lifted" : ""} ${renaming ? "pick" : ""}`} style={style}
                       aria-label={renaming ? `${st.title} 제목 바꾸기` : `${st.title}, ${long ? "긴 이야기" : "짧은 이야기"}, ${st.createdAt}`}
@@ -211,7 +235,20 @@ export default function S12Stories() {
             </div>
           ))}
         </div>
-      ) : (
+      ) : null}
+      {stories.length > 0 && pages > 1 && (
+        <nav className="shelf-pager" aria-label="책장 쪽">
+          <button className="round" disabled={pageNow === 0} aria-label="앞 쪽 책장" onClick={() => setShelfPage(pageNow - 1)}>‹</button>
+          <span className="shelf-dots">
+            {Array.from({ length: pages }, (_, k) => (
+              <button key={k} className={k === pageNow ? "on" : ""} aria-label={`${k + 1}쪽`} aria-current={k === pageNow ? "page" : undefined}
+                onClick={() => setShelfPage(k)}>{k + 1}</button>
+            ))}
+          </span>
+          <button className="round" disabled={pageNow >= pages - 1} aria-label="다음 쪽 책장" onClick={() => setShelfPage(pageNow + 1)}>›</button>
+        </nav>
+      )}
+      {stories.length > 0 ? null : (
         <div className="stage empty" style={{ flexDirection: "column", gap: 20, padding: 32 }}>
           <p className="question">아직 이야기가 없어요</p>
           <p className="hint">상상한 이야기를 만들어 보세요</p>

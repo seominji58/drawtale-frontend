@@ -7,7 +7,7 @@ import ConfirmCard from "@/components/ConfirmCard";
 import { useSettings, useWithAdult, FIXED_LEVEL } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { TITLE_MAX, useLibrary } from "@/store/library";
-import type { ProtagonistVoice, StoryLength, SupportLevel, VoiceMode } from "@/types/story";
+import type { ProtagonistVoice, StoryLength, SupportLevel } from "@/types/story";
 import { voiceSupported } from "@/features/story/voice";
 import { deleteAccount, deleteMyVoice, getMyVoice, voiceSampleUrl } from "@/api";
 import type { VoiceKind } from "@/api";
@@ -70,7 +70,7 @@ export default function S13Settings() {
   const s = useSettings();
   const { guardian } = useWithAdult();
   const { mode, account, logout } = useAuth();
-  const { stories, remove, rename } = useLibrary();
+  const { stories, remove, removeAll, rename } = useLibrary();
   /** 제목을 고치는 중인 이야기와 그 글 (로그인한 보호자만) */
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
   const saveTitle = () => {
@@ -108,7 +108,7 @@ export default function S13Settings() {
     return () => { alive = false; };
   }, [mode]);
   // 되돌릴 수 없는 일은 화면 안 카드로 한 번 묻는다 (브라우저 확인 창 대신, 11/3 사용자)
-  const [ask, setAsk] = useState<{ kind: "voice" } | { kind: "childVoice" } | { kind: "story"; id: string; title: string } | { kind: "account" } | null>(null);
+  const [ask, setAsk] = useState<{ kind: "voice" } | { kind: "childVoice" } | { kind: "allStories" } | { kind: "story"; id: string; title: string } | { kind: "account" } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const forgetVoice = async () => {
@@ -222,6 +222,12 @@ export default function S13Settings() {
           <p className="hint">이 기기의 책장에서 사라집니다.</p>
         </ConfirmCard>
       )}
+      {ask?.kind === "allStories" && (
+        <ConfirmCard title={`이야기 ${stories.length}편을 모두 지울까요?`} yes="모두 지우기"
+          onYes={() => { removeAll(); setAsk(null); }} onNo={() => setAsk(null)}>
+          <p className="hint">이 기기의 책장에서 모두 사라지고 되돌릴 수 없습니다.</p>
+        </ConfirmCard>
+      )}
       {ask?.kind === "account" && (
         <ConfirmCard title="계정을 탈퇴할까요?" yes={working ? "지우는 중" : "탈퇴하기"} busy={working}
           onYes={() => void withdraw()} onNo={() => setAsk(null)}>
@@ -255,29 +261,6 @@ export default function S13Settings() {
           </span>
         </Row>
 
-        {/* 긴 동화책 대비 두 가지 읽어주기 (open-decisions 0-6). 새로 만드는 이야기부터 바뀐다 */}
-        <Row name="읽어주기"
-          desc={s.voiceMode === "characters"
-            ? "이야기에 짧은 대사가 들어가고, 대사는 등장인물 목소리로 읽어 줍니다. 새로 만드는 이야기부터 적용됩니다"
-            : "한 사람(나레이터)이 이야기 전체를 읽어 줍니다. 새로 만드는 이야기부터 적용됩니다"}>
-          <span className="seg">
-            {([["narration", "나레이션만"], ["characters", "캐릭터 목소리"]] as [VoiceMode, string][]).map(([v, label]) => (
-              <button key={v} className={s.voiceMode === v ? "on" : ""}
-                onClick={() => s.set("voiceMode", v)}>{label}</button>
-            ))}
-          </span>
-        </Row>
-        {s.voiceMode === "characters" && (
-          <Row name="주인공 목소리" desc="아이가 그린 주인공의 대사를 읽을 목소리입니다. 다른 인물은 엄마 · 할머니 · 동물처럼 종류에 맞춰 정해집니다">
-            <span className="seg">
-              {([["girl", "여자아이"], ["boy", "남자아이"]] as [ProtagonistVoice, string][]).map(([v, label]) => (
-                <button key={v} className={s.protagonistVoice === v ? "on" : ""}
-                  onClick={() => s.set("protagonistVoice", v)}>{label}</button>
-              ))}
-            </span>
-          </Row>
-        )}
-
         <Head id="sound" name="소리" />
         <Row name="소리 전체 끄기" desc="모든 음성과 효과음을 끕니다. 교실에서 쓸 때 켜세요">
           <input type="checkbox" checked={s.muteAll}
@@ -293,23 +276,39 @@ export default function S13Settings() {
         </Row>
         {/* 지금 나레이션을 누구 목소리로 읽는지 한눈에 (11/9 사용자 「어떤 걸로 선택됐는지 어떻게 확인하냐」).
             나레이터는 하나만 — 아래 두 스위치 중 켜진 것. 둘 다 꺼져 있으면 기본 나레이터 */}
-        <Row name="읽어 주는 목소리"
-          desc={mode !== "member" ? "로그인하면 보호자 · 아이 목소리를 고를 수 있습니다"
-            : !guardian ? "보호자 · 아이 목소리는 보호자 모드를 켜고 보호자 칸에서 등록하면 고를 수 있습니다"
-            : "이야기 나레이션을 누구 목소리로 읽을지 하나 고릅니다. 등록한 목소리만 고를 수 있고, 새로 만드는 이야기부터 적용됩니다 (이 기기에 저장)"}>
+        {/* 읽어 주기 네 가지를 한 줄에서 (11/10 사용자 「목소리 관련이 흩어져 있어 사용자 친화적이지 않다」) — 화면 위 소리 버튼 메뉴와
+            같은 값. 나레이션 · 캐릭터는 읽는 방식, 보호자 · 아이는 나레이터 목소리(읽는 방식은 그대로). 등록 · 지우기는 보호자 칸 */}
+        <Row name="읽어 주기"
+          desc={(s.childNarrator && kidVoice?.registered && guardian) ? "아이 목소리로 나레이션을 읽습니다. 새로 만드는 이야기부터 적용됩니다"
+            : (s.guardianNarrator && myVoice?.registered && guardian) ? "보호자 목소리로 나레이션을 읽습니다. 새로 만드는 이야기부터 적용됩니다"
+            : s.voiceMode === "characters" ? "나레이터가 읽고, 대사는 등장인물 목소리로 읽습니다. 새로 만드는 이야기부터 적용됩니다"
+            : "나레이터 한 사람이 이야기 전체를 읽습니다. 보호자 · 아이 목소리는 보호자 칸에서 등록하면 고를 수 있습니다"}>
           <span className="seg">
-            {([["default", "기본"], ["guardian", "보호자"], ["child", "아이"]] as const).map(([k, label]) => {
-              const on = k === "child" ? s.childNarrator && !!kidVoice?.registered
-                : k === "guardian" ? s.guardianNarrator && !s.childNarrator && !!myVoice?.registered
-                : !(s.childNarrator && kidVoice?.registered) && !(s.guardianNarrator && myVoice?.registered);
-              const can = k === "default" || (guardian && (k === "child" ? !!kidVoice?.registered : !!myVoice?.registered));
+            {([["narration", "나레이션"], ["characters", "캐릭터"], ["guardian", "보호자"], ["child", "아이"]] as const).map(([k, label]) => {
+              const kid = guardian && s.childNarrator && !!kidVoice?.registered;
+              const mine = guardian && s.guardianNarrator && !kid && !!myVoice?.registered;
+              const on = k === "child" ? kid : k === "guardian" ? mine : !kid && !mine && s.voiceMode === k;
+              const can = k === "narration" || k === "characters" || (guardian && (k === "child" ? !!kidVoice?.registered : !!myVoice?.registered));
               return (
                 <button key={k} className={on ? "on" : ""} disabled={!can}
-                  onClick={() => { s.set("guardianNarrator", k === "guardian"); s.set("childNarrator", k === "child"); }}>{label}</button>
+                  onClick={() => {
+                    s.set("guardianNarrator", k === "guardian"); s.set("childNarrator", k === "child");
+                    if (k === "narration" || k === "characters") s.set("voiceMode", k);
+                  }}>{label}</button>
               );
             })}
           </span>
         </Row>
+        {s.voiceMode === "characters" && (
+          <Row name="주인공 목소리" desc="아이가 그린 주인공의 대사를 읽을 목소리입니다. 다른 인물은 엄마 · 할머니 · 동물처럼 종류에 맞춰 정해집니다">
+            <span className="seg">
+              {([["girl", "여자아이"], ["boy", "남자아이"]] as [ProtagonistVoice, string][]).map(([v, label]) => (
+                <button key={v} className={s.protagonistVoice === v ? "on" : ""}
+                  onClick={() => s.set("protagonistVoice", v)}>{label}</button>
+              ))}
+            </span>
+          </Row>
+        )}
         <Row name="화면 안내 다시 보기" desc="화면마다 처음 한 번 나오는 말풍선 도움말을 다시 보여 줍니다">
           <button className="btn link" disabled={coachReset} onClick={() => { resetCoach(); setCoachReset(true); }}>
             {coachReset ? "다시 보여 줄게요" : "다시 보기"}
@@ -426,6 +425,12 @@ export default function S13Settings() {
         {unlocked && stories.length > 0 && <Head id="mine" name="만든 이야기"
           desc={mode === "member" ? "제목을 고치거나 지울 수 있습니다. 지우면 되돌릴 수 없습니다"
             : "제목 고치기와 지우기는 로그인한 보호자만 할 수 있습니다"} />}
+        {/* 한꺼번에 지우기 (11/10 사용자 「일일이 지워야 한다」) */}
+        {unlocked && mode === "member" && stories.length > 1 && (
+          <Row name={`이야기 모두 지우기 (${stories.length}편)`} desc="이 기기 책장의 이야기를 한꺼번에 지웁니다. 되돌릴 수 없습니다">
+            <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "allStories" })}>모두 지우기</button>
+          </Row>
+        )}
         {unlocked && stories.map((st) => (
           editing?.id === st.storyId
             ? <form key={st.storyId} className="item" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>

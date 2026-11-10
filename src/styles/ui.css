@@ -660,6 +660,15 @@
    옆으로 삐져나온 색종이 탭은 표지 뒤(페이지 사이)에 꽂힌 것처럼 */
 .shelf { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 8px 24px; display: flex; flex-direction: column; gap: 34px; }
 .shelf-row { display: flex; flex-direction: column; }
+/* 책장 쪽 넘기기 (11/10): 쪽이 둘 이상이면 내리지 않고 아래 쪽 번호로 넘긴다 */
+.shelf.paged { overflow: hidden; }
+.shelf-pager { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 14px; }
+.shelf-pager .round { font-size: calc(var(--tap) * .5); line-height: 1; }
+.shelf-pager .round:disabled { opacity: .35; }
+.shelf-dots { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.shelf-dots button { min-width: calc(var(--tap) * .62); height: calc(var(--tap) * .62); border-radius: 999px; border: 2px solid var(--edge);
+  background: var(--cloud); font-family: var(--font-round); font-weight: 700; font-size: calc(var(--t-button) * .6); color: var(--ink-soft); }
+.shelf-dots button.on { background: var(--butter); border-color: var(--line); color: var(--ink); }
 .shelf-books { display: flex; align-items: flex-end; justify-content: center; gap: clamp(26px, 4vw, 50px); padding: 0 24px; position: relative; z-index: 1; }
 .shelf-plank { position: relative; height: 26px; margin: 0 4px; background: #C99A63; border: 3px solid var(--line); border-radius: 8px;
   box-shadow: 0 8px 0 rgba(58, 46, 38, .12); }

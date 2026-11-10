@@ -52,6 +52,8 @@ interface LibraryState {
   add: (s: Story) => void;
   remove: (id: string) => void;
   /** 제목 고치기 (S-11 · 보호자 S-12 책장 · S-13). 책장 · S-09 쪽 머리에 함께 보인다. 서버에도 보낸다 (계약 2-15) */
+  /** 책장의 이야기를 모두 지운다 (만들고 있는 것은 그대로) */
+  removeAll: () => void;
   rename: (id: string, title: string) => void;
   clearGuest: () => void;
   pending: PendingStory[];
@@ -71,6 +73,10 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     const next = get().stories.filter((x) => x.storyId !== id);
     write(next);
     set({ stories: next });
+  },
+  removeAll: () => {
+    write([]);
+    set({ stories: [] });
   },
   rename: (id, title) => {
     const next = get().stories.map((x) =>
