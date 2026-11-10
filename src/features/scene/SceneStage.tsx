@@ -8,7 +8,7 @@
  *         start: 시작 모습으로 기다린다 (앞으로 넘기는 동안 밑에 깔린 도착할 쪽 — 넘긴 뒤 이어서 움직인다)
  *         end: 끝 모습 그대로 (떠나는 쪽 · 뒤로 넘긴 쪽) */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import type { Env, PagePlan, PropId } from "./plan";
+import type { Env, MarkKind, PagePlan, PropId } from "./plan";
 import { FOLLOW_TEXT, GREET_TEXT, SAD_TEXT, hasSkyBodies, isIndoor, isPerson, sceneFx } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
@@ -672,14 +672,17 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   // 고마워(heart)는 도움을 받은 쪽이 하는 말이라 「나」가 없고 옆에 인물이 있으면 그 사람. 없으면 주인공
   // scale: 연출 크기 기준 (화면 높이 대비). 사람은 키, 옆으로 긴 그림(뱀 · 물고기 · 새 · 4족)은 키가 작아 눈물 · 별이 점처럼
   // 작았다 (11/10 형태별 점검) — 몸길이의 절반과 키 중 큰 쪽, 화면 높이 2할 아래로는 줄이지 않는다
-  type Who = { key: string; x: number; face: number; head: number; top: number; h: number; scale: number; side: boolean; follow: boolean; enter: boolean };
+  // cx · foot: 몸 가운데 · 발끝 (먼지 · 물보라 · 반짝이 자리), dir: 머리 쪽(옆모습) — 앞모습은 1
+  type Who = { key: string; x: number; face: number; head: number; top: number; h: number; scale: number; side: boolean; follow: boolean; enter: boolean;
+    cx: number; foot: number; dir: number };
   const whoOf = (sentence: string, thanks = false): Who | null => {
     const me = /(?:^|[^가-힣])(?:나는|내가|나도|내 눈|내 마음)/.test(sentence);
     const named = visiblePeople.find((v) => v.p.name && sentence.includes(v.p.name));
     const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(sentence) || thanks ? visiblePeople[0] : undefined));
     if (other) {
       const h = other.sb.h, foot = other.sb.foot ?? 0.93;
-      return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, top: foot - h, h, scale: h, side: false, follow: false, enter: !!other.p.enter || !!other.follow };
+      return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, top: foot - h, h, scale: h, side: false, follow: false, enter: !!other.p.enter || !!other.follow,
+        cx: other.spot.x, foot, dir: other.spot.x >= hero.to ? 1 : -1 };
     }
     if (heroGone || !drawn.h) return null;
     const hd = heroBody ? bodyAt(heroBody.head) : null;
@@ -688,7 +691,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     const face = hd ? hd.y + drawn.h * 0.14 : topY + drawn.h * (side ? 0.26 : 0.16);
     const scale = Math.max(drawn.h, drawn.w * aspect * 0.5, 0.2);
     // top: 그림 맨 윗선 — 옆모습의 머리 자리(hd)는 주둥이 높이라 거기에 별 아치를 걸면 얼굴을 덮었다
-    return { key: "hero", x, face, head: hd ? hd.y : topY, top: topY, h: drawn.h, scale, side, follow: true, enter: false };
+    return { key: "hero", x, face, head: hd ? hd.y : topY, top: topY, h: drawn.h, scale, side, follow: true, enter: false,
+      cx: heroX, foot: topY + drawn.h, dir: side ? headSide : 1 };
   };
   // 걸어 들어오는 사람은 제자리에 다 온 뒤에 운다 · 기뻐한다 — 전에는 화면 밖에서 오는 중인데 설 자리에 눈물부터 떨어졌다 (11/10)
   const ready = (w: Who | null): w is Who => !!w && (!w.enter || arrived);
@@ -723,6 +727,22 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const gesture = canMove ? fx.gestures.filter((g) => heard(g.at) && !otherSpins(g.before)).pop() : undefined;
   const heroSpin = spinAt >= 0 && !(gesture && gesture.at > spinAt);
   const heroMove = heroSpin ? "spin" : gesture ? `g-${gesture.kind}` : "";
+  // 만화 기호 연출 (11/10): 그 문장의 사람에게. 자리 · 크기는 연출마다 (화면 높이 · 너비 대비, 칸 가운데가 자리)
+  const marks = fx.marks.filter((mk) => play && heard(mk.at)).map((mk) => {
+    const w = whoOf(mk.sentence);
+    if (!ready(w)) return null;
+    const s = w.scale, side = (k: number) => (s * k) / aspect;
+    const head = (dx: number, k: number, ar: number) => ({ x: w.x + w.dir * side(dx), y: w.top - s * 0.02, h: s * k, wd: side(k * ar) });
+    const at = mk.kind === "surprise" || mk.kind === "question" ? head(0.22, 0.3, 0.55)
+      : mk.kind === "anger" ? head(0.22, 0.22, 1)
+      : mk.kind === "zzz" || mk.kind === "note" ? head(0.3, 0.5, 0.8)
+      : mk.kind === "sweat" ? { x: w.x + w.dir * side(0.13), y: w.face - s * 0.06, h: s * 0.13, wd: side(0.1) }
+      : mk.kind === "bubble" ? { x: w.x + w.dir * side(w.side ? 0.06 : 0.02), y: w.face - s * 0.36, h: s * 0.8, wd: side(0.4) }
+      : mk.kind === "splash" || mk.kind === "dust" ? { x: w.cx, y: w.foot - s * 0.08, h: s * 0.34, wd: side(0.85) }
+      : mk.kind === "steam" ? { x: w.x, y: w.top - s * 0.2, h: s * 0.45, wd: side(0.42) }
+      : { x: w.cx, y: (w.top + w.foot) / 2, h: s * 1.05, wd: side(0.85) };   // sparkle: 몸 둘레
+    return { key: `${w.key}-${mk.kind}`, kind: mk.kind, follow: w.follow, ...at };
+  }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((o) => o?.key === v.key) === k);
   // 등장인물도 기쁘거나(별 · 꽃 · 하트) 그 사람이 도는 말이면 좌우로 뒤집었다 돌아온다 (11/10 「손 인사 말고도 기쁜 상황에서 뒤집기」).
   // 손 인사 그림띠를 보이는 중이면 그때 멈춘 그림으로 바꿔 돈다
   const personSpin = new Set<string>(REDUCE || !play ? [] : [
@@ -880,6 +900,12 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           ))}
         </div>
       ))}
+      {marks.map((mk) => (
+        <div key={mk.key} className={`scene-mark k-${mk.kind}`}
+             style={{ left: `${mk.x * 100}%`, top: `${mk.y * 100}%`, height: `${mk.h * 100}%`, width: `${mk.wd * 100}%`, ...(mk.follow ? withHero : {}) }}>
+          {MARK_BITS[mk.kind]}
+        </div>
+      ))}
       {/* 주인공 머리에 쓴 것은 주인공 위에 */}
       {posedSpots.filter((v) => v.at?.top).map(({ t, at }, k) => (
         <img key={`posed-top-${k}`} className="scene-obj scene-thing" alt="" data-pose={t.pose}
@@ -912,6 +938,21 @@ const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
 };
 /** 나는 말 — 새 주인공을 띄운다 */
 const FLY_TEXT = /날아|날았|날고|날며|날면서|날개를 (?:활짝 )?(?:펴|펼|펄럭|파닥)|훨훨|하늘(?:로|을|에서|높이)|높이 (?:올라|떠)|파닥파닥 (?:날|올)/;
+/** 기호 연출 조각 — 모양은 CSS(.scene-mark.k-*)가 그린다 */
+const SPARK = "M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z";
+const MARK_BITS: Record<MarkKind, JSX.Element> = {
+  surprise: <b>!</b>,
+  question: <b>?</b>,
+  zzz: <><b>Z</b><b>z</b><b>z</b></>,
+  note: <><b>♪</b><b>♫</b><b>♪</b></>,
+  anger: <svg viewBox="0 0 24 24"><path d="M9 2v5.5Q9 9 7.5 9H2M15 2v5.5Q15 9 16.5 9H22M9 22v-5.5Q9 15 7.5 15H2M15 22v-5.5Q15 15 16.5 15H22" /></svg>,
+  sweat: <i />,
+  bubble: <><i /><i /><i /><i /><i /><i /></>,
+  splash: <><i /><i /><i /><i /><i /><i /></>,
+  dust: <><i /><i /><i /><i /><i /></>,
+  steam: <svg viewBox="0 0 30 30"><path d="M8 28c-4-5 4-7 0-12s4-7 0-12" /><path d="M15 28c-4-5 4-7 0-12s4-7 0-12" /><path d="M22 28c-4-5 4-7 0-12s4-7 0-12" /></svg>,
+  sparkle: <>{[0, 1, 2, 3, 4, 5].map((k) => <svg key={k} viewBox="0 0 24 24"><path d={SPARK} /></svg>)}</>,
+};
 /** 쪽에 들어올 때 한 번만 하는 움직임 — 끝 모습(떠나는 쪽 · 뒤로 넘긴 쪽)에서는 하지 않는다 */
 const ONCE = new Set(["roll", "pop", "spin", "grow", "shrink", "shake"]);
 /** 옆으로 쥐는 소품 (손잡이를 손에) — 나머지는 윗부분을 쥐고 매단다 */

@@ -273,6 +273,8 @@ export interface SceneFx {
   bright: number; tears: { at: number; sentence: string }[]; spins: { at: number; before: string }[];
   /** 주인공 몸짓 (11/10 사용자 「꾸벅 끄덕 떨기 웅크리기 연출」): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. before 는 빙글과 같다 */
   gestures: { at: number; before: string; kind: HeroGesture }[];
+  /** 만화 기호 연출 (11/10 「보글보글 물방울 같은 연출이 아쉽다」) — 그 문장의 사람 머리 옆 · 발밑 · 몸 둘레에 */
+  marks: { at: number; sentence: string; kind: MarkKind }[];
   /** 기쁨 · 고마움 (11/10 사용자 「고맙다 · 기쁘다 긍정일 땐 하트 · 꽃 같은 기분 좋은 연출」) — 그 사람 머리 위로 피어오른다 */
   joys: { at: number; sentence: string; kind: JoyKind }[];
   /** 울음이 그친 자리 (눈물을 닦았어요 · 울음을 그쳤어요) — 그 사람 눈물이 멈춘다 */
@@ -287,7 +289,7 @@ const JOYS: [JoyKind, RegExp][] = [
 const NOT_JOY = /않았|않아|않고|못 했|못했|비웃|아니었/;
 /** 슬프거나 걱정하는 쪽 — 옆 인물이 손을 흔들지 않는다 (11/10 「우는데 손 흔들면서 웃어버리니 이상」) */
 /** 인사하는 말 — 이 말이 있는 쪽에서만 등장인물이 손을 흔든다 (11/10 「등장하고 나서 기본값이 손 흔들기 같아」 — 전에는 이름만 나와도 흔들었다) */
-export const GREET_TEXT = /안녕|인사|손을 (?:흔들|들어|번쩍)|손 ?흔들|반가|어서 와|어서 오|불렀|부르며|불러|이리 와|여기야|안녕히|잘 가|또 만나|만나서/;
+export const GREET_TEXT = /안녕|인사|손을 (?:흔들|들어|번쩍)|손 ?흔들|반가|어서 와|어서 오|(?<!노래를 |노래 )(?:불렀|부르며|불러)|이리 와|여기야|안녕히|잘 가|또 만나|만나서/;
 /** 함께 움직이는 말 — 그 인물이 주인공 뒤에서 같이 옮겨 간다 (11/10 「따라다닌다 · 함께하는 연출」) */
 export const FOLLOW_TEXT = /따라(?:왔|오|갔|가|다니|다녔|붙)|뒤따라|쫓아(?:왔|오|갔|가)|(?:함께|같이) (?:뛰|걸|달|갔|가|뛰어|걸어|달려|돌아|다녔)|나란히|손을 (?:꼭 )?(?:잡고|맞잡고)|뒤를 졸졸|졸졸/;
 export const SAD_TEXT = /울었|울고|울어|우는|울먹|친구가 없|놀 친구가 없|아무도 없|혼자|외톨이|심심|눈물|훌쩍|엉엉|걱정|슬퍼|슬픈|슬펐|속상|무서|겁이 나|겁나|외로|쓸쓸|시무룩|풀이 죽|다쳤|다친|아파|아팠|넘어졌|넘어져|길을 잃|잃어버|놓쳤|화가 났|화났|뾰로통|깜짝 놀|덜덜|어두워|캄캄|도와 ?줘|어떡해|어쩌지|큰일/;
@@ -296,6 +298,23 @@ const CALM = /울음을 그쳤|울음이 그쳤|울음을 멈|눈물을 닦|눈�
 const DIZZY = /어지러|어질어질|머리가 (?:빙|핑|뱅)|눈앞이|눈이 (?:빙|핑|뱅)|정신이|휘청|비틀/;
 const SPIN = /빙글|뱅글|빙그르|핑그르|팽그르|뱅뱅|빙빙|한 바퀴|두 바퀴|세 바퀴|빙 돌|돌았어|맴돌|제자리에서 돌/;
 /** 몸짓 말 → 연출. 「꾸벅꾸벅 졸았어요」 · 「떨어졌어요」는 걸리지 않게 */
+export type MarkKind = "zzz" | "note" | "anger" | "sweat" | "surprise" | "question" | "bubble" | "splash" | "dust" | "steam" | "sparkle";
+/** 기호 연출 낱말. 한 문장에 하나 — 위에서부터 먼저 맞는 것 */
+const MARKS: [MarkKind, RegExp][] = [
+  ["zzz", /잠이 들|잠들|쿨쿨|새근새근|드르렁|코를 골|졸았|졸고|꾸벅\s*꾸벅|낮잠|잠을 잤|잠을 자|자고 있|꿈나라/],
+  ["note", /노래|흥얼|콧노래|랄랄라|룰루|휘파람|피리를|연주|노랫소리|딩동댕|띵가/],
+  ["anger", /화가 (?:났|나|잔뜩)|화났|씩씩|부글부글|뿔이 났|약이 올|성이 났|뾰로통/],
+  ["sweat", /당황|진땀|땀을|땀이|땀방울|헉헉|허둥지둥|쩔쩔|안절부절|후다닥/],
+  ["surprise", /깜짝|어머나|어머(?!니)|헉(?!헉)|앗|으악|놀랐|놀라서|놀란|화들짝|어이쿠|아이쿠|이럴 수가/],
+  ["question", /궁금|갸우뚱|갸웃|어리둥절|고개를 갸|이상하다|이상했|무슨 일|뭘까|무엇일까|어디 갔|어디로 갔|왜 그럴|알쏭달쏭/],
+  ["splash", /첨벙|풍덩|퐁당|물보라|물장구|철벙|찰방/],
+  ["bubble", /보글보글|뽀글뽀글|보글|뽀글|거품|물방울|물속|물 속|바닷속|바다 속|숨을 (?:뽀|보)/],
+  ["dust", /털썩|쿵(?!쾅)|풀썩|와당탕|철퍼덕|엉덩방아|뛰어내|폴짝 내려|흙먼지|먼지가/],
+  ["steam", /모락모락|김이 (?:모락|폴|나|났|올)|따끈|뜨끈|맛있는 냄새|고소한 냄새|달콤한 냄새|냄새가 솔솔|구수/],
+  ["sparkle", /깨끗해|깨끗하게|말끔|반짝반짝 (?:닦|빛나|해졌)|닦았|윤이 나|새것처럼|반들반들/],
+];
+/** 기호 연출에서 뺄 말 — 「가슴이 쿵쾅」 · 「쿵쿵 뛰는 가슴」은 먼지가 아니다 */
+const NOT_MARK = /가슴이 (?:쿵|두근)|마음이 쿵/;
 const GESTURES: [HeroGesture, RegExp][] = [
   ["bow", /꾸벅|허리를 (?:숙여|굽혀|굽히)|고개 숙여 인사|고개를 숙여 인사|절을 (?:했|하)/],
   ["nod", /끄덕/],
@@ -358,7 +377,19 @@ export function sceneFx(text: string): SceneFx {
       if (j) { joys.push({ at: readAt(text, m.index + j.index), sentence: sen, kind }); break; }
     }
   }
-  return { bright: b ? readAt(text, b.index) : -1, tears, spins, gestures, joys, calms };
+  const marks: SceneFx["marks"] = [];
+  const re5 = /[^.!?”]+[.!?”]*/g;
+  let prev5 = "";
+  for (let m = re5.exec(text); m; m = re5.exec(text)) {
+    const sen = CONT.test(m[0]) ? prev5 + m[0] : m[0];
+    prev5 = sen;
+    if (NOT_MARK.test(m[0])) continue;
+    for (const [kind, re] of MARKS) {
+      const k = re.exec(m[0]);
+      if (k) { marks.push({ at: readAt(text, m.index + k.index), sentence: sen, kind }); break; }
+    }
+  }
+  return { bright: b ? readAt(text, b.index) : -1, tears, spins, gestures, joys, calms, marks };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;
