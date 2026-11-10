@@ -274,10 +274,12 @@ export interface SceneFx {
 /** 기쁨 말 → 연출. 위에서부터 먼저 맞는 것. 「~지 않았어요 · 못 · 비웃」은 기쁨이 아니다 */
 const JOYS: [JoyKind, RegExp][] = [
   ["heart", /고마워|고맙|고마운|감사|사랑|좋아해|좋아한|친구가 (?:됐|되었|되어)|단짝|꼭 안|안아 주|따뜻해졌|마음이 따뜻/],
-  ["star", /기뻤|기뻐|기쁜|기쁨|신났|신나|신이 나|해냈|성공|최고|야호|만세|와아|우와|뿌듯|자랑스러/],
+  ["star", /기뻤|기뻐|기쁜|기쁨|신났|신나|신이 나|해냈|성공|최고|야호|만세|와아|우와|뿌듯|자랑스러|좋은 생각|생각이 (?:번쩍|떠올|났)|번뜩/],
   ["flower", /행복|활짝 웃|웃음꽃|웃었|웃기 시작|웃음이|웃음소리|키득|깔깔|방긋|싱긋|빙그레|미소|즐거|재미있|재밌|반가/],
 ];
 const NOT_JOY = /않았|않아|않고|못 했|못했|비웃|아니었/;
+/** 슬프거나 걱정하는 쪽 — 옆 인물이 손을 흔들지 않는다 (11/10 「우는데 손 흔들면서 웃어버리니 이상」) */
+export const SAD_TEXT = /울었|울고|눈물|훌쩍|엉엉|걱정|슬퍼|슬픈|슬펐|속상|무서|겁이 나|겁나|외로|쓸쓸|시무룩|풀이 죽/;
 const CALM = /울음을 그쳤|울음이 그쳤|울음을 멈|눈물을 닦|눈물이 그쳤|눈물이 멈|뚝 그쳤|울지 않았/;
 /** 빙글 돌기 (11/10 사용자 「돌았어요는 그림을 좌우 반전으로 왔다 갔다」). 「돌아왔어요 · 돌고래 · 돌멩이」는 걸리지 않게 */
 const SPIN = /빙글|뱅글|빙그르|핑그르|팽그르|뱅뱅|빙빙|한 바퀴|두 바퀴|세 바퀴|빙 돌|돌았어|맴돌|제자리에서 돌/;
@@ -292,6 +294,8 @@ export function sceneFx(text: string): SceneFx {
   for (let m = re.exec(text); m; m = re.exec(text)) {
     const sen = m[0];
     // 자리는 우는 말(「울었어요」)이 나오는 곳 — 문장 첫머리면 「민지가 혼자」를 읽을 때 벌써 떨어졌다 (11/10)
+    // 묻는 말 · 따옴표 대사는 우는 것이 아니다 — 「“왜 울어?” 하고 나는 물었어요」에서 주인공 눈에 눈물이 났다 (11/10)
+    if (sen.includes("?") || sen.trimStart().startsWith("“")) continue;
     const c = CRY.exec(sen);
     if (c && !NOT_CRY.test(sen)) tears.push({ at: readAt(text, m.index + c.index), sentence: sen });
   }
@@ -299,7 +303,7 @@ export function sceneFx(text: string): SceneFx {
   const spins: SceneFx["spins"] = [];
   const re2 = /[^.!?”]+[.!?”]*/g;
   for (let m = re2.exec(text); m; m = re2.exec(text)) {
-    const c = SPIN.exec(m[0]);
+    const c = m[0].includes("?") ? null : SPIN.exec(m[0]);
     if (c) spins.push({ at: readAt(text, m.index + c.index), before: m[0].slice(0, c.index) });
   }
   const joys: SceneFx["joys"] = [];
@@ -309,7 +313,8 @@ export function sceneFx(text: string): SceneFx {
     const sen = m[0];
     const cm = CALM.exec(sen);
     if (cm) calms.push({ at: readAt(text, m.index + cm.index), sentence: sen });
-    if (NOT_JOY.test(sen)) continue;
+    // 묻는 말(「어떻게 하면 웃을까?」)은 기쁨이 아니다. 따옴표 대사(「“고마워!”」)는 기쁨
+    if (NOT_JOY.test(sen) || sen.includes("?")) continue;
     for (const [kind, re] of JOYS) {
       const j = re.exec(sen);
       if (j) { joys.push({ at: readAt(text, m.index + j.index), sentence: sen, kind }); break; }
