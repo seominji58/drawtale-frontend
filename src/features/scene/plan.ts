@@ -971,8 +971,12 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const HIDE_TEXT = /(?:숨었|숨어|숨는|쏙 숨|몸을 숨|숨겼|숨어 있|숨죽)/;
     const OUT_TEXT = /(?:나왔|나와|빠져나|고개를 (?:내밀|쏙)|빼꼼|밖으로)/;
     const hidingCard = p.stage === "action" && picks.action === "hide";
-    const hidingText = HIDE_TEXT.test(p.text) && !OUT_TEXT.test(p.text) && !/숨바꼭질|숨은 그림|숨을 (?:쉬|크게|고르|내쉬|들이)/.test(p.text);
-    const stillHidden = !hidingCard && !hidingText && out.length > 0 && out[out.length - 1].hero.hide !== null && !OUT_TEXT.test(p.text);
+    // 숨는 사람이 주인공일 때만 — 「토끼가 숨었어요 · 공이 어디 숨었을까?」에 주인공이 사라졌다 (11/10). 묻는 말 · 따옴표 대사도 빼고
+    const heroHides = p.text.split(/(?<=[.!?”])\s*/).some((sen) => HIDE_TEXT.test(sen) && !sen.includes("?") && !sen.trimStart().startsWith("“")
+      && !/숨바꼭질|숨은 그림|숨을 (?:쉬|크게|고르|내쉬|들이)/.test(sen) && subjectOf(sen.slice(0, sen.search(HIDE_TEXT)), []) === "hero");
+    const hidingText = heroHides && !OUT_TEXT.test(p.text);
+    const stillHidden = !hidingCard && !hidingText && out.length > 0 && out[out.length - 1].hero.hide !== null && !OUT_TEXT.test(p.text)
+      && !/(?:^|[^가-힣])(?:나는|내가) [가-힣 ]{0,20}(?:걸|뛰|달|날|기어|다가|갔|왔)/.test(p.text);
     const hiding = hidingCard || hidingText || stillHidden;
     const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
     if (hiding) { from = to = SLOT; }
