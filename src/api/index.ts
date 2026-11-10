@@ -397,9 +397,11 @@ export async function generateStory(
 
 export interface GuardianVoice {
   registered: boolean;
-  /** 서버가 목소리를 받을 수 있는지 (ElevenLabs 설정) */
+  /** 서버가 목소리를 받을 수 있는지 (녹음 목소리 업체 설정) */
   available: boolean;
   consentedAt: string | null;
+  /** 새로 등록하면 녹음을 보내는 곳 — elevenlabs (ElevenLabs, 미국) | qwen (Modal, 미국). 동의 문구가 따른다 */
+  provider: "elevenlabs" | "qwen";
 }
 
 /** 동의 화면 세 칸 (S13Voice). 모두 true 여야 서버가 받는다.
@@ -414,11 +416,11 @@ const MOCK_VOICE: Record<VoiceKind, string> = { guardian: "storyblanks.mock.voic
 export async function getMyVoice(kind: VoiceKind = "guardian"): Promise<GuardianVoice> {
   if (useMock) {
     const at = localStorage.getItem(MOCK_VOICE[kind]);
-    return { registered: !!at, available: true, consentedAt: at };
+    return { registered: !!at, available: true, consentedAt: at, provider: "elevenlabs" };
   }
-  const r = await call<{ registered: boolean; available: boolean; consented_at: string | null }>(
+  const r = await call<{ registered: boolean; available: boolean; consented_at: string | null; provider?: string }>(
     VOICE_PATH[kind], { headers: authHeader() });
-  return { registered: r.registered, available: r.available, consentedAt: r.consented_at };
+  return { registered: r.registered, available: r.available, consentedAt: r.consented_at, provider: r.provider === "qwen" ? "qwen" : "elevenlabs" };
 }
 
 export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: VoiceKind = "guardian"): Promise<GuardianVoice> {
@@ -426,7 +428,7 @@ export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: Vo
     await sleep(1200);
     const at = new Date().toISOString();
     localStorage.setItem(MOCK_VOICE[kind], at);
-    return { registered: true, available: true, consentedAt: at };
+    return { registered: true, available: true, consentedAt: at, provider: "elevenlabs" };
   }
   const form = new FormData();
   form.append("audio", wav, "voice.wav");
@@ -434,9 +436,9 @@ export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: Vo
   form.append("agree_transfer", String(consent.transfer));
   form.append(kind === "child" ? "guardian_consent" : "own_voice", String(consent.ownVoice));
   form.append("consent_version", consent.version);
-  const r = await call<{ registered: boolean; available: boolean; consented_at: string | null }>(
+  const r = await call<{ registered: boolean; available: boolean; consented_at: string | null; provider?: string }>(
     VOICE_PATH[kind], { method: "POST", headers: authHeader(), body: form });
-  return { registered: r.registered, available: r.available, consentedAt: r.consented_at };
+  return { registered: r.registered, available: r.available, consentedAt: r.consented_at, provider: r.provider === "qwen" ? "qwen" : "elevenlabs" };
 }
 
 /** 등록한 목소리 들어 보기 (11/9) — 녹음은 저장하지 않아 원본은 없다. 서버가 그 목소리로 짧은 문장을 읽어 MP3 로 준다.

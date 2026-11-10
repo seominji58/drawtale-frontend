@@ -5,7 +5,7 @@ import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
 import { useAuth } from "@/store/auth";
 import { useSettings } from "@/store/settings";
-import { ApiError, registerMyVoice } from "@/api";
+import { ApiError, getMyVoice, registerMyVoice } from "@/api";
 import type { VoiceKind } from "@/api";
 import { MAX_SECONDS, MIN_SECONDS, recordSupported, startRecording, toWav } from "@/features/voice/record";
 import type { Recording } from "@/features/voice/record";
@@ -23,6 +23,13 @@ import type { Recording } from "@/features/voice/record";
  *  어른이 기능을 시험할 때만 쓴다 (팀 결정). open-decisions 0-20 */
 export const CONSENT_VERSION = "2026-11-02";
 export const CHILD_CONSENT_VERSION = "2026-11-09-child";
+/** 녹음을 보내는 곳이 Modal(자체 음성 서버)일 때의 안내문 판 (2026-11-10) — 받는 곳이 바뀌면 판도 바뀐다 */
+const MODAL_SUFFIX = "-modal";
+/** 받는 곳 — 서버 provider (GET /me/voice). elevenlabs: ElevenLabs, qwen: 자체 음성 서버가 도는 Modal */
+const RECIPIENT = {
+  elevenlabs: { who: "ElevenLabs, Inc.", what: "음성 합성 업체", del: "ElevenLabs 의 목소리" },
+  qwen: { who: "Modal Labs, Inc.", what: "저희 음성 합성 서버가 돌아가는 클라우드(GPU) 업체", del: "음성 서버의 목소리" },
+} as const;
 /** 아이는 오래 읽기 어렵다 — 30초부터 */
 const CHILD_MIN_SECONDS = 30;
 
@@ -113,6 +120,10 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
     if (a) { a.pause(); URL.revokeObjectURL(a.src); player.current = null; }
   };
   useEffect(() => () => { rec.current?.cancel(); clearInterval(timer.current); stopPlayer(); }, []);
+  // 녹음을 어디로 보내는지 서버에 묻는다 — 동의 문구 · 판이 따른다. 모르면 ElevenLabs (예전과 같다)
+  const [provider, setProvider] = useState<"elevenlabs" | "qwen">("elevenlabs");
+  useEffect(() => { getMyVoice(kind).then((v) => setProvider(v.provider)).catch(() => undefined); }, [kind]);
+  const to = RECIPIENT[provider];
 
   // 로그인한 보호자만 (「어른과 함께」). 아이는 계정이 없다
   if (mode !== "member") return <Navigate to="/settings" replace />;
@@ -165,7 +176,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
     setError(null);
     try {
       const wav = await toWav(take);
-      await registerMyVoice(wav, { collect, transfer, ownVoice, version: child ? CHILD_CONSENT_VERSION : CONSENT_VERSION }, kind);
+      await registerMyVoice(wav, { collect, transfer, ownVoice, version: (child ? CHILD_CONSENT_VERSION : CONSENT_VERSION) + (provider === "qwen" ? MODAL_SUFFIX : "") }, kind);
       setTake(null);   // 보낸 녹음은 이 화면에서도 버린다
       // 나레이터는 하나만 — 방금 등록한 목소리로 켜고 다른 쪽은 끈다
       setSetting(child ? "childNarrator" : "guardianNarrator", true);
@@ -206,7 +217,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
             아이의 녹음 음성과 그 음성으로 만든 목소리 특징. 목소리는 특정 개인을 알아볼 수 있는 정보입니다. 이름 · 나이 · 연락처는 받지 않습니다.
           </Clause>
           <Clause title="어디로 보내나요 (국외 이전)">
-            받는 곳: ElevenLabs, Inc. (미국), 음성 합성 업체. 「이 목소리로 등록」을 누를 때 보냅니다. 녹음 파일은 저희 서버에 저장하지 않고, 목소리 번호만 남습니다.
+            받는 곳: {to.who} (미국), {to.what}. 「이 목소리로 등록」을 누를 때 보냅니다. 녹음 파일은 저희 서버에 저장하지 않고, 목소리 번호만 남습니다.
           </Clause>
           <Clause title="얼마나 보관하나요 · 지우는 법">
             보호자님이 지우거나 계정을 없앨 때까지. 어른 설정 → 보호자 칸 → 「아이 목소리 다시 녹음 · 지우기」에서 언제든 지울 수 있고,
@@ -214,7 +225,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
           </Clause>
           <Clause title="동의하지 않으셔도 됩니다">동의하지 않아도 다른 기능은 모두 쓸 수 있고, 이야기는 기본 나레이터가 읽습니다.</Clause>
           <Check checked={collect} onChange={setCollect}>[필수] 위 내용대로 아이의 목소리(음성)를 수집 · 이용하는 데 동의합니다.</Check>
-          <Check checked={transfer} onChange={setTransfer}>[필수] 아이의 목소리를 ElevenLabs, Inc.(미국)로 보내는 국외 이전에 동의합니다.</Check>
+          <Check checked={transfer} onChange={setTransfer}>[필수] 아이의 목소리를 {to.who}(미국)로 보내는 국외 이전에 동의합니다.</Check>
           <Check checked={ownVoice} onChange={setOwnVoice}>[필수] 저는 이 아이의 보호자(법정대리인)이며, 곁에서 함께 녹음하는 데 동의합니다.</Check>
           {!recordSupported() && <Clause title="이 브라우저에서는 녹음할 수 없습니다">크롬이나 사파리에서 다시 열어 주세요.</Clause>}
         </>}
@@ -229,11 +240,11 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
             이름 · 연락처는 받지 않습니다.
           </Clause>
           <Clause title="어디로 보내나요 (국외 이전)">
-            받는 곳: ElevenLabs, Inc. (미국), 음성 합성 업체. 보내는 때: 「이 목소리로 등록」을 누를 때 인터넷으로.
+            받는 곳: {to.who} (미국), {to.what}. 보내는 때: 「이 목소리로 등록」을 누를 때 인터넷으로.
             목적: 목소리를 만들고 이야기를 읽는 데에만 씁니다. 녹음 파일은 저희 서버에 저장하지 않고 바로 넘기며, 저희 서버에는 목소리 번호만 남습니다.
           </Clause>
           <Clause title="얼마나 보관하나요">
-            보호자님이 목소리를 지우거나 계정을 없앨 때까지. 지우면 ElevenLabs 의 목소리와, 그 목소리로 만든 이야기 음성을 함께 지웁니다.
+            보호자님이 목소리를 지우거나 계정을 없앨 때까지. 지우면 {to.del}와, 그 목소리로 만든 이야기 음성을 함께 지웁니다.
             동의하고 거둬들인 날짜만 기록으로 남깁니다.
           </Clause>
           <Clause title="지우는 법">어른 설정 → 어른과 함께 → 「내 목소리 다시 녹음 · 지우기」의 「지우기」. 언제든 지울 수 있습니다.</Clause>
@@ -244,7 +255,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
             반드시 동의하시는 보호자 본인의 목소리여야 합니다. 아이의 목소리나 다른 사람의 목소리는 등록할 수 없습니다.
           </Clause>
           <Check checked={collect} onChange={setCollect}>[필수] 위 내용대로 제 목소리(음성)를 수집 · 이용하는 데 동의합니다.</Check>
-          <Check checked={transfer} onChange={setTransfer}>[필수] 제 목소리를 ElevenLabs, Inc.(미국)로 보내는 국외 이전에 동의합니다.</Check>
+          <Check checked={transfer} onChange={setTransfer}>[필수] 제 목소리를 {to.who}(미국)로 보내는 국외 이전에 동의합니다.</Check>
           <Check checked={ownVoice} onChange={setOwnVoice}>[필수] 녹음하는 목소리는 제 본인의 목소리이며, 아이나 다른 사람의 목소리가 아닙니다.</Check>
           {!recordSupported() && <Clause title="이 브라우저에서는 녹음할 수 없습니다">크롬이나 사파리에서 다시 열어 주세요.</Clause>}
         </>}
