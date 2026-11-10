@@ -854,6 +854,22 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const visiblePeople = people.filter((v): v is NonNullable<typeof v> => !!v && v.p.id !== "sign");
   // 빛이 퍼지는 자리 (11/10 사용자 「불빛이 밝아졌다는 건 그 소품이랑 맞거나 화면 한 자리에서 — 화면 위 가운데 고정이 아니라」).
   // 등대 → 등대 꼭대기, 등불 · 손전등 → 그 소품이나 든 사람, 가로등 → 가로등, 창 → 창. 해 · 햇살 · 모르면 위 가운데(전과 같음)
+  // 배경 그림 물건의 빛 나는 자리 (등대 꼭대기 · 가로등 · 등불)
+  const layoutObj = (re: RegExp) => {
+    const o = layout.objects.find((v) => re.test(v.src));
+    return o ? { x: o.x, y: o.foot !== undefined ? o.foot - o.h * 0.85 : (o.top ?? 0.2) + o.h * 0.3 } : null;
+  };
+  // 깜빡이는 빛 (11/10 사용자 「깜빡이다 — 소품에 매핑되면 그 소품, 안 되면 전체」): 그 문장에 나온 소품이 화면에 있으면 그 소품이,
+  // 없으면 등대 · 가로등 · 등불 · 창 자리, 그것도 없으면 장면 전체가 깜빡인다. 나레이션이 그 말에 오면 몇 번
+  const blinkNow = play && !REDUCE ? fx.blinks.filter((b) => heard(b.at)) : [];
+  const inBlink = (t: { at?: number }) => t.at !== undefined && t.at >= 0 && blinkNow.some((b) => t.at! >= b.start && t.at! < b.end);
+  const shownThings = [...thingSpots, ...posedSpots.filter((v) => v.at).map((v) => v.t)];
+  const blinkScene = blinkNow.filter((b) => !shownThings.some((t) => t.at !== undefined && t.at >= b.start && t.at < b.end)).map((b) => {
+    const sen = b.sentence;
+    const spot = /등대/.test(sen) ? layoutObj(/lighthouse/) : /가로등/.test(sen) ? layoutObj(/lamp/)
+      : /등불|랜턴|초롱/.test(sen) ? layoutObj(/lantern/) : /창/.test(sen) && layout.window ? { x: layout.window.x, y: layout.window.y } : null;
+    return { at: b.at, spot };
+  }).pop();
   const glowAt = ((): { x: number; y: number } | null => {
     if (!(fx.bright >= 0 || plan.env.glow)) return null;
     const said = text.replace(/“[^”]*”/g, " ");
@@ -1109,7 +1125,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         );
       })}
       {posedSpots.filter((v) => v.at && !v.at.top).map((v, k) => (
-        <img key={`posed-${k}-${v.t.src.slice(0, 40)}`} className={`scene-obj scene-thing ${v.at!.cls}`} alt="" data-pose={v.t.pose}
+        <img key={`posed-${k}-${v.t.src.slice(0, 40)}`} className={`scene-obj scene-thing ${v.at!.cls} ${inBlink(v.t) ? "m-blink" : ""}`} alt="" data-pose={v.t.pose}
              data-give={v.t.give && v.from ? (heard(v.t.give.at) ? "to" : "from") : undefined}
              src={thingSrc(v.t.src)} style={handStyle(v)} />
       ))}
@@ -1119,7 +1135,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       ))}
       {thingSpots.map((t, k) => (
         <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
-             className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""}`}
+             className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={thingSrc(t.src)}
              style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
@@ -1146,6 +1162,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       {/* 장면이 환해짐: 위에서 따뜻한 빛이 번진다 (화면 섞기 — 그림 위에 흰 막을 덮지 않는다) */}
       {(fx.bright >= 0 || plan.env.glow) && <div className={`scene-bright ${brightOn || plan.env.glow ? "on" : ""} ${glowAt ? "spot" : ""}`}
         style={glowAt ? { ["--gx" as string]: `${(glowAt.x * 100).toFixed(1)}%`, ["--gy" as string]: `${(glowAt.y * 100).toFixed(1)}%` } : undefined} />}
+      {blinkScene && <div key={`blink-${blinkScene.at}`} className={`scene-flicker ${blinkScene.spot ? "spot" : ""}`}
+        style={blinkScene.spot ? { ["--gx" as string]: `${(blinkScene.spot.x * 100).toFixed(1)}%`, ["--gy" as string]: `${(blinkScene.spot.y * 100).toFixed(1)}%` } : undefined} />}
       {fx.drip >= 0 && heard(fx.drip) && (
         <div className="scene-drip">{DRIPS.map(([x, d, h], k) => <i key={k} style={{ left: `${x}%`, animationDelay: `${d}s`, ["--fall" as string]: `${h}%` }} />)}</div>
       )}

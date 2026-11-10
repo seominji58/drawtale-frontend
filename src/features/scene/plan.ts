@@ -309,6 +309,8 @@ export type JoyKind = "heart" | "star" | "flower";
 export type HeroGesture = "bow" | "nod" | "shiver" | "crouch";
 export interface SceneFx {
   bright: number; tears: { at: number; sentence: string; other?: boolean }[]; spins: { at: number; before: string }[];
+  /** 깜빡이는 빛 (11/10 사용자 「깜빡이다 — 소품이면 그 소품, 아니면 장면 전체」). at: 그 말의 자리, start · end: 그 문장 (글자 위치) */
+  blinks: { at: number; start: number; end: number; sentence: string }[];
   /** 물방울이 떨어지는 장면 (11/10 「물방울 연출이 없다」) — 위에서 똑똑. 자리는 그 말 */
   drip: number;
   /** 주인공 몸짓 (11/10 사용자 「꾸벅 끄덕 떨기 웅크리기 연출」): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. before 는 빙글과 같다 */
@@ -488,7 +490,16 @@ export function sceneFx(text: string): SceneFx {
     const d = /물방울(?:이|들이)? (?:똑|뚝|떨어|톡|퐁)|(?:똑똑|똑, 똑|뚝뚝) (?:떨어|물방울)|물방울 (?:떨어지는|소리)|빗방울이 (?:똑|뚝|떨어)/.exec(m[0]);
     if (d) { d.index += m.index; dr = d; }
   }
-  return { drip: dr ? readAt(text, dr.index) : -1, bright: bAt >= 0 ? readAt(text, bAt) : -1, tears, spins, gestures, joys, calms, marks };
+  // 깜빡이는 빛 — 눈을 깜빡 · 깜빡 잊었어요 · 깜빡 졸았어요는 빼고 (대사 안은 빼고)
+  const blinks: SceneFx["blinks"] = [];
+  const reB = /[^.!?]+[.!?]*/g;
+  const uq = unquoted(text);
+  for (let m = reB.exec(uq); m; m = reB.exec(uq)) {
+    const k = /깜빡|깜박|반짝 켜졌다|켜졌다 꺼졌다|껌뻑/.exec(m[0]);
+    if (k && !/눈(?:을|이|만|도)? (?:[가-힣]+ )?(?:깜빡|깜박|껌뻑)|깜빡 (?:잊|졸|했)|깜빡했|깜박 (?:잊|졸)/.test(m[0]))
+      blinks.push({ at: readAt(text, m.index + k.index), start: m.index, end: m.index + m[0].length, sentence: m[0] });
+  }
+  return { blinks, drip: dr ? readAt(text, dr.index) : -1, bright: bAt >= 0 ? readAt(text, bAt) : -1, tears, spins, gestures, joys, calms, marks };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;

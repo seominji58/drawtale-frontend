@@ -11,7 +11,7 @@ import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
 import SceneStage, { preloadStripsFor } from "@/features/scene/SceneStage";
-import { envCueAt, planPages } from "@/features/scene/plan";
+import { envCueAt, planPages, sceneFx } from "@/features/scene/plan";
 import { formOf } from "@/features/character/forms";
 import { ORDER_GAME, useSettings } from "@/store/settings";
 import { SPEECH_RATES, fileRate, sentences, speak, speechRate, stopAllAudio, stopSpeak, trackAudio } from "@/lib";
@@ -486,7 +486,12 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       active && !top ? (entered.pg === i ? "play" : "start")
       : arriving ? "start" : "end";
     // 앞 쪽 밤낮에서 이 쪽 밤낮으로 (뒤로 돌아와도 같은 순서로 다시)
-    const prevEnv = scenes && i > 0 ? scenes[i - 1].env : null;
+    // 앞 쪽이 「끝난」 모습 — 그 쪽에서 「환해졌어요 · 불을 켰어요」로 밝아졌으면 밝아진 채로 이어 받는다.
+    // 전에는 앞 쪽의 시작 모습(어둑 · 밤)을 받아 다음 쪽이 다시 어두워졌다가 밝아졌다 (11/10 사용자)
+    const prevEnv = scenes && i > 0 ? (() => {
+      const e = scenes[i - 1].env, lit = sceneFx(pages[i - 1].text).bright >= 0;
+      return { ...e, dim: !!e.dim && !lit, night: e.night && !(e.lightsOn && lit), glow: !!e.glow || (lit && !!scenes[i].env.glow) };
+    })() : null;
     if (scenes && !props) {
       return (
         <div key={`${i}-${top ? "top" : "under"}`} className={`spread ${top ? "top" : ""}`} ref={top ? topRef : undefined}>
