@@ -54,7 +54,7 @@ const SECTIONS: [string, string][] = [
 ];
 /** 보호자 칸을 열기 전에도 무엇이 있는지는 보인다 (숨기지 않고 잠그기) */
 const GUARDIAN_ITEMS = [
-  "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기 · 읽어 주는 목소리",
+  "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기 · 보호자 · 아이 목소리 등록",
   "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
 ];
 
@@ -293,14 +293,22 @@ export default function S13Settings() {
         </Row>
         {/* 지금 나레이션을 누구 목소리로 읽는지 한눈에 (11/9 사용자 「어떤 걸로 선택됐는지 어떻게 확인하냐」).
             나레이터는 하나만 — 아래 두 스위치 중 켜진 것. 둘 다 꺼져 있으면 기본 나레이터 */}
-        <Row name="지금 읽어 주는 목소리"
+        <Row name="읽어 주는 목소리"
           desc={mode !== "member" ? "로그인하면 보호자 · 아이 목소리를 고를 수 있습니다"
-            : "새로 만드는 이야기부터 이 목소리로 읽습니다. 바꾸려면 보호자 칸의 「읽어 주는 목소리」에서 고르세요 (이 기기에 저장)"}>
-          <strong style={{ whiteSpace: "nowrap" }}>
-            {guardian && s.childNarrator && kidVoice?.registered ? "아이 목소리"
-              : guardian && s.guardianNarrator && myVoice?.registered ? "보호자 목소리"
-              : "기본 나레이터"}
-          </strong>
+            : !guardian ? "보호자 · 아이 목소리는 보호자 모드를 켜고 보호자 칸에서 등록하면 고를 수 있습니다"
+            : "이야기 나레이션을 누구 목소리로 읽을지 하나 고릅니다. 등록한 목소리만 고를 수 있고, 새로 만드는 이야기부터 적용됩니다 (이 기기에 저장)"}>
+          <span className="seg">
+            {([["default", "기본"], ["guardian", "보호자"], ["child", "아이"]] as const).map(([k, label]) => {
+              const on = k === "child" ? s.childNarrator && !!kidVoice?.registered
+                : k === "guardian" ? s.guardianNarrator && !s.childNarrator && !!myVoice?.registered
+                : !(s.childNarrator && kidVoice?.registered) && !(s.guardianNarrator && myVoice?.registered);
+              const can = k === "default" || (guardian && (k === "child" ? !!kidVoice?.registered : !!myVoice?.registered));
+              return (
+                <button key={k} className={on ? "on" : ""} disabled={!can}
+                  onClick={() => { s.set("guardianNarrator", k === "guardian"); s.set("childNarrator", k === "child"); }}>{label}</button>
+              );
+            })}
+          </span>
         </Row>
         <Row name="화면 안내 다시 보기" desc="화면마다 처음 한 번 나오는 말풍선 도움말을 다시 보여 줍니다">
           <button className="btn link" disabled={coachReset} onClick={() => { resetCoach(); setCoachReset(true); }}>
@@ -348,26 +356,8 @@ export default function S13Settings() {
             onChange={(e) => s.set("voiceInput", e.target.checked)}
             className="tog" />
         </Row>
-        {/* 목소리 (11/9 다시 짬 — 사용자 「둘 다 녹음하면 무엇이 자동으로 쓰이는지 모르겠고, 녹음 결과도 못 들어 본다」).
-            ① 읽어 주는 목소리를 한 줄에서 하나 고른다(기본 · 보호자 · 아이 — 등록한 것만 고를 수 있다).
-            ② 목소리마다 등록 · 들어 보기 · 다시 녹음 · 지우기. 새로 등록하면 그 목소리로 바뀐다(위 줄에 보인다).
-            녹음은 저장하지 않아(ElevenLabs 로만 넘김) 원본 대신 그 목소리로 읽은 짧은 문장을 들려준다 */}
-        <Row name="읽어 주는 목소리"
-          desc={mode !== "member" ? "로그인한 보호자만 고를 수 있습니다"
-            : "이야기 나레이션을 누구 목소리로 읽을지 하나 고릅니다. 등록한 목소리만 고를 수 있고, 새로 만드는 이야기부터 적용됩니다"}>
-          <span className="seg">
-            {([["default", "기본"], ["guardian", "보호자"], ["child", "아이"]] as const).map(([k, label]) => {
-              const on = k === "child" ? s.childNarrator && !!kidVoice?.registered
-                : k === "guardian" ? s.guardianNarrator && !s.childNarrator && !!myVoice?.registered
-                : !(s.childNarrator && kidVoice?.registered) && !(s.guardianNarrator && myVoice?.registered);
-              const can = k === "default" || (guardian && (k === "child" ? !!kidVoice?.registered : !!myVoice?.registered));
-              return (
-                <button key={k} className={on ? "on" : ""} disabled={!can}
-                  onClick={() => { s.set("guardianNarrator", k === "guardian"); s.set("childNarrator", k === "child"); }}>{label}</button>
-              );
-            })}
-          </span>
-        </Row>
+        {/* 목소리마다 등록 · 들어 보기 · 다시 녹음 · 지우기 (보호자 칸). 어느 목소리로 읽을지 고르기는 위 「읽어 주는 목소리」(소리 칸)로
+            옮겼다 — 등록한 목소리 중 고르기는 녹음도 보내기도 아니라 비밀번호 뒤에 둘 까닭이 없다 (11/10 사용자) */}
         {([["guardian", "보호자 목소리", myVoice, "/voice",
             "보호자님이 1~3분 글을 읽어 녹음하면, 이야기 나레이션을 그 목소리로 읽어 드립니다. 등록 전에 동의 내용을 안내합니다"],
            ["child", "아이 목소리", kidVoice, "/child-voice",
