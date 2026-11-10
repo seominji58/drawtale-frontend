@@ -32,6 +32,9 @@ const PLAY = q.get("play") ?? "";
 // ?flip=800: 책 화면처럼 쪽을 넘기는 동안(이 ms) 시작 모습으로 기다렸다가 재생으로 바꾼다 (등장인물 그림띠 시작 확인, 11/9)
 const FLIP = Number(q.get("flip") ?? 0);
 const MINE = (q.get("mine") ?? "").split(",").filter(Boolean).map((name) => ({ name, png: `${import.meta.env.BASE_URL}scenes/props/drum.webp`, height: 0.28 }));
+// ?still=out/_bird.png&facing=1: 주인공 그림 · 머리 쪽을 바꿔 본다 (몸짓 연출 확인, 11/10). 없으면 사람 서 있는 그림 · 앞모습
+const STILL = q.get("still") ?? `${import.meta.env.BASE_URL}illust/hero-stand.webp`;
+const FACING = Number(q.get("facing") ?? 0) as -1 | 0 | 1;
 const NAME = "토토";
 // 백엔드가 채우는 이름 자리 (`{이름}{조사:는}`) — 받침 없는 이름이라 조사는 적힌 그대로
 const fill = (t: string) => t.replace(/\{이름\}/g, NAME).replace(/\{조사:([^}]+)\}/g, "$1");
@@ -99,7 +102,7 @@ function App() {
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
         <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage plan={plan} prevEnv={null} still={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} mode={PLAY ? (flipped ? "play" : "start") : "end"} pageAction={PLAY} text={pageText(c, plans, pi)} />
+          <SceneStage plan={plan} prevEnv={null} still={STILL} facing={FACING} mode={PLAY ? (flipped ? "play" : "start") : "end"} pageAction={PLAY} text={pageText(c, plans, pi)} />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {plan.location}</span>
         </div>
       )))}
