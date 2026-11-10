@@ -162,7 +162,10 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift = 0, size = 1, form, narration, envAt, text = "", pageAction = "" }: Props) {
+export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift: formLift = 0, size = 1, form, narration, envAt, text = "", pageAction = "" }: Props) {
+  // 새(날개형)는 나는 쪽에서만 띄운다 — 늘 화면 높이 4할 위에 떠 있어 「옆에서 지켜봤어요」에도 공중에 있었고
+  // 땅에 선 인물들과 높이가 맞지 않았다 (11/10). 헤엄치는 친구(지느러미형)는 그대로 뜬다
+  const lift = form === "winged" && !FLY_TEXT.test(text) ? 0 : formLift;
   const play = mode === "play";
   // 그림띠가 풀리면 다시 그린다. 걸어 들어오기는 재생을 시작할 때 풀려 있던 것만 (도중에 붙으면 걷다가 그림이 바뀐다),
   // 인사는 늦게 풀려도 그때부터 손을 든다
@@ -368,7 +371,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);
   /** 자리 { x, back } — back 이면 설 자리가 없어 조금 뒤(작게 · 약간 위)에 선다. 그림책에서 뒤에 선 사람처럼 */
   // enterFrom: 걸어 들어오는 쪽 — 그쪽(주인공 기준)에만 선다. 오른쪽에서 들어온 친구가 주인공 뒤를 지나 왼쪽에 섰다 (11/9 사용자)
-  const personX = (x: number, h: number, wRatio = 0.45, sameSide = false, enterFrom?: "left" | "right"): { x: number; back: boolean } => {
+  const personX = (x: number, h: number, wRatio = 0.45, sameSide = false, enterFrom?: "left" | "right", pack = false): { x: number; back: boolean } => {
     const half = (h * wRatio / aspect) / 2;   // 친구 · 어른 그림은 키의 4~5할 폭
     const gap = 0.015, lo = half + 0.01, hi = 1 - half - 0.01;
     const want = Math.min(hi, Math.max(lo, x));
@@ -376,9 +379,18 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     const right = enterFrom ? enterFrom === "right" : want >= hero.to;
     const tries = [want];
     for (let k = 1; k <= 40; k++) tries.push(want + (right ? 1 : -1) * k * 0.02, want - (right ? 1 : -1) * k * 0.02);
+    // 같은 쪽에서 둘 이상 들어오면 화면 끝부터 차례로 붙여 선다 — 첫 사람이 제자리(0.78)에 서면 남은 틈이 둘로 쪼개져
+    // 다음 사람이 설 곳이 없어 끝에 작게 · 떠서(뒤에 선 것처럼) 겹쳤다 (11/10 「등장인물이 여럿일 때 땅에 선 자리가 안 맞아」)
+    if (pack && enterFrom) {
+      tries.length = 0;
+      for (let c = right ? hi : lo; right ? c >= lo : c <= hi; c += right ? -0.01 : 0.01) tries.push(c);
+    }
     // 표지판은 주인공이 달려가는 쪽에만 — 반대쪽(지나온 길)으로 밀리면 표지판을 지나쳐 달려간 것처럼 보였다 (11/4)
     const side = (c: number) => !sameSide || (right ? c >= hero.to : c <= hero.to);
-    const at = tries.find((c) => c >= lo && c <= hi && side(c) && free(c - half - gap, c + half + gap));
+    // 틈이 없으면 뒤로 보내기 전에 양옆을 조금 겹쳐 앞줄에 — 사람 그림은 양옆이 팔 · 빈 여백이라 3할 겹쳐도 나란히 선 것으로 읽힌다
+    // (11/10 — 0.01 모자라 뒤에 작게 · 떠서 섰다)
+    const at = tries.find((c) => c >= lo && c <= hi && side(c) && free(c - half - gap, c + half + gap))
+      ?? tries.find((c) => c >= lo && c <= hi && side(c) && free(c - half * 0.7, c + half * 0.7));
     if (at !== undefined) { placed.push([at - half, at + half]); return { x: at, back: false }; }
     // 표지판은 틈이 없어도 가는 쪽 끝에 (좁은 화면 · 팔 넓은 그림에서 손끝과 조금 닿는 정도) — 반대편 뒤로 가지 않게
     // 들어온 사람은 그쪽 끝 조금 뒤에 (작아져 주인공과 겹쳐도 앞뒤로 읽힌다)
@@ -392,6 +404,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   // 인물 자리는 미리 잡는다 — 대본에서 그 사람이 든 · 쓴 소품을 손 · 머리에 놓으려면 자리를 알아야 한다 (11/4)
   // 다가가는 인물(hero.goal)은 주인공이 가는 쪽 바로 앞에 — 남는 자리에 서면 그 사람 반대쪽으로 달려갔다 (11/5)
   const travel = Math.sign(hero.to - hero.from);
+  // 쪽마다 같은 쪽에서 걸어 들어오는 사람 수 (둘 이상이면 끝부터 붙여 세운다)
+  const entering = { left: behind.filter((p) => p.enter === "left").length, right: behind.filter((p) => p.enter === "right").length };
   const people = behind.map((p) => {
     const base0 = prop(p.id);
     if (!base0) return null;
@@ -403,7 +417,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     // 주인공이 다가가는 사람은 주인공이 가는 쪽에서 들어온다 — 왼쪽에서 들어와 왼쪽에 서면 주인공이 그 사람에게서 멀어지는
     // 쪽으로 달려갔다 (11/9 「어른에게 달려갔어요」)
     const enter: "left" | "right" | undefined = p.enter && ahead !== undefined ? (travel > 0 ? "right" : "left") : p.enter;
-    const spot = personX(s.x, s.h, wRatio, p.id === "sign", enter);
+    const spot = personX(s.x, s.h, wRatio, p.id === "sign", enter, !!enter && entering[enter] > 1);
     const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
     return { p: enter === p.enter ? p : { ...p, enter }, s, spot, sb };
   });
@@ -547,6 +561,11 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           hx = holder.spot.x + (hand[outer][0] - 0.5) * pw;
           hy = (holder.sb.foot ?? 0.93) - holder.sb.h + hand[outer][1] * holder.sb.h;   // 위에서부터
           bodyH = holder.sb.h;
+        }
+        // 풍선은 줄 끝을 쥐고 위로 크게 떠 있다 — 다른 소품처럼 손 크기로 줄이면 손에 작은 사탕을 쥔 것 같았다 (11/10)
+        if (t.src === "props/balloons.webp") {
+          const bh = bodyH * 0.6;
+          return { x: hx, cls: "m-sway", style: spotStyle({ src: t.src, x: hx, foot: hy + bh * 0.04, h: bh }) };
         }
         const h = Math.min(t.h, bodyH * (SIDE_GRIP.has(t.src) ? 0.1 : 0.2)), w = thingW(h);
         if (SIDE_GRIP.has(t.src)) {   // 손전등처럼 옆으로 쥐는 것 — 손잡이를 손에, 빛은 바깥으로 (그림은 빛이 왼쪽)
@@ -834,6 +853,8 @@ const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
   star: "M12 1.5l2.9 7.1 7.6.6-5.8 5 1.8 7.4L12 17.6l-6.5 4 1.8-7.4-5.8-5 7.6-.6z",
   flower: "M12 9.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm0 12a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM6 15.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm12 0a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM12 14.6a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2z",
 };
+/** 나는 말 — 새 주인공을 띄운다 */
+const FLY_TEXT = /날아|날았|날고|날며|날면서|날개를 (?:활짝 )?(?:펴|펼|펄럭|파닥)|훨훨|하늘(?:로|을|에서|높이)|높이 (?:올라|떠)|파닥파닥 (?:날|올)/;
 /** 쪽에 들어올 때 한 번만 하는 움직임 — 끝 모습(떠나는 쪽 · 뒤로 넘긴 쪽)에서는 하지 않는다 */
 const ONCE = new Set(["roll", "pop", "spin", "grow", "shrink", "shake"]);
 /** 옆으로 쥐는 소품 (손잡이를 손에) — 나머지는 윗부분을 쥐고 매단다 */

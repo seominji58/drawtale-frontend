@@ -196,7 +196,8 @@ const POSES: [ThingPose, RegExp][] = [
   ["mouth", /입에 (?:물|넣)|입으로 물|(?:꼭|살짝|덥석|앙) 물|물고 |물어 (?:왔|날랐|옮)/],
   ["back", /(?<!발)등에 (?:태우|태웠|태워|업|얹|싣|실|올려|올렸)/],   // 「발등에 올려」 빼고
   ["head", /머리에 (?:쓰|썼|얹)|^\s*(?:(?:꾹|푹|눌러|살짝)\s*)*(?:쓰고|썼|써)/],
-  ["hand", /손에 (?:들|쥐|꼭)|(?:들고|쥐고) |품에 (?:안|꼭)|꼭 안|껴안|안고 /],
+  // 「풍선이 둥실 내려와 친구 품에 쏙 안겼어요」 — 품에 · 손에 와 안겼 사이에 쏙 · 폭 · 꼭이 끼어도 (11/10)
+  ["hand", /손에 (?:들|쥐|꼭)|(?:들고|쥐고) |(?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐)\s*)?(?:안|들어|잡|쥐)|꼭 안|껴안|안고 /],
 ];
 function thingPose(text: string, at: number, end: number, spot: Spot, indoor = false): { pose?: ThingPose; subject?: string } {
   const from = Math.max(text.lastIndexOf(".", at), text.lastIndexOf("!", at), text.lastIndexOf("?", at), text.lastIndexOf("”", at)) + 1;
@@ -218,7 +219,10 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   const subjLast = subj?.split(/\s+/).pop() ?? "";
   // 「나」 · 「내가」 와 같을 때만 — 「나비가」 · 「나무가」 는 주인공이 아니다
   const me = (w: string) => /^(?:나|내가)$|^\{이름\}/.test(w);
-  const subject = /내 손|나에게|내게/.test(rest) || !subj || me(subj) || me(subjLast) ? "hero" : subj;
+  // 「친구 품에 안겼어요」 · 「아저씨 손에 들어왔어요」 — 품 · 손의 주인이 든 사람 (소품이 주어라 앞에서 주어를 찾으면 주인공이 됐다)
+  const owner = /([가-힣]+(?: [가-힣]+)?)(?:의)? (?:품|손)에/.exec(rest)?.[1];
+  if (owner && pose === "hand" && !/^(?:내|나의|제)$/.test(owner)) return { pose, subject: owner };
+  const subject = /내 손|내 품|나에게|내게/.test(rest) || !subj || me(subj) || me(subjLast) ? "hero" : subj;
   // 입에 묾 · 등에 태움은 소품이 목적어(「공을 물고」)일 때만 — 「새가 벌레를 물고」의 새는 무는 쪽이다
   if ((pose === "mouth" || pose === "back") && !/(?:을|를|도)$/.test(lead[0])) return {};
   if (pose === "hand" || pose === "head" || pose === "mouth" || pose === "back") return { pose, subject };
