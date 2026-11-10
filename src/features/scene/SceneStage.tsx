@@ -9,7 +9,7 @@
  *         end: 끝 모습 그대로 (떠나는 쪽 · 뒤로 넘긴 쪽) */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Env, PagePlan, PropId } from "./plan";
-import { SAD_TEXT, hasSkyBodies, isIndoor, isPerson, sceneFx } from "./plan";
+import { GREET_TEXT, SAD_TEXT, hasSkyBodies, isIndoor, isPerson, sceneFx } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
 import HANDS from "./hands.json";
@@ -737,7 +737,9 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
         const move: CSSProperties = { transition: REDUCE || !play ? "none" : `left ${ENTER_MS}ms cubic-bezier(.3,.15,.45,1), filter 2.6s ease` };
         // 가만히 있는 동안 숨쉬기 · 깡충 (11/9 「등장인물이 다 가만히 있다」) — 사람마다 박자를 엇갈려 같이 들썩이지 않게
         // 슬프거나 걱정하는 쪽에서는 이름이 나와도 손을 흔들지 않는다 (우는 친구가 손을 흔들며 웃었다, 11/10)
+        // 이름이 나온 인물은 말하는 사람 — 살짝 통통(p-talk). 손 흔들기는 인사하는 말이 있는 쪽에서만, 슬픈 쪽은 안 흔든다
         const talks = !!p.name && play && text.includes(p.name) && !sadPage;
+        const greets = play && !sadPage && GREET_TEXT.test(text);
         const spinning = personSpin.has(`p-${p.id}`);
         const idle = p.id === "bird" || p.id === "bat" ? "m-float" : p.id === "rabbit" || p.id === "squirrel" ? "p-hop"
           : talks ? "p-talk" : "p-breathe";
@@ -758,7 +760,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           : CHEER_ACTIONS.has(pageAction) && !sadPage && moves.hooray && ready("hooray") ? ["hooray", moves.hooray.sec * 2000]
           // 만세 그림띠는 몸통이 불룩해져 뺐다(11/9). 기쁜 쪽도 손 흔들기로. 인사는 손을 든 채 쪽이 바뀔 때까지 흔든다
           // (사용자 「손 들고 계속 흔드는 거 무한 유지」, loop_from)
-          : (talks || (CHEER_ACTIONS.has(pageAction) && !sadPage)) && moves.wave && ready("wave") ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
+          : (greets || (CHEER_ACTIONS.has(pageAction) && !sadPage)) && moves.wave && ready("wave") ? ["wave", moves.wave.loop_from != null ? Infinity : moves.wave.sec * 1000]
           : null;
         if (moves && pick) {
           const [name, until] = pick;
