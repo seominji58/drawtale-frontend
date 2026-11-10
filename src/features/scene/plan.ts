@@ -322,7 +322,7 @@ export interface SceneFx {
 }
 /** 기쁨 말 → 연출. 위에서부터 먼저 맞는 것. 「~지 않았어요 · 못 · 비웃」은 기쁨이 아니다 */
 const JOYS: [JoyKind, RegExp][] = [
-  ["heart", /고마워|고맙|고마운|감사|사랑|좋아해|좋아한|친구가 (?:됐|되었|되어)|단짝|꼭 안|안아 주|따뜻해졌|마음이 따뜻/],
+  ["heart", /고마워|고맙|고마운|감사|사랑|좋아해|좋아한|친구가 (?:됐|되었|되어)|단짝|(?<!(?:무릎|다리|몸|머리|가방|배)(?:을|를)? )꼭 안|안아 주|따뜻해졌|마음이 따뜻/],
   ["star", /기뻤|기뻐|기쁜|기쁨|신났|신나|신이 나|해냈|성공|최고|야호|만세|와아|우와|뿌듯|자랑스러|좋은 생각|생각이 (?:번쩍|떠올|났)|번뜩/],
   ["flower", /행복|활짝 웃|웃게 (?:했|만들|해)|웃겼|웃음을 (?:주|선물)|웃음꽃|웃었|웃으며|웃으면서|웃는|까르르|웃기 시작|웃음이|웃음을 (?:터|참|짓)|웃음보|웃음소리|빵 터|푸하하|하하|호호|헤헤|킥킥|낄낄|키득|깔깔|방긋|싱긋|빙그레|미소|즐거|재미있|재밌|반가/],
 ];
@@ -373,7 +373,7 @@ const GESTURES: [HeroGesture, RegExp][] = [
 const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
 // 「멀리서 불빛이 보였어요」 · 「별이 빛났어요」는 장면 전체가 밝아지는 것이 아니다 (저장 이야기 점검 11/10)
-const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)|불빛에|불빛이 (?:비|퍼|가득|환|새어|새)|새어 나왔|환한 (?:불빛|빛)|빛이 (?:반짝 )?들어|해가 (?:떴|떠올|솟)|아침이 (?:밝|됐|되)/;
+const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)|불빛에|불빛이 (?:비|퍼|가득|환|새어|새)|빛이 새어 나왔|환한 (?:불빛|빛)|빛이 (?:반짝 )?들어|해가 (?:떴|떠올|솟)|아침이 (?:밝|됐|되)/;
 const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
 const NOT_CRY = /그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었|쏙 들어|들어갔|참았|참고|꾹 참|눈물이 (?:싹|쏙)|눈물이 뚝 (?:그|멈)|눈물을 (?:거두|멈)/;   // 「눈물이 뚝뚝 떨어졌어요」는 우는 것 (11/10)
 /** 문장의 주인 (저장 이야기 3,069편 점검 11/10 — 「천장에서 물방울이 떨어졌어요」 · 「새들이 노래했어요」의 연출이 주인공에게 났다).
@@ -410,8 +410,10 @@ export function subjectOf(sen: string, people: string[], hero?: string | null): 
 const CONT = /^\s*(?:하고|라고|하며|하면서|하자|하니|하는|이라고|고 )/;
 /** 이어 붙인 문장(앞 문장 + 이 조각)에서 찾은 자리를 글 전체 자리로 — 앞 문장에서 찾았으면 이 조각 첫머리 */
 const posIn = (m: RegExpExecArray, sen: string, i: number) => m.index + Math.max(0, i - (sen.length - m[0].length));
+/** 따옴표 대사를 같은 길이의 빈칸으로 — 「달님 뜨면 환해질 거야」 같은 바람 · 앞일 말로 장면이 바뀌지 않게 (자리는 그대로) */
+const unquoted = (t: string) => t.replace(/“[^”]*”/g, (q) => " ".repeat(q.length));
 export function sceneFx(text: string): SceneFx {
-  const b = BRIGHT.exec(text);
+  const b = BRIGHT.exec(unquoted(text));
   const tears: SceneFx["tears"] = [];
   const re = /[^.!?”]+[.!?”]*/g;
   let prev = "";
@@ -457,6 +459,8 @@ export function sceneFx(text: string): SceneFx {
     if (cm) calms.push({ at: readAt(text, posIn(m, sen, cm.index)), sentence: sen });
     // 묻는 말(「어떻게 하면 웃을까?」)은 기쁨이 아니다. 따옴표 대사(「“고마워!”」)는 기쁨
     if (NOT_JOY.test(sen) || sen.includes("?")) continue;
+    // 우는 문장은 기쁨이 아니다 (11/10 사용자: 「무릎을 꼭 안고 훌쩍훌쩍 울었어요」에 하트가 나고 친구가 빙글 돌았다)
+    if (CRY.test(sen) && !NOT_CRY.test(sen)) continue;
     for (const [kind, re] of JOYS) {
       const j = re.exec(sen);
       // 「친구를 웃게 했어요」 · 「기쁘게 해 주었어요」는 「~를」 쪽 사람이 기뻐한다 (주어 「나는」이 있어도)
@@ -475,7 +479,14 @@ export function sceneFx(text: string): SceneFx {
       if (k) { marks.push({ at: readAt(text, m.index + k.index), sentence: sen, kind }); break; }
     }
   }
-  const dr = /물방울(?:이|들이)? (?:똑|뚝|떨어|톡|퐁)|(?:똑똑|똑, 똑|뚝뚝) (?:떨어|물방울)|물방울 (?:떨어지는|소리)|빗방울이 (?:똑|뚝|떨어)/.exec(text);
+  // 「눈물이 뚝뚝 떨어졌어요 · 땀이 뚝뚝」은 물방울 연출이 아니라 눈물 (11/10 사용자: 장면 전체에 비처럼 물방울이 떨어졌다)
+  let dr: RegExpExecArray | null = null;
+  const reD = /[^.!?”]+[.!?”]*/g;
+  for (let m = reD.exec(text); m && !dr; m = reD.exec(text)) {
+    if (/눈물|땀|침|콧물/.test(m[0])) continue;
+    const d = /물방울(?:이|들이)? (?:똑|뚝|떨어|톡|퐁)|(?:똑똑|똑, 똑|뚝뚝) (?:떨어|물방울)|물방울 (?:떨어지는|소리)|빗방울이 (?:똑|뚝|떨어)/.exec(m[0]);
+    if (d) { d.index += m.index; dr = d; }
+  }
   return { drip: dr ? readAt(text, dr.index) : -1, bright: b ? readAt(text, b.index) : -1, tears, spins, gestures, joys, calms, marks };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
@@ -880,7 +891,7 @@ export function seatOf(text: string): string | undefined {
 }
 
 export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string, string> = {},
-  mine: { name: string; png: string; height: number }[] = []): PagePlan[] {
+  mine: { name: string; png: string; height: number }[] = [], heroName?: string | null, form?: string | null): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
   let x = SLOT, loc: string | undefined, night = false, dimOn = false, lit = false, glow = false, flying: boolean = false;
@@ -939,6 +950,8 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   for (const [pi, p] of pages.entries()) {
     const prevLoc = loc;
     loc = locationFor(place, p, loc);
+    // 물고기(지느러미형) 주인공은 바다에서 늘 바닷속 — 모래사장 · 방파제 글이어도 물 밖에 세우지 않는다 (11/10 사용자 「물고기는 바다 안에서」)
+    if (form === "finned" && place === "sea") loc = "sea-underwater";
     const st = stageIdx(p.stage);
     // 밤: 「어두워졌어요」부터 이어진다. 결과 「해가 떴어요」에서 밝아지고, 「잠이 들었어요」는 밤.
     // 카드가 아니어도 쪽 글에 밤이 되거나(해가 졌어요 · 밤이 되었어요) 아침이 오면(해가 떴어요) 그 쪽부터 바꾼다 (11/4)
@@ -953,20 +966,33 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const darkHere = DARK_TEXT.test(p.text) && !NOT_DARK.test(p.text);
     const dimNow = !night && (dimOn || darkHere);
     if (darkHere) dimOn = true;
-    if (BRIGHT.test(p.text) || MORNING_TEXT.test(p.text) || (p.stage === "result" && picks.result === "sun")) dimOn = false;
+    const said = unquoted(p.text);
+    if (BRIGHT.test(said) || MORNING_TEXT.test(said) || (p.stage === "result" && picks.result === "sun")) dimOn = false;
     // 환해진 빛은 이야기가 바꾸기 전까지 이어진다 (11/10 사용자 「환해진 화면이 다음 쪽에 다시 까매진다 — 연출은 이야기가 바뀌지 않으면 유지」).
     // 바깥도 — 밤하늘은 그대로 두고 빛만 번져 있다. 꺼졌어요 · 다시 어두워졌어요 · 아침(낮이 되면 빛이 필요 없다)에서 끝난다
     const glowIn = glow;
     if (LIGHTS_OFF.test(p.text) || DARK_TEXT.test(p.text) || MORNING_TEXT.test(p.text)) glow = false;
-    if (BRIGHT.test(p.text) && !MORNING_TEXT.test(p.text) && !LIGHTS_OFF.test(p.text)) glow = true;
+    if (BRIGHT.test(said) && !MORNING_TEXT.test(said) && !LIGHTS_OFF.test(p.text)) glow = true;
     // 실내 불: 켜지면 꺼진다는 말이 있을 때까지 밤이어도 밝다 (실내만 — 바깥 밤하늘은 그대로)
     const indoorHere = !!loc && isIndoor(loc);
-    const turnsOn = indoorHere && LIGHTS_ON.test(p.text) && !LIGHTS_OFF.test(p.text);
+    const turnsOn = indoorHere && LIGHTS_ON.test(said) && !LIGHTS_OFF.test(p.text);
     const litHere = indoorHere && lit;
     if (LIGHTS_OFF.test(p.text)) lit = false;
     else if (turnsOn) lit = true;
     // 날기: 날아오르는 말부터 앉는 · 걷는 말까지 (쪽마다 오르내리지 않게)
-    const flyHere = FLY_TEXT.test(p.text);
+    // 주인공이 나는 문장일 때만 (11/10 점검: 「비눗방울이 날아왔어요 · 꽃향기가 날아왔어요 · 새가 날아올랐어요」에 주인공이 날기 시작했다)
+    const flyHere = p.text.split(/(?<=[.!?”])\s*/).some((sen) => {
+      const t = unquoted(sen), m = FLY_TEXT.exec(t);
+      if (!m) return false;
+      // 「날아가는 우주선 · 날던 새」처럼 뒤 말을 꾸미면 주인공이 나는 게 아니다
+      const word = t.slice(m.index).split(/\s/)[0];
+      if (/(?:는|던|은)$/.test(word) && /^\s+[가-힣]/.test(t.slice(m.index + word.length))) return false;
+      const before = t.slice(0, m.index);
+      // 「우주선은 · 새는 날아갔어요」 — 은 · 는 앞이 주인공(나 · 이름 · 우리)이 아니면 그것이 난다
+      const topic = [...before.matchAll(/([가-힣]+)(?:은|는)(?=[\s,]|$)/g)].map((x) => x[1]).pop();
+      if (topic && !/^(?:나|난|우리|내)$/.test(topic) && !(heroName && topic.startsWith(heroName))) return false;
+      return subjectOf(before, [], heroName) === "hero";
+    });
     const landHere = !flyHere && LAND_TEXT.test(p.text);
     const fly: boolean = flyHere || (flying && !landHere);
     flying = fly;
@@ -1007,12 +1033,42 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       usedKinds.add(v.kind);
     }
     if (scripted.length) {
-      const prevNames = out.length ? out[out.length - 1].props.map((q) => q.name).filter(Boolean) : [];
+      const prev = out.length ? out[out.length - 1].props : [];
+      const prevNames = prev.map((q) => q.name).filter(Boolean);
       for (let k = props.length - 1; k >= 0; k--) if (isPerson(props[k].id)) props.splice(k, 1);
-      scripted.forEach(({ c, kind }, k) => props.push({
-        id: kind, name: c.name, x: SLOT_X[c.slot] ?? (k ? 0.66 : 0.78),
-        enter: prevNames.includes(c.name) ? undefined : "right",
-      }));
+      // 앞 쪽에 있던 사람은 그 자리 그대로 (11/10 점검: 대본이 쪽마다 인물 순서 · 칸을 바꿔 적어 친구가 0.78 → 0.66 → 0.78 로
+      // 쪽마다 자리를 바꿨다). 새로 온 사람은 대본 칸, 그 칸에 이미 누가 있으면 빈 칸
+      const xs = new Map<string, number>();
+      // 같은 곳에서 앞서 나왔던 사람(한 쪽 빠졌다 다시 나옴 — 대본이 그 쪽 인물 목록에서 빠뜨림)도 그 자리 그대로
+      const seenHere = (name: string) => {
+        for (let k = out.length - 1; k >= 0 && out[k].location === loc; k--) {
+          const q = out[k].props.find((v) => v.name === name);
+          if (q) return q;
+        }
+        return undefined;
+      };
+      for (const { c } of scripted) {
+        const was = prev.find((q) => q.name === c.name)?.x ?? seenHere(c.name)?.x;
+        if (was != null && ![...xs.values()].includes(was)) xs.set(c.name, was);
+      }
+      for (const { c } of scripted) {
+        if (xs.has(c.name)) continue;
+        const taken = [...xs.values()];
+        const want = SLOT_X[c.slot];
+        xs.set(c.name, want != null && !taken.includes(want) ? want : [0.78, 0.66, 0.9].find((v) => !taken.includes(v)) ?? 0.66);
+      }
+      // 그 쪽 글에 이미 있던 사람(「친구가 울고 있었어요 · 엄마가 기다리고 있었어요 · 선생님이 보였어요」)은 걸어 들어오지 않고
+      // 처음부터 서 있다 — 「나타났어요 · 왔어요 · 다가왔어요」면 들어온다 (11/10 점검: 책상에 엎드려 우는 친구가 걸어 들어왔다)
+      const THERE = /있었|있어요|있네|있는 게|보였|보여요|앉아|기다리고/;
+      const COMES = /나타|왔|와서|와요|오셨|오고|등장|들어오|달려오|뛰어오|다가오/;
+      const already = (name: string) => {
+        const sen = p.text.split(/(?<=[.!?”])\s*/).find((t) => t.replace(/“[^”]*”/g, " ").includes(name));
+        return !!sen && THERE.test(sen) && !COMES.test(sen);
+      };
+      for (const { c, kind } of scripted) props.push({
+        id: kind, name: c.name, x: xs.get(c.name),
+        enter: prevNames.includes(c.name) || already(c.name) || (!!seenHere(c.name) && !COMES.test(p.text)) ? undefined : "right",
+      });
     }
 
     // 주인공: 걷기 · 뛰기는 옮겨 가고, 제자리 동작은 몇 번 하고 멈춘다
@@ -1049,13 +1105,13 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const hidingCard = p.stage === "action" && picks.action === "hide";
     // 숨는 사람이 주인공일 때만 — 「토끼가 숨었어요 · 공이 어디 숨었을까?」에 주인공이 사라졌다 (11/10). 묻는 말 · 따옴표 대사도 빼고
     const heroHides = p.text.split(/(?<=[.!?”])\s*/).some((sen) => HIDE_TEXT.test(sen) && !sen.includes("?") && !sen.trimStart().startsWith("“")
-      && !/숨바꼭질|숨은 그림|숨을 (?:쉬|크게|고르|내쉬|들이)/.test(sen) && subjectOf(sen.slice(0, sen.search(HIDE_TEXT)), []) === "hero");
+      && !/숨바꼭질|숨은 그림|숨을 (?:쉬|크게|고르|내쉬|들이)/.test(sen) && subjectOf(sen.slice(0, sen.search(HIDE_TEXT)), [], heroName) === "hero");
     const hidingText = heroHides && !OUT_TEXT.test(p.text);
     // 앞 쪽에서 숨은 주인공은 이 쪽 글이 「아직 숨어 있다」고 할 때만 계속 숨는다 — 그 밖에는 다시 보인다.
     // 전에는 나온다는 말이 없으면 끝까지 숨어 주인공 없이 이야기가 이어졌다 (11/10 「한 번 숨은 주인공이 다시 나타나지 않았다」)
     const STILL_HIDING = /숨어 (?:있|서|지켜|기다)|숨은 채|꼭꼭 숨|숨죽|가만히 (?:숨|있|기다|웅크)|몸을 (?:웅크|낮)/;
     const stillHidden = !hidingCard && !hidingText && out.length > 0 && out[out.length - 1].hero.hide !== null && !OUT_TEXT.test(p.text)
-      && (p.text.split(/(?<=[.!?”])\s*/).some((sen) => STILL_HIDING.test(sen) && subjectOf(sen.slice(0, sen.search(STILL_HIDING)), []) === "hero")
+      && (p.text.split(/(?<=[.!?”])\s*/).some((sen) => STILL_HIDING.test(sen) && subjectOf(sen.slice(0, sen.search(STILL_HIDING)), [], heroName) === "hero")
         // 「친구가 나를 찾으러 왔어요」 — 찾는 중이면 아직 숨어 있다 (찾았어요 · 발견하면 보인다)
         || (/(?:를|을) 찾(?:으러|고 있|아 ?다니|는)|찾으며|술래/.test(p.text) && !/찾았|발견|여기 있/.test(p.text)));
     const hiding = hidingCard || hidingText || stillHidden;

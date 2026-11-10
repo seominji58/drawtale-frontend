@@ -396,7 +396,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     // 전에는 그 단계 첫 쪽에 소품만 2.2초 따로 보였다). 크기는 장면 기준으로 작게 · 보통 · 크게
     () => (pages.some((p) => p.sprite)
       ? planPages(pages, { ...story.picks, place: placeOf(story) }, book.characterSheet,
-          story.guardian ? mine.map((p) => ({ name: p.name, png: p.png, height: propHeight(p.size) })) : [])
+          story.guardian ? mine.map((p) => ({ name: p.name, png: p.png, height: propHeight(p.size) })) : [],
+          story.heroName ?? useSession.getState().name, story.form ?? useSession.getState().character?.form)
       : null),
     [pages, story, mine],
   );

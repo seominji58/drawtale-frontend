@@ -46,7 +46,7 @@ export const LOCATIONS: Record<string, Sub[]> = {
   ],
   sea: [
     { id: "sea", words: ["모래사장", "바닷가"] },
-    { id: "sea-underwater", words: ["underwater", "under the sea", "coral", "seabed", "sea floor", "바닷속", "물속"] },
+    { id: "sea-underwater", words: ["underwater", "under the sea", "coral", "seabed", "sea floor", "바닷속", "물속", "바다 속", "잠수"] },
     { id: "sea-pier", words: ["pier", "dock", "boat", "harbor", "lighthouse", "등대", "선착장", "부두", "배를 타"] },
     // 11/4 등대 안 (둥근 창 · 나선 계단, tools/art gen_places 와 같은 방식)
     { id: "sea-lighthouse", words: ["inside the lighthouse", "inside a lighthouse", "room inside the lighthouse", "lighthouse room", "spiral stair", "등대 안", "등대 속", "등대 계단"] },
