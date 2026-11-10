@@ -29,6 +29,9 @@ const kin = (a, b) => a === b || SAME.some((g) => g.includes(a) && g.includes(b)
 const SAID = { sign: /표지판|화살표/, bench: /벤치/, chair: /의자/, toybox: /장난감 상자/, box: /상자/, drums: /(?<![가-힣])북(?:을|이|소리|채)/,
   castle: /모래성|성(?:을|이|에)/, fountain: /분수/, slide: /미끄럼틀/, swing: /그네/, seesaw: /시소/, bed: /침대/, sofa: /소파/, stall: /가게|가판대/,
   bus: /버스/, mailbox: /우체통/, log: /통나무/, well: /우물/, tent: /텐트/ };
+// 앉는 자리(plan.seatOf) → 그 그림 이름들
+const SEAT_NAMES = { stump: ["stump"], chair: ["bench", "chair"], rocks: ["rocks", "rock", "pebble"], log: ["log"], sofa: ["sofa"], bed: ["bed"],
+  swing: ["swing"], seesaw: ["seesaw"], stairs: ["stairs"], cushion: ["cushion"] };
 function issuesOf(s) {
   const out = [];
   const figs = [...(s.hero ? [{ name: "주인공", ...s.hero }] : []), ...s.people];
@@ -73,8 +76,13 @@ function issuesOf(s) {
   s.things.forEach((t, i) => {
     const held = HELD.has(t.pose);
     if (outside(t) > 0.15) out.push(["화면 밖 소품", `${t.name} ${Math.round(outside(t) * 100)}%`]);
-    if (!held) for (const f of figs) {
-      const o = inter(t, f) / Math.max(1e-6, area(t));
+    // 앉는 자리 물건은 주인공이 일부러 붙어 선다. 주인공은 그림 칸이 팔까지 넓어 몸 가운데 6할만 본다 (11/10)
+    const seatThing = (s.seat && (SEAT_NAMES[s.seat] ?? [s.seat]).includes(t.name))
+      // 사람 뒤에 그리는 넓은 풍경 · 나무에 걸린 둥지는 사람을 가리지 않는다 (SceneStage behindPeople)
+      || ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "nest"].includes(t.name);
+    if (!held && !seatThing) for (const f of figs) {
+      const fb = f.name === "주인공" ? { ...f, x0: f.x0 + (f.x1 - f.x0) * 0.2, x1: f.x1 - (f.x1 - f.x0) * 0.2 } : f;
+      const o = inter(t, fb) / Math.max(1e-6, area(t));
       if (o > 0.2) out.push(["소품이 인물을 가림", `${t.name} ↔ ${f.name} ${Math.round(o * 100)}%`]);
     }
     for (const b of s.bg) {
@@ -138,9 +146,7 @@ for (const ps of byStory.values()) {
     }
     // 앉는 자리: 그 물건이 있으면 주인공이 그 앞에 (가운데 차이가 화면 폭 6% 안)
     // 앉는 자리는 장면 계획이 정한 것(주인공이 앉는 문장만, plan.seatOf): 그 그림 이름들
-    const NAMES = { stump: ["stump"], chair: ["bench", "chair"], rocks: ["rocks", "rock", "pebble"], log: ["log"], sofa: ["sofa"], bed: ["bed"],
-      swing: ["swing"], seesaw: ["seesaw"], stairs: ["stairs"], cushion: ["cushion"] };
-    const seat = s.seat ? [null, NAMES[s.seat] ?? [s.seat]] : null;
+    const seat = s.seat ? [null, SEAT_NAMES[s.seat] ?? [s.seat]] : null;
     if (seat && s.hero) {
       const objs = [...free(s), ...s.bg].filter((o) => seat[1].includes(o.name));
       if (!objs.length) s.issues.push(["앉는 자리가 장면에 없음", seat[1][0]]);

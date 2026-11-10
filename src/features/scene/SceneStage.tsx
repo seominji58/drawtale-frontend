@@ -173,6 +173,8 @@ const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
  *  붙박이 물건(ThingPlan.keep)은 처음 놓인 자리 · 크기를 다음 쪽에도 그대로, 주인공은 제자리 쪽(HeroPlan.stay)이면 앞 쪽에서 실제로 선 자리를.
  *  열쇠에 이야기 값이 들어 있어 이야기끼리 섞이지 않는다. 먼저 그려진 쪽이 정하고 나머지는 따른다 */
 const PINS = new Map<string, { x: number; h: number; footY?: number }>();
+/** 사람이 앞에 서도 되는 넓은 풍경 물건 */
+const WIDE_SCENERY = new Set(["tent", "spaceship", "rocket", "boat", "bridge", "dune"]);
 const HERO_AT = new Map<string, number>();
 /** 등장인물 자리: 쪽 열쇠 + 이름(없으면 그림) → 가로 자리 */
 const PEOPLE_AT = new Map<string, number>();
@@ -392,8 +394,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const seatKindNow = plan.hero.seat ? kindOf(`${plan.hero.seat}.webp`) : null;
   const pinnedSpans: [number, number][] = (plan.things ?? []).flatMap((t) => {
     const pin = t.keep && !t.pose && t.spot !== "air" && t.spot !== "wall" ? PINS.get(t.keep) : undefined;
-    // 큰 물건(텐트 · 대문 · 깃발 · 로켓)은 사람이 앞에 서도 자연스럽다: 피하면 사람들이 좁은 데로 몰려 겹쳤다
-    if (!pin || kindOf(t.src) === seatKindNow || pin.h >= 0.4) return [];
+    // 넓은 풍경 물건(텐트 · 우주선 · 로켓 · 배 · 다리 · 모래 언덕)은 사람이 앞에 서도 자연스럽다: 피하면 사람들이 좁은 데로 몰려 겹쳤다.
+    // 깃발 · 우체통처럼 좁고 키 큰 것은 피한다 (앞에 서면 기둥이 몸을 뚫은 것처럼 보였다, 11/10)
+    if (!pin || kindOf(t.src) === seatKindNow || WIDE_SCENERY.has(kindOf(t.src))) return [];
     const half = (pin.h * t.ar / aspect) / 2;
     return [[pin.x - half, pin.x + half] as [number, number]];
   });
@@ -422,6 +425,19 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   if (seatThing) {
     const pin = seatThing.keep ? PINS.get(seatThing.keep) : undefined;
     seatX = pin?.x ?? inside(stayAt ?? plan.hero.to);
+    if (!pin) {
+      // 이 쪽에 처음 나오는 앉는 자리: 이미 자리를 잡은 물건(텐트 등 큰 것 포함)과 겹치지 않는 가장 가까운 곳 (11/10 바위가 텐트 위에 놓였다)
+      const sHalf0 = (seatThing.h * seatThing.ar / aspect) / 2;
+      const taken = (plan.things ?? []).flatMap((t) => {
+        const q = t !== seatThing && t.keep ? PINS.get(t.keep) : undefined;
+        return q ? [[q.x - (q.h * t.ar / aspect) / 2, q.x + (q.h * t.ar / aspect) / 2] as [number, number]] : [];
+      });
+      const clear = (c: number) => taken.every(([l, r]) => c + sHalf0 <= l || c - sHalf0 >= r);
+      if (!clear(seatX)) {
+        const cands = taken.flatMap(([l, r]) => [l - sHalf0 - 0.01, r + sHalf0 + 0.01]).filter((c) => Math.abs(inside(c) - c) < 1e-6 && clear(c));
+        if (cands.length) seatX = cands.sort((a, b) => Math.abs(a - seatX!) - Math.abs(b - seatX!))[0];
+      }
+    }
     // 앉는 자리는 주인공 발보다 조금 뒤에 (발밑이 그 물건 앞으로 나오지 않게)
     if (!pin && seatThing.keep) PINS.set(seatThing.keep, { x: seatX, h: seatThing.h, footY: H.foot - 0.02 });
   } else if (seatBg) seatX = seatBg.x;
@@ -754,12 +770,18 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   };
   // 받는 사람이 주인공인데 손에 들 수 없는 쪽(뛰기 · 춤)이면 함께 받은 옆 사람(주는 사람 말고) 손에: 「할머니가 사과를 하나씩 손에 쥐여
   // 주었어요」에 주인공이 폴짝 뛰는 쪽이라 사과가 땅에 떨어진 것처럼 놓였다 (11/10)
+  const inScreen = <R extends { x: number; style: CSSProperties } | null>(t: ThingPlan, r: R): R => {
+    if (!r || typeof r.style.left !== "string" || typeof r.style.height !== "string" || !r.style.left.endsWith("%")) return r;
+    const half = (parseFloat(r.style.height) / 100) * t.ar / aspect / 2, x = parseFloat(r.style.left) / 100;
+    const c = Math.min(1 - half - 0.005, Math.max(half + 0.005, x));
+    return Math.abs(c - x) < 1e-4 ? r : { ...r, x: c, style: { ...r.style, left: `${c * 100}%` } };
+  };
   const posedOrOther = (t: ThingPlan) => {
-    const at = posed(t);
+    const at = inScreen(t, posed(t));
     if (at || !t.give || t.holder !== "hero") return at;
     for (const v of people) {
       if (!v || v.p.id === "sign" || v.p.name === t.give.from || v.p.id === t.give.from) continue;
-      const other = posed({ ...t, holder: v.p.name ?? v.p.id });
+      const other = inScreen(t, posed({ ...t, holder: v.p.name ?? v.p.id }));
       if (other) return other;
     }
     return null;
@@ -771,7 +793,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const posedSpots = things.filter((t, i) => !bgKinds.has(kindOf(t.src)) && things.findIndex((o) => kindOf(o.src) === kindOf(t.src)) === i
       && !(hasPot && kindOf(t.src) === "flowers")).map((t) => ({ t, at: t.pose ? posedOrOther(t) : null,
         // 주기: 주는 사람 손 자리 (주는 말 전까지)
-        from: t.give ? posed({ ...t, holder: t.give.from }) : null }))
+        from: t.give ? inScreen(t, posed({ ...t, holder: t.give.from })) : null }))
     .filter((v) => v.t.pose !== "window" || v.at);   // 창밖 소품은 창이 없으면 방 안에 놓지 않는다
   // 배경 물건(땅에 선 것)이 차지한 가로 범위, 큰 소품은 먼저 이것을 피해 본다 (11/9 소품 키를 실제 크기로 키우자 대문이 집 앞을,
   // 깃발 · 우체통이 벤치 · 가판대 앞을 가렸다). 배경 그림 주소는 장소 폴더 기준이라 props-ar.json 열쇠로 바꾼다
@@ -785,9 +807,14 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 이어 가는 물건(keep)은 처음 놓인 자리 · 크기 그대로: 그 자리를 먼저 잡아 다른 소품이 피한다
   const pinOf = (t: ThingPlan) => (t.keep ? PINS.get(t.keep) : undefined);
   const halfOf = (t: ThingPlan, h: number) => (h * t.ar / aspect) / 2;
+  // 작은 소품(키 0.15 미만) 자리: 큰 소품은 배경 물건과 겹치느니 이것 뒤에 선다 (11/10 깃발이 파라솔 기둥에 겹쳤다, 양동이 · 조개가 빈자리를 차지)
+  const smallSpans = new Set<[number, number]>();
   for (const v of posedSpots) {
     const pin = !v.at ? pinOf(v.t) : undefined;
-    if (pin) (v.t.spot === "air" ? airPlaced : placed).push([pin.x - halfOf(v.t, pin.h), pin.x + halfOf(v.t, pin.h)]);
+    if (!pin) continue;
+    const span: [number, number] = [pin.x - halfOf(v.t, pin.h), pin.x + halfOf(v.t, pin.h)];
+    (v.t.spot === "air" ? airPlaced : placed).push(span);
+    if (pin.h < 0.15) smallSpans.add(span);
   }
   const remember = <T extends { x: number; h: number; footY?: number }>(t: ThingPlan, at: T): T => {
     if (t.keep && !PINS.has(t.keep)) PINS.set(t.keep, { x: at.x, h: at.h, footY: at.footY });
@@ -810,12 +837,14 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const list = air ? airPlaced : placed;
     // 큰 땅 소품은 배경 물건과 겹치지 않는 자리를 먼저(원래 크기 · 0.75 배까지), 없으면 겹쳐도. 사람 · 소품끼리는 늘 피한다.
     // 넓은 물건(시소 · 다리 · 텐트 · 바위)은 자리가 없으면 조금 작게라도 놓는다 — 전에는 통째로 빠졌다(좁은 화면에서 11%)
-    const tryList: [boolean, number][] = air ? [[false, 1]]
+    const tryList: [boolean, number, boolean?][] = air ? [[false, 1]]
       // 이어 갈 물건(keep)은 여러 쪽에 그대로 남으니 배경 물건과 겹치지 않는 자리를 작게라도 먼저 (11/10 이어짐 검사: 파라솔 앞 깃발이 6쪽 내내)
-      : t.h >= 0.28 ? (t.keep ? [[true, 1], [true, 0.75], [true, 0.55], [false, 1], [false, 0.75], [false, 0.55]] : [[true, 1], [true, 0.75], [false, 1], [false, 0.75], [false, 0.55]])
+      : t.h >= 0.28 ? (t.keep ? [[true, 1], [true, 0.75], [true, 0.55], [true, 1, true], [true, 0.75, true], [false, 1], [false, 0.75], [false, 0.55]]
+        : [[true, 1], [true, 0.75], [true, 1, true], [false, 1], [false, 0.75], [false, 0.55]])
         : [[false, 1], [false, 0.75], [false, 0.55]];
-    for (const [avoidBg, scale] of tryList) {
-      const open = (a: number, b: number) => list.every(([l, r]) => b <= l || a >= r) && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r));
+    for (const [avoidBg, scale, overSmall] of tryList) {
+      const open = (a: number, b: number) => list.every((sp) => b <= sp[0] || a >= sp[1] || (overSmall && smallSpans.has(sp)))
+        && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r));
       const h = t.h * scale, half = (h * t.ar / aspect) / 2;
       const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
       const tries: number[] = [];
@@ -825,7 +854,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       }
       const x = tries.find((c) => c >= lo && c <= hi && open(c - half - gap, c + half + gap));
       if (x === undefined) continue;
-      list.push([x - half, x + half]);
+      const span: [number, number] = [x - half, x + half];
+      list.push(span);
+      if (h < 0.15) smallSpans.add(span);
       return remember(t, { ...t, h, x, footY: undefined as number | undefined });
     }
     return null;   // 줄여도 놓을 자리가 없으면 겹치지 않게 뺀다 (글에서 먼저 나온 것이 먼저 자리를 잡는다)
@@ -840,6 +871,17 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 나레이션이 없으면(소리 끔 · 읽기 전) 쪽에 들어와 자리를 잡은 뒤에. 끝 모습이면 처음부터
   // 시작 모습(넘기는 동안 기다리는 쪽)에서는 아무 연출도 없다 — 전에는 재생 전이면 다 보여 줘 사람이 오기 전에 눈물부터 떨어졌다
   const heard = (at: number) => mode === "end" || (play && phase === 1 && (narration === undefined || narration >= at));
+  const behindPeople = (t: ThingPlan) => WIDE_SCENERY.has(kindOf(t.src)) || kindOf(t.src) === "nest";
+  const renderThing = (t: (typeof thingSpots)[number], k: number) => (
+        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
+             className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}
+             alt={t.name ? `내가 그린 ${t.name}` : ""}
+             src={thingSrc(t.src)}
+             style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
+               : { src: t.src, x: t.x, foot: "footY" in t && t.footY !== undefined ? t.footY : t.spot === "air" ? 0.3 : 0.95, h: t.h }),
+               // 공은 주인공 반대쪽으로 굴러간다 (주인공과 부딪치지 않게)
+               ["--roll" as string]: t.x < hero.to ? -1 : 1, ...appear(t) }} />
+  );
   // 소품은 대사에 맞춰 (11/10 사용자 「소품 애니메이션을 대사에 맞춰서」): 이 쪽에 처음 나오는 것은 나레이션이 그 말에 오면 나타나고,
   // 주는 것은 주는 사람 손에 있다가 주는 말에서 받는 사람 손으로 옮겨 간다. 끝 모습 · 소리 없음이면 처음부터 다 된 모습
   // 받는 사람이 손에 들 수 없으면(주인공이 뛰는 쪽 등) 주는 말에서 받는 사람 곁 땅에 나타난다
@@ -1027,6 +1069,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       {layout.objects.map((o, k) => (
         <img key={k} className="scene-obj scene-bg" src={base + o.src} alt="" style={spotStyle(o)} />
       ))}
+      {/* 넓은 풍경 물건(텐트 · 배 · 모래 언덕 …)과 나무에 걸린 둥지는 사람 뒤에 (앞에 그리면 사람을 덮었다, 11/10) */}
+      {thingSpots.filter(behindPeople).map(renderThing)}
       {people.map((v, k) => {
         if (!v) return null;
         const { p, s, spot, sb, follow } = v;
@@ -1133,16 +1177,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         <img key={`give-from-${k}`} className="scene-obj scene-thing" alt="" data-pose="hand" data-give="from"
              src={thingSrc(v.t.src)} style={{ ...v.from!.style, opacity: heard(v.t.give!.at) ? 0 : 1, transition: "opacity .45s ease" }} />
       ))}
-      {thingSpots.map((t, k) => (
-        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
-             className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}
-             alt={t.name ? `내가 그린 ${t.name}` : ""}
-             src={thingSrc(t.src)}
-             style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
-               : { src: t.src, x: t.x, foot: "footY" in t && t.footY !== undefined ? t.footY : t.spot === "air" ? 0.3 : 0.95, h: t.h }),
-               // 공은 주인공 반대쪽으로 굴러간다 (주인공과 부딪치지 않게)
-               ["--roll" as string]: t.x < hero.to ? -1 : 1, ...appear(t) }} />
-      ))}
+      {thingSpots.filter((t) => !behindPeople(t)).map(renderThing)}
       {spr
         // 캔버스는 렌더 칸 크기 그대로 — 384 로 줄여 그린 뒤 화면에서 2~3배로 키워 선이 뭉개지고 계단처럼 보였다 (11/9 사용자 「렌더링이 깨지고 울퉁불퉁」)
         ? <canvas ref={canvas} width={spr.cell} height={spr.cell} data-hero-x={heroX.toFixed(3)} className={`scene-hero ${hero.fallen ? "fallen" : ""} ${heroMove}`}

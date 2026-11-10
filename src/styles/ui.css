@@ -162,10 +162,11 @@
   .acts > * { flex: 1 1 calc(50% - var(--gap)); min-width: 0; }
 }
 .progress > i { display: block; height: 100%; border-radius: inherit; background: var(--progress-fill, var(--mint)); }
-/* 이 쪽(바) · 다음 쪽(꺼 둔 「다음 쪽」 단추) 음성을 서버가 아직 만드는 중 (11/10 「첫 쪽만 만들고 책 열기」). 숨 쉬듯 옅어졌다 짙어진다 */
-.progress.is-waiting, .btn.next.is-waiting { animation: bar-wait 1.6s ease-in-out infinite alternate; }
+/* 이 쪽 음성을 서버가 아직 만드는 중 (11/10 「첫 쪽만 만들고 책 열기」). 바가 숨 쉬듯 옅어졌다 짙어진다.
+   「다음 쪽」 단추는 글자만 「만드는 중」으로 바뀌고 흐려지지 않는다 (11/10 사용자 「버튼 투명해지는 효과는 원래대로 없애놔」) */
+.progress.is-waiting { animation: bar-wait 1.6s ease-in-out infinite alternate; }
 @keyframes bar-wait { from { opacity: 1; } to { opacity: 0.45; } }
-@media (prefers-reduced-motion: reduce) { .progress.is-waiting, .btn.next.is-waiting { animation: none; opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .progress.is-waiting { animation: none; opacity: 0.6; } }
 
 [data-level="1"] .spread { grid-template-columns: 2.6fr 1fr; }
 [data-level="1"] .spread-text .said { font-size: calc(var(--t-question) - 16px); }

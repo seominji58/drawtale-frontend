@@ -596,8 +596,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         {/* 마지막 쪽에서는 「다음 쪽」 자리에 「다 봤어요」 (pt_docs 05 S-09-03 · S-09-08 — 마지막 장면에서만) */}
         {last
           ? <BigButton className="next" go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>
-          // 다음 쪽 음성을 만드는 동안은 「만드는 중」(숨 쉬듯 깜빡), 다 되면 「다음 쪽」
-          : <BigButton className={`next${nextLocked ? " is-waiting" : ""}`} onClick={() => { if (!nextLocked) go(pg + 1); }}>
+          // 다음 쪽 음성을 만드는 동안은 「만드는 중」(흐려지지 않음), 다 되면 「다음 쪽」
+          : <BigButton className="next" onClick={() => { if (!nextLocked) go(pg + 1); }}>
               <span aria-live="polite">{nextLocked ? "만드는 중" : "다음 쪽"}</span>
             </BigButton>}
       </div>

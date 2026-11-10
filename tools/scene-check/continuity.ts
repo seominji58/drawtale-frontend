@@ -6,7 +6,7 @@
 //     --define:import.meta.env='{"BASE_URL":"/","MODE":"production"}' --outfile=tools/scene-check/out/continuity.mjs
 //   node tools/scene-check/out/continuity.mjs [묶음 파일=all-long.json]
 import fs from "node:fs";
-import { planPages } from "@/features/scene/plan";
+import { envAfter, planPages } from "@/features/scene/plan";
 import { CHOICES, choicesFor } from "@/features/story/choices";
 import type { BookPage } from "@/types/story";
 
@@ -33,7 +33,7 @@ const EN: Record<string, RegExp> = { nest: /nest/i, tent: /tent/i, sign: /sign/i
   clock: /clock/i, log: /log/i, cushion: /cushion/i, blanket: /blanket/i, footprints: /footprint/i, dune: /dune/i };
 // 앉는 · 올라가는 · 기대는 자리: 낱말 → 그 그림 이름들 (배경 물건 · 쪽 소품). 비었으면 그릴 그림이 없다
 const SEATS: [RegExp, string[]][] = [
-  [/그루터기/, []], [/벤치/, ["bench"]], [/의자/, ["chair", "seat"]], [/바위/, ["rocks", "rock"]], [/통나무/, ["log"]],
+  [/그루터기/, ["stump"]], [/벤치/, ["bench"]], [/의자/, ["chair", "seat"]], [/바위/, ["rocks", "rock"]], [/통나무/, ["log"]],
   [/계단/, ["stairs"]], [/소파/, ["sofa"]], [/침대/, ["bed"]], [/그네/, ["swing"]], [/시소/, ["seesaw"]], [/방석/, ["cushion"]],
   [/돌(?:멩이)?(?=에|위)/, ["pebble", "rocks", "rock"]], [/평상|정자/, []], [/나뭇가지|나무 위/, []],
 ];
@@ -43,6 +43,12 @@ const SIT = /(앉|올라앉|올라가|누워|누웠|기대)/;
 const GIVE_SEN = /([가-힣]+)(?:을|를)\s(?:(?:하나|한 개|두 개|하나씩|한 개씩|한 송이|한 알|조금)\s)?(?:[가-힣]+(?:에게|한테|께)\s)?(?:손에\s|품에\s)?(?:꼭\s|살짝\s|쏙\s)?(?:건네|건넸|쥐여 ?주|쥐여 ?줬|쥐어 ?주|쥐어 ?줬|나눠 ?주|나눠 ?줬|나누어 ?주|선물했|선물로 주|주었|줬|주셨|드렸)/;
 const NOT_THING = /^(?:손|등|머리|고개|얼굴|무릎|어깨|볼|발|팔|이마|눈|마음|용기|힘|길|노래|박수|손뼉|하나|우리|나|너|저|토토|친구|엄마|아빠|할머니|할아버지|선생님|이름|인사|말|대답|웃음|미소|약속|칭찬|도움|자리|물|모래)$/;
 const gives: { key: string; word: string; shown: boolean; from?: string; to?: string; text: string }[] = [];
+// 밤낮 · 어둑함 이어짐 (11/10 사용자 「6쪽에서 해 뜨면서 밝아졌는데 7쪽에서 다시 어두웠다가 밝아지는」)
+const DARK_WORDS = /밤|어두|어둠|어둑|캄캄|깜깜|컴컴|껌껌|꺼졌|꺼지|꺼져|껐|잠이 들|잠들|해가 (?:지|졌|저)|노을|저녁|정전|별이|달이|달빛|별빛/;
+const BRIGHT_WORDS = /해가 (?:떴|뜨|떠)|해님이|아침|밝아|밝게|밝은|환해|환하|환히|켰|켜졌|켜지|켜져|빛|햇살|햇빛|불이 들어|맑|파란 하늘|해가 반짝/;
+const darkOf = (e: { night: boolean; dim?: boolean }) => e.night || !!e.dim;
+const flick: { key: string; text: string; old: boolean; now: boolean }[] = [];
+const noWhy: { key: string; kind: string; text: string }[] = [];
 const gone: { key: string; title: string; loc: string; thing: string; text: string; stillInBg: boolean; back: boolean }[] = [];
 const seats: { key: string; title: string; loc: string; word: string; drawn: string | null; text: string; heroTo: number }[] = [];
 let pages = 0;
@@ -51,10 +57,10 @@ cases.forEach((c: any, ci: number) => {
   const problem = idOf("problem", c.problem);
   const picks = { place: idOf("place", c.place), problem, action: idIn("action", c.action, problem), result: idIn("result", c.result, problem) };
   const bp = c.book.pages.map((p: any) => ({ ...p, text: fill(p.text), childWords: p.child_words ?? "" })) as BookPage[];
-  const plans = planPages(bp, picks as any, c.book.character_sheet ?? {}, []);
+  const plans = planPages(bp, picks as any, c.book.character_sheet ?? {}, [], "토토");
   pages += plans.length;
   // ONE=18 이면 그 이야기 쪽마다 장소 · 물건을 찍는다
-  if (process.env.ONE === String(ci)) plans.forEach((pl, i) => console.log(i + 1, pl.location, (pl.things ?? []).map((t) => nameOf(t.src)).join(","), "| hero", pl.hero.from.toFixed(2), "→", pl.hero.to.toFixed(2)));
+  if (process.env.ONE === String(ci)) plans.forEach((pl, i) => console.log(i + 1, pl.location, (pl.things ?? []).map((t) => nameOf(t.src) + (t.pose ? `[${t.pose}${t.holder ? ":" + t.holder : ""}${t.give ? " ←" + t.give.from + "@" + t.give.at.toFixed(2) : ""}]` : "") + (t.appearAt !== undefined ? `@${t.appearAt.toFixed(2)}` : "")).join(","), "| hero", pl.hero.from.toFixed(2), "→", pl.hero.to.toFixed(2), "| env", JSON.stringify(pl.env), bp[i].stage));
   plans.forEach((pl, i) => {
     const loc = pl.location ?? "";
     const here = new Set((pl.things ?? []).filter((t) => !t.pose || t.pose === "high").map((t) => nameOf(t.src)));
@@ -67,6 +73,16 @@ cases.forEach((c: any, ci: number) => {
         gone.push({ key: `${ci}:${i + 2}`, title: c.book.title, loc, thing: n, text: bp[i + 1].text.slice(0, 60),
           stillInBg: !!EN[n]?.test(bp[i + 1].scene?.background ?? ""), back });
       }
+    }
+    // 4) 밤낮 이어짐: 앞 쪽이 밝게 끝났는데 이 쪽이 어둡게 시작해 밝아짐(깜빡): 예전처럼 앞 쪽 시작 모습(env)을 넘기면 / 지금(앞 쪽 끝 모습, envAfter)
+    if (i > 0) {
+      const prev = plans[i - 1];
+      const end = envAfter(prev, bp[i - 1].text, pl);
+      const oldFlick = darkOf(prev.env) && !darkOf(pl.env) && !darkOf(end);
+      const nowFlick = darkOf(end) && !darkOf(pl.env) && !BRIGHT_WORDS.test(bp[i].text);
+      if (oldFlick || nowFlick) flick.push({ key: `${ci}:${i + 1}`, text: bp[i].text.slice(0, 50), old: oldFlick, now: nowFlick });
+      if (!darkOf(end) && darkOf(pl.env) && !DARK_WORDS.test(bp[i].text)) noWhy.push({ key: `${ci}:${i + 1}`, kind: "말 없이 어두워짐", text: bp[i].text.slice(0, 50) });
+      if (darkOf(end) && !darkOf(pl.env) && !BRIGHT_WORDS.test(bp[i].text)) noWhy.push({ key: `${ci}:${i + 1}`, kind: "말 없이 밝아짐", text: bp[i].text.slice(0, 50) });
     }
     // 3) 주기: 주는 물건이 장면에 있나, 주는 사람 손 → 받는 사람 손인가
     for (const sen of bp[i].text.split(/(?<=[.!?”])\s*/)) {
@@ -103,6 +119,11 @@ console.log(`\n■ 앉는 · 올라가는 자리를 말함: ${seats.length}쪽 (
 console.log(`  그 물건이 장면에 없음 ${seats.filter((s) => !s.drawn).length}쪽: ` + count(seats.filter((s) => !s.drawn), (s) => s.word).map(([k, v]) => `${k} ×${v}`).join(" · "));
 console.log(`  장면에 있음 ${seats.filter((s) => s.drawn).length}쪽 (주인공이 그 옆에 붙어 서는지는 layout.mjs 가 잰다): ` + count(seats.filter((s) => s.drawn), (s) => s.word).map(([k, v]) => `${k} ×${v}`).join(" · "));
 for (const s of seats.slice(0, 6)) console.log(`  예) ${s.key} ${s.title} · ${s.loc} · ${s.word} ${s.drawn ? "있음" : "없음"} | ${s.text}`);
+console.log(`
+■ 앞 쪽이 밝게 끝났는데 다음 쪽이 어둡게 시작했다 밝아짐: 예전 방식 ${flick.filter((f) => f.old).length}쪽 (이야기 ${stories(flick.filter((f) => f.old))}편) → 지금 ${flick.filter((f) => f.now).length}쪽`);
+for (const f of flick.filter((f) => f.old).slice(0, 4)) console.log(`  예) ${f.key} | ${f.text}`);
+console.log(`■ 밤낮이 쪽 글의 말 없이 바뀜: ${noWhy.length}쪽 · ` + count(noWhy, (n) => n.kind).map(([k, v]) => `${k} ${v}`).join(" · "));
+for (const n of noWhy.slice(0, 6)) console.log(`  예) ${n.key} ${n.kind} | ${n.text}`);
 console.log(`
 ■ 주는 문장: ${gives.length}쪽 (이야기 ${stories(gives)}편)`);
 console.log(`  주는 물건이 장면에 있음 ${gives.filter((g) => g.shown).length} · 그중 주는 사람 손 → 받는 사람 손 ${gives.filter((g) => g.from).length}, 받는 사람 손에만(주는 사람이 장면에 없음) ${gives.filter((g) => g.shown && !g.from && g.to).length}`);

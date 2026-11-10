@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import SceneStage from "@/features/scene/SceneStage";
-import { planPages } from "@/features/scene/plan";
+import { envAfter, planPages } from "@/features/scene/plan";
 import type { PagePlan } from "@/features/scene/plan";
 import { CHOICES, choicesFor } from "@/features/story/choices";
 import { sentences } from "@/lib";
@@ -55,7 +55,7 @@ function plansOf(c: Case): PagePlan[] {
   const pages = c.book ? c.book.pages.map((p) => ({ ...p, text: fill(p.text), childWords: p.child_words ?? "" })) as BookPage[]
     : shortPages(fill(textOf(c)));
   // ?mine=노란 우산,공룡 인형: 보호자 「내 소품」을 넣어 본다 (그림은 기본 소품 그림을 빌려 쓴다, 크기 보통)
-  return planPages(pages, picks, c.book?.character_sheet ?? {}, MINE);
+  return planPages(pages, picks, c.book?.character_sheet ?? {}, MINE, NAME);
 }
 
 /** 짧은 이야기를 네 쪽으로 — S09Story shortBook 과 같은 나눔 (행동 쪽만 움직임, 장면 계획 없음) */
@@ -110,7 +110,7 @@ function App() {
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
         <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location} data-seat={plan.hero.seat ?? ""}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage plan={plan} prevEnv={null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY || NARR !== undefined ? (flipped ? "play" : "start") : "end"} narration={NARR} pageAction={PLAY} text={pageText(c, plans, pi)} />
+          <SceneStage plan={plan} prevEnv={pi > 0 ? envAfter(plans[pi - 1], pageText(c, plans, pi - 1), plan) : null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY || NARR !== undefined ? (flipped ? "play" : "start") : "end"} narration={NARR} pageAction={PLAY} text={pageText(c, plans, pi)} />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {LABEL ? pageText(c, plans, pi) : plan.location}</span>
         </div>
       )))}

@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/10 밤낮 이어짐**: 다음 쪽 `prevEnv` 는 앞 쪽 끝 모습(S09 안의 셈, 검사 도구는 같은 셈 `plan.envAfter`). `planPages` 다섯째 인자 주인공 이름(`heroWord` · `isMe`). 넓은 풍경(`WIDE_SCENERY`) · 둥지는 사람 뒤에(`behindPeople`). 백엔드 쪽 음성은 끝나는 대로(`PageAudioProgress.done` · `_fill_page_audio`)
 - **11/10 장면 물건 이어짐 · 대사에 맞춘 소품**: `plan.ts` 붙박이 물건 `KEEP_THINGS` 는 같은 배경 동안 이어 감(`ThingPlan.keep` 열쇠 · `kept`), 앉는 자리 `seatOf` → `HeroPlan.seat`, 제자리 쪽 `HeroPlan.stay`, 처음 나오는 소품 `appearAt`, 주기 `giveOf` → `give`. `SceneStage` 는 모듈 맵 `PINS`(물건 자리 · 크기) · `HERO_AT` · `PEOPLE_AT` 로 쪽 사이 자리를 기억(열쇠에 이야기 값, `PagePlan.key`). 책 화면은 밀어 넘기기 없음, 기다리는 동안 「만드는 중」. 검사 `continuity.ts`(esbuild 로 묶어 node) · `layout.mjs` · 검사 페이지 `?narr=`
 - **11/10 소품 대체 점검**: 배경에 있어 소품을 또 놓지 않는 물건이 쪽 글에 나오면(`SceneStage` `saidKinds`: 쪽 소품 낱말 · 카드 표지판 · 글의 표지판 · 화살표) 그 배경 물건 앞을 비운다(`saidSpans`, 주인공은 `besideSaid` 로 옆에, 인물 · 소품은 `placed`). 돌 하나는 `props/pebble.webp`(`SAME_KIND` pebble = rocks), 다리 그림은 구름다리 · 징검다리 빼고. 검사 `node tools/scene-check/layout.mjs 1024 16 all-long.json`(목 엔진 5174) · 크기 `sizes.mjs`
 - **11/10 첫 쪽만으로 책 열기**: 긴 이야기는 첫 쪽 음성이 나오면 성공, 남은 쪽은 `audio_pending: true` 로 두고 백엔드 `jobs.finish_page_audio`(따로 스레드)가 채운다(10분 지나면 응답에서 뗌). 화면 `S09Story` `BookView` 는 `fetchPageAudio` 로 2초마다 주소만 받아 `late` 에 두고, 다음 쪽 음성이 아직이면 「다음 쪽」 단추와 밀어 넘기기를 막는다(`nextLocked`, 소리를 껐으면 안 막음). 그래도 그 쪽에 와 있으면 빈 바(`.progress.is-waiting`)로 기다렸다 읽는다. 쪽 목록(`pages`)은 바꾸지 않는다(장면 계획을 다시 짜지 않게)

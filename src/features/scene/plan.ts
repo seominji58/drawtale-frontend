@@ -83,7 +83,9 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/우주선/, "props/spaceship.webp", 0.6, "ground"],
   [/양동이|삽으로|삽을|모래 삽/, "props/sandtoys.webp", 0.12, "ground"],
   [/우유|코코아|보리차|컵/, "props/milk.webp", 0.08, "ground"],
-  [/도토리|솔방울/, "props/acorns.webp", 0.06, "ground"],
+  [/도토리/, "props/acorns.webp", 0.06, "ground"],
+  // 솔방울 (11/10 새 그림, 전에는 도토리 그림으로 대신했다. 저장 카드 이야기 64쪽)
+  [/솔방울/, "props/pinecone.webp", 0.06, "ground"],
   [/선물/, "props/gift.webp", 0.12, "ground"],
   [/인형/, "props/teddy.webp", 0.14, "ground"],
   // 「게」는 앞 글자와 떨어진 것만 — 「가게를」 · 「빨래집게가」에 꽃게가 섰다 (11/9 배치 검사)
@@ -234,7 +236,7 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   // 「오늘 나는」처럼 주어 앞에 꾸밈말이 붙어도 마지막 낱말로 본다 (11/6 — 「오늘 나」가 주인공이 아닌 것으로 읽혔다)
   const subjLast = subj?.split(/\s+/).pop() ?? "";
   // 「나」 · 「내가」 와 같을 때만 — 「나비가」 · 「나무가」 는 주인공이 아니다
-  const me = (w: string) => /^(?:나|내가)$|^\{이름\}/.test(w);
+  const me = isMe;
   // 「친구 품에 안겼어요」 · 「아저씨 손에 들어왔어요」 — 품 · 손의 주인이 든 사람 (소품이 주어라 앞에서 주어를 찾으면 주인공이 됐다)
   const owner = /([가-힣]+(?: [가-힣]+)?)(?:의)? (?:품|손)에/.exec(rest)?.[1];
   if (owner && pose === "hand" && !/^(?:내|나의|제)$/.test(owner)) return { pose, subject: owner };
@@ -245,8 +247,15 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   return { pose };
 }
 
+/** 이 이야기 주인공 이름 (planPages 가 계획하는 동안만). 서버가 {이름} 자리에 실제 이름을 넣어 보내서, 「토토는 공을 손에 꼭 쥐었어요」 ·
+ *  「토토가 친구에게 솔방울을 줬어요」의 토토를 주인공으로 알아보려면 이름을 알아야 한다 (11/10) */
+let heroWord: string | null = null;
+/** 「나 · 내가 · 나는 · {이름}…」 또는 주인공 이름(+조사) */
+const isMe = (w: string) => /^(?:나|내가|나는)$|^\{이름\}/.test(w)
+  || (!!heroWord && (w === heroWord || (w.startsWith(heroWord) && /^(?:이|가|는|은|도|이는|이가|이도|에게|한테)?$/.test(w.slice(heroWord.length)))));
+
 /** 주는 말 (소품이 목적어일 때만): 건네다 · 쥐여 주다 · 나눠 주다 · 내밀다 · 선물하다 · 주다 */
-const GIVE = /건네|건넸|쥐여 ?주|쥐여 ?줬|쥐어 ?주|쥐어 ?줬|나눠 ?주|나눠 ?줬|나누어 ?주|내밀었|내밀어|선물했|선물로 주|(?:을|를|하나|한 개|두 개)\s?(?:씩\s?)?(?:주었|줬|주셨|드렸)/;
+const GIVE = /건네|건넸|쥐여 ?주|쥐여 ?줬|쥐어 ?주|쥐어 ?줬|나눠 ?주|나눠 ?줬|나누어 ?주|내밀었|내밀어|선물했|선물로 주|(?:을|를|하나|한 개|두 개)\s?(?:씩\s?)?(?:[가-힣{}]+(?:에게|한테|께)\s)?(?:주었|줬|주셨|드렸)/;
 /** 소품을 누가 누구에게 주나. 주는 사람: 그 문장의 주어(없거나 나면 주인공). 받는 사람: 「…에게 · 한테」, 없으면 주는 사람이 주인공이면
  *  그 쪽 첫 인물, 아니면 주인공. at 은 주는 말의 글자 자리 */
 export function giveOf(text: string, at: number): { giver: string; receiver: string | null; verb: number } | null {
@@ -259,10 +268,12 @@ export function giveOf(text: string, at: number): { giver: string; receiver: str
   const g = GIVE.exec(after);
   if (!g) return null;
   const before = text.slice(from, at);
-  const me = (w: string) => /^(?:나|내가|나는)$|^\{이름\}/.test(w);
+  const me = isMe;
   const subj = [...before.matchAll(/([가-힣{}:]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|께서)\s/g)].pop()?.[1];
   const giver = !subj || me(subj) || me(subj.split(/\s+/).pop() ?? "") ? "hero" : subj;
-  const to = /([가-힣{}:]+(?: [가-힣]+)?)(?:에게|한테|께)(?=[\s,]|$)/.exec(text.slice(from, stop))?.[1];
+  // 받는 사람: 「…에게」 바로 앞 낱말 하나 (「솔방울을 토토에게」가 「솔방울을 토토」로 잡혔다). 「과일 가게 할머니께」처럼 호칭이면 앞 낱말까지
+  const toM = /([가-힣{}:]+)(?:에게|한테|께)(?=[\s,]|$)/.exec(text.slice(from, stop));
+  const to = toM?.[1];
   const receiver = to ? (me(to) || /^(?:나|내|저)$/.test(to) ? "hero" : to) : giver === "hero" ? null : "hero";
   return { giver, receiver, verb: at + g.index };
 }
@@ -589,6 +600,9 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   "props/dune.webp": (l) => l.startsWith("sea") && l !== "sea-underwater",
   // 창밖 운동장 웅덩이가 교실 바닥에 섰다. 우주의 「웅덩이」는 물이 아니다
   "props/puddle.webp": (l, indoor) => !indoor && !l.startsWith("space"),
+  // 대문 · 우체통은 바깥에만: 「창밖에서 … 대문 앞에서」에 거실 바닥에 대문이 섰다 (11/10 이어짐 검사)
+  "props/gate.webp": (_l, indoor) => !indoor,
+  "props/mailbox.webp": (_l, indoor) => !indoor,
 };
 
 /** 쪽마다 놓을 물건 — 내 소품이 먼저(같은 낱말이면 내가 그린 것), 그다음 장면 그림. 글에서 먼저 나온 순.
@@ -918,7 +932,7 @@ export function seatOf(text: string): string | undefined {
   for (const sen of text.split(/(?<=[.!?”])\s*/)) {
     const v = sen.search(SIT_VERB);
     if (v < 0) continue;
-    if (subjectOf(sen, []) !== "hero" && !/나란히|같이|함께|우리/.test(sen)) continue;
+    if (subjectOf(sen, [], heroWord) !== "hero" && !/나란히|같이|함께|우리/.test(sen)) continue;
     for (const [rx, kind] of SEAT_WORDS) {
       const m = rx.exec(sen);
       if (m && m.index < v) return kind;
@@ -927,11 +941,24 @@ export function seatOf(text: string): string | undefined {
   return undefined;
 }
 
+/** 앞 쪽이 끝났을 때 모습 (책 화면 S09Story 의 prevEnv 와 같은 셈, 검사 도구가 같이 쓴다): 그 쪽에서 「환해졌어요 · 불을 켰어요」로
+ *  밝아졌으면 밝아진 채로 */
+export function envAfter(prev: PagePlan, prevText: string, next?: PagePlan): Env {
+  const e = prev.env, lit = sceneFx(prevText).bright >= 0;
+  return { ...e, dim: !!e.dim && !lit, night: e.night && !(e.lightsOn && lit), glow: !!e.glow || (lit && !!next?.env.glow) };
+}
+
 export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string, string> = {},
   mine: { name: string; png: string; height: number }[] = [], heroName?: string | null, form?: string | null): PagePlan[] {
+  // 주인공 이름을 계획하는 동안만 둔다 (주기 · 손에 듦 · 앉기에서 「토토가 …」를 주인공으로, isMe)
+  heroWord = heroName?.trim() || null;
+  try { return planPagesWith(pages, picks, sheet, mine, heroName, form); } finally { heroWord = null; }
+}
+function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, string>,
+  mine: { name: string; png: string; height: number }[], heroName?: string | null, form?: string | null): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
-  let darkCard = false;
+  let darkCard = false, nightSaid = false;
   let x = SLOT, loc: string | undefined, night = false, dimOn = false, lit = false, glow = false, flying: boolean = false;
   let face: -1 | 0 | 1 = 0;
   // 이야기 열쇠: 글로 만든 짧은 값이라 다시 계획해도(새로고침 · 주소 새로 받음) 같다
@@ -997,7 +1024,11 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     // 문장마다 본다 — 대사 · 묻는 말 · 지난 일(어젯밤) · 앞일(내일 아침)은 빼고, 한 쪽에 둘 다 있으면 나중에 나온 것 (11/10 저장 이야기 전수 점검)
     const nightAt = lastHit(p.text, NIGHT_TEXT, NOT_NIGHT), mornAt = lastHit(p.text, MORNING_TEXT, NOT_MORNING);
     const morningHere = mornAt >= 0 && mornAt > nightAt;
-    if (nightAt >= 0 || mornAt >= 0) night = !morningHere;
+    if (nightAt >= 0 || mornAt >= 0) { night = !morningHere; nightSaid = !morningHere; }
+    // 밤이라는 말 없이 카드로만 어두웠는데 실내(동굴 · 방)에서 바깥으로 나왔으면 그 어둠은 그곳의 어둠이었다: 굴 밖에 달 · 별이 떴다 (11/10)
+    if (night && !nightSaid && !!prevLoc && isIndoor(prevLoc) && !!loc && !isIndoor(loc)) night = false;
+    // 바깥에서 환한 빛이 나오고 밤이라는 말이 없으면 낮 (「굴 밖으로 나오자 환한 빛이 눈부셨어요」에 달 · 별이 떴다)
+    if (night && !!loc && !isIndoor(loc) && nightAt < 0 && BRIGHT.test(p.text)) night = false;
     if (p.stage === "result" && picks.result === "sun") night = false;
     if (p.stage === "result" && picks.result === "sleep") night = true;
     const sun = !night;
@@ -1021,6 +1052,8 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     const litHere = indoorHere && lit;
     if (offHere) lit = false;
     else if (turnsOn) lit = true;
+    // 불을 켜면 어둑함 기억도 지운다: 동굴에서 손전등을 켠 뒤 굴 밖으로 나오자 지난 어둑함이 되살아나 다시 어두워졌다 (11/10 전체 대본 점검)
+    if (turnsOn) dimOn = false;
     // 날기: 날아오르는 말부터 앉는 · 걷는 말까지 (쪽마다 오르내리지 않게)
     // 주인공이 나는 문장일 때만 (11/10 점검: 「비눗방울이 날아왔어요 · 꽃향기가 날아왔어요 · 새가 날아올랐어요」에 주인공이 날기 시작했다)
     // 대사를 먼저 지우고 자른다 — 「“저기 날아가네!”」가 「!」에서 반으로 갈려 대사로 안 보였다 (11/10 전수 점검)
