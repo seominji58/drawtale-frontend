@@ -20,6 +20,8 @@ const MID_TALL = TAP * 6 + 12 * 5;
 
 /** 폰을 가로로 돌린 낮은 화면 (ui.css 와 같은 값) */
 const SHORT_LANDSCAPE = "(orientation: landscape) and (max-height: 520px)";
+/** 큰 화면 (tokens.css 「큰 화면」과 같은 값) */
+const BIG_SCREEN = "(min-width: 1600px) and (min-height: 900px)";
 
 /** 그림판 자리(rw × rh)에 종이(W × H 비율)를 가장 크게 맞춘다 */
 export function fitDraw(rw: number, rh: number, W: number, H: number) {
@@ -39,6 +41,16 @@ export function fitDraw(rw: number, rh: number, W: number, H: number) {
     const side = wideTap * 3 + 24;
     const s = Math.min((rw - side * 2 - 40) / W, rh / H);
     return { w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), mode: "wide" as DrawMode, aw: rw, tap: wideTap };
+  }
+  // 큰 화면(TV · 큰 모니터, 11/10): 단추를 그림판 높이에 맞춰 키운다 (ui.css 「큰 화면」과 같은 조건). 88 고정이면 1920 · 4K 에서
+  // 종이만 커지고 단추 · 글자는 태블릿 크기 그대로 작았다. 색 세 칸 네 줄이 높이에, 양옆 세 칸이 폭에 들어가는 만큼만
+  if (typeof window !== "undefined" && window.matchMedia?.(BIG_SCREEN).matches) {
+    const tap = Math.min(170, Math.floor((rh - 3 * 12) / 4), Math.floor((rw * 0.42 - 40) / 6));
+    if (tap > TAP) {
+      const side = tap * 3 + 24;
+      const s = Math.min((rw - side * 2 - 40) / W, rh / H);
+      return { w: Math.max(1, Math.floor(W * s)), h: Math.max(1, Math.floor(H * s)), mode: "wide" as DrawMode, aw: rw, tap };
+    }
   }
   const mode: DrawMode = rw >= SIDE_3 * 2 + 40 + 320 ? "wide"
     : rw >= SIDE_2 * 2 + 40 + 280 && rh >= MID_TALL ? "mid" : "narrow";
@@ -75,7 +87,7 @@ function KidPalette({ tool, color, onColor, cols = 3, size = TAP }: PaletteProps
             onClick={() => onColor(c.hex)}
             style={{
               width: size, height: size, minHeight: size, padding: 0, borderRadius: "50%",
-              background: c.hex, color: checkColor(c.hex), fontSize: 30,
+              background: c.hex, color: checkColor(c.hex), fontSize: Math.round(size * 0.34),
               outline: on ? "6px solid #3A3733" : undefined, outlineOffset: on ? 3 : undefined,
             }}>
             {on ? "✓" : ""}
@@ -184,7 +196,7 @@ export function PenTools({ tool, color, width, onTool, onWidth, onClear, cols = 
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${tap}px)`, gap }}>
         {(["pen", "fill", "eraser"] as Tool[]).map((t) => (
           <button key={t} className="btn" aria-pressed={tool === t} onClick={() => onTool(t)}
-            style={{ width: tap, minHeight: tap, padding: 0, fontSize: small ? 12 : 17, letterSpacing: small ? "-.05em" : undefined, ...(tool === t ? { background: "var(--butter)" } : {}) }}>
+            style={{ width: tap, minHeight: tap, padding: 0, fontSize: small ? 12 : tap > TAP ? Math.round(tap * 0.25) : 17, letterSpacing: small ? "-.05em" : undefined, ...(tool === t ? { background: "var(--butter)" } : {}) }}>
             {tool === t ? "✓" : ""}{t === "pen" ? "그리기" : t === "fill" ? "채우기" : "지우개"}
           </button>
         ))}
@@ -192,7 +204,7 @@ export function PenTools({ tool, color, width, onTool, onWidth, onClear, cols = 
       <div role="radiogroup" aria-label="선 굵기" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${tap}px)`, gap }}>
         {PEN_WIDTHS.map((w) => {
           const on = width === w.px;
-          const dot = Math.round(w.px * 1.4);
+          const dot = Math.round(w.px * 1.4 * Math.max(1, tap / TAP));
           return (
             <button key={w.id} className="btn" role="radio" aria-checked={on} aria-label={`선 ${w.name}`}
               onClick={() => onWidth(w.px)}
@@ -205,14 +217,14 @@ export function PenTools({ tool, color, width, onTool, onWidth, onClear, cols = 
                 display: "block", flex: "0 0 auto", width: dot, height: dot, borderRadius: "50%",
                 background: tool === "eraser" ? "#B8B2AA" : color,
               }} />
-              <span style={{ fontSize: small ? 11 : 14 }}>{on ? "✓ " : ""}{w.name}</span>
+              <span style={{ fontSize: small ? 11 : tap > TAP ? Math.round(tap * 0.2) : 14 }}>{on ? "✓ " : ""}{w.name}</span>
             </button>
           );
         })}
       </div>
       {onClear !== undefined && (
         <button className="btn" disabled={!onClear} onClick={() => onClear?.()}
-          style={{ minHeight: small ? tap : 64, padding: 0, fontSize: small ? 13 : undefined, ...(onClear ? {} : { opacity: 0.45 }) }}>전체 지우기</button>
+          style={{ minHeight: small ? tap : Math.round(tap * 0.73), padding: 0, fontSize: small ? 13 : tap > TAP ? Math.round(tap * 0.36) : undefined, ...(onClear ? {} : { opacity: 0.45 }) }}>전체 지우기</button>
       )}
     </>
   );

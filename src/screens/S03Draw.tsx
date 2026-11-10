@@ -218,7 +218,7 @@ export default function S03Draw() {
 
       {/* 그림판이 가장 커야 한다. 넓으면 색은 왼쪽, 도구 · 굵기는 오른쪽에 종이와 붙여 둔다
           (기준 화면이 가로 1024×768). 세로 태블릿은 두 칸씩, 좁으면 종이 아래로 내려간다 */}
-      <div ref={wrap} className={`draw-area ${box.mode}`}>
+      <div ref={wrap} className={`draw-area ${box.mode}`} style={{ "--side": `${box.tap * 3 + 24}px` } as React.CSSProperties}>
         {/* 아이 모드 12색, 보호자 모드는 24색 + 색 만들기 (2026-10-28 사용자) */}
         <ColorPalette full={guardian} tool={tool} color={color}
           cols={box.mode === "wide" || box.mode === "short" ? 3 : box.mode === "mid" ? 2 : 4}

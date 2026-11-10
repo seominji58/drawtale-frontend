@@ -156,7 +156,7 @@ export default function SPropDraw() {
       <p className="hint">{tool === "eraser" ? "문지르면 지워져요"
         : tool === "fill" ? (fillMiss ? "선으로 닫힌 곳을 눌러요. 선이 끊긴 곳은 이어 그려 주세요" : "선으로 둘러싸인 곳을 누르면 색이 칠해져요")
         : "이야기에 나올 물건을 크게 그려요"}</p>
-      <div ref={wrap} className={`draw-area ${box.mode}`}>
+      <div ref={wrap} className={`draw-area ${box.mode}`} style={{ "--side": `${box.tap * 3 + 24}px` } as React.CSSProperties}>
         {/* 내 소품은 보호자 모드에서만 쓰므로 보호자 팔레트 (2026-10-28) */}
         <ColorPalette full tool={tool} color={color}
           cols={box.mode === "wide" || box.mode === "short" ? 3 : box.mode === "mid" ? 2 : 4}

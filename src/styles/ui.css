@@ -466,7 +466,9 @@
 .draw-area { flex: 1; min-height: 0; display: flex; gap: 20px; justify-content: center; }
 .draw-area.wide, .draw-area.mid { align-items: flex-start; }
 /* 세로 태블릿: 색 · 도구 기둥을 두 칸 폭으로 (11/6 화면 점검). 보호자 팔레트는 한 줄 넷 */
-.draw-area.wide .draw-tools { width: auto; }   /* 단추 폭(fitDraw tap)을 따른다, 88px 이면 예전 288 그대로 */
+.draw-area.wide .draw-tools { width: auto; }
+/* 보호자 24색 팔레트도 단추 폭(세 칸)을 따른다 — 큰 화면에서 단추가 커져도 288 그대로면 양옆이 어긋났다 (11/10) */
+.draw-area.wide .palette-full { width: var(--side, 288px); }   /* 단추 폭(fitDraw tap)을 따른다, 88px 이면 예전 288 그대로 */
 .draw-area.mid .draw-tools { width: 188px; }
 .draw-area.mid .palette-full { width: 188px; }
 .draw-area.mid .palette-full .swatches { grid-template-columns: repeat(4, 1fr); }
@@ -1234,4 +1236,32 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   /* 기다림 화면(S-04 · S-08): 동그라미 그림 200px 이 높이를 넘겼다 */
   .wait { gap: 8px; }
   .wait .mark { width: min(200px, 45vh); height: min(200px, 45vh); }
+}
+
+/* 큰 화면 (TV, 11/10): 시작 · 안내 화면의 종이 · 제목은 px 로 고정돼 4K 에서 가운데 작게 모였다 */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .home-sheet { height: min(100%, 700px); }
+  .home-sheet .illust { max-width: 400px; max-height: 470px; }
+  .home-side { max-width: 620px; gap: 22px; }
+  .home-brand { font-size: 42px; }
+  .home-title { font-size: 94px; }
+  .hero-sheet { width: min(520px, 100%); }
+  .hero-sheet .illust { max-width: 370px; max-height: 400px; }
+  .hero-side { max-width: 620px; }
+  .hero-title { font-size: 74px; }
+  .hero-sub { font-size: 27px; }
+  .hero-tips li { font-size: 24px; }
+}
+@media (min-width: 2400px) and (min-height: 1300px) {
+  .home-sheet { height: min(100%, 1020px); }
+  .home-sheet .illust { max-width: 580px; max-height: 690px; }
+  .home-side { max-width: 900px; gap: 32px; }
+  .home-brand { font-size: 60px; }
+  .home-title { font-size: 136px; }
+  .hero-sheet { width: min(760px, 100%); }
+  .hero-sheet .illust { max-width: 540px; max-height: 580px; }
+  .hero-side { max-width: 900px; }
+  .hero-title { font-size: 106px; }
+  .hero-sub { font-size: 38px; }
+  .hero-tips li { font-size: 34px; }
 }
