@@ -41,6 +41,8 @@ const SPRITE = q.get("sprite") ? { url: q.get("sprite")!, frames: Number(q.get("
 const FIT = (q.get("fit") ?? "height") as "height" | "width";
 // ?label=1: 칸 위에 쪽 글도 적는다 (사람이 눈으로 볼 때)
 const LABEL = q.get("label") === "1";
+// ?narr=0.4: 나레이션이 쪽 글의 그 자리(0~1)까지 읽은 재생 모습 (소품이 대사에 맞춰 나타나는지 · 주기, 11/10)
+const NARR = q.get("narr") === null ? undefined : Number(q.get("narr"));
 const NAME = "토토";
 // 백엔드가 채우는 이름 자리 (`{이름}{조사:는}`) — 받침 없는 이름이라 조사는 적힌 그대로
 const fill = (t: string) => t.replace(/\{이름\}/g, NAME).replace(/\{조사:([^}]+)\}/g, "$1");
@@ -96,7 +98,7 @@ function App() {
     // 그림이 다 읽히고 자리가 잡힐 때까지
     const t = window.setTimeout(() => {
       const out = [...document.querySelectorAll<HTMLElement>("[data-page]")].map((wrap) => ({
-        key: wrap.dataset.page!, text: wrap.dataset.text!, location: wrap.dataset.loc!, ...measure(wrap.querySelector(".scene") as HTMLElement),
+        key: wrap.dataset.page!, text: wrap.dataset.text!, location: wrap.dataset.loc!, seat: wrap.dataset.seat ?? "", ...measure(wrap.querySelector(".scene") as HTMLElement),
       }));
       (window as unknown as { __audit: unknown }).__audit = out;
     }, 4000);
@@ -106,9 +108,9 @@ function App() {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 8 }}>
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
-        <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location}
+        <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location} data-seat={plan.hero.seat ?? ""}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage plan={plan} prevEnv={null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY ? (flipped ? "play" : "start") : "end"} pageAction={PLAY} text={pageText(c, plans, pi)} />
+          <SceneStage plan={plan} prevEnv={null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY || NARR !== undefined ? (flipped ? "play" : "start") : "end"} narration={NARR} pageAction={PLAY} text={pageText(c, plans, pi)} />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {LABEL ? pageText(c, plans, pi) : plan.location}</span>
         </div>
       )))}

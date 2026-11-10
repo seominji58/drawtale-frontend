@@ -162,8 +162,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   const audioOf = (i: number) => pages[i].audioUrl ?? late?.urls[i] ?? null;
   const pendingOf = (i: number) => !audioOf(i) && (late ? !!late.pending[i] : !!pages[i].audioPending);
   const perPage = pages.some((p) => p.audioUrl || p.audioPending);
-  // 쪽은 차례로만 (11/10 사용자 「만들어지는 동안 다음 페이지 버튼 비활성화, 만들어지면 활성화」): 다음 쪽 음성이 아직이면
-  // 「다음 쪽」 단추와 밀어 넘기기를 막는다. 소리를 껐으면 기다릴 음성이 없으니 막지 않는다
+  // 쪽은 차례로만 (11/10 사용자): 다음 쪽 음성이 아직이면 「다음 쪽」 단추가 「만드는 중」이 되고 눌러도 넘어가지 않는다.
+  // 다 되면 「다음 쪽」으로 바뀐다 (꺼진 단추로 보이던 것을 바꿈). 소리를 껐으면 기다릴 음성이 없으니 막지 않는다
   const nextLocked = !muteAll && pg < pages.length - 1 && pendingOf(pg + 1);
   const [waiting, setWaiting] = useState(false);
   useEffect(() => {
@@ -215,9 +215,9 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     stopAllAudio(); audio.current?.pause(); stopTts();
   };
   // ---- 쪽 넘김 (2026-11-03 사용자 결정 N2: M 「비스듬한 말림 띠」, 쉬는 동안 귀퉁이 표시는 없음 —
-  //      「접혀 있는 게 애매, 없는 게 더 자연스러움」. 넘길 때 · 손가락으로 잡을 때만 귀퉁이가 생긴다) ----
+  //      「접혀 있는 게 애매, 없는 게 더 자연스러움」. 넘길 때만 귀퉁이가 생긴다. 손가락으로 밀어 넘기기는 11/10 에 없앰) ----
   // 넘기는 동안에만 두 쪽을 겹쳐 그린다: 밑 = 넘어갈 쪽, 위 = 넘어가는 쪽. 움직임은 위 쪽 스타일만 바꾼다(다시 그리지 않음)
-  const [turn, setTurn] = useState<{ from: number; to: number; dir: 1 | -1; drag: boolean } | null>(null);
+  const [turn, setTurn] = useState<{ from: number; to: number; dir: 1 | -1 } | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const wedgeRef = useRef<HTMLDivElement>(null);
   const earRef = useRef<HTMLDivElement>(null);
@@ -250,11 +250,11 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     if (n === from || n < 0 || n >= pages.length) { done(); return; }
     if (REDUCE_MOTION) { setPg(n); done(); return; }
     turnDone.current = done;
-    setTurn({ from, to: n, dir: n > from ? 1 : -1, drag: false });
+    setTurn({ from, to: n, dir: n > from ? 1 : -1 });
   });
   // 겹쳐 그린 뒤 움직인다 (다음: 0 → 1, 앞: 1 → 0). 손가락으로 미는 중이면 기다린다
   useLayoutEffect(() => {
-    if (!turn || turn.drag) { if (turn) turnFrame(turnP.current); return; }
+    if (!turn) return;
     const [a, b] = turn.dir > 0 ? [turnP.current, 1] : [1, 0];
     turnFrame(a);
     let alive = true;
@@ -267,32 +267,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   }, [turn]);
   const go = (n: number) => { stop(); void turnTo(Math.max(0, Math.min(pages.length - 1, n))); };
 
-  // 손가락으로 밀기: 왼쪽으로 밀면 민 만큼 귀퉁이가 잡혀 말리고, 손을 떼면 이어서 넘긴다(덜 밀었으면 되돌린다).
-  // 오른쪽으로 밀면 앞 쪽. 세로 스크롤은 막지 않는다 (touch-action: pan-y)
-  const drag = useRef<{ x: number; w: number; moved: boolean } | null>(null);
-  const onDown = (e: React.PointerEvent) => {
-    if (turn) return;
-    drag.current = { x: e.clientX, w: e.currentTarget.clientWidth, moved: false };
-  };
-  const onMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    const dx = (e.clientX - d.x) / d.w;
-    if (dx < -0.02 && pg < pages.length - 1 && !nextLocked) {
-      if (!d.moved) { d.moved = true; stop(); e.currentTarget.setPointerCapture(e.pointerId); turnP.current = 0; setTurn({ from: pg, to: pg + 1, dir: 1, drag: true }); }
-      turnFrame(Math.min(0.85, -dx * 1.1));
-    }
-  };
-  const onUp = (e: React.PointerEvent) => {
-    const d = drag.current;
-    drag.current = null;
-    if (!d) return;
-    const dx = (e.clientX - d.x) / d.w;
-    if (d.moved) {
-      if (dx < -0.12) setTurn((t) => (t ? { ...t, drag: false } : t));   // 이어서 넘긴다
-      else void animateTurn(turnP.current, 0, 220).then(() => { setTurn(null); turnP.current = 0; });   // 되돌린다
-    } else if (dx > 0.12 && pg > 0) go(pg - 1);
-  };
+  // 손가락으로 밀어 넘기기는 없앴다 (11/10 사용자 「페이지 버튼 말고 땡겨서 넘기는 기능은 없애줘」). 쪽은 아래 단추로만 넘긴다
 
   // 쪽에 들어오면 그 쪽을 읽고, 바는 실제 재생 시각대로 찬다. 쪽 음성 파일이 있으면 그것, 예전 이야기의 전체 음성이면
   // 그 쪽 구간만, 없으면 브라우저 TTS. 소리를 껐거나 브라우저가 소리를 막으면(누른 적 없는 탭) 글 길이로 바만 채운다
@@ -591,7 +566,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
            style={stageAr ? ({ "--ar": stageAr } as CSSProperties) : undefined}>
       {/* 동화책 펼침면 — 왼쪽 그림, 오른쪽 글 (서민지 님 10/19). 그림 자리는 쪽마다 동작 영상 (10/23).
           넘기는 동안에만 두 쪽을 겹친다 (밑 = 넘어갈 쪽, 위 = 넘어가는 쪽) */}
-      <div className="turn" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+      <div className="turn">
         {turn ? <>
           {spread(turn.dir > 0 ? turn.to : turn.from, false)}
           {spread(turn.dir > 0 ? turn.from : turn.to, false, true)}
@@ -615,8 +590,10 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         {/* 마지막 쪽에서는 「다음 쪽」 자리에 「다 봤어요」 (pt_docs 05 S-09-03 · S-09-08 — 마지막 장면에서만) */}
         {last
           ? <BigButton className="next" go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>
-          // 다음 쪽 음성을 만드는 동안은 꺼 두고, 눌러도 흔들림으로 아직이라고만 알린다
-          : <BigButton className={`next${nextLocked ? " is-waiting" : ""}`} disabled={nextLocked} onClick={() => go(pg + 1)}>다음 쪽</BigButton>}
+          // 다음 쪽 음성을 만드는 동안은 「만드는 중」(숨 쉬듯 깜빡), 다 되면 「다음 쪽」
+          : <BigButton className={`next${nextLocked ? " is-waiting" : ""}`} onClick={() => { if (!nextLocked) go(pg + 1); }}>
+              <span aria-live="polite">{nextLocked ? "만드는 중" : "다음 쪽"}</span>
+            </BigButton>}
       </div>
 
       <AiNotice />

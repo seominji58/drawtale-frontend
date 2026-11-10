@@ -41,6 +41,9 @@ function issuesOf(s) {
       if (o > 0.25 && f.y1 < b.y1 + 0.02 && f.name !== "bird" && f.name !== "bat") out.push(["인물이 배경 물건과 겹침", `${f.name} ↔ ${b.name} ${Math.round(o * 100)}%`]);
     }
   }
+  // 땅에 서는 사람이 땅 줄보다 위에 (뒤에 세워 작게 · 높게 → 떠 보임, 11/10 사용자 「친구가 공중에 떠 있다」). 새 · 박쥐 · 우주는 뺀다
+  for (const f of s.people) if (f.name !== "bird" && f.name !== "bat" && !/^space|astronaut|alien/.test(f.name) && s.location !== "sea-underwater" && f.y1 < 0.9)
+    out.push(["인물이 땅보다 떠 있음", `${f.name} 발끝 ${f.y1.toFixed(2)}`]);
   for (let i = 0; i < figs.length; i++) for (let j = i + 1; j < figs.length; j++) {
     const o = inter(figs[i], figs[j]) / Math.max(1e-6, Math.min(area(figs[i]), area(figs[j])));
     if (o > 0.2) out.push(["인물끼리 겹침", `${figs[i].name} ↔ ${figs[j].name} ${Math.round(o * 100)}%`]);
@@ -106,6 +109,47 @@ for (let i = 0; i < TOTAL; i += STEP) {
   process.stdout.write(`${Math.min(i + STEP, TOTAL)}/${TOTAL} `);
 }
 console.log();
+
+// 쪽 사이 이어짐 (11/10 사용자 「사라지는 타이밍, 위치, 크기 다 중요해」): 같은 배경이 이어지는 쪽끼리 붙박이 물건 · 앉는 자리
+const KEEP = new Set(["nest", "tent", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs", "seesaw",
+  "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug", "clock", "log",
+  "cushion", "footprints", "stump", "shells"]);
+const GONE = /무너|부서|사라졌|사라지|치웠|치우|떠내려|날아가|날아갔|가져갔|가져가|주워|주웠|집어|들고 갔|넣었|넣어|쓸려|녹아|터졌|떠났|떠나/;
+const SEAT = [[/그루터기/, ["stump"]], [/벤치|의자/, ["bench", "chair"]], [/바위|돌(?:멩이)?(?=에|위)/, ["rocks", "rock", "pebble"]], [/통나무/, ["log"]],
+  [/소파/, ["sofa"]], [/침대/, ["bed"]], [/그네/, ["swing"]], [/시소/, ["seesaw"]], [/계단/, ["stairs"]], [/방석/, ["cushion"]]];
+const cx = (r) => (r.x0 + r.x1) / 2;
+const free = (s) => s.things.filter((t) => !HELD.has(t.pose));
+const byStory = new Map();
+for (const s of all) { const [ci, pi] = s.key.split(":").map(Number); (byStory.get(ci) ?? byStory.set(ci, []).get(ci)).push({ ...s, pi }); }
+for (const ps of byStory.values()) {
+  ps.sort((a, b) => a.pi - b.pi);
+  ps.forEach((s, i) => {
+    const prev = ps[i - 1];
+    if (prev && prev.location === s.location) {
+      for (const t of free(prev).filter((t) => KEEP.has(t.name))) {
+        const u = free(s).find((v) => v.name === t.name);
+        // 같은 종류(작은 돌 → 바위 · 벤치 → 의자)가 대신 섰으면 사라진 것이 아니다
+        if (!u) { if (!GONE.test(prev.text) && !free(s).some((v) => kin(v.name, t.name)) && !s.bg.some((v) => kin(v.name, t.name))) s.issues.push(["같은 배경인데 물건이 사라짐", t.name]); continue; }
+        // 처음 나온 쪽의 등장 움직임(통통 · 흔들 · 반짝) 중에 잰 크기는 비교하지 않는다
+        if (/\bm-/.test(t.cls ?? "") || /\bm-/.test(u.cls ?? "")) continue;
+        const dx = Math.abs(cx(u) - cx(t)), dh = Math.abs((u.y1 - u.y0) - (t.y1 - t.y0)), dy = Math.abs(u.y1 - t.y1);
+        if (dx > 0.004 || dh > 0.004 || dy > 0.004) s.issues.push(["이어진 물건 자리 · 크기 바뀜", `${t.name} 가로 ${dx.toFixed(3)} 키 ${dh.toFixed(3)}`]);
+      }
+    }
+    // 앉는 자리: 그 물건이 있으면 주인공이 그 앞에 (가운데 차이가 화면 폭 6% 안)
+    // 앉는 자리는 장면 계획이 정한 것(주인공이 앉는 문장만, plan.seatOf): 그 그림 이름들
+    const NAMES = { stump: ["stump"], chair: ["bench", "chair"], rocks: ["rocks", "rock", "pebble"], log: ["log"], sofa: ["sofa"], bed: ["bed"],
+      swing: ["swing"], seesaw: ["seesaw"], stairs: ["stairs"], cushion: ["cushion"] };
+    const seat = s.seat ? [null, NAMES[s.seat] ?? [s.seat]] : null;
+    if (seat && s.hero) {
+      const objs = [...free(s), ...s.bg].filter((o) => seat[1].includes(o.name));
+      if (!objs.length) s.issues.push(["앉는 자리가 장면에 없음", seat[1][0]]);
+      // 앉는 그림이 없어 주인공은 그 물건 가장자리에 붙어 선다 (11/10): 주인공 몸 가운데 6할이 물건 가로 범위에 닿으면 됨
+      else if (!objs.some((o) => { const w = s.hero.x1 - s.hero.x0, c = cx(s.hero); return c + w * 0.3 > o.x0 && c - w * 0.3 < o.x1; }))
+        s.issues.push(["앉는 자리와 주인공이 떨어짐", seat[1][0]]);
+    }
+  });
+}
 
 const byKind = new Map();
 for (const s of all) for (const [k, d] of s.issues) {

@@ -118,8 +118,10 @@ const THINGS: [RegExp, string, number, Spot][] = [
   // 돌 하나 (징검돌 그림에서 오려 낸 것, 11/10). 전에는 징검돌 그림을 작게 세워 「작은 돌에 걸려」가 돌 셋을 쌓은 것처럼 보였다
   [/돌멩이|작은 돌|(?<![가-힣])돌(?:들|을 |이 | 위)/, "props/pebble.webp", 0.05, "ground"],
   [/돌탑/, "forest-stream/rocks.webp", 0.09, "ground"],
+  // 그루터기 (11/10 새 그림). 앉을 수 있는 아이 무릎 높이
+  [/그루터기/, "props/stump.webp", 0.17, "ground"],
   [/바위/, "cave/rocks.webp", 0.3, "ground"],
-  [/꽃(?!게)/, "forest-flowers/flowers.webp", 0.12, "ground"],
+  [/꽃(?!게)|장미/, "forest-flowers/flowers.webp", 0.12, "ground"],
   [/식탁/, "home-kitchen/table.webp", 0.34, "ground"],
   // 등대는 소품으로 세우지 않는다 — 주인공 옆 땅에 아이 키만 한 등대가 장난감처럼 섰다 (11/4 사용자). 등대는 부두 배경(sea-pier)에 크게 있다
   [/버섯/, "forest/mushroom.webp", 0.1, "ground"],
@@ -142,7 +144,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
     "props/boat.webp", 0.28, "ground"],
   [/별똥별/, "props/shootingstar.webp", 0.1, "air"],
   [/헬멧/, "props/helmet.webp", 0.1, "ground"],
-  [/(?:빨간|노란|초록|맛있는|커다란|작은) 사과|사과 (?:한|두|세|하나)|사과를 (?:따|먹|사각|건네|깎|닦|주|받|골|사)|사과(?:와|,)|사과가 (?:수북|주렁|떨어|데굴|열)/,
+  [/(?:빨간|노란|초록|맛있는|커다란|작은) 사과|사과 (?:한|두|세|하나)|사과를 (?:따|먹|사각|건네|깎|닦|주|받|골|사|하나|한 |두 |세 |쥐|들)|사과(?:와|,)|사과가 (?:수북|주렁|떨어|데굴|열)/,
     "props/apple.webp", 0.07, "ground"],
   [/식판/, "props/tray.webp", 0.06, "ground"],
   [/베개/, "props/pillow.webp", 0.09, "ground"],
@@ -180,6 +182,15 @@ export interface ThingPlan {
   holder?: string;
   /** 문장에서 소품 앞의 주어 (planPages 가 holder 로 바꾼다) */
   subject?: string;
+  /** 붙박이 물건의 이어짐 열쇠 (이야기 안에서 같은 물건이면 같은 값). SceneStage 가 처음 놓은 자리 · 크기를 이 열쇠로 기억해
+   *  다음 쪽에도 그대로 쓴다 (11/10 사용자 「사라지는 타이밍, 위치, 크기 다 중요해」) */
+  keep?: string;
+  /** 이 쪽 글에는 없고 앞 쪽에서 이어 온 것 (같은 배경 동안). 처음 나올 때의 움직임(떨어짐 · 굴러감)은 다시 하지 않는다 */
+  kept?: boolean;
+  /** 이 쪽에서 처음 나오는 물건이면 나레이션이 그 말에 왔을 때(0~1, readAt) 나타난다. 없으면 처음부터 (11/10 사용자 「소품 애니메이션을 대사에 맞춰서」) */
+  appearAt?: number;
+  /** 「할머니가 사과를 손에 쥐여 주었어요」: 처음엔 주는 사람(from) 손에, 나레이션이 주는 말(at)에 오면 받는 사람(holder) 손으로 옮겨 간다 */
+  give?: { from: string; at: number };
 }
 
 /** 소품이 문장에서 어디 있나 · 어떻게 움직이나 (11/4 사용자 시안 https://claude.ai/artifact/Fe8gN919XC7rDqUaxHEAw4 「그렇게 진행하자」).
@@ -232,6 +243,28 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   if ((pose === "mouth" || pose === "back") && !/(?:을|를|도)$/.test(lead[0])) return {};
   if (pose === "hand" || pose === "head" || pose === "mouth" || pose === "back") return { pose, subject };
   return { pose };
+}
+
+/** 주는 말 (소품이 목적어일 때만): 건네다 · 쥐여 주다 · 나눠 주다 · 내밀다 · 선물하다 · 주다 */
+const GIVE = /건네|건넸|쥐여 ?주|쥐여 ?줬|쥐어 ?주|쥐어 ?줬|나눠 ?주|나눠 ?줬|나누어 ?주|내밀었|내밀어|선물했|선물로 주|(?:을|를|하나|한 개|두 개)\s?(?:씩\s?)?(?:주었|줬|주셨|드렸)/;
+/** 소품을 누가 누구에게 주나. 주는 사람: 그 문장의 주어(없거나 나면 주인공). 받는 사람: 「…에게 · 한테」, 없으면 주는 사람이 주인공이면
+ *  그 쪽 첫 인물, 아니면 주인공. at 은 주는 말의 글자 자리 */
+export function giveOf(text: string, at: number): { giver: string; receiver: string | null; verb: number } | null {
+  const from = Math.max(text.lastIndexOf(".", at), text.lastIndexOf("!", at), text.lastIndexOf("?", at), text.lastIndexOf("”", at)) + 1;
+  const ends = [".", "!", "?"].map((c) => text.indexOf(c, at)).filter((i) => i >= 0);
+  const stop = ends.length ? Math.min(...ends) + 1 : text.length;
+  const after = text.slice(at, stop);
+  // 「사과를」 · 「꽃 한 송이를」 · 「사과 두 개를」처럼 수량이 끼어도 그 물건이 목적어
+  if (!/^[가-힣]+(?:\s(?:한|두|세|네|몇)\s?[가-힣]{0,2})?(?:을|를)(?=[\s,]|$)/.test(after)) return null;
+  const g = GIVE.exec(after);
+  if (!g) return null;
+  const before = text.slice(from, at);
+  const me = (w: string) => /^(?:나|내가|나는)$|^\{이름\}/.test(w);
+  const subj = [...before.matchAll(/([가-힣{}:]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|께서)\s/g)].pop()?.[1];
+  const giver = !subj || me(subj) || me(subj.split(/\s+/).pop() ?? "") ? "hero" : subj;
+  const to = /([가-힣{}:]+(?: [가-힣]+)?)(?:에게|한테|께)(?=[\s,]|$)/.exec(text.slice(from, stop))?.[1];
+  const receiver = to ? (me(to) || /^(?:나|내|저)$/.test(to) ? "hero" : to) : giver === "hero" ? null : "hero";
+  return { giver, receiver, verb: at + g.index };
 }
 
 /** 소품 움직임 (11/4 사용자 시안 https://claude.ai/artifact/FJL8Cu7vPSt9YzPdbxJBTw 「이렇게 진행해」).
@@ -611,6 +644,10 @@ export interface HeroPlan {
   /** 이 쪽에서 다가가는 인물 · 표지판 (props 의 id). 장면이 그 인물을 주인공이 가는 쪽 바로 앞에 세운다 —
    *  전에는 인물이 남는 자리에 서서 「어른에게 달려갔어요」에 그 사람 반대쪽으로 달려갔다 (11/5, 옆모습 주인공에서 보였다) */
   goal?: string;
+  /** 「그루터기에 앉아」 · 「벤치에 올라」의 자리 (그림 이름: stump · chair · rocks …). 장면이 주인공을 그 물건 앞에 세운다 (11/10) */
+  seat?: string;
+  /** 앞 쪽과 같은 배경이고 제자리 쪽: 앞 쪽에서 실제로 선 자리(앉은 자리 · 비켜 선 자리)를 잇는다 (11/10) */
+  stay?: boolean;
 }
 
 export interface Env {
@@ -635,6 +672,8 @@ export interface PagePlan {
   props: PropPlan[];
   /** 쪽 글에 나온 물건 · 내 소품 — 주인공 옆 땅에 */
   things: ThingPlan[];
+  /** 이야기 안 쪽 열쇠 (이야기마다 다른 값 + 쪽 번호). 장면이 쪽 사이 자리를 기억하는 데 쓴다 */
+  key?: string;
 }
 
 interface Picks { place?: string; problem?: string; action?: string; result?: string }
@@ -812,12 +851,44 @@ const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0
 /** 쪽마다 계획. place 는 장소 카드 id (말로 정한 장소면 부르지 않는다).
  *  인물: 대본이 그 쪽에 적은 인물(scene.characters)이 먼저다 — 글에 나오는 사람이 화면에 나온다.
  *  대본에 인물이 없는 쪽만 고른 카드로 정한다 (친구 카드면 친구, 어른 카드면 어른) */
+/** 붙박이 물건: 한 번 나오면 배경이 같은 동안 그 자리에 그대로 둔다 (11/10 사용자 「새 둥지가 3쪽부터 사라져, 장소가 바뀔 때 사라지게」).
+ *  저장 카드 이야기 1,024편 중 663편에서 같은 배경인데 글에 낱말이 빠진 쪽에서 사라졌다. 들고 다니는 것(공 · 손전등 · 책 · 담요 …)은 뺀다 */
+const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs",
+  "seesaw", "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug",
+  "clock", "log", "cushion", "footprints", "stump", "shells"]);
+/** 그 물건이 치워지거나 없어지는 말: 그 쪽까지만 있고 다음 쪽부터는 잇지 않는다 */
+const GONE_AFTER = /^.{0,14}?(?:무너|부서|사라졌|사라지|치웠|치우|떠내려|날아가|날아갔|가져갔|가져가|주워|주웠|집어|들고 갔|넣었|넣어|쓸려|녹아|터졌|떠났|떠나)/;
+/** 앉는 · 올라가는 · 기대는 자리 (그 문장에서 자리 낱말이 동사보다 앞) → 장면 그림 이름 */
+const SEAT_WORDS: [RegExp, string][] = [[/그루터기/, "stump"], [/벤치/, "chair"], [/의자/, "chair"], [/바위/, "rocks"], [/통나무/, "log"],
+  [/소파/, "sofa"], [/침대/, "bed"], [/그네/, "swing"], [/시소/, "seesaw"], [/계단/, "stairs"], [/방석/, "cushion"], [/돌(?:멩이)?(?=에|위)/, "rocks"]];
+const SIT_VERB = /앉|올라가|올라섰|누워|누웠|기대/;
+const nameOfSrc = (src: string) => src.split("/").pop()!.replace(/\.webp$/, "");
+/** 주인공(나 · 이름)이 앉는 문장의 자리. 다른 인물만 앉는 문장(「아기 토끼가 옆에 앉았어요」)은 주인공이 「나란히 · 같이」일 때만 */
+export function seatOf(text: string): string | undefined {
+  for (const sen of text.split(/(?<=[.!?”])\s*/)) {
+    const v = sen.search(SIT_VERB);
+    if (v < 0) continue;
+    if (subjectOf(sen, []) !== "hero" && !/나란히|같이|함께|우리/.test(sen)) continue;
+    for (const [rx, kind] of SEAT_WORDS) {
+      const m = rx.exec(sen);
+      if (m && m.index < v) return kind;
+    }
+  }
+  return undefined;
+}
+
 export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string, string> = {},
   mine: { name: string; png: string; height: number }[] = []): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
   let x = SLOT, loc: string | undefined, night = false, dimOn = false, lit = false, flying: boolean = false;
   let face: -1 | 0 | 1 = 0;
+  // 이야기 열쇠: 글로 만든 짧은 값이라 다시 계획해도(새로고침 · 주소 새로 받음) 같다
+  const story = [...pages.map((p) => p.text).join("|")].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7).toString(36);
+  // 같은 배경 동안 이어 가는 붙박이 물건 (배경이 바뀌면 비운다)
+  let kept: ThingPlan[] = [], keptLoc: string | undefined;
+  // 앞 쪽에 놓였던 물건 이름 → 열쇠 (같은 배경일 때만). 들고 다니는 것도 다음 쪽 글에 또 나오면 같은 자리에 (쪽마다 옮겨 다니지 않게)
+  let lastKeys = new Map<string, string>();
   const stageIdx = (s: string) => ["place", "problem", "action", "result"].indexOf(s);
   // 숨는 곳은 행동 쪽들의 글에서 한 번 정해 쪽이 바뀌어도 같은 물건
   const cover = coverFor(pages.filter((p) => p.stage === "action").map((p) => p.text).join(" "));
@@ -863,7 +934,8 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       used.add(k);
     }
   }
-  for (const p of pages) {
+  for (const [pi, p] of pages.entries()) {
+    const prevLoc = loc;
     loc = locationFor(place, p, loc);
     const st = stageIdx(p.stage);
     // 밤: 「어두워졌어요」부터 이어진다. 결과 「해가 떴어요」에서 밝아지고, 「잠이 들었어요」는 밤.
@@ -984,18 +1056,66 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     if (hiding) { from = to = SLOT; }
     if (to !== from) face = to > from ? 1 : -1;
     const weather = weatherFor(p.text, p.scene?.background ?? "", loc);
+    const fresh: ThingPlan[] = p.stage === "action" && picks.action === "hide" ? []
+      : thingsFor(p.text, mine, isIndoor(loc), new Set([
+        ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
+        ...(loc === "space-ship" ? ["props/spaceship.webp", "props/rocket.webp"] : []),
+      ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props) }));
+    // 배경이 바뀌면 이어 오던 물건은 여기서 끝 (숨기 쪽도 그대로 둔다: 숨은 곳 앞에서 사라지면 어색하다)
+    if (loc !== keptLoc) { kept = []; keptLoc = loc; lastKeys = new Map(); }
+    // 주기: 「할머니가 사과를 쥐여 주었어요」면 할머니 손 → 받는 사람 손. 받는 사람을 모르면(주인공이 줬는데 「…에게」가 없음) 그 쪽 첫 인물
+    for (const [k, t] of fresh.entries()) {
+      if (t.at === undefined || t.name !== undefined) continue;
+      const gv = giveOf(p.text, t.at);
+      if (!gv) continue;
+      const holderFor = (who: string) => (who === "hero" ? "hero" : holderOf({ ...t, pose: "hand", subject: who }, props).holder);
+      const firstPerson = props.find((q) => isPerson(q.id));
+      const from = holderFor(gv.giver);
+      const to = gv.receiver ? holderFor(gv.receiver) : firstPerson ? (firstPerson.name ?? firstPerson.id) : undefined;
+      if (!to || from === to) continue;
+      fresh[k] = { ...t, pose: "hand", holder: to, subject: undefined, motion: undefined,
+        ...(from ? { give: { from, at: readAt(p.text, gv.verb) } } : { appearAt: readAt(p.text, gv.verb) }) };
+    }
+    const things: ThingPlan[] = [];
+    for (const t of fresh) {
+      const n = nameOfSrc(t.src);
+      if (t.name !== undefined || !KEEP_THINGS.has(n)) {
+        // 앞 쪽에도 있던 것이면 그 자리 (손에 든 것 · 날아가는 것은 그 쪽 자리대로)
+        things.push(t.pose ? t : { ...t, keep: lastKeys.get(n) ?? `${story}:${pi}:${n}` });
+        continue;
+      }
+      // 같은 물건이 다시 나오면 앞의 그것 (자리 · 크기를 잇는다). 손에 들거나 치우면 다음 쪽부터 잇지 않는다
+      const old = kept.find((k) => nameOfSrc(k.src) === n);
+      // 앞 쪽에 있던 것이면(치운다고 했어도 다음 쪽에 또 나오면 그것) 같은 열쇠: 「무너진 조개 집을 다시 올려」가 다른 자리에 섰다
+      const keep = old?.keep ?? lastKeys.get(n) ?? `${story}:${pi}:${n}`;
+      // 치움 · 없어짐은 그 물건이 목적어 · 주어일 때만: 「편지를 우체통에 넣었어요」의 우체통은 그대로 (11/10 이어짐 검사)
+      const after = t.at !== undefined ? p.text.slice(t.at) : "";
+      const asPlace = /^\S*?(?:에서|에게|에|안|속|위|옆|앞|뒤|아래|밑|쪽|으로|로)(?=\s|$|[.,!?”])/.test(after.split(/\s/)[0] ?? "");
+      const goneAfter = t.pose === "hand" || t.pose === "head" || (!asPlace && GONE_AFTER.test(after));
+      things.push(t.pose ? t : { ...t, keep });
+      kept = kept.filter((k) => k !== old);
+      if (!t.pose && !goneAfter) kept.push({ ...t, keep });
+    }
+    // 이 쪽 글에 없는 이어 온 물건: 처음 자리 그대로, 움직임 없이. 글에서 먼저 나온 것 다음에 (자리를 먼저 잡게 하지는 SceneStage)
+    for (const k of kept) if (!things.some((t) => nameOfSrc(t.src) === nameOfSrc(k.src)))
+      things.push({ ...k, kept: true, motion: undefined, at: undefined, pose: undefined, holder: undefined });
+    // 이 쪽에서 처음 나오는 물건(앞 쪽에 없던 것)은 나레이션이 그 말에 왔을 때 나타난다. 주기는 주는 사람 손에서 이미 보인다
+    for (const [k, t] of things.entries()) {
+      if (t.kept || t.at === undefined || t.appearAt !== undefined || t.give) continue;
+      if (t.keep && lastKeys.has(nameOfSrc(t.src))) continue;
+      things[k] = { ...t, appearAt: readAt(p.text, t.at) };
+    }
+    lastKeys = new Map(things.filter((t) => t.keep).map((t) => [nameOfSrc(t.src), t.keep!]));
+    const seat = move === "none" ? seatOf(p.text) : undefined;
     out.push({
       location: loc,
       env: { night: night && !litHere, sun, weather, dim: dimNow && !litHere, lightsOn: turnsOn && !litHere },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,
-        calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal },
+        calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal, seat, stay: move === "none" && pi > 0 && prevLoc === loc && !hiding },
       props,
-      // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다
-      things: p.stage === "action" && picks.action === "hide" ? []
-        : thingsFor(p.text, mine, isIndoor(loc), new Set([
-          ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
-          ...(loc === "space-ship" ? ["props/spaceship.webp", "props/rocket.webp"] : []),
-        ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props) })),
+      // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다 (위 fresh)
+      things,
+      key: `${story}:${pi}`,
     });
     x = to;
   }
