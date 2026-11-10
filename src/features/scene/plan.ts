@@ -90,7 +90,10 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/꽃게|작은 게|(?<![가-힣])게(?: 한|가|를|도)(?![가-힣])/, "props/crab.webp", 0.07, "ground"],
   [/깃발/, "props/flag.webp", 0.48, "ground"],
   [/우체통/, "props/mailbox.webp", 0.44, "ground"],
-  [/다리를 건|나무다리|돌다리|다리 위|작은 다리/, "props/bridge.webp", 0.22, "ground"],
+  // 구름다리(놀이터 기구) · 징검다리는 나무 다리가 아니다 (11/10 소품 점검: 놀이터 · 우주 「별 징검다리」에 나무 다리가 섰다)
+  [/(?<!구름|징검)다리를 건|나무다리|돌다리|(?<!구름|징검)다리 위|작은 다리/, "props/bridge.webp", 0.22, "ground"],
+  // 징검돌 그림 (숲 시냇물 배경의 그것). 「별 징검다리」(우주)는 별을 밟는 것이라 놓지 않는다
+  [/(?<!별 ?)징검다리|징검돌/, "forest-stream/rocks.webp", 0.12, "ground"],
   [/수건|손수건/, "props/towel.webp", 0.07, "ground"],
   [/케이크|쿠키|과자|간식/, "props/cake.webp", 0.1, "ground"],
   [/우산/, "props/umbrella.webp", 0.34, "ground"],
@@ -112,7 +115,9 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/텐트/, "props/tent.webp", 0.55, "ground"],
   // B. 장소 배경에만 있던 그림을 다른 장소에서도 (배경에 이미 있으면 SceneStage 가 또 놓지 않는다)
   // 「돌았어요」 · 「돌아왔어요」 빼고, 짧은 「돌」은 앞 글자와 떨어진 것만 — 「곰돌이 컵」에 부엌 바닥 돌멩이 (11/9 전체 배치 검사)
-  [/돌멩이|작은 돌|돌탑|(?<![가-힣])돌(?:들|을 |이 | 위)/, "forest-stream/rocks.webp", 0.09, "ground"],
+  // 돌 하나 (징검돌 그림에서 오려 낸 것, 11/10). 전에는 징검돌 그림을 작게 세워 「작은 돌에 걸려」가 돌 셋을 쌓은 것처럼 보였다
+  [/돌멩이|작은 돌|(?<![가-힣])돌(?:들|을 |이 | 위)/, "props/pebble.webp", 0.05, "ground"],
+  [/돌탑/, "forest-stream/rocks.webp", 0.09, "ground"],
   [/바위/, "cave/rocks.webp", 0.3, "ground"],
   [/꽃(?!게)/, "forest-flowers/flowers.webp", 0.12, "ground"],
   [/식탁/, "home-kitchen/table.webp", 0.34, "ground"],
