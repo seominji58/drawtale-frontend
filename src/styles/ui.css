@@ -1095,6 +1095,14 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 /* 별은 밝은 하늘 · 모래에 묻혀 잘 안 보였다 (11/10) — 진한 노랑 · 진한 테두리 · 둘레 빛 */
 .scene-joy.j-star svg { fill: #FFC21A; stroke: #B07A00; stroke-width: 1.6; filter: drop-shadow(0 0 4px rgba(255, 196, 40, .95)) drop-shadow(0 0 10px rgba(255, 170, 0, .6)); }
 .scene-joy.j-flower svg { fill: #FF6FA8; }
+/* 물방울이 똑똑 (11/10): 장면 위에서 떨어져 바닥에 톡 튄다 */
+.scene-drip { position: absolute; inset: 0; z-index: 6; pointer-events: none; overflow: hidden; }
+.scene-drip i { position: absolute; top: 4%; width: 1.6%; aspect-ratio: 3 / 4; border-radius: 50% 50% 50% 50% / 62% 62% 40% 40%;
+  background: radial-gradient(circle at 38% 35%, #FFFFFF 0 16%, #A9DBF7 32%, #4F9FDC 100%);
+  clip-path: polygon(50% 0, 100% 62%, 92% 88%, 50% 100%, 8% 88%, 0 62%); opacity: 0; animation: drip-fall 2.4s ease-in infinite; }
+@keyframes drip-fall { 0% { opacity: 0; top: 4%; transform: scale(.5); } 12% { opacity: 1; top: 4%; transform: scale(1); }
+  80% { opacity: 1; top: var(--fall); transform: none; } 88% { opacity: .6; top: var(--fall); transform: scale(1.6, .4); }
+  100% { opacity: 0; top: var(--fall); transform: scale(2, .2); } }
 /* ───────── 만화 기호 연출 (11/10): 칸 가운데가 자리. 칸 높이가 크기 기준 (글자는 cqh) ───────── */
 .scene-mark { position: absolute; z-index: 7; translate: -50% -50%; pointer-events: none; container-type: size; }
 .scene-mark > * { position: absolute; }

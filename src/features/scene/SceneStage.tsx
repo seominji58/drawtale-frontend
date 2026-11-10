@@ -987,6 +987,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       )}
       {/* 장면이 환해짐: 위에서 따뜻한 빛이 번진다 (화면 섞기 — 그림 위에 흰 막을 덮지 않는다) */}
       {fx.bright >= 0 && <div className={`scene-bright ${brightOn ? "on" : ""}`} />}
+      {fx.drip >= 0 && heard(fx.drip) && (
+        <div className="scene-drip">{DRIPS.map(([x, d, h], k) => <i key={k} style={{ left: `${x}%`, animationDelay: `${d}s`, ["--fall" as string]: `${h}%` }} />)}</div>
+      )}
       {/* 눈물: 우는 사람 눈 아래로 방울이 두 줄 떨어진다 */}
       {crying.map((c) => (
         <div key={c.key} className="scene-tears"
@@ -1045,6 +1048,8 @@ const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
 /** 나는 말 — 새 주인공을 띄운다 */
 // 「날개를 팔랑팔랑 흔들며 도착했어요」처럼 날갯짓하며 옮겨 가는 것도 난다
 const FLY_TEXT = /날아|날았|날고|날며|날면서|날개를 (?:활짝 )?(?:펴|펼|펄럭|파닥)|날개를 [가-힣]+ (?:흔들|펄럭|파닥|퍼덕)이?(?:며|면서|고) [가-힣 ]{0,12}(?:도착|갔|왔|날|올라|다녔|돌)|훨훨|하늘(?:로|을|에서|높이)|높이 (?:올라|떠)|파닥파닥 (?:날|올)|퍼덕퍼덕 (?:날|올)/;
+/** 떨어지는 물방울 [가로 %, 늦게 시작(초), 떨어지는 깊이 %] */
+const DRIPS: [number, number, number][] = [[18, 0, 72], [34, 0.9, 64], [52, 0.4, 70], [66, 1.5, 60], [81, 0.7, 74], [9, 1.9, 58], [92, 1.2, 66]];
 /** 기호 연출 조각 — 모양은 CSS(.scene-mark.k-*)가 그린다 */
 const SPARK = "M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z";
 const MARK_BITS: Record<MarkKind, JSX.Element> = {

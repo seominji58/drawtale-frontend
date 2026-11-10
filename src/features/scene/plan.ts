@@ -276,6 +276,8 @@ export type JoyKind = "heart" | "star" | "flower";
 export type HeroGesture = "bow" | "nod" | "shiver" | "crouch";
 export interface SceneFx {
   bright: number; tears: { at: number; sentence: string; other?: boolean }[]; spins: { at: number; before: string }[];
+  /** 물방울이 떨어지는 장면 (11/10 「물방울 연출이 없다」) — 위에서 똑똑. 자리는 그 말 */
+  drip: number;
   /** 주인공 몸짓 (11/10 사용자 「꾸벅 끄덕 떨기 웅크리기 연출」): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. before 는 빙글과 같다 */
   gestures: { at: number; before: string; kind: HeroGesture }[];
   /** 만화 기호 연출 (11/10 「보글보글 물방울 같은 연출이 아쉽다」) — 그 문장의 사람 머리 옆 · 발밑 · 몸 둘레에 */
@@ -338,7 +340,7 @@ const GESTURES: [HeroGesture, RegExp][] = [
 const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
 // 「멀리서 불빛이 보였어요」 · 「별이 빛났어요」는 장면 전체가 밝아지는 것이 아니다 (저장 이야기 점검 11/10)
-const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)/;
+const BRIGHT = /환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|햇살이 (?:가득|쏟|비)|햇빛이 (?:가득|쏟|비)|불이 (?:켜졌|들어왔)|불을 (?:켰|켜|밝)|불빛에|불빛이 (?:비|퍼|가득|환)/;
 const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
 const NOT_CRY = /그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었|쏙 들어|들어갔|참았|참고|꾹 참|눈물이 (?:싹|쏙)|눈물이 뚝 (?:그|멈)|눈물을 (?:거두|멈)/;   // 「눈물이 뚝뚝 떨어졌어요」는 우는 것 (11/10)
 /** 문장의 주인 (저장 이야기 3,069편 점검 11/10 — 「천장에서 물방울이 떨어졌어요」 · 「새들이 노래했어요」의 연출이 주인공에게 났다).
@@ -440,7 +442,8 @@ export function sceneFx(text: string): SceneFx {
       if (k) { marks.push({ at: readAt(text, m.index + k.index), sentence: sen, kind }); break; }
     }
   }
-  return { bright: b ? readAt(text, b.index) : -1, tears, spins, gestures, joys, calms, marks };
+  const dr = /물방울(?:이|들이)? (?:똑|뚝|떨어|톡|퐁)|(?:똑똑|똑, 똑|뚝뚝) (?:떨어|물방울)|물방울 (?:떨어지는|소리)|빗방울이 (?:똑|뚝|떨어)/.exec(text);
+  return { drip: dr ? readAt(text, dr.index) : -1, bright: b ? readAt(text, b.index) : -1, tears, spins, gestures, joys, calms, marks };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;
@@ -646,9 +649,10 @@ export const isIndoor = (location: string) => INDOOR.has(location);
 const NO_SKY_BODIES = new Set(["sea-underwater", "space", "space-planet"]);
 export const hasSkyBodies = (location: string) => !INDOOR.has(location) && !NO_SKY_BODIES.has(location);
 /** 쪽 글로 밤 · 아침 (「돌아왔어요」처럼 엉뚱한 말이 걸리지 않게 말 덩어리로) */
-const NIGHT_TEXT = /밤이 (?:되|깊|왔)|(?:캄캄한|깜깜한|어두운|까만|컴컴한) 밤|밤하늘|캄캄해|깜깜해|어두워졌|해가 (?:졌|지|저물|뉘엿)|노을|저녁이 (?:되|왔)|달이 (?:떴|떠올|휘영)|별이 (?:떴|반짝)/;
+// 밤은 밤을 바로 말할 때만 (11/10 사용자 「어두워졌어요에 밤이 직접 없으면 그냥 어두워져야」) — 「어두워졌어요 · 깜깜해」는 어두운 곳(DARK_TEXT)
+const NIGHT_TEXT = /밤이 (?:되|깊|왔)|(?:캄캄한|깜깜한|어두운|까만|컴컴한) 밤|밤하늘|해가 (?:졌|지|저물|뉘엿)|노을|저녁이 (?:되|왔)|달이 (?:떴|떠올|휘영)|별이 (?:떴|반짝)/;
 /** 어두운 곳 — 「어두운 숲 · 캄캄한 동굴 · 깜깜한 방 · 어둠 속 · 불이 꺼졌어요」. 「어둡지 않았어요」 · 「어두운 색」은 아니다 */
-export const DARK_TEXT = /(?:어두운|어둑한|어둑어둑한|캄캄한|깜깜한|컴컴한|껌껌한|새까만|시커먼) (?!색|옷|머리|털|눈)[가-힣]+|어둑어둑|어두웠|캄캄했|깜깜했|컴컴했|껌껌했|어둠 속|어둠이 (?:깔|내려|가득|짙)|(?:불|전등|등불)이 (?:꺼졌|꺼지|나갔|탁 꺼)|정전/;
+export const DARK_TEXT = /(?:어두운|어둑한|어둑어둑한|캄캄한|깜깜한|컴컴한|껌껌한|새까만|시커먼) (?!색|옷|머리|털|눈)[가-힣]+|어둑어둑|어두웠|어두워(?:졌|지|져)|캄캄해|깜깜해|컴컴해|껌껌해|어둠 속|어둠이 (?:깔|내려|가득|짙)|(?:불|전등|등불)이 (?:꺼졌|꺼지|나갔|탁 꺼)|정전/;
 // 「밤새 깜깜했던 바다가 금빛으로」처럼 지나간 어둠은 아니다
 const NOT_DARK = /어둡지 않|안 어두|어둠이 (?:무섭지|사라|걷)|(?:깜깜|캄캄|어두웠|컴컴|어둑)(?:했)?던 /;
 const MORNING_TEXT = /아침이 (?:밝|됐|되|왔)|해가 (?:떴|떠올|뜨|솟)|날이 밝/;
@@ -800,7 +804,7 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
   mine: { name: string; png: string; height: number }[] = []): PagePlan[] {
   const place = picks.place!;
   const out: PagePlan[] = [];
-  let x = SLOT, loc: string | undefined, night = false;
+  let x = SLOT, loc: string | undefined, night = false, dimOn = false;
   let face: -1 | 0 | 1 = 0;
   const stageIdx = (s: string) => ["place", "problem", "action", "result"].indexOf(s);
   // 숨는 곳은 행동 쪽들의 글에서 한 번 정해 쪽이 바뀌어도 같은 물건
@@ -857,6 +861,12 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
     if (p.stage === "result" && picks.result === "sun") night = false;
     if (p.stage === "result" && picks.result === "sleep") night = true;
     const sun = !night;
+    // 어두운 곳: 그 쪽에서 어두워지면 다음 쪽들도 어둑하다 — 밝아지는 말(불빛 · 환해졌어요) · 아침이 오면 걷힌다.
+    // 같은 쪽에서 밝아지면 장면이 그 말에서 걷어 낸다(SceneStage). 밤이면 밤이 이긴다
+    const darkHere = DARK_TEXT.test(p.text) && !NOT_DARK.test(p.text);
+    const dimNow = !night && (dimOn || darkHere);
+    if (darkHere) dimOn = true;
+    if (BRIGHT.test(p.text) || MORNING_TEXT.test(p.text) || (p.stage === "result" && picks.result === "sun")) dimOn = false;
 
     const props: PropPlan[] = [];
     const actionProp = picks.action ? ACTION_PROP[picks.action] : undefined;
@@ -910,7 +920,17 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       // 걷기 · 뛰기는 늘 같은 길로 (11/9 사용자 결정) — 화면 왼쪽 1/3 에서 출발해 2/3 까지 오른쪽으로 간다.
       // 다가가는 사람 · 표지판(goal)은 그 앞(오른쪽 끝 쪽)에 선다(SceneStage). 전에는 앞 쪽의 자리에서 출발해, 자리가 겹치면
       // 출발 · 도착이 거의 같아 제자리 걸음이 되거나 쪽마다 방향이 바뀌었다
-      goal = (props.find((q) => q.id === "sign") ?? props.find((q) => q.id === "adult" || q.id === cardAdult)
+      // 「엄마 곁으로 기어갔어요 · 친구에게 달려갔어요」 — 글이 다가간다고 말한 대본 인물이 먼저 (11/10: 엄마는 왼쪽에 섰는데 주인공은
+      // 늘 오른쪽으로 가 엄마에게서 멀어졌다). 그 사람을 주인공이 가는 쪽 바로 앞에 세운다(SceneStage)
+      const TOWARD = /^(?:의)? ?(?:곁|옆|쪽|앞|품|에게|한테|께)(?:으로|로)? ?[가-힣]*(?:갔|왔|가|와|다가|달려|기어|뛰어|걸어|안겼)/;
+      const toward = props.find((q) => {
+        if (!q.name) return false;
+        for (let i = p.text.indexOf(q.name); i >= 0; i = p.text.indexOf(q.name, i + 1)) {
+          if (TOWARD.test(p.text.slice(i + q.name.length))) return true;
+        }
+        return false;
+      });
+      goal = (toward ?? props.find((q) => q.id === "sign") ?? props.find((q) => q.id === "adult" || q.id === cardAdult)
         ?? props.find((q) => q.id === "friend" || q.id === cardFriend))?.id;
       from = 1 / 3;
       to = 2 / 3;
@@ -919,14 +939,21 @@ export function planPages(pages: BookPage[], picks: Picks, sheet: Record<string,
       for (const q of props) if (isPerson(q.id)) q.id = asDiver(q.id as PersonId);
       if (goal && isPerson(goal as PropId)) goal = asDiver(goal as PersonId);
     }
-    const hiding = p.stage === "action" && picks.action === "hide";
+    // 숨기: 카드(숨었어요)뿐 아니라 쪽 글이 「숨었어요 · 쏙 숨 · 몸을 숨겼어요」면 그 쪽에서 숨고, 「나왔어요 · 고개를 내밀」면 다시 보인다
+    // (11/10 사용자 「숨었다가 나오면 이야기 상 표현돼야 하는데 그냥 진행」)
+    const HIDE_TEXT = /(?:숨었|숨어|숨는|쏙 숨|몸을 숨|숨겼|숨어 있|숨죽)/;
+    const OUT_TEXT = /(?:나왔|나와|빠져나|고개를 (?:내밀|쏙)|빼꼼|밖으로)/;
+    const hidingCard = p.stage === "action" && picks.action === "hide";
+    const hidingText = HIDE_TEXT.test(p.text) && !OUT_TEXT.test(p.text) && !/숨바꼭질|숨은 그림|숨을 (?:쉬|크게|고르|내쉬|들이)/.test(p.text);
+    const stillHidden = !hidingCard && !hidingText && out.length > 0 && out[out.length - 1].hero.hide !== null && !OUT_TEXT.test(p.text);
+    const hiding = hidingCard || hidingText || stillHidden;
     const hide = !hiding ? null : out.some((q) => q.hero.hide) ? "gone" : "out";
     if (hiding) { from = to = SLOT; }
     if (to !== from) face = to > from ? 1 : -1;
     const weather = weatherFor(p.text, p.scene?.background ?? "", loc);
     out.push({
       location: loc,
-      env: { night, sun, weather, dim: !night && DARK_TEXT.test(p.text) && !NOT_DARK.test(p.text) },
+      env: { night, sun, weather, dim: dimNow },
       hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide,
         calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal },
       props,

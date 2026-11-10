@@ -72,6 +72,10 @@ export const hasScenes = (place?: string) => !!place && place in LOCATIONS;
 export function locationFor(place: string, page: BookPage, prev?: string): string {
   const subs = LOCATIONS[place];
   const loc = page.scene?.location;
+  // 쪽 글이 「동굴 안 · 동굴 속 · 굴 안」이면 대본이 입구라고 적어도 안쪽 — 입구(바깥) 배경에 해가 떠 동굴 밖처럼 보였다 (11/10)
+  if (place === "cave" && /동굴 (?:안|속)|굴 (?:안|속)|동굴 깊/.test(page.text ?? "") && !/동굴 (?:입구|앞|밖)/.test(page.text ?? "")) return "cave";
+  // 앞 쪽에서 동굴 안으로 들어갔으면, 나간다는 말이 없는 한 계속 안쪽 (대본이 쪽마다 입구라고 적어도)
+  if (place === "cave" && prev === "cave" && loc === "cave-entrance" && !/입구|밖|나왔|나와|나가|나섰/.test(page.text ?? "")) return "cave";
   if (loc && subs.some((s) => s.id === loc)) return loc;
   // 영어 배경 문장이 먼저, 그다음 쪽 한국어 글 — 짧은 이야기 · 예전 이야기는 배경 문장이 없다 (11/3).
   // 한 줄로 이어 붙여 「먼저 나온 낱말」이 배경 문장 쪽에서 먼저 잡히게
