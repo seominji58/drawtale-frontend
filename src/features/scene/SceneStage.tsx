@@ -198,6 +198,14 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 앞 쪽 값이 남아 눈물이 한 번 보였다 사라졌다 (11/10 「눈물 한 방울 떨어지고 사람 등장하고 또 떨어져」)
   const [arrivedFor, setArrivedFor] = useState<PagePlan | null>(null);
   const followMs = useRef(0);
+  // 걸어 들어올 인물의 걷기 그림띠를 쪽에 들어올 때 아직 못 받았으면, 받을 때까지 화면 밖에서 기다렸다가 걸어 들어온다
+  // (11/10 「쓩 미끄러지듯 등장」 — 전에는 멈춘 그림이 미끄러져 들어왔다). 이 시간이 지나도 못 받으면 예전처럼 미끄러져 들어온다
+  const LATE_WAIT_MS = 3500;
+  const [lateGiveUp, setLateGiveUp] = useState(false);
+  const lateMs = useRef(0);
+  // 늦게 걷기를 시작한 인물 — 기다림이 끝나도(lateGiveUp) 다시 미끄러져 들어오지 않고 제자리에 선다
+  const lateStarted = useRef<{ plan: PagePlan | null; ids: Set<string> }>({ plan: null, ids: new Set() });
+  if (lateStarted.current.plan !== plan) lateStarted.current = { plan, ids: new Set() };
   // 멈춘 그림의 가로세로 비율 — 옆 인물을 비켜 세울 때 주인공 폭을 잰다
   const [stillAr, setStillAr] = useState<number | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -257,10 +265,17 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   useEffect(() => {
     if (!play || phase !== 1) return;
     // 함께 움직이는 인물이 있으면 주인공과 같이 다 옮겨 간 뒤 (followMs 는 그림을 그릴 때 정한다)
-    const a = window.setTimeout(() => setArrivedFor(plan), REDUCE ? 0 : Math.max(ENTER_MS, followMs.current));
+    const a = window.setTimeout(() => setArrivedFor(plan), REDUCE ? 0 : Math.max(ENTER_MS + lateMs.current, followMs.current));
     return () => clearTimeout(a);
   }, [plan, play, phase]);
   const arrived = mode === "end" || arrivedFor === plan;
+
+  useEffect(() => {
+    setLateGiveUp(false);
+    if (!play || REDUCE) return;
+    const t = window.setTimeout(() => setLateGiveUp(true), LATE_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [plan, play]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // 「숨었어요」: 0.8초 뒤 1초에 걸쳐 사라지고 그대로 숨어 있다. 다음 쪽(같은 행동 단계)은 숨은 채로 시작
   // (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 는 2초 뒤 다시 나타남)
@@ -429,6 +444,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const followWho = followSen ? (behind.find((q) => q.name && followSen.includes(q.name))?.name ?? "*") : null;
   let followTaken = false;
   followMs.current = followWho && travel !== 0 ? timing.ms : 0;
+  lateMs.current = 0;
   const people = behind.map((p) => {
     const base0 = prop(p.id);
     if (!base0) return null;
@@ -843,6 +859,35 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
           if (!stripReady.has(url)) void preloadStrip(url).then(() => setStripTick((n) => n + 1));
           return false;
         };
+        // 늦게 받은 걷기: 쪽 시작 때는 없었는데 지금은 받았다 → 화면 밖에서 지금부터 걸어 들어온다. 아직 못 받았으면 밖에서 기다린다
+        const lateKey = `${p.id}-${p.name ?? k}`;
+        if (lateStarted.current.ids.has(lateKey) && lateGiveUp) {
+          return <img key={lateKey} className={`scene-obj scene-person ${idle}`} src={base + s.src} alt=""
+                      style={{ ...spotStyle({ ...sb, x: spot.x }), transition: "none" }} />;
+        }
+        const lateWalk = !!moves?.walk && !!p.enter && !follow && !spinning && phase === 1 && !ready("walk", true) && !lateGiveUp;
+        const lateReady = lateWalk && stripReady.has(stripUrl(p.id, "walk"));
+        if (lateWalk) lateMs.current = LATE_WAIT_MS;
+        const offX = p.enter === "left" ? -0.14 : 1.14;
+        if (lateWalk && !lateReady) {
+          return <img key={`${p.id}-${p.name ?? k}`} className="scene-obj scene-person" src={base + s.src} alt=""
+                      style={{ ...spotStyle({ ...sb, x: offX }), transition: "none" }} />;
+        }
+        if (lateReady) {
+          lateStarted.current.ids.add(lateKey);
+          const m = moves!.walk!;
+          const tall = sb.h * (1 + m.pad_top + m.pad_bottom);
+          const vars = { ["--until" as string]: `${ENTER_MS}ms`, ["--lag" as string]: "0ms", ["--dur" as string]: `${m.sec}s`,
+            ["--from" as string]: `${offX * 100}%`, ["--enter-ms" as string]: `${ENTER_MS}ms`, ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" };
+          return [
+            <div key={`${p.id}-${p.name ?? k}-walk-late`} className="scene-obj scene-person-strip s-walk late"
+                 style={{ ...spotStyle({ ...sb, x: spot.x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * m.pad_bottom }), aspectRatio: `${m.ar}`, ...vars }}>
+              <img src={stripUrl(p.id, "walk")} alt="" style={{ width: `${m.frames * 100}%`, animationTimingFunction: `steps(${m.frames})` }} />
+            </div>,
+            <img key={`${p.id}-${p.name ?? k}`} className={`scene-obj scene-person after-strip ${idle === "p-talk" ? "p-breathe" : idle}`}
+                 src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x: spot.x }), transition: "none", ...vars }} />,
+          ];
+        }
         const pick: [keyof PersonMoves, number] | null = !moves || spinning ? null
           : follow && moves.walk ? (ready("walk", true) ? ["walk", timing.ms] : null)
           : p.enter && moves.walk ? (ready("walk", true) ? ["walk", ENTER_MS] : null)

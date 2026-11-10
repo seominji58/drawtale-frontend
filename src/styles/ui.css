@@ -1241,6 +1241,10 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-person-strip.s-walk { rotate: var(--lean, 0deg);
   animation: strip-show 0s var(--lag) forwards, strip-hide 0s var(--until) forwards, walk-bob .34s ease-in-out 7 alternate; }
 @keyframes walk-bob { to { translate: 0 -2.5%; } }
+/* 늦게 받은 걷기 (11/10): 받은 때부터 화면 밖(--from)에서 제자리까지 걸어 들어온다 — left 는 애니메이션으로 */
+.scene-person-strip.s-walk.late { animation: strip-show 0s 0s forwards, strip-hide 0s var(--until) forwards, walk-bob .34s ease-in-out 7 alternate,
+  person-enter var(--enter-ms) cubic-bezier(.3,.15,.45,1) both; }
+@keyframes person-enter { from { left: var(--from); } }
 /* 멈춘 그림: 그림띠가 도는 동안(--lag ~ --until)만 숨는다. 뒤에 적은 애니메이션이 이긴다 */
 .scene-person.after-strip { transform-origin: 0 100%;
   animation: strip-hide 0s var(--lag) forwards, strip-show 0s var(--until) forwards, person-breathe 2.2s var(--until) ease-in-out infinite alternate; }
