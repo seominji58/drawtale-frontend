@@ -210,21 +210,30 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     im.src = still;
     return () => { live = false; };
   }, [still]);
+  // 그림띠를 받는 중이면 true. 못 받으면(sprFailed) 멈춘 그림으로 움직인다
+  const [sprFailed, setSprFailed] = useState(false);
   useEffect(() => {
     let live = true;
     setSpr(null);
-    if (sprite?.url) loadSprite(sprite.url, sprite).then((s) => live && setSpr(s)).catch(() => {});
-    return () => { live = false; };
+    setSprFailed(false);
+    if (sprite?.url) loadSprite(sprite.url, sprite).then((s) => live && setSpr(s)).catch(() => live && setSprFailed(true));
+    // 느린 망에서 너무 오래 서 있지 않게 — 5초가 지나면 멈춘 그림으로 먼저 옮겨 간다
+    const giveUp = window.setTimeout(() => live && setSprFailed(true), 5000);
+    return () => { live = false; clearTimeout(giveUp); };
   }, [sprite?.url]);  // eslint-disable-line react-hooks/exhaustive-deps
+  const sprWaiting = !!sprite?.url && !spr && !sprFailed;
 
-  // 들어오면 한 프레임 뒤에 끝 모습으로 — CSS transition 이 그 사이를 잇는다
+  // 들어오면 한 프레임 뒤에 끝 모습으로 — CSS transition 이 그 사이를 잇는다.
+  // 옮겨 가는 쪽은 그림띠를 다 받은 뒤에 출발한다 — 첫 쪽은 그림띠를 받는 동안 이미 도착 자리(2/3)로 옮겨 가 버려,
+  // 받고 나서는 그 자리에서 제자리 걸음만 했다 (11/10 사용자 「왜 처음에 중간에서 제자리 걷기를 하지」)
+  const waitSprite = sprWaiting && plan.hero.move !== "none";
   useLayoutEffect(() => {
     if (REDUCE || mode === "end") { setPhase(1); return; }
-    if (mode === "start" || !layout) { setPhase(0); return; }
+    if (mode === "start" || !layout || waitSprite) { setPhase(0); return; }
     setPhase(0);
     const t = window.setTimeout(() => setPhase(1), 60);
     return () => clearTimeout(t);
-  }, [mode, layout, plan]);
+  }, [mode, layout, plan, waitSprite]);
 
   // 「숨었어요」: 0.8초 뒤 1초에 걸쳐 사라지고 그대로 숨어 있다. 다음 쪽(같은 행동 단계)은 숨은 채로 시작
   // (11/3 사용자 「숨기 했으면 다시 나타나면 안되는데」 — pt_docs 05 S-09-05 는 2초 뒤 다시 나타남)
