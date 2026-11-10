@@ -648,7 +648,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const joyful = fx.joys.filter((jy) => play && heard(jy.at)).map((jy, k) => {
     const w = whoOf(jy.sentence, jy.kind === "heart");
     if (!ready(w)) return null;
-    return { key: `${w.key}-${k}`, x: w.x, y: w.head, size: w.h * 0.17, kind: jy.kind, follow: w.follow };
+    // 머리 둘레를 감싼다 — 칸 가운데가 얼굴 높이, 칸 크기는 그 사람 키 기준 (11/10 「별이 머리 주변에 가득 있어야」)
+    return { key: `${w.key}-${k}`, x: w.x, y: (w.head + w.face) / 2, size: w.h, kind: jy.kind, follow: w.follow };
   }).filter((v): v is NonNullable<typeof v> => !!v);
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
@@ -794,10 +795,10 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       ))}
       {joyful.map((jy) => (
         <div key={jy.key} className={`scene-joy j-${jy.kind}`}
-             style={{ left: `${jy.x * 100}%`, top: `${jy.y * 100}%`, height: `${jy.size * 100}%`, width: `${((jy.size * 3) / aspect) * 100}%`,
+             style={{ left: `${jy.x * 100}%`, top: `${jy.y * 100}%`, height: `${jy.size * 0.62 * 100}%`, width: `${((jy.size * 0.9) / aspect) * 100}%`,
                ...(jy.follow ? withHero : {}) }}>
-          {JOY_BITS.map(([dx, delay, sz], k) => (
-            <svg key={k} viewBox="0 0 24 24" style={{ left: `${dx}%`, animationDelay: `${delay}s`, width: `${sz * 100}%` }}>
+          {JOY_RING.map(([x, y, delay, sz], k) => (
+            <svg key={k} viewBox="0 0 24 24" style={{ left: `${x}%`, top: `${y}%`, height: `${sz}%`, animationDelay: `${delay}s` }}>
               <path d={JOY_PATH[jy.kind]} />
             </svg>
           ))}
@@ -819,7 +820,15 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
 /** 물에 뜨는 소품의 발끝 높이 — 바다 물결 띠(배경판에서 잰 55~60%). 물이 뚜렷한 배경만 */
 const WATER: Record<string, number> = { sea: 0.6 };
 /** 기쁨 연출 조각 [가로 자리 %, 늦게 시작(초), 칸 폭 대비 크기] — 머리 위에서 엇갈려 피어오른다 */
-const JOY_BITS: [number, number, number][] = [[18, 0, 0.34], [50, 0.35, 0.42], [80, 0.7, 0.3], [34, 1.1, 0.28], [66, 1.45, 0.34]];
+const JOY_RING: [number, number, number, number][] = (() => {
+  // 머리 둘레 [가로 %, 세로 %, 늦게 시작(초), 칸 높이 대비 크기 %] — 위쪽 반원 열두 개 + 머리 위 안쪽 셋.
+  // 왼쪽 아래부터 시계 방향으로 차례로 피어난다
+  const ring = Array.from({ length: 12 }, (_, k): [number, number, number, number] => {
+    const a = ((200 - k * (220 / 11)) * Math.PI) / 180;
+    return [50 + 47 * Math.cos(a), 52 - 50 * Math.sin(a), k * 0.12, [22, 30, 18][k % 3]];
+  });
+  return [...ring, [36, 14, 0.5, 16], [64, 10, 0.8, 20], [50, -6, 1.1, 24]];
+})();
 const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
   heart: "M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 4.3 2.4h2c.7-1.2 2.1-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z",
   star: "M12 1.5l2.9 7.1 7.6.6-5.8 5 1.8 7.4L12 17.6l-6.5 4 1.8-7.4-5.8-5 7.6-.6z",

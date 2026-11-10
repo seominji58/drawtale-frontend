@@ -1074,13 +1074,17 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-tears i:first-child { left: 0; translate: -50% 0; }
 .scene-tears i:last-child { right: 0; translate: 50% 0; animation-delay: .75s; }
 /* 기쁨 · 고마움 (11/10): 머리 위로 하트 · 별 · 꽃이 엇갈려 피어올라 사라진다 (두 번) */
-.scene-joy { position: absolute; z-index: 7; translate: -50% -100%; pointer-events: none; }
-.scene-joy svg { position: absolute; bottom: 0; height: auto; translate: -50% 0; opacity: 0; animation: joy-rise 2.2s ease-out 2 both;
+.scene-joy { position: absolute; z-index: 7; translate: -50% -50%; pointer-events: none; }
+/* 머리 둘레에 톡 피어나 반짝이다 살짝 떠오르며 사라진다, 세 번 (11/10 「너무 적게 일부분만」) */
+.scene-joy svg { position: absolute; width: auto; overflow: visible; translate: -50% -50%; opacity: 0; animation: joy-pop 2.3s ease-out 3 both;
   stroke: rgba(58, 46, 38, .55); stroke-width: 1.2; stroke-linejoin: round; paint-order: stroke; }
 .scene-joy.j-heart svg { fill: #F2557A; }
 /* 별은 밝은 하늘 · 모래에 묻혀 잘 안 보였다 (11/10) — 진한 노랑 · 진한 테두리 · 둘레 빛 */
 .scene-joy.j-star svg { fill: #FFC21A; stroke: #B07A00; stroke-width: 1.6; filter: drop-shadow(0 0 4px rgba(255, 196, 40, .95)) drop-shadow(0 0 10px rgba(255, 170, 0, .6)); }
 .scene-joy.j-flower svg { fill: #FF6FA8; }
+@keyframes joy-pop { 0% { opacity: 0; transform: scale(0) rotate(-20deg); } 14% { opacity: 1; transform: scale(1.3) rotate(8deg); }
+  26% { transform: scale(.95) rotate(-4deg); } 38% { transform: scale(1.1) rotate(0); } 50% { transform: scale(.95); }
+  72% { opacity: 1; transform: translateY(-20%) scale(1.05); } 100% { opacity: 0; transform: translateY(-80%) scale(.7); } }
 @keyframes joy-rise { 0% { opacity: 0; transform: translateY(40%) scale(.3) rotate(-12deg); }
   18% { opacity: 1; transform: translateY(0) scale(1.1) rotate(6deg); } 30% { transform: translateY(-20%) scale(1) rotate(-4deg); }
   100% { opacity: 0; transform: translateY(-240%) scale(.85) rotate(8deg); } }
@@ -1168,7 +1172,7 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .scene .m-glow { filter: brightness(1.25) drop-shadow(0 0 16px rgba(255, 226, 130, .95)); }
   .scene-bright.on { animation: none; }
   .scene-tears i { animation: none; opacity: .9; transform: translateY(80%); }
-  .scene-joy svg { animation: none; opacity: 1; transform: translateY(-60%); }
+  .scene-joy svg { animation: none; opacity: 1; }
   .scene .m-blow { animation: none; opacity: 0; }
 }
 
