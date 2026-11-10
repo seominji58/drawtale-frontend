@@ -1294,6 +1294,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .sound-vol-name { font-family: "Gaegu", sans-serif; font-weight: 700; font-size: calc(var(--t-button) * .85); padding-left: 4px; }
 .sound-vol .seg { display: grid; grid-template-columns: repeat(3, 1fr); }
 .sound-vol .seg > button { min-height: var(--tap); font-size: calc(var(--t-button) * .8); }
+/* 큰 화면(TV · 큰 모니터): 글자가 커지니 메뉴 폭도 넓게 — 320px 그대로면 「읽어 주는 목소리」 세 칸 중 「아이」가 끝에 걸렸다 (11/10) */
+@media (min-width: 1600px) and (min-height: 900px) { .sound-menu { width: min(420px, calc(100vw - 32px)); } }
+@media (min-width: 2400px) and (min-height: 1300px) { .sound-menu { width: min(600px, calc(100vw - 32px)); } }
 /* 등록 안 한 목소리 칸은 흐리게 (읽어 주는 목소리, 11/10) */
 .sound-vol .seg > button:disabled:not(.on) { opacity: .35; }
 
