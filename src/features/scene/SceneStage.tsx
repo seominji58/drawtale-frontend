@@ -698,6 +698,12 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 둥지는 배경 나무 가지 사이에 — 「높은 나뭇가지에 새 둥지」가 늘 땅에 놓였다 (11/10). 나무가 없으면 보통 자리
   const trees = layout.objects.filter((o) => /pine|tree/.test(o.src) && o.foot !== undefined);
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
+    // 물고기는 물 위에서 헤엄친다 — 「공중」 소품이라 개울 숲에서 하늘(달 옆)에 떠 있었다 (11/10). 물 높이를 아는 장소만, 바닷속은 그대로
+    if (kindOf(t.src) === "fish" && FISH_LINE[plan.location] !== undefined) {
+      const h = Math.min(t.h, 0.07), half = (h * t.ar / aspect) / 2;
+      const x = [0.82, 0.18, 0.7, 0.3].find((c) => placed.every(([l, r]) => c + half < l || c - half > r)) ?? (hero.to < 0.5 ? 0.82 : 0.18);
+      return { ...t, h, x, footY: FISH_LINE[plan.location] };
+    }
     if (kindOf(t.src) === "nest" && trees.length) {
       const tr = trees.reduce((a, b) => (Math.abs(b.x - hero.to) > Math.abs(a.x - hero.to) ? b : a));   // 주인공과 먼 나무
       return { ...t, h: Math.min(t.h, tr.h * 0.16), x: tr.x, footY: tr.foot! - tr.h * 0.42 };
@@ -1035,6 +1041,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
 
 /** 물에 뜨는 소품의 발끝 높이 — 바다 물결 띠(배경판에서 잰 55~60%). 물이 뚜렷한 배경만 */
 const WATER: Record<string, number> = { sea: 0.6 };
+/** 물고기가 헤엄치는 물 높이 (발끝, 화면 높이 대비) — 개울 · 호수 · 바다 배경판의 물결 띠 */
+const FISH_LINE: Record<string, number> = { "forest-stream": 0.67, "cave-lake": 0.6, sea: 0.6, "sea-pier": 0.6 };
 /** 기쁨 연출 조각 [가로 자리 %, 늦게 시작(초), 칸 폭 대비 크기] — 머리 위에서 엇갈려 피어오른다 */
 const JOY_RING: [number, number, number, number][] = (() => {
   // 머리 둘레 [가로 %, 세로 %, 늦게 시작(초), 칸 높이 대비 크기 %] — 위쪽 반원 열두 개 + 머리 위 안쪽 셋.
