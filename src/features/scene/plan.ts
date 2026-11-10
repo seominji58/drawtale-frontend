@@ -249,7 +249,9 @@ const LIGHT_OFF = /꺼졌|꺼지|꺼져|껐|끄고|끄니/;
  *  bright: 장면이 환해지는 말의 자리 (나레이션이 그 자리에 오면 따뜻한 빛이 번진다). 없으면 -1
  *  tears: 우는 문장들 — 누가 우는지는 장면(SceneStage)이 그 문장의 인물 이름 · 「나」로 정한다.
  *  「울음을 그쳤어요」 · 「눈물을 닦았어요」 · 「울지 않았어요」는 울지 않는 것 */
-export interface SceneFx { bright: number; tears: { at: number; sentence: string }[] }
+export interface SceneFx { bright: number; tears: { at: number; sentence: string }[]; spins: { at: number; before: string }[] }
+/** 빙글 돌기 (11/10 사용자 「돌았어요는 그림을 좌우 반전으로 왔다 갔다」). 「돌아왔어요 · 돌고래 · 돌멩이」는 걸리지 않게 */
+const SPIN = /빙글|뱅글|빙그르|핑그르|팽그르|뱅뱅|빙빙|한 바퀴|두 바퀴|세 바퀴|빙 돌|돌았어|맴돌|제자리에서 돌/;
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
 const BRIGHT = /환해|환하게|환히|환한 빛|밝아|밝혔|밝혀|밝은 빛|빛이 (?:났|나|들|비|퍼|쏟|가득|번|환)|빛으로 (?:가득|환)|햇살|햇빛|달빛이|불빛이|불이 (?:켜졌|켜지|들어왔|들어오)|불을 (?:켰|켜|밝)|눈부/;
 const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
@@ -264,7 +266,14 @@ export function sceneFx(text: string): SceneFx {
     const c = CRY.exec(sen);
     if (c && !NOT_CRY.test(sen)) tears.push({ at: (m.index + c.index) / Math.max(1, text.length), sentence: sen });
   }
-  return { bright: b ? b.index / Math.max(1, text.length) : -1, tears };
+  // 도는 말: 그 문장에서 그 말 앞부분(누가 도는지 — 장면이 정한다)과 자리
+  const spins: SceneFx["spins"] = [];
+  const re2 = /[^.!?”]+[.!?”]*/g;
+  for (let m = re2.exec(text); m; m = re2.exec(text)) {
+    const c = SPIN.exec(m[0]);
+    if (c) spins.push({ at: (m.index + c.index) / Math.max(1, text.length), before: m[0].slice(0, c.index) });
+  }
+  return { bright: b ? b.index / Math.max(1, text.length) : -1, tears, spins };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;

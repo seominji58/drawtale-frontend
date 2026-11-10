@@ -1090,6 +1090,10 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-hero.fallen { transform: translateX(-50%) translateY(5%) rotate(-9deg); transform-origin: 50% 100%; }
 /* 멈춘 그림으로 옮겨 갈 때 · 인물이 걸어 들어올 때 — 걸음마다 살짝 들썩 */
 .scene-hero.stepping, .scene-person.walking-in { animation: scene-step .32s ease-in-out 8 alternate; }
+/* 빙글 돌기 (11/10): 좌우로 뒤집었다 돌아오기를 세 번 — 2D 그림이 도는 것처럼. --flip 은 지금 보는 방향(뒤집혀 있으면 -1) */
+.scene-hero.spin { animation: hero-spin .7s ease-in-out 3; }
+@keyframes hero-spin { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
+  50% { transform: translateX(-50%) scaleX(calc(var(--flip, 1) * -1)); } }
 @keyframes scene-step { to { translate: 0 -2.5%; } }
 /* 등장인물이 가만히 있지 않게 (11/9) — 발끝을 축으로 숨 쉬듯 살짝 커지며 좌우로 갸웃 · 작은 동물은 가끔 깡충.
    처음(키 1.8% 숨쉬기만)은 아이패드에서 거의 안 보여 「등장인물이 안 움직인다」고 했다 (11/9 사용자) — 키 3% · 갸웃 2도.
