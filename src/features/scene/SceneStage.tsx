@@ -296,7 +296,9 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     };
     if (total > 0) raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [spr, plan, play, timing.ms, timing.fps]);
+    // layout: 장소 배치(layout)를 받기 전에는 캔버스가 없다 — 그림띠가 먼저 오면 그리지 못하고 끝나, 배치가 온 뒤 생긴 캔버스는
+  // 끝까지 비어 주인공이 통째로 안 보였다 (11/10 형태별 점검, 처음 여는 장소 · 느린 망)
+  }, [spr, plan, play, timing.ms, timing.fps, !!layout]);
 
   if (!layout) return <div className="scene" ref={root} />;
 
@@ -636,21 +638,25 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const visiblePeople = people.filter((v): v is NonNullable<typeof v> => !!v && v.p.id !== "sign");
   // 문장의 주인 (눈물 · 기쁨이 누구에게 나나): 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 「친구 · 아이 …」면 옆 인물.
   // 고마워(heart)는 도움을 받은 쪽이 하는 말이라 「나」가 없고 옆에 인물이 있으면 그 사람. 없으면 주인공
-  type Who = { key: string; x: number; face: number; head: number; h: number; side: boolean; follow: boolean; enter: boolean };
+  // scale: 연출 크기 기준 (화면 높이 대비). 사람은 키, 옆으로 긴 그림(뱀 · 물고기 · 새 · 4족)은 키가 작아 눈물 · 별이 점처럼
+  // 작았다 (11/10 형태별 점검) — 몸길이의 절반과 키 중 큰 쪽, 화면 높이 2할 아래로는 줄이지 않는다
+  type Who = { key: string; x: number; face: number; head: number; top: number; h: number; scale: number; side: boolean; follow: boolean; enter: boolean };
   const whoOf = (sentence: string, thanks = false): Who | null => {
     const me = /(?:^|[^가-힣])(?:나는|내가|나도|나를|내 눈|내 마음)/.test(sentence);
     const named = visiblePeople.find((v) => v.p.name && sentence.includes(v.p.name));
     const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(sentence) || thanks ? visiblePeople[0] : undefined));
     if (other) {
       const h = other.sb.h, foot = other.sb.foot ?? 0.93;
-      return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, h, side: false, follow: false, enter: !!other.p.enter };
+      return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, top: foot - h, h, scale: h, side: false, follow: false, enter: !!other.p.enter };
     }
     if (heroGone || !drawn.h) return null;
     const hd = heroBody ? bodyAt(heroBody.head) : null;
     const side = facing !== 0 && !upright;
     const x = hd ? hd.x + (side ? headSide * drawn.w * 0.04 : 0) : heroX + (side ? headSide * drawn.w * 0.33 : 0);
     const face = hd ? hd.y + drawn.h * 0.14 : topY + drawn.h * (side ? 0.26 : 0.16);
-    return { key: "hero", x, face, head: hd ? hd.y : topY, h: drawn.h, side, follow: true, enter: false };
+    const scale = Math.max(drawn.h, drawn.w * aspect * 0.5, 0.2);
+    // top: 그림 맨 윗선 — 옆모습의 머리 자리(hd)는 주둥이 높이라 거기에 별 아치를 걸면 얼굴을 덮었다
+    return { key: "hero", x, face, head: hd ? hd.y : topY, top: topY, h: drawn.h, scale, side, follow: true, enter: false };
   };
   // 걸어 들어오는 사람은 제자리에 다 온 뒤에 운다 · 기뻐한다 — 전에는 화면 밖에서 오는 중인데 설 자리에 눈물부터 떨어졌다 (11/10)
   const ready = (w: Who | null): w is Who => !!w && (!w.enter || arrived);
@@ -661,7 +667,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     const w = whoOf(t.sentence);
     if (!ready(w)) return null;
     if (stopsAt.some((c) => c.at > t.at && c.who?.key === w.key)) return null;
-    return { key: w.key, x: w.x, y: w.face, size: w.h * 0.06, gap: w.side ? 0 : (w.h * (w.follow ? 0.04 : 0.032)) / aspect, follow: w.follow };
+    return { key: w.key, x: w.x, y: w.face, size: Math.max(w.scale * (w.side ? 0.085 : 0.06), 0.028), gap: w.side ? 0 : (w.scale * (w.follow ? 0.04 : 0.032)) / aspect, follow: w.follow };
   }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((w) => w?.key === v.key) === k);
   // 기쁨 · 고마움: 그 사람 머리 위로 하트 · 별 · 꽃이 피어오른다 (나레이션이 그 말에 오면 한 번)
   const joyful = fx.joys.filter((jy) => play && heard(jy.at)).map((jy, k) => {
@@ -669,8 +675,9 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     if (!ready(w)) return null;
     // 머리 둘레를 감싼다 — 칸 가운데가 얼굴 높이, 칸 크기는 그 사람 키 기준 (11/10 「별이 머리 주변에 가득 있어야」)
     // 옆모습(새 · 4족 …)은 머리가 그림 끝에 작게 있어 몸 키 기준이면 별이 얼굴 · 눈을 덮었다 — 작게 · 머리 위쪽으로 (11/10)
-    const size = w.side ? w.h * 0.62 : w.h;
-    return { key: `${w.key}-${k}`, who: w.key, x: w.x, y: w.side ? w.head + w.h * 0.02 : (w.head + w.face) / 2, size, kind: jy.kind, follow: w.follow };
+    // 옆모습은 머리가 그림 끝에 작게 있다 — 머리보다 조금 위에 걸어 얼굴을 덮지 않게
+    const size = w.side ? w.scale * 0.75 : w.h;
+    return { key: `${w.key}-${k}`, who: w.key, x: w.x, y: w.side ? w.top : (w.head + w.face) / 2, size, kind: jy.kind, follow: w.follow };
   }).filter((v): v is NonNullable<typeof v> => !!v);
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번

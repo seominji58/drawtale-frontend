@@ -289,6 +289,7 @@ const NOT_JOY = /않았|않아|않고|못 했|못했|비웃|아니었/;
 export const SAD_TEXT = /울었|울고|눈물|훌쩍|엉엉|걱정|슬퍼|슬픈|슬펐|속상|무서|겁이 나|겁나|외로|쓸쓸|시무룩|풀이 죽|다쳤|다친|아파|아팠|넘어졌|넘어져|길을 잃|잃어버|놓쳤|화가 났|화났|뾰로통|깜짝 놀|떨었|덜덜|어두워|캄캄|도와 ?줘|어떡해|어쩌지|큰일/;
 const CALM = /울음을 그쳤|울음이 그쳤|울음을 멈|눈물을 닦|눈물이 그쳤|눈물이 멈|뚝 그쳤|울지 않았/;
 /** 빙글 돌기 (11/10 사용자 「돌았어요는 그림을 좌우 반전으로 왔다 갔다」). 「돌아왔어요 · 돌고래 · 돌멩이」는 걸리지 않게 */
+const DIZZY = /어지러|어질어질|머리가 (?:빙|핑|뱅)|눈앞이|눈이 (?:빙|핑|뱅)|정신이|휘청|비틀/;
 const SPIN = /빙글|뱅글|빙그르|핑그르|팽그르|뱅뱅|빙빙|한 바퀴|두 바퀴|세 바퀴|빙 돌|돌았어|맴돌|제자리에서 돌/;
 /** 몸짓 말 → 연출. 「꾸벅꾸벅 졸았어요」 · 「떨어졌어요」는 걸리지 않게 */
 const GESTURES: [HeroGesture, RegExp][] = [
@@ -318,7 +319,8 @@ export function sceneFx(text: string): SceneFx {
   const spins: SceneFx["spins"] = [];
   const re2 = /[^.!?”]+[.!?”]*/g;
   for (let m = re2.exec(text); m; m = re2.exec(text)) {
-    const c = m[0].includes("?") ? null : SPIN.exec(m[0]);
+    // 어지럽거나 무섭게 도는 것(「머리가 빙글빙글」 · 「눈앞이 빙빙」 · 「어지러워서」)은 신나서 도는 게 아니다 (11/10)
+    const c = m[0].includes("?") || DIZZY.test(m[0]) || SAD_TEXT.test(m[0]) ? null : SPIN.exec(m[0]);
     if (c) spins.push({ at: readAt(text, m.index + c.index), before: m[0].slice(0, c.index) });
   }
   const gestures: SceneFx["gestures"] = [];
