@@ -708,8 +708,12 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     return { key: w.key, x: w.x, y: w.face, size: Math.max(w.scale * (w.side ? 0.085 : 0.06), 0.028), gap: w.side ? 0 : (w.scale * (w.follow ? 0.04 : 0.032)) / aspect, follow: w.follow };
   }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((w) => w?.key === v.key) === k);
   // 기쁨 · 고마움: 그 사람 머리 위로 하트 · 별 · 꽃이 피어오른다 (나레이션이 그 말에 오면 한 번)
-  const joyful = fx.joys.filter((jy) => play && heard(jy.at)).map((jy, k) => {
-    const w = whoOf(jy.sentence, jy.kind === "heart", !!jy.other);
+  // 「우리는 · 우리 둘은 · 함께 · 서로」 — 둘이 같이 하는 것은 주인공과 옆 인물 모두 같은 연출 (11/10 「친해졌다는 둘이 같은 표현」)
+  const together = (sen: string) => /우리(?:는|가|도| 둘| 모두)|둘이|둘은|서로|다 같이|함께 (?:웃|기뻐|손)|친구가 (?:됐|되었|되어)|단짝/.test(sen);
+  const joyful = fx.joys.filter((jy) => play && heard(jy.at)).flatMap((jy) => {
+    if (!together(jy.sentence)) return [{ jy, w: whoOf(jy.sentence, jy.kind === "heart", !!jy.other) }];
+    return [{ jy, w: whoOf("나는", false) }, ...visiblePeople.slice(0, 2).map((v) => ({ jy, w: whoOf(v.p.name ?? "친구", false, true) }))];
+  }).map(({ jy, w }, k) => {
     if (!ready(w)) return null;
     // 머리 둘레를 감싼다 — 칸 가운데가 얼굴 높이, 칸 크기는 그 사람 키 기준 (11/10 「별이 머리 주변에 가득 있어야」)
     // 옆모습(새 · 4족 …)은 머리가 그림 끝에 작게 있어 몸 키 기준이면 별이 얼굴 · 눈을 덮었다 — 작게 · 머리 위쪽으로 (11/10)
