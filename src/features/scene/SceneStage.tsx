@@ -9,7 +9,7 @@
  *         end: 끝 모습 그대로 (떠나는 쪽 · 뒤로 넘긴 쪽) */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Env, PagePlan, PropId } from "./plan";
-import { GREET_TEXT, SAD_TEXT, hasSkyBodies, isIndoor, isPerson, sceneFx } from "./plan";
+import { FOLLOW_TEXT, GREET_TEXT, SAD_TEXT, hasSkyBodies, isIndoor, isPerson, sceneFx } from "./plan";
 import { sceneBase } from "./locations";
 import AR from "./props-ar.json";
 import HANDS from "./hands.json";
@@ -185,6 +185,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   // 걸어 들어오는 인물이 제자리에 다 온 쪽 (눈물 · 연출은 그 뒤에). 쪽(plan)으로 기억한다 — 참/거짓 하나면 쪽이 바뀐 첫 그림에
   // 앞 쪽 값이 남아 눈물이 한 번 보였다 사라졌다 (11/10 「눈물 한 방울 떨어지고 사람 등장하고 또 떨어져」)
   const [arrivedFor, setArrivedFor] = useState<PagePlan | null>(null);
+  const followMs = useRef(0);
   // 멈춘 그림의 가로세로 비율 — 옆 인물을 비켜 세울 때 주인공 폭을 잰다
   const [stillAr, setStillAr] = useState<number | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -243,7 +244,8 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
 
   useEffect(() => {
     if (!play || phase !== 1) return;
-    const a = window.setTimeout(() => setArrivedFor(plan), REDUCE ? 0 : ENTER_MS);
+    // 함께 움직이는 인물이 있으면 주인공과 같이 다 옮겨 간 뒤 (followMs 는 그림을 그릴 때 정한다)
+    const a = window.setTimeout(() => setArrivedFor(plan), REDUCE ? 0 : Math.max(ENTER_MS, followMs.current));
     return () => clearTimeout(a);
   }, [plan, play, phase]);
   const arrived = mode === "end" || arrivedFor === plan;
@@ -408,6 +410,11 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   const travel = Math.sign(hero.to - hero.from);
   // 쪽마다 같은 쪽에서 걸어 들어오는 사람 수 (둘 이상이면 끝부터 붙여 세운다)
   const entering = { left: behind.filter((p) => p.enter === "left").length, right: behind.filter((p) => p.enter === "right").length };
+  // 함께 움직이는 문장의 인물 이름 (없으면 "*" = 첫 인물)
+  const followSen = hero.move !== "none" ? text.split(/(?<=[.!?”])/).find((sen) => FOLLOW_TEXT.test(sen)) : undefined;
+  const followWho = followSen ? (behind.find((q) => q.name && followSen.includes(q.name))?.name ?? "*") : null;
+  let followTaken = false;
+  followMs.current = followWho && travel !== 0 ? timing.ms : 0;
   const people = behind.map((p) => {
     const base0 = prop(p.id);
     if (!base0) return null;
@@ -419,9 +426,19 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     // 주인공이 다가가는 사람은 주인공이 가는 쪽에서 들어온다 — 왼쪽에서 들어와 왼쪽에 서면 주인공이 그 사람에게서 멀어지는
     // 쪽으로 달려갔다 (11/9 「어른에게 달려갔어요」)
     const enter: "left" | "right" | undefined = p.enter && ahead !== undefined ? (travel > 0 ? "right" : "left") : p.enter;
+    // 함께 움직임: 주인공이 옮겨 가는 쪽에 「따라왔어요 · 함께 달렸어요 · 나란히」가 있으면 그 사람(문장에 이름이 나온 인물, 없으면
+    // 첫 인물)이 주인공 뒤에서 같은 빠르기로 같이 옮겨 간다. 주인공이 사람형이든 4족 · 새든 같다 (11/10)
+    if (followWho && travel !== 0 && p.id !== "sign" && (followWho === p.name || (followWho === "*" && !followTaken))) {
+      followTaken = true;
+      const half = (s.h * wRatio / aspect) / 2;
+      const off = heroHalf + half + 0.01;
+      const clampX = (c: number) => Math.min(1 - half - 0.01, Math.max(half + 0.01, c));
+      return { p: { ...p, enter: undefined }, s, spot: { x: clampX(hero.to - travel * off), back: false }, sb: s,
+        follow: { from: hero.from - travel * off } };
+    }
     const spot = personX(s.x, s.h, wRatio, p.id === "sign", enter, !!enter && entering[enter] > 1);
     const sb = spot.back ? { ...s, h: s.h * 0.8, foot: (s.foot ?? 0.93) - 0.07 } : s;
-    return { p: enter === p.enter ? p : { ...p, enter }, s, spot, sb };
+    return { p: enter === p.enter ? p : { ...p, enter }, s, spot, sb, follow: undefined as { from: number } | undefined };
   });
   // 옆모습(4족형 · 사슬형 · 지느러미형) 주인공이 보는 쪽 — 그림의 머리 쪽(facing)과 다르면 좌우로 뒤집는다.
   // 옮겨 가면 가는 쪽(렌더가 머리 쪽으로 걷는다, 11/4 「얼굴 방향에 따라 < 인지 > 인지」), 제자리면 가장 가까운 인물 · 동물 쪽,
@@ -657,12 +674,12 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   // 작았다 (11/10 형태별 점검) — 몸길이의 절반과 키 중 큰 쪽, 화면 높이 2할 아래로는 줄이지 않는다
   type Who = { key: string; x: number; face: number; head: number; top: number; h: number; scale: number; side: boolean; follow: boolean; enter: boolean };
   const whoOf = (sentence: string, thanks = false): Who | null => {
-    const me = /(?:^|[^가-힣])(?:나는|내가|나도|나를|내 눈|내 마음)/.test(sentence);
+    const me = /(?:^|[^가-힣])(?:나는|내가|나도|내 눈|내 마음)/.test(sentence);
     const named = visiblePeople.find((v) => v.p.name && sentence.includes(v.p.name));
     const other = !me && (named ?? (/친구|아이|동생|언니|오빠|형|누나|아기/.test(sentence) || thanks ? visiblePeople[0] : undefined));
     if (other) {
       const h = other.sb.h, foot = other.sb.foot ?? 0.93;
-      return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, top: foot - h, h, scale: h, side: false, follow: false, enter: !!other.p.enter };
+      return { key: `p-${other.p.id}`, x: other.spot.x, face: foot - h * 0.8, head: foot - h, top: foot - h, h, scale: h, side: false, follow: false, enter: !!other.p.enter || !!other.follow };
     }
     if (heroGone || !drawn.h) return null;
     const hd = heroBody ? bodyAt(heroBody.head) : null;
@@ -746,10 +763,11 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       ))}
       {people.map((v, k) => {
         if (!v) return null;
-        const { p, s, spot, sb } = v;
-        // 걸어 들어오는 인물: 처음엔 화면 밖, 끝 모습에서 제자리
-        const x = phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
-        const move: CSSProperties = { transition: REDUCE || !play ? "none" : `left ${ENTER_MS}ms cubic-bezier(.3,.15,.45,1), filter 2.6s ease` };
+        const { p, s, spot, sb, follow } = v;
+        // 걸어 들어오는 인물: 처음엔 화면 밖, 끝 모습에서 제자리. 함께 움직이는 인물은 주인공 뒤 출발점에서 주인공과 같은 빠르기로
+        const x = phase === 0 && follow ? follow.from : phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
+        const move: CSSProperties = { transition: REDUCE || !play ? "none"
+          : follow ? `left ${timing.ms}ms linear, filter 2.6s ease` : `left ${ENTER_MS}ms cubic-bezier(.3,.15,.45,1), filter 2.6s ease` };
         // 가만히 있는 동안 숨쉬기 · 깡충 (11/9 「등장인물이 다 가만히 있다」) — 사람마다 박자를 엇갈려 같이 들썩이지 않게
         // 슬프거나 걱정하는 쪽에서는 이름이 나와도 손을 흔들지 않는다 (우는 친구가 손을 흔들며 웃었다, 11/10)
         // 이름이 나온 인물은 말하는 사람 — 살짝 통통(p-talk). 손 흔들기는 인사하는 말이 있는 쪽에서만, 슬픈 쪽은 안 흔든다
@@ -770,6 +788,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
           return false;
         };
         const pick: [keyof PersonMoves, number] | null = !moves || spinning ? null
+          : follow && moves.walk ? (ready("walk", true) ? ["walk", timing.ms] : null)
           : p.enter && moves.walk ? (ready("walk", true) ? ["walk", ENTER_MS] : null)
           // 그림띠를 다 받기 전에 바꿔 끼우면 멈춘 그림은 숨고 그림띠는 비어 있어 깜빡였다 — 받은 뒤에만 (11/9)
           : CHEER_ACTIONS.has(pageAction) && !sadPage && moves.hooray && ready("hooray") ? ["hooray", moves.hooray.sec * 2000]
@@ -796,7 +815,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
             <div key={`${p.id}-${p.name ?? k}-${name}`} className={`scene-obj scene-person-strip s-${walking ? "walk" : name}`}
                  style={{ ...spotStyle({ ...sb, x, h: tall, foot: (sb.foot ?? 0.93) + sb.h * m.pad_bottom }), aspectRatio: `${m.ar}`, ...move, ...vars,
                    // 걸어 들어올 때 가는 쪽으로 몸을 살짝 기울인다 (정면 그림이 제자리 걸음으로 옆으로 미끄러지면 어색했다)
-                   ...(walking ? { ["--lean" as string]: p.enter === "left" ? "5deg" : "-5deg" } : {}) }}>
+                   ...(walking ? { ["--lean" as string]: (follow ? travel > 0 : p.enter === "left") ? "5deg" : "-5deg" } : {}) }}>
               <img src={stripUrl(p.id, name)} alt=""
                    style={{ width: `${m.frames * 100}%`, ...run }} />
             </div>,
@@ -806,7 +825,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
         }
         return (
           <img key={`${p.id}-${p.name ?? k}`}
-               className={`scene-obj scene-person ${spinning ? "p-spin" : phase === 0 || !p.enter ? idle : "walking-in"}`}
+               className={`scene-obj scene-person ${spinning ? "p-spin" : phase === 0 || !(p.enter || follow) ? idle : "walking-in"}`}
                src={base + s.src} alt="" style={{ ...spotStyle({ ...sb, x }), ...move, ...(phase === 0 || !p.enter ? (idle === "p-talk" ? { animationDelay: `${0.5 + k * 0.3}s, ${1.8 + k * 0.45}s` } : beat) : {}) }} />
         );
       })}
