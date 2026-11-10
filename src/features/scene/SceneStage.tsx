@@ -158,6 +158,8 @@ interface Props {
   text?: string;
   /** 이 쪽 주인공 동작 (book page action) — 기쁨이면 옆 인물도 만세 */
   pageAction?: string;
+  /** 앞 쪽 글 — 날개형이 앞 쪽에서 날고 있었는지(높이를 이어 붙인다) */
+  prevText?: string | null;
   /** 주인공 이름 (연출의 「누가」를 가린다 — 「별이는 잠이 들었어요」) */
   heroName?: string | null;
   /** 주인공 형태 (forms/*.json id). 4족형이면 든 소품을 입에 물고 · 등에 태운다 (pt_docs 20 2-a) */
@@ -167,10 +169,14 @@ interface Props {
 /** 몸길이 기준일 때 몸길이 = 장소 주인공 키(hero.h)의 이만큼. 키는 이 배를 넘지 않는다 (옆으로 긴 그림이 너무 커지지 않게) */
 const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
 
-export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift: formLift = 0, size = 1, form, narration, envAt, text = "", pageAction = "" }: Props) {
+export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spriteRight, spriteLeft, still, mode, heroHands, heroBody, fit = "height", facing = 0, lift: formLift = 0, size = 1, form, narration, envAt, text = "", pageAction = "", prevText = null }: Props) {
   // 새(날개형)는 나는 쪽에서만 띄운다 — 늘 화면 높이 4할 위에 떠 있어 「옆에서 지켜봤어요」에도 공중에 있었고
   // 땅에 선 인물들과 높이가 맞지 않았다 (11/10). 헤엄치는 친구(지느러미형)는 그대로 뜬다
-  const lift = form === "winged" && !FLY_TEXT.test(text) ? 0 : formLift;
+  // 날고 있는 쪽 높이 — 앞 쪽과 다르면 쪽에 들어올 때 앞 쪽 높이에서 천천히 날아오르거나 내려앉는다 (11/10 「갑자기 낮게 날다 떨어져 걷고」).
+  // 전에는 쪽을 넘길 때마다 순간이동하듯 위아래로 튀었다
+  const liftOf = (t: string | null | undefined) => (form === "winged" && !FLY_TEXT.test(t ?? "") ? 0 : formLift);
+  const liftNow = liftOf(text);
+  const liftPrev = prevText == null ? liftNow : liftOf(prevText);
   const play = mode === "play";
   // 그림띠가 풀리면 다시 그린다. 걸어 들어오기는 재생을 시작할 때 풀려 있던 것만 (도중에 붙으면 걷다가 그림이 바뀐다),
   // 인사는 늦게 풀려도 그때부터 손을 든다
@@ -184,6 +190,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const [spr, setSpr] = useState<Sprite | null>(null);
   // 0 = 시작 모습, 1 = 끝 모습. play 가 아니면 처음부터 끝 모습
   const [phase, setPhase] = useState<0 | 1>(mode !== "end" && !REDUCE ? 0 : 1);
+  const lift = phase === 0 && play ? liftPrev : liftNow;
   const [hidden, setHidden] = useState(false);
   // 정면 그림(사람형) 주인공이 옮겨 가는 동안 가는 쪽으로 기울인다 (11/9 사용자 — 정면 제자리 걸음으로 옆으로 미끄러져 어색)
   const [leaning, setLeaning] = useState(false);
@@ -368,7 +375,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     drawn = { w: stillAr ? stillH * stillAr / aspect : 0, h: stillH };
   }
   // 같은 빠르기로 (속도가 바뀌면 걸음과 어긋나 발이 미끄러진다)
-  const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease, rotate .35s ease`;
+  const heroTransition = REDUCE || !play ? "none" : `left ${timing.ms}ms linear, bottom 1.4s cubic-bezier(.35,0,.25,1), opacity ${heroGone ? 1 : 0}s ease, filter 2.6s ease, rotate .35s ease`;
   if (leaning && facing === 0 && hero.move !== "none" && phase === 1) {
     heroStyle = { ...heroStyle, rotate: `${Math.sign(hero.to - hero.from) * (hero.move === "run" ? 7 : 4)}deg`, transformOrigin: "0 100%" };
   }
@@ -475,7 +482,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const airPlaced: [number, number][] = [];
   // 대본이 말한 자리 (pose): 물에 떠내려감 · 바람에 날아감 · 나무에 걸림 · 머리에 씀 · 손에 듦. 놓을 수 없으면 아래 보통 자리로
   // 주인공 머리 · 손 자리는 서 있는 사람 그림 기준 — 옆으로 긴 몸(4족형) · 띄운 몸(물고기)은 머리 · 손이 다른 데라 보통 자리로 (11/5)
-  const upright = fit === "height" && size === 1 && !lift;
+  const upright = fit === "height" && size === 1 && !liftNow;
   // 4족형 주인공에 붙는 소품 (pt_docs 20 2-a, 11/6) — 손이 없으니 든 것은 입에 물고, 「등에 태우고」는 등 위에, 모자는 머리에.
   // 머리 쪽은 화면에 보이는 쪽(뒤집었으면 가는 쪽). 주인공과 같은 빠르기로 함께 옮겨 간다. 그림마다 머리 · 등 높이가 달라
   // 그려진 칸에서 어림한다 — 머리는 앞쪽 위, 등은 가운데 위 (강아지 · 고양이 · 공룡 시험 그림 기준). 셋 다 주인공 앞에 그린다
@@ -966,7 +973,8 @@ const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
   flower: "M12 9.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm0 12a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM6 15.2a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zm12 0a3.3 3.3 0 1 1 0-6.4 3.3 3.3 0 0 1 0 6.4zM12 14.6a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2z",
 };
 /** 나는 말 — 새 주인공을 띄운다 */
-const FLY_TEXT = /날아|날았|날고|날며|날면서|날개를 (?:활짝 )?(?:펴|펼|펄럭|파닥)|훨훨|하늘(?:로|을|에서|높이)|높이 (?:올라|떠)|파닥파닥 (?:날|올)/;
+// 「날개를 팔랑팔랑 흔들며 도착했어요」처럼 날갯짓하며 옮겨 가는 것도 난다
+const FLY_TEXT = /날아|날았|날고|날며|날면서|날개를 (?:활짝 )?(?:펴|펼|펄럭|파닥)|날개를 [가-힣]+ (?:흔들|펄럭|파닥|퍼덕)이?(?:며|면서|고) [가-힣 ]{0,12}(?:도착|갔|왔|날|올라|다녔|돌)|훨훨|하늘(?:로|을|에서|높이)|높이 (?:올라|떠)|파닥파닥 (?:날|올)|퍼덕퍼덕 (?:날|올)/;
 /** 기호 연출 조각 — 모양은 CSS(.scene-mark.k-*)가 그린다 */
 const SPARK = "M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z";
 const MARK_BITS: Record<MarkKind, JSX.Element> = {
