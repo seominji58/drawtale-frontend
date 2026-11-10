@@ -654,8 +654,14 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
   const otherSpins = (before: string) => visiblePeople.some((v) => v.p.name && before.includes(v.p.name))
     || /친구(?:가|는|도|랑)|아이(?:가|는)|동생(?:이|은)|언니(?:가|는)|오빠(?:가|는)|형(?:이|은)|누나(?:가|는)|아기(?:가|는)/.test(before);
-  const heroSpin = play && !REDUCE && !hero.fallen && !heroGone && !(plan.things ?? []).some((t) => t.motion === "spin")
-    && fx.spins.some((sp) => heard(sp.at) && !otherSpins(sp.before));
+  const canMove = play && !REDUCE && !hero.fallen && !heroGone;
+  const spinAt = canMove && !(plan.things ?? []).some((t) => t.motion === "spin")
+    ? Math.max(-1, ...fx.spins.filter((sp) => heard(sp.at) && !otherSpins(sp.before)).map((sp) => sp.at)) : -1;
+  // 몸짓 (11/10): 꾸벅 · 끄덕 · 떨기 · 웅크리기, 빙글처럼 그림을 통째로 움직여 날개형 · 물고기도 된다. 다른 사람이 하는 말이면 넘어가고,
+  // 나레이션이 그 말에 오면 한 번. 빙글 · 몸짓이 한 쪽에 여럿이면 가장 나중에 들린 것 하나 (애니메이션이 하나라 겹치면 서로 지운다)
+  const gesture = canMove ? fx.gestures.filter((g) => heard(g.at) && !otherSpins(g.before)).pop() : undefined;
+  const heroSpin = spinAt >= 0 && !(gesture && gesture.at > spinAt);
+  const heroMove = heroSpin ? "spin" : gesture ? `g-${gesture.kind}` : "";
 
   return (
     <div className={`scene ${night ? "night" : ""} ${plan.location.startsWith("space") ? "starry" : ""} ${weather === "rain" ? "gloomy" : ""} ${weather === "storm" ? "stormy" : ""}`} aria-hidden ref={root}>
@@ -762,11 +768,11 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
       ))}
       {spr
         // 캔버스는 렌더 칸 크기 그대로 — 384 로 줄여 그린 뒤 화면에서 2~3배로 키워 선이 뭉개지고 계단처럼 보였다 (11/9 사용자 「렌더링이 깨지고 울퉁불퉁」)
-        ? <canvas ref={canvas} width={spr.cell} height={spr.cell} data-hero-x={heroX.toFixed(3)} className={`scene-hero ${hero.fallen ? "fallen" : ""} ${heroSpin ? "spin" : ""}`}
-                  style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
+        ? <canvas ref={canvas} width={spr.cell} height={spr.cell} data-hero-x={heroX.toFixed(3)} className={`scene-hero ${hero.fallen ? "fallen" : ""} ${heroMove}`}
+                  style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ["--lean" as string]: `${facing !== 0 ? headSide * 9 : 0}deg`, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
         : still
-          ? <img className={`scene-hero ${hero.fallen ? "fallen" : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""} ${heroSpin ? "spin" : ""}`}
-                 src={still} alt="" style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
+          ? <img className={`scene-hero ${hero.fallen ? "fallen" : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""} ${heroMove}`}
+                 src={still} alt="" style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ["--lean" as string]: `${facing !== 0 ? headSide * 9 : 0}deg`, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
                  onLoad={(e) => setStillAr(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight))} />
           : null}
       {weather && weather !== "rainbow" && (

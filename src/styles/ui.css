@@ -1105,6 +1105,25 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene-hero.spin { animation: hero-spin .7s ease-in-out 3; }
 @keyframes hero-spin { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
   50% { transform: translateX(-50%) scaleX(calc(var(--flip, 1) * -1)); } }
+/* 몸짓 (11/10): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. 축은 발끝 가운데. --lean 은 머리 쪽으로 기우는 각도
+   (옆모습이면 머리 쪽 ±9도, 앞모습이면 0 이라 숙이는 대신 키만 살짝 줄어든다). 나레이션이 그 말에 오면 한 번 */
+.scene-hero.g-bow, .scene-hero.g-nod, .scene-hero.g-crouch { transform-origin: 50% 100%; }
+/* 꾸벅: 머리 쪽으로 숙였다가 잠깐 멈추고 돌아오기 */
+.scene-hero.g-bow { animation: hero-bow 1.3s ease-in-out 1; }
+@keyframes hero-bow { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
+  35%, 60% { transform: translateX(-50%) rotate(var(--lean, 0deg)) scale(var(--flip, 1), .93); } }
+/* 끄덕: 작게 두 번 */
+.scene-hero.g-nod { animation: hero-nod .45s ease-in-out 2; }
+@keyframes hero-nod { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
+  50% { transform: translateX(-50%) rotate(calc(var(--lean, 0deg) * .45)) scale(var(--flip, 1), .97); } }
+/* 떨기: 좌우로 잘게 */
+.scene-hero.g-shiver { animation: hero-shiver .09s linear 14; }
+@keyframes hero-shiver { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
+  25% { transform: translateX(-52%) scaleX(var(--flip, 1)); } 75% { transform: translateX(-48%) scaleX(var(--flip, 1)); } }
+/* 웅크리기: 낮고 넓게 눌렀다가 한동안 그대로, 천천히 펴기 */
+.scene-hero.g-crouch { animation: hero-crouch 2.4s ease-in-out 1; }
+@keyframes hero-crouch { 0%, 100% { transform: translateX(-50%) scaleX(var(--flip, 1)); }
+  25%, 75% { transform: translateX(-50%) scale(calc(var(--flip, 1) * 1.05), .84); } }
 @keyframes scene-step { to { translate: 0 -2.5%; } }
 /* 등장인물이 가만히 있지 않게 (11/9) — 발끝을 축으로 숨 쉬듯 살짝 커지며 좌우로 갸웃 · 작은 동물은 가끔 깡충.
    처음(키 1.8% 숨쉬기만)은 아이패드에서 거의 안 보여 「등장인물이 안 움직인다」고 했다 (11/9 사용자) — 키 3% · 갸웃 2도.

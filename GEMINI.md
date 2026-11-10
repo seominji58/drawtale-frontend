@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/10 주인공 몸짓 연출 · 사람 아닌 주인공 몸 규칙**: 쪽 글의 꾸벅 · 끄덕 · 덜덜 · 웅크리기(날개 접기 · 오므리기)는 나레이션이 그 말에 올 때 주인공 그림을 통째로 숙이기 · 두 번 움찔 · 좌우로 잘게 흔들기 · 낮게 눌렀다 펴기(`plan.ts` `GESTURES`, `SceneStage` `heroMove`, `ui.css` `.g-*`), 빙글 돌기와 같은 방식이라 날개형 · 물고기도 된다. 다른 사람이 하는 말이면 넘어가고 「꾸벅꾸벅 졸았어요」는 안 함. 확인 `node tools/scene-check/gesture.mjs [0|1]`(개발 서버 5174). 백엔드 몸 규칙에 빙글 · 꾸벅 · 끄덕 · 떨기 · 웅크리기를 쓸 수 있는 몸짓으로 넣음. 걷기 · 손 · 쫑긋은 백엔드 `book.body_problems` 가 잡아 틀린 쪽만 고침
 - **11/9 소품 크기 · 그림띠 미리 읽기**: 소품 키는 `plan.ts` THINGS(주인공 0.52 = 아이 1.1m 기준), 큰 소품은 `SceneStage` 가 배경 물건을 피한 자리를 먼저. 내 소품 크기 `props.ts` `propHeight`(장면 · 미리 보기 같은 값), 그림 주소는 `thingSrc`. 그림띠는 `preloadStripsFor`(S09) 로 미리 읽고 풀린 것만 쓴다. 검사 `harness.html?flip=900` · `?mine=이름`
 - **11/9 장면 등장인물 동작**: 그림띠는 `tools/people-moves/make.py`(AI `mask_from=alpha` · 관절 검사 → `regen.json`), 동작은 AI `scene_walk` · `scene_wave`(`runtime/tools/make_scene_motions.py`, 재적용 `scene_front.yaml`, 첫 장 = 그린 자세, 인사는 `loop_from` 부터 끝없이 되풀이). 렌더 도중에도 `merge.py` 로 정보 합치기. 만세는 뺐고 기쁜 쪽도 인사(`SceneStage`). 흰 옷 비침은 `tools/art/fill_white_clothes.py`. 인사 손은 `hand_flip.py` 로 미리 거울 뒤집기, AI 렌더는 오린 그림이면 그물 틀을 원래 모양대로(`mesh_mask` tight, 다리 · 팔 틈이 메워져 꺾이던 것). 보기 `/tools/people-moves/view.html`, 검사 `check.py`, 장면 재생 검사 `harness.html?play=hooray`
 - **11/9 책 화면 뒤로 가기**: `S09Story` 장면 모드는 넘기는 동안 도착할 쪽 = 시작 모습(방향 상관없이), 들어온 쪽 = 늘 재생. 장면 층 이야기 기기 점검은 `tools/device-check/story.mjs`(실서버 모드 · 토큰 · 이야기 id).

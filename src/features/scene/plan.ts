@@ -264,8 +264,11 @@ export function readAt(text: string, i: number): number {
 }
 
 export type JoyKind = "heart" | "star" | "flower";
+export type HeroGesture = "bow" | "nod" | "shiver" | "crouch";
 export interface SceneFx {
   bright: number; tears: { at: number; sentence: string }[]; spins: { at: number; before: string }[];
+  /** 주인공 몸짓 (11/10 사용자 「꾸벅 끄덕 떨기 웅크리기 연출」): 관절 없이 그림을 통째로 움직여 어느 형태든 된다. before 는 빙글과 같다 */
+  gestures: { at: number; before: string; kind: HeroGesture }[];
   /** 기쁨 · 고마움 (11/10 사용자 「고맙다 · 기쁘다 긍정일 땐 하트 · 꽃 같은 기분 좋은 연출」) — 그 사람 머리 위로 피어오른다 */
   joys: { at: number; sentence: string; kind: JoyKind }[];
   /** 울음이 그친 자리 (눈물을 닦았어요 · 울음을 그쳤어요) — 그 사람 눈물이 멈춘다 */
@@ -283,6 +286,14 @@ export const SAD_TEXT = /울었|울고|눈물|훌쩍|엉엉|걱정|슬퍼|슬픈
 const CALM = /울음을 그쳤|울음이 그쳤|울음을 멈|눈물을 닦|눈물이 그쳤|눈물이 멈|뚝 그쳤|울지 않았/;
 /** 빙글 돌기 (11/10 사용자 「돌았어요는 그림을 좌우 반전으로 왔다 갔다」). 「돌아왔어요 · 돌고래 · 돌멩이」는 걸리지 않게 */
 const SPIN = /빙글|뱅글|빙그르|핑그르|팽그르|뱅뱅|빙빙|한 바퀴|두 바퀴|세 바퀴|빙 돌|돌았어|맴돌|제자리에서 돌/;
+/** 몸짓 말 → 연출. 「꾸벅꾸벅 졸았어요」 · 「떨어졌어요」는 걸리지 않게 */
+const GESTURES: [HeroGesture, RegExp][] = [
+  ["bow", /꾸벅|허리를 (?:숙여|굽혀|굽히)|고개 숙여 인사|고개를 숙여 인사|절을 (?:했|하)/],
+  ["nod", /끄덕/],
+  ["shiver", /덜덜|부들부들|오들오들|벌벌|바들바들|후들후들|몸을 떨|떨렸|떨리|떨었|떨며|떨고/],
+  ["crouch", /웅크|움츠|오므리|오므렸|날개를 (?:꼭 |살며시 |가만히 )?접|쪼그|몸을 (?:작게|낮추|낮췄|낮춰|동그랗게)/],
+];
+const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
 const BRIGHT = /환해|환하게|환히|환한 빛|밝아|밝혔|밝혀|밝은 빛|빛이 (?:났|나|들|비|퍼|쏟|가득|번|환)|빛으로 (?:가득|환)|햇살|햇빛|달빛이|불빛이|불이 (?:켜졌|켜지|들어왔|들어오)|불을 (?:켰|켜|밝)|눈부/;
 const CRY = /울었|울고|울어|울먹|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
@@ -306,6 +317,16 @@ export function sceneFx(text: string): SceneFx {
     const c = m[0].includes("?") ? null : SPIN.exec(m[0]);
     if (c) spins.push({ at: readAt(text, m.index + c.index), before: m[0].slice(0, c.index) });
   }
+  const gestures: SceneFx["gestures"] = [];
+  const re4 = /[^.!?”]+[.!?”]*/g;
+  for (let m = re4.exec(text); m; m = re4.exec(text)) {
+    for (const [kind, gre] of GESTURES) {
+      if (kind === "bow" && DOZE.test(m[0])) continue;
+      const g = gre.exec(m[0]);
+      if (g) gestures.push({ at: readAt(text, m.index + g.index), before: m[0].slice(0, g.index), kind });
+    }
+  }
+  gestures.sort((a, b) => a.at - b.at);
   const joys: SceneFx["joys"] = [];
   const calms: SceneFx["calms"] = [];
   const re3 = /[^.!?”]+[.!?”]*/g;
@@ -320,7 +341,7 @@ export function sceneFx(text: string): SceneFx {
       if (j) { joys.push({ at: readAt(text, m.index + j.index), sentence: sen, kind }); break; }
     }
   }
-  return { bright: b ? readAt(text, b.index) : -1, tears, spins, joys, calms };
+  return { bright: b ? readAt(text, b.index) : -1, tears, spins, gestures, joys, calms };
 }
 function thingMotion(t: ThingPlan, text: string, weather: Weather | null): ThingMotion | undefined {
   const src = t.src;
