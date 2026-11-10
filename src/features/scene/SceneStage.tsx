@@ -678,7 +678,7 @@ export default function SceneStage({ plan, prevEnv, sprite: spriteRight, spriteL
     // 옆모습은 머리가 그림 끝에 작게 있다 — 머리보다 조금 위에 걸어 얼굴을 덮지 않게
     const size = w.side ? w.scale * 0.75 : w.h;
     return { key: `${w.key}-${k}`, who: w.key, x: w.x, y: w.side ? w.top : (w.head + w.face) / 2, size, kind: jy.kind, follow: w.follow };
-  }).filter((v): v is NonNullable<typeof v> => !!v);
+  }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((o) => o?.who === v.who && o?.kind === v.kind) === k);   // 한 사람에 같은 연출 하나
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
   const otherSpins = (before: string) => visiblePeople.some((v) => v.p.name && before.includes(v.p.name))
