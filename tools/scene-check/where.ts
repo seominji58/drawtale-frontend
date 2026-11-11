@@ -22,6 +22,13 @@ const CASES: [string, string, string, string | undefined][] = [
   ["나는 미끄럼틀로 가는 길에 넘어졌어요.", "playground", "playground-path", undefined],
   ["나는 미끄럼틀을 향해 뛰었어요.", "playground", "playground-path", undefined],
   ["어른이 나를 큰 미끄럼틀까지 데려다 줬어요.", "playground", "playground-path", "playground"],
+  // 놀이 기구를 지나며 놂 (11/11 994번), 모래 터널 · 지난 일 말은 아님
+  ["토토는 꼬불꼬불한 길을 따라 신나게 놀았어요. 구름다리를 건너고, 또 긴 터널을 지났어요.", "playground", "playground-path", "playground"],
+  ["나는 놀이터 구름다리에 두 손으로 매달렸어요.", "playground", "playground-path", "playground"],
+  ["나는 모래 터널 속을 기어갔어요.", "playground", "playground-path", undefined],
+  ["아까 건넌 구름다리가 출렁출렁 흔들렸어요.", "playground", "playground-path", undefined],
+  ["나는 바다 방파제 입구에 도착해 낚싯대를 번쩍 들어 보였어요.", "sea", "sea", "sea-pier"],
+  ["나는 콩콩 뛰어서 교문을 지났어요.", "school", "school-classroom", "school"],
   ["졸졸 흐르는 작은 시냇물 옆을 지나갔어요.", "forest", "forest-trail", "forest-stream"],
   ["저기 책이 가득한 도서관이 보였어요.", "school", "school-hallway", undefined],
 ];

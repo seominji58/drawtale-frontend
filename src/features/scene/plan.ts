@@ -140,10 +140,32 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/버섯/, "forest/mushroom.webp", 0.1, "ground"],
   // C. 새로 그린 12장 (tools/art/gen_scene_props.py)
   [/나뭇잎|낙엽/, "props/leaves.webp", 0.07, "ground"],
-  [/운동화|신발/, "props/sneakers.webp", 0.07, "ground"],
+  // 주인공이 신고 있는 신발(끈을 묶었어요 · 신발 끝에 물이 · 신발을 신고)은 놓지 않는다: 「신발 끈을 꼭 묶었어요」에 주인공 발 옆에
+  // 운동화 한 켤레가 또 놓였다 (11/11 사용자). 벗어 놓은 신발 · 신발장 앞 신발만
+  [/(?:운동화|신발)(?!\s?(?:끈|끝|코|이 젖|이 흠뻑|이 축축|에 (?:흙|물|모래)|이 (?:벗겨|미끄))|장)(?!(?:을|를)?\s?(?:꼭\s?|다시\s?|얼른\s?)?신(?:고|었|은|어|는))/, "props/sneakers.webp", 0.07, "ground"],
   [W1("나비"), "props/butterfly.webp", 0.08, "air"],
   [/발자국/, "props/footprints.webp", 0.04, "ground"],
   [/화살표/, "props/arrow.webp", 0.4, "ground"],
+  // D. 글에 나오는데 그림이 없던 놀이터 · 바깥 물건 (11/11 사용자 994번 「터널이라는데 내용도 이상하고」, tools/art/gen_scene_props5.py).
+  // 구름다리는 저장 이야기에서 「매달려 · 쇠막대 · 한 칸씩」이 대부분이라 매달리는 사다리. 모래 터널 · 터널을 파는 말은 빼고(아래 thingsFor)
+  [/구름다리/, "props/monkeybars.webp", 0.4, "ground"],
+  [/(?<!모래 )터널(?!을 (?:뚫|파))/, "props/tunnel.webp", 0.2, "ground"],
+  [/안내소/, "props/booth.webp", 0.5, "ground"],
+  [/정문|교문|철문/, "props/parkgate.webp", 0.45, "ground"],
+  // E. 다른 장소 배경에만 있던 그림을 글이 말하면 소품으로 (11/11 글이 말하는 물건 전수 점검: 길 · 학교 · 바닷가에서 「가로등 · 화단 · 미끄럼틀 ·
+  // 분수 · 쉼터」를 말해도 그림이 없었다). 배경에 이미 있으면 SceneStage 가 또 놓지 않는다
+  [/미끄럼틀/, "playground/slide.webp", 0.42, "ground"],
+  [/가로등/, "town/lamp.webp", 0.46, "ground"],
+  [/화단/, "playground-path/flowerbed.webp", 0.14, "ground"],
+  [/분수/, "town-park/fountain.webp", 0.26, "ground"],
+  [/쉼터|정자/, "props/pavilion.webp", 0.5, "ground"],
+  [/침대/, "home-bedroom/bed.webp", 0.3, "ground"],
+  // F. 새로 그린 5장 (11/11 글이 말하는 물건 점검, tools/art/gen_scene_props6.py). 줄넘기 줄 · 「그물 무늬」는 빼고
+  [/정글짐/, "props/junglegym.webp", 0.42, "ground"],
+  [/밧줄/, "props/rope.webp", 0.08, "ground"],
+  [/연못(?!가)/, "props/pond.webp", 0.12, "ground"],
+  [/(?<!거미|별 ?)그물(?! ?무늬| ?모양)/, "props/net.webp", 0.3, "ground"],   // 우주 「별 그물」은 고기잡이 그물이 아니다
+  [/책상/, "props/desk.webp", 0.3, "ground"],
   [/모래성/, "props/sandcastle.webp", 0.13, "ground"],
   [/행성/, "props/planet.webp", 0.14, "air"],
   [W1("지구"), "props/earth.webp", 0.14, "air"],
@@ -700,7 +722,27 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   "props/gate.webp": (_l, indoor) => !indoor,
   "playground/swing.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater"),
   "props/mailbox.webp": (_l, indoor) => !indoor,
+  // 구름다리 · 터널 · 안내소 · 정문도 바깥에만 (「아빠 무릎에 앉아 구름다리 이야기를 했어요」는 집 안), 바닷속 · 우주 빼고
+  "playground/slide.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater"),
+  "town/lamp.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater") && !l.startsWith("cave"),
+  "playground-path/flowerbed.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea") && !l.startsWith("cave"),
+  "town-park/fountain.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater") && !l.startsWith("cave"),
+  // 정자는 숲 · 공원 · 마을 바깥 (동굴 · 우주 · 바닷속 「쉼터」는 다른 모양이라 놓지 않는다)
+  "props/pavilion.webp": (l, indoor) => !indoor && !/^(?:space|sea-underwater|cave)/.test(l),
+  "props/junglegym.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
+  "props/pond.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
+  "props/net.webp": (l) => !l.startsWith("space"),
+  // 방 책상은 방 안에만, 교실은 배경에 책상들이 있다
+  "props/desk.webp": (l, indoor) => indoor && l !== "school-classroom",
+  // 침대는 방 안에만 (보건실 · 우주선 침실 포함)
+  "home-bedroom/bed.webp": (_l, indoor) => indoor,
+  ...Object.fromEntries(["monkeybars", "tunnel", "booth", "parkgate"].map((n) => [`props/${n}.webp`,
+    (l: string, indoor: boolean) => !indoor && !l.startsWith("sea-underwater") && !l.startsWith("space")])),   // 나무 안내소는 외계 행성에 어색하고 우주선 소품 자리를 뺏었다
 };
+/** 몸에 걸친 물건 (11/11 사용자 「발자국이라면서 신발 있고」): 「장갑을 끼고 · 가방을 메고 · 헬멧 끈을 채우고 · 담요를 두르고」는 그 사람이 지닌 것이라
+ *  땅에 따로 세우지 않는다. 신발은 THINGS 정규식에서 거른다 */
+const WORN_SRC = new Set(["props/mittens.webp", "props/spacegloves.webp", "props/helmet.webp", "props/backpack.webp", "props/blanket.webp", "props/hat.webp"]);
+const WORN_AFTER = /^[가-힣]{0,2}\s?(?:(?:을|를|이|가|도)\s?)?(?:꼭\s|다시\s|얼른\s|단단히\s|꽉\s|살짝\s|둘둘\s|폭\s)?(?:끼(?:고|었|운|워)|꼈|메(?:고|었|은)|멨|매(?:고|었|은)|입(?:고|었|은)|두르|둘렀|둘러|쓰고|썼|쓴|끈)/;
 
 /** 쪽마다 놓을 물건 — 내 소품이 먼저(같은 낱말이면 내가 그린 것), 그다음 장면 그림. 글에서 먼저 나온 순.
  *  loc 은 그 쪽의 장소 (모르면 장소로 거르지 않는다) */
@@ -736,6 +778,13 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
       if (src === "props/boat.webp" && /종이 ?배/.test(m[0])) continue;
       // 「구름 이불 · 나뭇잎 이불 · 잎 이불」은 천 이불이 아니다 (11/11 전수 점검: 우주 · 숲에 담요가 깔렸다)
       if (src === "props/blanket.webp" && /(?:구름|나뭇잎|잎|꽃잎|눈|별빛|햇살|낙엽|이끼|풀) ?$/.test(said.slice(Math.max(0, m.index - 4), m.index))) continue;
+      // 몸에 걸친 물건 (모자는 「머리에 쓰고」면 머리 자리로 가니 「친구 모자 끝」처럼 남이 쓴 것만)
+      if (WORN_SRC.has(src) && (src !== "props/hat.webp" ? WORN_AFTER.test(said.slice(m.index + m[0].length).replace(/^(?:을|를|이|가|도)/, ""))
+        : /(?:친구|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|언니|오빠|형|누나|동생)(?:의)? $/.test(said.slice(Math.max(0, m.index - 6), m.index)))) continue;
+      // 「정문까지 데려다 줬어요」는 갈 곳이라 이 쪽에는 아직 없다 (11/11 994번: 6쪽부터 정문이 섰는데 8쪽에 「드디어 정문이 보였어요」)
+      if (/^(?:까지|으로|로)\s?(?:데려다|바래다|모셔다)/.test(said.slice(m.index + m[0].length))) continue;
+      // 모래 터널 이야기의 「터널 속」 (11/11)
+      if (src === "props/tunnel.webp" && /모래[^.!?]{0,6}터널|터널을 (?:뚫|파)/.test(said)) continue;
     }
     if (spot === "wall" && !indoor) continue;   // 바깥에는 걸 벽이 없다
     if (skip.has(src)) continue;
@@ -1055,6 +1104,7 @@ const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0
 /** 붙박이 물건: 한 번 나오면 배경이 같은 동안 그 자리에 그대로 둔다 (11/10 사용자 「새 둥지가 3쪽부터 사라져, 장소가 바뀔 때 사라지게」).
  *  저장 카드 이야기 1,024편 중 663편에서 같은 배경인데 글에 낱말이 빠진 쪽에서 사라졌다. 들고 다니는 것(공 · 손전등 · 책 · 담요 …)은 뺀다 */
 const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs",
+  "monkeybars", "tunnel", "booth", "parkgate", "slide", "lamp", "flowerbed", "fountain", "pavilion", "bed", "junglegym", "pond", "desk",
   "seesaw", "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug",
   "clock", "log", "cushion", "footprints", "stump", "shells", "swing"]);
 /** 집이라고 분명히 말하는 쪽 (11/11 사용자 「추천대로」): 어느 장소 이야기든 집 장면으로 옮긴다. 동굴 이야기 끝 「엄마가 집에 도착해
@@ -1066,7 +1116,8 @@ const HEART_BEAT = /(?:가슴|심장|마음)(?:이|은|도|까지)? (?:[가-힣]
 /** 주인공이 옮겨 가는 말 (걷기 · 뛰기 동작을 그대로 둘 때) */
 const MOVE_WORDS = /걸어|걸었|걷|달려|달렸|달리|뛰어|뛰었|뛰며|뛰다|다가|갔어요|갔다|왔어요|건너|지나|올라|내려|따라|향해|도망|산책|다다다|타다닥|사뿐|살금살금|걸음|성큼|폴짝|깡충|총총|돌아왔|돌아갔|들어갔|나갔|나왔|가까워|멀어|와서|찾아와|찾아갔/;
 /** 가는 길 · 보이기만 · 바람 (그곳에 있는 게 아님): 「미끄럼틀로 가는 길에 · 교실을 향해 · 창밖으로 운동장이 · 저기 도서관이 보였어요」 */
-const NOT_THERE = /보였|보여|창밖|창문 너머|저기|저 멀리|생각|꿈|그림/;
+// 「낚싯대를 번쩍 들어 보였어요」의 보였다는 보이기만 한 것이 아니다 (11/11)
+const NOT_THERE = /(?<!들어 |내어 |꺼내 |흔들어 )보였|(?<!들어 |꺼내 )보여|창밖|창문 너머|저기|저 멀리|생각|꿈|그림/;
 /** 그곳 말 바로 뒤가 가는 길이면 아직 거기 있는 게 아님 (「미끄럼틀로 가는 길에 · 교실을 향해」). 문장 다른 곳의 「무지개 쪽으로」는 상관없다 */
 const ON_THE_WAY = /^[^.!?]{0,10}?(?:가는 길|가다가|가려|향해|쪽으로|가고 싶|까지 가)/;
 /** [그곳 말, 맞는 장면, 쓸 수 있는 장소(카드) · 지금 장면 조건, 주인공이 주어여야 하나] */
@@ -1081,7 +1132,14 @@ const AT_SCENE: [RegExp, string, (place: string, loc: string) => boolean, boolea
   [/(?:빵집|가게|꽃집|문구점|약국|서점|과일 가게)(?: 안에| 안으로| 안|에서|에|으로|로)\s?[^.!?]{0,16}?(?:숨었|숨어|달려갔|들어갔|들어가|들어섰|들어왔|있는 어른)|(?:빵집|가게|꽃집|문구점) 문을 (?:열고|활짝)/, "town-shop", () => true, true],
   [/시장(?:에서|에|으로|로)\s?[^.!?]{0,14}?(?:도착|들어|걸었|돌아다|구경)/, "town-market", () => true, true],
   [/놀이터(?:에서|에|으로|로)\s?[^.!?]{0,10}?(?:들어갔|도착|놀|뛰|왔어요|돌아왔)/, "playground", (p) => p === "town" || p === "playground", true],
+  // 방파제에 있는 쪽은 나무 바닥 부두 배경 (모래사장 배경이었다, 11/11 글이 말하는 물건 점검)
+  [/방파제(?:에|에서|위|위에서|위를|입구에|끝에|끝까지|를|로|으로)?\s?[^.!?]{0,10}?(?:도착|걸|섰|서 있|앉|올라|달려|뛰|낚시|갔)/, "sea-pier", (p) => p === "sea", false],
+  // 교문을 지나는 · 교문 앞에 선 쪽은 학교 바깥 (교실 배경에 「교문을 지났어요」였다, 11/11 글이 말하는 물건 점검 772번)
+  [/교문(?:을|에|앞에|앞에서|옆에|옆에서|으로)?\s?[^.!?]{0,8}?(?:지나|지났|섰|서 있|도착|기다렸|기다리)/, "school", (p) => p === "school", true],
   [/(?:그네|미끄럼틀)(?:에|까지|를|을|에서)?\s?[^.!?]{0,8}?(?:앉|타|데려다|올라|내려)|그네가[^.!?]{0,10}흔들/, "playground", (p) => p === "playground", false],
+  // 놀이 기구를 지나며 노는 말(「구름다리를 건너고 긴 터널을 지났어요」)은 기구가 있는 놀이터, 벤치 길이 아니다 (11/11 사용자 994번).
+  // 모래 터널은 빼고
+  [/(?:구름다리|(?<!모래 )터널)(?:를|을|에|에서|위를|위에서|아래로|속을|속으로)?\s?[^.!?]{0,6}?(?:건너|지나|지났|매달|기어|통과|빠져)/, "playground", (p) => p === "playground", false],
   [/(?:시냇물|시냇가|개울|냇가)(?: 옆| 앞)?(?:에서|에|으로|로|을)\s?[^.!?]{0,8}?(?:지나|걸|앉|섰|놀|도착|건너)/, "forest-stream", (p) => p === "forest", false],
 ];
 /** 주인공이 지금 있는 곳을 글이 분명히 말하면 그 장면, 아니면 undefined (가는 길 · 보이기만 · 다른 사람만 거기 있는 문장은 빼고) */
@@ -1158,6 +1216,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
   const stageIdx = (s: string) => ["place", "problem", "action", "result"].indexOf(s);
   // 숨는 곳은 행동 쪽들의 글에서 한 번 정해 쪽이 바뀌어도 같은 물건
   const cover = coverFor(pages.filter((p) => p.stage === "action").map((p) => p.text).join(" "));
+  // 표지판 색: 글이 「초록색 표지판」이라 하면 그 쪽부터 끝까지 초록 판 (11/11 사용자 994번 「초록 표지판」에 나무색 표지판)
+  let signSrc: string | undefined;
   // 대본이 쪽마다 등장인물을 적은 이야기(장면 계획)는 대본을 따른다 — 인물이 없는 쪽은 비워 둔다.
   // 카드로 사람(어른 · 친구)을 세우는 것은 장면 계획이 없는 예전 이야기만 (11/4 사용자 — 주인공 혼자 로켓 창밖을 보는
   // 마지막 쪽에 결과 카드 때문에 남자 어른이 섰다)
@@ -1279,6 +1339,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     flying = fly;
 
     const props: PropPlan[] = [];
+    if (/초록\S*\s?표지판/.test(p.text)) signSrc = "props/sign-green.webp";
+    const sign: PropPlan = signSrc ? { id: "sign", src: signSrc } : { id: "sign" };
     const actionProp = picks.action ? ACTION_PROP[picks.action] : undefined;
     const prevProps = out.length ? out[out.length - 1].props.map((q) => q.id) : [];
     const keep = (card: "adult" | "friend", enter: "left" | "right") => {
@@ -1289,13 +1351,13 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     if (p.stage === "action" && actionProp) {
       if (actionProp === "adult") keep("adult", "left");
       if (actionProp === "friend" && !props.some((q) => q.id === cardFriend)) keep("friend", "right");
-      if (actionProp === "sign") props.push({ id: "sign" });
+      if (actionProp === "sign") props.push(sign);
       if (actionProp === "cover" && cover) props.push({ id: "cover", ...cover });
     }
     if (p.stage === "result" && picks.result) {
       if (FRIEND_RESULTS.has(picks.result)) keep("friend", "right");
       if (ADULT_RESULTS.has(picks.result)) keep("adult", "left");
-      if (picks.result === "found_way") props.push({ id: "sign" });
+      if (picks.result === "found_way") props.push(sign);
     }
     // 대본 인물이 있으면 사람은 그것으로 바꾼다 (표지판 · 숨을 것은 카드대로 둔다)
     const scripted = (p.scene?.characters ?? [])
@@ -1439,6 +1501,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     const fresh: ThingPlan[] = thingsFor(p.text, mine, isIndoor(loc), new Set([
         ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
         ...(loc === "space-ship" ? ["props/spaceship.webp", "props/rocket.webp"] : []),
+        // 숨는 곳으로 선 그림(미끄럼틀 · 정자 · 커튼 …)은 소품으로 또 세우지 않는다 (11/11 미끄럼틀 · 쉼터 소품을 더하면서)
+        ...props.filter((q) => q.id === "cover" && q.src).map((q) => q.src!),
       ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props, heroName) }))
       .filter((t) => !hideCard || (!!t.holder && t.holder !== "hero"));
     // 배경이 바뀌면 이어 오던 물건은 여기서 끝 (숨기 쪽도 그대로 둔다: 숨은 곳 앞에서 사라지면 어색하다)

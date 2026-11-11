@@ -95,7 +95,8 @@ function issuesOf(s) {
     }
     for (const b of s.bg) {
       if (kin(t.name, b.name)) out.push(["배경에 이미 있는 물건을 또 놓음", `${t.name} (배경 ${b.name})`]);
-      else if (!held && t.spot !== "air" && t.spot !== "wall" && t.name !== "nest") {
+      // 학교 건물 · 마을 집은 맨 뒤 풍경 (SceneStage BACKDROP)
+      else if (!held && t.spot !== "air" && t.spot !== "wall" && t.name !== "nest" && !["building", "houses", "house"].includes(b.name)) {
         const o = inter(t, b) / Math.max(1e-6, area(t));
         if (o > 0.3) out.push(["소품이 배경 물건과 겹침", `${t.name} ↔ ${b.name} ${Math.round(o * 100)}%`]);
       }

@@ -257,10 +257,12 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 그래서 칸의 가로세로 비율로 키(높이 대비)를 폭(너비 대비)으로 바꾼다
   const root = useRef<HTMLDivElement>(null);
   const [aspect, setAspect] = useState(1.5);
+  // 칸 높이(px): 앞모습 꾸벅의 원근 거리를 주인공 키에 맞추려고 (11/11)
+  const [stagePx, setStagePx] = useState(470);
   useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => { if (el.clientHeight) setAspect(el.clientWidth / el.clientHeight); });
+    const ro = new ResizeObserver(() => { if (el.clientHeight) { setAspect(el.clientWidth / el.clientHeight); setStagePx(el.clientHeight); } });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -658,7 +660,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   for (const i of placeOrder) placedPeople.set(i, placePerson(behind[i]));
   const people = behind.map((_, i) => placedPeople.get(i)!);
   function placePerson(p: (typeof behind)[number]) {
-    const base0 = prop(p.id);
+    const sign0 = p.id === "sign" ? prop(p.id) : undefined;
+    // 글이 색을 말한 표지판(plan.ts signSrc)은 그 그림으로
+    const base0 = sign0 && p.src ? { ...sign0, src: `../${p.src}` } : prop(p.id);
     if (!base0) return null;
     const wRatio = p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45;
     const ahead = hero.goal === p.id && hero.move !== "none" && travel !== 0
@@ -752,7 +756,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     "--pivot": `${sideView ? (((headSide > 0 ? edgeR : edgeL) - 0.5) * 100).toFixed(1) : 0}%`,
     "--foot": `${(by1 * 100).toFixed(1)}%`,
     // 앞모습(사람 · 문어 …)은 옆으로 기울 수 없어 위쪽을 보는 사람 쪽으로 젖혀 숙인 것처럼 (원근, 키만 줄이면 거의 안 보였다)
-    "--tip": sideView ? "0deg" : "-28deg",
+    "--tip": sideView ? "0deg" : "-30deg",
+    // 원근 거리는 주인공 키(px)의 3배: 머리 꼭대기가 많아야 1.2배 정도 다가온다. 전에는 300px 고정이라 큰 화면(키 400px 넘음)에서
+    // 머리가 보는 사람 쪽으로 2배 넘게 커졌다 (11/11 사용자 「인사할 때 고개 숙이면 머리가 겁나 커져」)
+    "--persp": `${Math.max(300, Math.round(drawn.h * stagePx * 3))}px`,
   } as CSSProperties;
   const bodyAt = (p: number[]) => ({ x: heroX + ((flipped ? 1 - p[0] : p[0]) - 0.5) * drawn.w, y: topY + p[1] * drawn.h });
   const onQuad = (t: NonNullable<typeof plan.things>[number], where: "mouth" | "back" | "head") => {
@@ -910,7 +917,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     .filter((v) => v.t.pose !== "window" || v.at);   // 창밖 소품은 창이 없으면 방 안에 놓지 않는다
   // 배경 물건(땅에 선 것)이 차지한 가로 범위, 큰 소품은 먼저 이것을 피해 본다 (11/9 소품 키를 실제 크기로 키우자 대문이 집 앞을,
   // 깃발 · 우체통이 벤치 · 가판대 앞을 가렸다). 배경 그림 주소는 장소 폴더 기준이라 props-ar.json 열쇠로 바꾼다
-  const bgSpans: [number, number][] = layout.objects.filter((o) => o.foot !== undefined).map((o) => {
+  // 학교 건물 · 마을 집은 맨 뒤 풍경이라 그 앞에 서도 된다 (11/11: 「교문을 지났어요」의 정문이 학교 건물을 피할 자리가 없어 겹쳤다)
+  const bgSpans: [number, number][] = layout.objects.filter((o) => o.foot !== undefined && !BACKDROP.test(o.src)).map((o) => {
     const key = o.src.startsWith("../") ? o.src.slice(3) : `${plan.location}/${o.src}`;
     const half = (o.h * arOf(key, 1) / aspect) / 2;
     return [o.x - half, o.x + half];
@@ -956,7 +964,11 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const list = air || t.spot === "wall" ? airPlaced : placed;
     // 큰 땅 소품은 배경 물건과 겹치지 않는 자리를 먼저(원래 크기 · 0.75 배까지), 없으면 겹쳐도. 사람 · 소품끼리는 늘 피한다.
     // 넓은 물건(시소 · 다리 · 텐트 · 바위)은 자리가 없으면 조금 작게라도 놓는다 — 전에는 통째로 빠졌다(좁은 화면에서 11%)
-    const tryList: [boolean, number, boolean?, boolean?][] = air ? [[false, 1]]
+    // 다른 장소 배경에서 빌려 온 큰 붙박이(가로등 · 정문 · 정자 · 미끄럼틀 …)는 빈자리가 없으면 세우지 않는다: 시장 가판대 · 바닷가 파라솔 ·
+    // 놀이터 미끄럼틀과 기둥끼리 겹쳤다 (11/11 전체 검사 72쪽)
+    const struct = STRUCT.test(t.src);
+    const tryList: [boolean, number, boolean?, boolean?][] = struct ? [[true, 1], [true, 0.8], [true, 1, true], [true, 0.8, true]]
+      : air ? [[false, 1]]
       // 이어 갈 물건(keep)은 여러 쪽에 그대로 남으니 배경 물건과 겹치지 않는 자리를 작게라도 먼저 (11/10 이어짐 검사: 파라솔 앞 깃발이 6쪽 내내)
       // 그래도 없으면 사람 뒤에 (사람이 그 물건을 조금 가리는 편이 배경 물건과 기둥끼리 겹치는 것보다 낫다, 11/10 깃발 · 파라솔)
       : t.h >= 0.28 ? (t.keep ? [[true, 1], [true, 0.75], [true, 0.55], [true, 1, true], [true, 0.75, true], [true, 1, true, true], [true, 0.75, true, true], [false, 1], [false, 0.75], [false, 0.55]]
@@ -1491,7 +1503,12 @@ const TO_WINDOW = new Set(["props/shootingstar.webp", "props/planet.webp", "prop
 /** 이름이 달라도 같은 물건 — 바다 배경에 모래성(castle) · 바위(rock)가 있는데 쪽 글의 「모래성」 · 「바위」로 하나 더 섰다 (11/9 배치 검사) */
 // 화살표 그림은 표지판, 벤치는 의자, 장난감 상자는 상자, 북은 북들 (저장 이야기 점검 11/10 — 배경에 있는데 또 놓였다)
 // 돌 하나(pebble)도 돌 무더기와 같은 종류: 동굴 · 시냇가처럼 배경에 돌이 있으면 또 놓지 않는다 (11/10)
-const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign", bench: "chair", toybox: "box", drum: "drums", pebble: "rocks" };
+/** 맨 뒤 풍경 배경 물건 (소품이 앞에 서도 된다) */
+const BACKDROP = /(?:^|\/)(?:building|houses|house)\.webp$/;
+/** 빈자리가 없으면 빼는 큰 붙박이 소품 */
+const STRUCT = /(?:lamp|parkgate|booth|pavilion|junglegym|monkeybars|fountain|slide|bed)\.webp$/;
+// 학교 배경 철봉(bars)이 있으면 구름다리를 또 세우지 않는다 (11/11)
+const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign", bench: "chair", toybox: "box", drum: "drums", pebble: "rocks", monkeybars: "bars" };
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */
 const LEAVES: [number, number, string][] = [[20, 0, "#E8A33C"], [46, 1.1, "#8DBA5A"], [34, 2.2, "#D9663B"], [60, 3.3, "#B9C94A"],
   [28, 4.4, "#E2B04A"], [54, 5.5, "#7FAE4E"]];

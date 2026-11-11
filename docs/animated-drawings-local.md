@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/11 글이 말하는 물건 · 꾸벅 · 걸친 물건 | **끝**: `continuity.ts` `SAID` 로 장면에 없는 물건 문장 637 → 153, 새 그림 9장(`gen_scene_props5.py` · `6.py`), `plan.ts` `WORN_SRC` · 장소 규칙(구름다리 · 터널 → 놀이터, 방파제 → 부두, 교문 → 학교, 「물속」 좁힘), `SceneStage` `--persp`(주인공 키 3배). 남은 것: 난간 38 |
 | 11/11 기쁨 연출 10개 · 별 빛 · 한 사람에 하나 | **끝**: `SceneStage` `JOY_RING` 10개 · `JOY_RANK`(하트 > 별 > 꽃) · `together` 친구 포함, `ui.css` 별 빛 한 겹 2px. 확인 4쪽 모두 한 사람 한 고리 · 10조각 |
 | 11/11 글과 배경 · 가게 안 · 중의적 말 | **끝**: `plan.ts` `whereHeroIs` · `AT_SCENE`(가는 길 `ON_THE_WAY`, 보이기만 `NOT_THERE`) · 카드 밖 장면 잇기 · 가게 안 잇기, `scenes/town-shop`, `PERSON_WORD` 자연 「님」 제외, `HEART_BEAT` · `MOVE_WORDS`, 목소리 떨림. 시험 `tools/scene-check/where.ts` |
 | 11/11 쪽 완성 뒤 보여 주기 · 커튼 | **끝** (실제 모드 확인): `S09Story` `pageReady`(음성 `audioGot` + 장면 `sceneReady`) · `opened`(1쪽 완성 뒤 편다) · 세 쪽씩 미리 받기, `preloadScene` 에 등장인물 그림띠, 커튼 `props/curtain.webp` (연출 주인 소리 · 앞 문장 · 숙소 · 비유 이불은 서민지 님 `a8a70d8`) |

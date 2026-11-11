@@ -24,7 +24,7 @@ const bgOf = (loc: string): string[] => {
 // 붙박이: 놓인 곳에 그대로 있는 물건 (들고 다니는 공 · 손전등 · 책 · 편지 같은 것은 뺀다)
 const FIXED = new Set(["nest", "tent", "sign", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs",
   "seesaw", "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug",
-  "clock", "log", "cushion", "footprints", "stump", "shells"]);   // plan.ts KEEP_THINGS 와 같게 (담요는 들고 다닌다)
+  "clock", "log", "cushion", "footprints", "stump", "shells", "monkeybars", "tunnel", "booth", "parkgate", "slide", "lamp", "flowerbed", "fountain", "pavilion", "bed", "junglegym", "pond", "desk"]);   // plan.ts KEEP_THINGS 와 같게 (담요는 들고 다닌다)
 // 배경 계획(영어)에 그 물건이 아직 있다고 적혀 있나
 const EN: Record<string, RegExp> = { nest: /nest/i, tent: /tent/i, sign: /sign/i, arrow: /arrow|sign/i, bench: /bench/i, chair: /chair/i,
   table: /table/i, flag: /flag/i, mailbox: /mailbox|post ?box/i, gate: /gate/i, fence: /fence/i, bridge: /bridge/i, stairs: /stair|step/i,
@@ -38,6 +38,21 @@ const SEATS: [RegExp, string[]][] = [
   [/돌(?:멩이)?(?=에|위)/, ["pebble", "rocks", "rock"]], [/평상|정자/, []], [/나뭇가지|나무 위/, []],
 ];
 const SIT = /(앉|올라앉|올라가|누워|누웠|기대)/;
+// 5) 글이 말하는 물건이 장면(배경 그림 · 쪽 소품)에 있나 (11/11 사용자 994번 「터널이라는데 내용도 이상하고」 · 「다른 대본에서도 찾으라고 시켰는데」).
+// 앞의 글 · 배경 점검(whereHeroIs)은 장소 말만 봐서 「구름다리 · 터널 · 안내소 · 정문」처럼 그림이 아예 없는 물건 말을 놓쳤다.
+// 낱말 → 그 그림 이름들 (비었으면 그릴 그림이 없다). 대사 · 없다는 말 · 창밖 · 지난 일(아까) · 꿈 문장은 뺀다
+const SAID: [RegExp, string[]][] = [
+  [/미끄럼틀/, ["slide"]], [/그네/, ["swing"]], [/시소/, ["seesaw"]], [/정글짐/, ["junglegym"]], [/구름다리/, ["monkeybars", "bars"]],
+  [/(?<!모래 )터널/, ["tunnel"]], [/안내소/, ["booth"]], [/정문|교문/, ["parkgate", "gate"]], [/대문/, ["gate", "house"]],
+  [/벤치/, ["bench"]], [/표지판/, ["sign", "arrow", "sign-green"]], [/파라솔/, ["parasol"]], [/모래성/, ["castle", "sandcastle"]],
+  [/등대/, ["lighthouse", "stairs"]], [/버스(?!\s?정류장)/, ["bus"]], [/정류장/, ["shelter", "bus"]], [/가로등/, ["lamp"]], [/분수/, ["fountain"]],
+  [/소파/, ["sofa"]], [/침대/, ["bed"]], [/책상/, ["desks", "table", "desk"]], [/책장|책꽂이/, ["shelf"]], [/피아노/, ["piano"]], [/칠판/, ["board"]],
+  [/사물함/, ["lockers"]], [/식탁/, ["table"]], [/텐트/, ["tent"]], [/로켓/, ["rocket"]], [/우주선/, ["spaceship", "rocket", "@space-ship"]],
+  [/화단|꽃밭/, ["flowerbed", "flowers", "butterflybush"]], [/울타리/, ["fence"]], [/계단/, ["stairs"]], [/연못/, ["pond"]], [/가판대/, ["stall"]],
+  [/돌기둥/, ["stalactite", "crystal"]], [/난간/, []], [/쉼터/, ["pavilion"]], [/방파제/, ["@sea-pier"]], [/철문/, ["parkgate", "gate"]], [/그물/, ["net"]], [/밧줄/, ["rope"]],
+];
+const NOT_SEEN = /없었|없어|없는|않았|않아|안 보|어디에도|아까|꿈\s?속|꿈에서|창\s?밖|창문 (?:밖|너머)|생각|떠올|이야기를|가고 싶|가 보고 싶|타고 싶|놀고 싶/;
+const said: { key: string; word: string; loc: string; shown: boolean; text: string }[] = [];
 
 // 주기 문장 (11/10 사용자 「할머니가 사과를 손에 쥐여 줬다고 했는데 사과도 없고」): 「…을/를 … 건네 · 쥐여 주 · 나눠 주 · 주었」
 const GIVE_SEN = /([가-힣]+)(?:을|를)\s(?:(?:하나|한 개|두 개|하나씩|한 개씩|한 송이|한 알|조금)\s)?(?:[가-힣]+(?:에게|한테|께)\s)?(?:손에\s|품에\s)?(?:꼭\s|살짝\s|쏙\s)?(?:건네|건넸|쥐여 ?주|쥐여 ?줬|쥐어 ?주|쥐어 ?줬|나눠 ?주|나눠 ?줬|나누어 ?주|선물했|선물로 주|주었|줬|주셨|드렸)/;
@@ -96,6 +111,17 @@ cases.forEach((c: any, ci: number) => {
       const t = (pl.things ?? []).find((x) => x.at !== undefined && x.at >= s0 && x.at < s1 && (x.give || x.pose === "hand" || x.appearAt !== undefined));
       gives.push({ key: `${ci}:${i + 1}`, word: m[1], shown: !!t, from: t?.give?.from, to: t?.holder, text: sen.slice(0, 60) });
     }
+    // 5) 글이 말하는 물건
+    const all = new Set([...(pl.things ?? []).map((t) => nameOf(t.src)), ...bgOf(loc), ...pl.props.map((q) => (q.src ? nameOf(q.src) : q.id))]);
+    for (const sen of bp[i].text.replace(/“[^”]*”/g, " ").split(/(?<=[.!?])\s*/)) {
+      if (NOT_SEEN.test(sen)) continue;
+      for (const [rx, names] of SAID) {
+        const m = rx.exec(sen);
+        if (!m) continue;
+        // 「@장소」: 그 장소 배경판에 그려져 있다 (부두 배경판의 나무 방파제 · 우주선 안에서 말하는 우주선)
+        said.push({ key: `${ci}:${i + 1}`, word: m[0], loc, shown: names.some((n) => all.has(n) || n === `@${loc}`), text: sen.slice(0, 70) });
+      }
+    }
     // 2) 앉는 자리
     for (const sen of bp[i].text.split(/(?<=[.!?”])\s*/)) {
       if (!SIT.test(sen)) continue;
@@ -132,4 +158,9 @@ console.log(`
 console.log(`  주는 물건이 장면에 있음 ${gives.filter((g) => g.shown).length} · 그중 주는 사람 손 → 받는 사람 손 ${gives.filter((g) => g.from).length}, 받는 사람 손에만(주는 사람이 장면에 없음) ${gives.filter((g) => g.shown && !g.from && g.to).length}`);
 console.log(`  장면에 없음 ${gives.filter((g) => !g.shown).length}: ` + count(gives.filter((g) => !g.shown), (g) => g.word).slice(0, 20).map(([k, v]) => `${k} ×${v}`).join(" · "));
 for (const g of gives.filter((g) => !g.shown).slice(0, 8)) console.log(`  예) ${g.key} ${g.word} | ${g.text}`);
-fs.writeFileSync(`tools/scene-check/out/${FILE.replace(/\.json$/, "")}-continuity.json`, JSON.stringify({ gone, seats, gives }, null, 1));
+const missing = said.filter((x) => !x.shown);
+console.log(`
+■ 글이 말하는 물건: ${said.length}문장 · 장면에 없음 ${missing.length}문장 (이야기 ${stories(missing)}편)`);
+console.log("  " + count(missing, (x) => x.word).map(([k, v]) => `${k} ×${v}`).join(" · "));
+for (const [w] of count(missing, (x) => x.word).slice(0, 14)) for (const x of missing.filter((y) => y.word === w).slice(0, 2)) console.log(`  예) ${x.key} ${x.loc} · ${x.word} | ${x.text}`);
+fs.writeFileSync(`tools/scene-check/out/${FILE.replace(/\.json$/, "")}-continuity.json`, JSON.stringify({ gone, seats, gives, said }, null, 1));
