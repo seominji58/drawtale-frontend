@@ -102,7 +102,7 @@ export function preloadStripsFor(plans: PagePlan[]): void {
   }
 }
 
-/** 한 쪽 장면에 들 그림(장소 배치 · 배경판 · 배경 물건 · 쪽 소품 · 주인공 그림 묶음)을 미리 읽고 풀어 둔다.
+/** 한 쪽 장면에 들 그림(장소 배치 · 배경판 · 배경 물건 · 쪽 소품 · 주인공 그림 묶음 · 등장인물 그림띠)을 미리 읽고 풀어 둔다.
  *  책 화면은 다음 쪽이 다 읽힌 뒤에 「다음 쪽」을 연다: 넘기고 나서 그림이 오면 빈 쪽이 보였다가 장면이 나타났다 (11/11 사용자) */
 const sceneWait = new Map<string, Promise<void>>();
 type SpriteRef = { url: string; frames: number; box: [number, number, number, number] } | null | undefined;
@@ -121,6 +121,9 @@ export function preloadScene(plan: PagePlan, sprite: SpriteRef, spriteLeft?: Spr
       ...l.objects.map((o) => pic(base + o.src)),
       ...(plan.things ?? []).map((t) => pic(thingSrc(t.src))),
       ...[sprite, spriteLeft].filter((v): v is NonNullable<SpriteRef> => !!v?.url).map((v) => loadSprite(v.url, v).then(() => {}, () => {})),
+      // 그 쪽 등장인물의 동작 그림띠 (걷기 · 인사 · 만세 …): 다 풀려 있어야 들어오자마자 움직인다
+      ...plan.props.filter((q) => isPerson(q.id)).flatMap((q) => Object.keys((MOVES as Record<string, PersonMoves>)[q.id] ?? {})
+        .map((name) => preloadStrip(stripUrl(q.id, name)))),
     ])).then(() => {}, () => {});
     sceneWait.set(key, w);
   }

@@ -3,7 +3,7 @@
 //   npx esbuild tools/scene-check/subject.ts --bundle --platform=node --format=esm --alias:@=./src \
 //     '--define:import.meta.env={"BASE_URL":"/","MODE":"production"}' --outfile=tools/scene-check/out/subject.mjs && node tools/scene-check/out/subject.mjs
 // 기대값: "hero" 주인공 · 인물 이름(people 에 있는 것) · "other" 이름 없는 사람 · null 사람이 아님
-import { subjectOf } from "@/features/scene/plan";
+import { sceneFx, subjectOf } from "@/features/scene/plan";
 
 const HERO = "토토";
 /** [문장, 연출 말(그 자리에서 판단), 그 쪽 인물 이름, 기대값] */
@@ -54,12 +54,23 @@ const CASES: [string, string, string[], string | null][] = [
   ["돌벽도 숨어 버렸어요.", "숨어", ["친구"], null],
 ];
 
+// 우는 문장이 아닌 것 (소리 · 「훌쩍 갔어요」)과 우는 문장: [글, 눈물 연출 수] (11/11 서민지 님 a8a70d8 의 NOT_CRY)
+const CRY_CASES: [string, number][] = [
+  ["갈매기가 끼룩끼룩 울었어요.", 0], ["냉장고만 웅웅 울었어요.", 0], ["시간이 훌쩍 갔어요.", 0], ["매미가 맴맴 울었어요.", 0],
+  ["친구가 훌쩍훌쩍 울었어요.", 1], ["눈물이 뚝뚝 떨어졌어요.", 1],
+];
+
 let bad = 0;
+for (const [t, n] of CRY_CASES) {
+  const got = sceneFx(t).tears.length;
+  if (got !== n) { bad++; console.log(`X [울음] ${t} → 눈물 ${got} (기대 ${n})`); }
+}
 for (const [sen, cue, people, want] of CASES) {
   const at = sen.indexOf(cue);
   if (at < 0) { console.log("? 연출 말이 문장에 없음", cue, sen); bad++; continue; }
   const got = subjectOf(sen, people, HERO, at);
   if (got !== want) { bad++; console.log(`X ${sen}  [${cue}] → ${got} (기대 ${want})`); }
 }
-console.log(`연출 주인 ${CASES.length - bad}/${CASES.length}`);
+const total = CASES.length + CRY_CASES.length;
+console.log(`연출 주인 ${total - bad}/${total}`);
 process.exitCode = bad ? 1 : 0;

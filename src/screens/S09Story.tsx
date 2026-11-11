@@ -11,6 +11,8 @@ import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
 import SceneStage, { preloadScene, preloadStripsFor } from "@/features/scene/SceneStage";
+import Waiting from "@/components/Waiting";
+import { Pencil } from "@/components/illust";
 import { envCueAt, planPages, sceneFx } from "@/features/scene/plan";
 import { formOf } from "@/features/character/forms";
 import { ORDER_GAME, useSettings } from "@/store/settings";
@@ -159,12 +161,36 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 첫 쪽만으로 연 책 (11/10 「첫 쪽만 만들고 책 열기」): 나머지 쪽 음성은 서버가 읽는 동안 만든다. 다시 물어 받은 주소는 여기에만
   // 두고 pages 는 그대로 둔다(장면 계획을 다시 짜지 않게). 처음부터 주소가 있던 쪽은 새 주소(서명이 바뀜)로 바꾸지 않는다
   const [late, setLate] = useState<{ urls: (string | null)[]; pending: boolean[] } | null>(null);
-  const audioOf = (i: number) => pages[i].audioUrl ?? late?.urls[i] ?? null;
+  // 쪽 음성 파일을 미리 받아 둔 것 (쪽 번호 → 이 기기 주소, 못 받았으면 서버 주소). 쪽이 「완성」됐는지의 하나 — 넘기면 바로 읽는다
+  // (11/11 사용자 「그림이랑 등장인물 말고도 음성 다 포함해서, 1쪽 완성 후 보여 주고 넘길 쪽이 완성되면 다음 쪽 단추」)
+  const [audioGot, setAudioGot] = useState<Record<number, string>>({});
+  const remoteAudio = (i: number) => pages[i].audioUrl ?? late?.urls[i] ?? null;
+  const audioOf = (i: number) => audioGot[i] ?? remoteAudio(i);
   const pendingOf = (i: number) => !audioOf(i) && (late ? !!late.pending[i] : !!pages[i].audioPending);
   const perPage = pages.some((p) => p.audioUrl || p.audioPending);
   // 쪽은 차례로만 (11/10 사용자): 다음 쪽 음성이 아직이면 「다음 쪽」 단추가 「만드는 중」이 되고 눌러도 넘어가지 않는다.
   // 다 되면 「다음 쪽」으로 바뀐다 (꺼진 단추로 보이던 것을 바꿈). 소리를 껐으면 기다릴 음성이 없으니 막지 않는다
-  const nextLocked = !muteAll && pg < pages.length - 1 && pendingOf(pg + 1);
+  /** 그 쪽 음성이 준비됐나: 파일을 받아 뒀거나, 서버가 끝내 못 만든 쪽(주소 없음 · 만드는 중 아님), 소리를 껐거나 쪽 음성이 없는 예전 이야기 */
+  const audioReady = (i: number) => muteAll || !perPage || audioGot[i] !== undefined || (!remoteAudio(i) && !pendingOf(i));
+  const fetching = useRef(new Set<number>());
+  const blobUrls = useRef<string[]>([]);
+  useEffect(() => () => { blobUrls.current.forEach((u) => URL.revokeObjectURL(u)); }, []);
+  useEffect(() => {
+    if (muteAll || !perPage) return;
+    pages.forEach((_, i) => {
+      const url = remoteAudio(i);
+      if (!url || audioGot[i] !== undefined || fetching.current.has(i)) return;
+      fetching.current.add(i);
+      // 못 받으면(주소 기한 · 막힘 · 15초) 서버 주소를 그대로 쓴다: 막히지 않게
+      const ctl = new AbortController();
+      const t = window.setTimeout(() => ctl.abort(), AUDIO_WAIT_MS);
+      fetch(url, { signal: ctl.signal })
+        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+        .then((b) => { const u = URL.createObjectURL(b); blobUrls.current.push(u); return u; })
+        .catch(() => url)
+        .then((u) => { clearTimeout(t); setAudioGot((m) => (m[i] !== undefined ? m : { ...m, [i]: u })); });
+    });
+  }, [late, muteAll]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [waiting, setWaiting] = useState(false);
   useEffect(() => {
     if (!pages.some((p) => p.audioPending)) return;
@@ -272,6 +298,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   // 쪽에 들어오면 그 쪽을 읽고, 바는 실제 재생 시각대로 찬다. 쪽 음성 파일이 있으면 그것, 예전 이야기의 전체 음성이면
   // 그 쪽 구간만, 없으면 브라우저 TTS. 소리를 껐거나 브라우저가 소리를 막으면(누른 적 없는 탭) 글 길이로 바만 채운다
   const [replay, setReplay] = useState(0);
+  // 책을 폈나 (1쪽이 완성됨, 아래 opened). 펴기 전에는 읽지 않는다
+  const [isOpen, setIsOpen] = useState(false);
   const pageUrl = audioOf(pg), pagePending = pendingOf(pg);
   useEffect(() => {
     setFrac(0);
@@ -280,6 +308,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     // 이 쪽 음성을 서버가 아직 만드는 중이면 바를 채우지 않고 기다린다. 주소가 오면 이 효과가 다시 돌아 읽는다
     setWaiting(pagePending && !muteAll);
     if (pagePending && !muteAll) return () => { alive = false; };
+    // 1쪽이 완성돼 책을 펴기 전에는 읽지 않는다
+    if (!isOpen) return () => { alive = false; };
     const text = pages[pg].text;
     const est = Math.max(1.2, text.length / (TTS_CHARS_PER_SEC * speechRate()));
     const fill = (sec: number) => {
@@ -339,7 +369,7 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
       }
     }, 250);
     return () => { alive = false; clearTimeout(t); stop(); };
-  }, [pg, replay, pageUrl, pagePending]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pg, replay, pageUrl, pagePending, isOpen]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const page = pages[pg];
   const last = pg === pages.length - 1;
@@ -412,18 +442,30 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     let alive = true;
     const mark = (i: number) => alive && setSceneReady((s) => (s.has(i) ? s : new Set(s).add(i)));
     (async () => {
-      for (let i = pg; i < scenes.length && alive; i++) {
-        if (sceneReady.has(i)) continue;
-        const pi = pages[i];
-        const sprite = pi.sprite && pi.spriteUrl ? { url: pi.spriteUrl, ...pi.sprite } : null;
-        await Promise.race([preloadScene(scenes[i], sprite, pi.spriteLeft ?? null), new Promise((ok) => setTimeout(ok, SCENE_WAIT_MS))]);
-        mark(i);
-      }
+      // 지금 쪽 · 다음 쪽부터, 세 쪽씩 함께 받는다 (한 쪽씩 차례로 받으면 느린 망에서 기다림이 길었다)
+      const order = scenes.map((_, i) => i).filter((i) => i >= pg && !sceneReady.has(i));
+      let next = 0;
+      const worker = async () => {
+        while (alive && next < order.length) {
+          const i = order[next++];
+          const pi = pages[i];
+          const sprite = pi.sprite && pi.spriteUrl ? { url: pi.spriteUrl, ...pi.sprite } : null;
+          await Promise.race([preloadScene(scenes[i], sprite, pi.spriteLeft ?? null), new Promise((ok) => setTimeout(ok, SCENE_WAIT_MS))]);
+          mark(i);
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
     })();
     return () => { alive = false; };
   }, [scenes, pg]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const sceneLocked = !!scenes && pg < pages.length - 1 && !sceneReady.has(pg + 1);
-  const nextBusy = nextLocked || sceneLocked;
+  /** 그 쪽이 완성됐나: 음성 파일 + 장면 그림(배경 · 소품 · 주인공 묶음 · 등장인물 그림띠) */
+  const pageReady = (i: number) => audioReady(i) && (!scenes || sceneReady.has(i));
+  const nextBusy = pg < pages.length - 1 && !pageReady(pg + 1);
+  // 1쪽도 완성된 뒤에 책을 편다 (그 전에는 기다리는 화면). 느린 망에서 끝없이 기다리지 않게 OPEN_WAIT_MS 가 지나면 연다
+  const [openGaveUp, setOpenGaveUp] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setOpenGaveUp(true), OPEN_WAIT_MS); return () => clearTimeout(t); }, []);
+  const opened = isOpen || openGaveUp || pageReady(0);
+  useEffect(() => { if (opened) setIsOpen(true); }, [opened]);
   // 들어온 쪽과 그 앞에 보던 쪽 — 앞으로 넘겨 들어왔을 때만 움직인다
   const [entered, setEntered] = useState<{ pg: number; from: number | null }>({ pg: 0, from: null });
   useEffect(() => { setEntered((e) => (e.pg === pg ? e : { pg, from: e.pg })); }, [pg]);
@@ -582,6 +624,13 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     );
   };
 
+  if (!opened) {
+    return (
+      <Screen back="/" speech="책을 펴고 있어요" segment={4} autoSpeak={false} adultKey={false}>
+        <Waiting message="책을 펴고 있어요" steps={1} current={1} art={<Pencil />} />
+      </Screen>
+    );
+  }
   return (
     <Screen back="/" speech={page.text} segment={4} autoSpeak={false}
       // C-02 다시 듣기: 이 쪽을 처음부터 다시 읽는다 (쪽 음성 파일이 있으면 그 목소리로 — 브라우저 음성과 겹치지 않게)
@@ -650,6 +699,10 @@ const TTS_CHARS_PER_SEC = 6.5;
 
 /** 다음 쪽 장면 그림을 이만큼 기다리면 다 안 읽혀도 「다음 쪽」을 연다 */
 const SCENE_WAIT_MS = 8000;
+/** 쪽 음성 파일을 이만큼 받아도 안 오면 서버 주소로 바로 읽는다 */
+const AUDIO_WAIT_MS = 15000;
+/** 1쪽이 완성되기를 이만큼 기다리면 그냥 책을 편다 */
+const OPEN_WAIT_MS = 20000;
 /** 첫 쪽만으로 연 책의 나머지 쪽 음성을 이 간격으로 다시 묻는다, 최대 횟수 (약 11분: 서버는 10분 지나면 「만드는 중」을 뗀다) */
 const LATE_AUDIO_MS = 2000;
 const LATE_AUDIO_TRIES = 330;

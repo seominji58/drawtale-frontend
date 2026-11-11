@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/11 쪽 완성 뒤 보여 주기 · 커튼 | **끝** (실제 모드 확인): `S09Story` `pageReady`(음성 `audioGot` + 장면 `sceneReady`) · `opened`(1쪽 완성 뒤 편다) · 세 쪽씩 미리 받기, `preloadScene` 에 등장인물 그림띠, 커튼 `props/curtain.webp` (연출 주인 소리 · 앞 문장 · 숙소 · 비유 이불은 서민지 님 `a8a70d8`) |
 | 11/11 장면 남은 문제 5차 | **끝**: 문제 쪽 78 → 50. `underPerson` 작은 것(키 0.2 미만) 폭 1할 · 주인공 자리 포함, `layout.mjs` 가림은 인물도 몸 가운데 6할 |
 | 11/11 장면 남은 문제 4차 | **끝**: 문제 쪽 95 → 78. `personX` 반대쪽 빈자리를 반 사람 겹치기보다 먼저, `plan.ts` 그네 소품(`playground/swing.webp`) · 등대 계단 앉기(`lighthouse`) · 구름 침대 제외 · 「누구 품에서」 든 사람 |
 | 11/11 장면 남은 문제 3차 | **끝**: 문제 쪽 154 → 95. `plan.ts` 꽃집 · 꽂는 깃발, `SceneStage` 함께 걷는 사람 앞쪽 자리 · 사람 뒤 소품 `data-behind`(검사 `harness.tsx` · `layout.mjs` 가 가림에서 뺌) |

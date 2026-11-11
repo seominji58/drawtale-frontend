@@ -48,6 +48,8 @@ const COVERS: [RegExp, string, number][] = [
   [/시소/, "props/seesaw.webp", 0.2],
   [/정자|기둥/, "props/pavilion.webp", 0.56],
   [/구령대/, "props/podium.webp", 0.24],
+  // 「커튼 뒤에 숨었어요」 (11/11, tools/art/gen_scene_props4.py): 숨을 그림이 없어 주인공이 그냥 사라졌다 (저장 이야기 3편)
+  [/커튼/, "props/curtain.webp", 0.5],
 ];
 
 /** 쪽 글에 나오면 주인공 옆에 놓는 물건 (11/3 사용자 「대본에 들어갔는데 실제로 없는 오브젝트」 · 「물건은 전부 만들어줘」 —
