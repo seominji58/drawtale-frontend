@@ -49,6 +49,10 @@ const CASES: [string, string, string[], string | null][] = [
   ["자기 돌이 더 멀리 갔다며 친구가 크게 웃었어요.", "웃었", ["친구"], "친구"],
   ["모래성이 우뚝 서자 친구가 활짝 웃었어요.", "활짝", ["친구"], "친구"],
   ["차갑던 인형이 토토 품에서 금세 따뜻해졌어요.", "따뜻해", ["친구"], null],
+  // 해님 · 달님의 「님」은 사람 호칭이 아니다 (11/11 중의적 말 점검)
+  ["달님이 토토 손바닥에서 말랑말랑 웃었어요.", "웃었", ["친구"], null],
+  ["해님이 방긋 웃었어요.", "웃었", ["친구"], null],
+  ["선생님이 방긋 웃었어요.", "웃었", ["선생님"], "선생님"],
   // 사람이 아닌 것이 주어
   ["바람이 내 볼을 간지럽혔어요.", "간지럽", ["친구"], null],
   ["돌벽도 숨어 버렸어요.", "숨어", ["친구"], null],
@@ -57,10 +61,17 @@ const CASES: [string, string, string[], string | null][] = [
 // 우는 문장이 아닌 것 (소리 · 「훌쩍 갔어요」)과 우는 문장: [글, 눈물 연출 수] (11/11 서민지 님 a8a70d8 의 NOT_CRY)
 const CRY_CASES: [string, number][] = [
   ["갈매기가 끼룩끼룩 울었어요.", 0], ["냉장고만 웅웅 울었어요.", 0], ["시간이 훌쩍 갔어요.", 0], ["매미가 맴맴 울었어요.", 0],
+  ["까마귀가 까악까악 울었어요.", 0], ["부엉이가 부엉부엉 울었어요.", 0],
   ["친구가 훌쩍훌쩍 울었어요.", 1], ["눈물이 뚝뚝 떨어졌어요.", 1],
 ];
 
 let bad = 0;
+// 떨기 몸짓: 몸이 떠는 것만 (「목소리가 떨렸어요」는 아님) [글, 떨기 몸짓 수]
+const SHIVER_CASES: [string, number][] = [["목소리가 작게 떨렸어요.", 0], ["토토는 덜덜 떨었어요.", 1], ["다리가 후들후들 떨렸어요.", 1]];
+for (const [t, n] of SHIVER_CASES) {
+  const got = sceneFx(t).gestures.filter((g) => g.kind === "shiver").length;
+  if (got !== n) { bad++; console.log(`X [떨기] ${t} → ${got} (기대 ${n})`); }
+}
 for (const [t, n] of CRY_CASES) {
   const got = sceneFx(t).tears.length;
   if (got !== n) { bad++; console.log(`X [울음] ${t} → 눈물 ${got} (기대 ${n})`); }
@@ -71,6 +82,6 @@ for (const [sen, cue, people, want] of CASES) {
   const got = subjectOf(sen, people, HERO, at);
   if (got !== want) { bad++; console.log(`X ${sen}  [${cue}] → ${got} (기대 ${want})`); }
 }
-const total = CASES.length + CRY_CASES.length;
+const total = CASES.length + CRY_CASES.length + SHIVER_CASES.length;
 console.log(`연출 주인 ${total - bad}/${total}`);
 process.exitCode = bad ? 1 : 0;

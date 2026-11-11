@@ -34,6 +34,9 @@ export const LOCATIONS: Record<string, Sub[]> = {
   ],
   town: [
     { id: "town", words: ["거리"] },
+    // 11/11 가게 안 (빵집 · 꽃집 · 문구점 안, tools/art/gen_places2.py): 「빵집 안 포대 뒤에 숨었어요」가 바깥 시장 거리였다.
+    // 「빵집 안」이 「빵집」과 같은 자리에서 잡히므로 시장보다 먼저 둔다
+    { id: "town-shop", words: ["inside the shop", "inside the bakery", "inside a shop", "inside a bakery", "빵집 안", "가게 안", "꽃집 안", "문구점 안", "빵집 문을 열고", "가게 문을 열고"] },
     { id: "town-market", words: ["market", "stall", "shop", "store", "bakery", "시장", "가게", "빵집"] },
     { id: "town-park", words: ["park", "fountain", "공원", "분수"] },
     { id: "town-busstop", words: ["bus", "버스", "정류장"] },

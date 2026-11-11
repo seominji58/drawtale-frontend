@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/11 글과 배경 · 가게 안 · 중의적 말 | **끝**: `plan.ts` `whereHeroIs` · `AT_SCENE`(가는 길 `ON_THE_WAY`, 보이기만 `NOT_THERE`) · 카드 밖 장면 잇기 · 가게 안 잇기, `scenes/town-shop`, `PERSON_WORD` 자연 「님」 제외, `HEART_BEAT` · `MOVE_WORDS`, 목소리 떨림. 시험 `tools/scene-check/where.ts` |
 | 11/11 쪽 완성 뒤 보여 주기 · 커튼 | **끝** (실제 모드 확인): `S09Story` `pageReady`(음성 `audioGot` + 장면 `sceneReady`) · `opened`(1쪽 완성 뒤 편다) · 세 쪽씩 미리 받기, `preloadScene` 에 등장인물 그림띠, 커튼 `props/curtain.webp` (연출 주인 소리 · 앞 문장 · 숙소 · 비유 이불은 서민지 님 `a8a70d8`) |
 | 11/11 장면 남은 문제 5차 | **끝**: 문제 쪽 78 → 50. `underPerson` 작은 것(키 0.2 미만) 폭 1할 · 주인공 자리 포함, `layout.mjs` 가림은 인물도 몸 가운데 6할 |
 | 11/11 장면 남은 문제 4차 | **끝**: 문제 쪽 95 → 78. `personX` 반대쪽 빈자리를 반 사람 겹치기보다 먼저, `plan.ts` 그네 소품(`playground/swing.webp`) · 등대 계단 앉기(`lighthouse`) · 구름 침대 제외 · 「누구 품에서」 든 사람 |

@@ -418,7 +418,7 @@ const NOT_CRY = /(?:끼룩|부엉부엉|웅웅|맴맴|개굴|짹짹|꼬끼오|�
 /** 문장의 주인 (저장 이야기 3,069편 점검 11/10 — 「천장에서 물방울이 떨어졌어요」 · 「새들이 노래했어요」의 연출이 주인공에게 났다).
  *  "hero" 주인공 · "other" 이름 없는 사람(친구 · 아저씨 …) · 인물 이름 · null(사람이 아닌 것이 주어 — 연출 없음).
  *  주어를 쓰지 않은 문장은 주인공 (그림책은 「나」를 자주 뺀다) */
-const PERSON_WORD = /^(?:친구|친구들|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|아기|아이|아이들|요원|경찰관|주인|안내원|대장|선장|박사|의사|간호사|아가씨|모두|다들|가족)$|님$|(?:아저씨|아주머니|선생님|요원|할머니|할아버지|친구)$/;
+const PERSON_WORD = /^(?:친구|친구들|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|아기|아이|아이들|요원|경찰관|주인|안내원|대장|선장|박사|의사|간호사|아가씨|모두|다들|가족)$|(?<!해|햇|달|별|구름|바람|하늘|꽃|나무)님$|(?:아저씨|아주머니|선생님|요원|할머니|할아버지|친구)$/;
 const BODY_WORD = /^(?:눈물|눈|마음|가슴|얼굴|몸|웃음|미소|땀|땀방울|기분|목소리|코|입|귀|손|발|배|머리|볼|어깨|다리|날개|꼬리|숨|숨소리|용기|힘|무릎|팔|이마|눈가|잠|생각|좋은 생각|꿈|걱정|겁|배꼽|울음|울음소리|눈물방울)$/;
 /** 「창가 구석에서 · 복도 끝에서 친구가」의 창가 · 복도는 주어가 아니라 자리 — 「가 · 도」로 끝나는 자리 낱말 (11/11 전수 점검: 친구가 우는데 주인공이 울었다) */
 const PLACE_GA = /^(?:창가|시냇가|바닷가|강가|냇가|물가|길가|호숫가|연못가|개울가|우물가|냇물가|복도|인도|차도|보도)$/;
@@ -548,6 +548,8 @@ export function sceneFx(text: string): SceneFx {
     for (const [kind, gre] of GESTURES) {
       if (kind === "bow" && DOZE.test(m[0])) continue;
       const g = gre.exec(m[0]);
+      // 「목소리가 작게 떨렸어요」는 몸이 떠는 게 아니다 (11/11 중의적 말 점검)
+      if (g && kind === "shiver" && /목소리(?:가|도|는|까지)?\s*(?:[가-힣]+\s*)?$/.test(m[0].slice(0, g.index))) continue;
       if (g) gestures.push({ at: readAt(text, m.index + g.index), before: m[0].slice(0, g.index), kind });
     }
   }
@@ -854,7 +856,7 @@ const LOOP_ACTIONS: Record<string, number> = { wave: 3, jump: 2, dance: 2 };
 /** 그 밖의 동작(2026-11-04 새 동작 9개 — 숨쉬기 · 헤엄 · 만세 …)은 쪽에 있는 동안 계속. 0 이면 첫 장에서 멈춘다 */
 const KEEP_LOOPING = 1000;
 const INDOOR = new Set(["cave", "home-living", "home-kitchen", "home-bedroom", "school-classroom", "school-cafeteria",
-  "school-hallway", "school-music", "school-library", "space-ship", "cave-lake", "sea-lighthouse"]);
+  "school-hallway", "school-music", "school-library", "space-ship", "cave-lake", "sea-lighthouse", "town-shop"]);
 
 export const isIndoor = (location: string) => INDOOR.has(location);
 /** 해 · 달을 띄우는 곳 — 바깥이고, 하늘이 따로 그려진 곳(바닷속 빛줄기 · 우주 별 · 행성의 달)은 뺀다 */
@@ -1059,6 +1061,44 @@ const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table",
  *  침대에 눕혀 주었어요」가 동굴 호수 장면이었고, 「할아버지 집 이불 속에」의 이불이 숲에 놓였다. 「집에 가고 싶어」 같은 바람 · 앞일은 아니다 */
 const HOME_TEXT = /집(?:에|으로)\s?(?:무사히\s|드디어\s)?(?:도착|돌아왔|돌아와|들어왔|들어와|왔어요|와서|오자|오니|갔어요|돌아갔)|숙소(?:에서|에|로)\s?(?:[가-힣]+\s){0,3}(?:누|잠|눕)|집 (?:이불|침대|안|방|거실)|(?:침대|이불 속)에\s?(?:눕|누워|누웠|쏙)/;
 const HOME_BED = /침대|이불|베개|잠이 들|잠들|눕|누워|누웠/;
+/** 가슴 · 마음이 뛰는 말 (움직임이 아님) */
+const HEART_BEAT = /(?:가슴|심장|마음)(?:이|은|도|까지)? (?:[가-힣]+,? ){0,3}뛰[가-힣]*/;
+/** 주인공이 옮겨 가는 말 (걷기 · 뛰기 동작을 그대로 둘 때) */
+const MOVE_WORDS = /걸어|걸었|걷|달려|달렸|달리|뛰어|뛰었|뛰며|뛰다|다가|갔어요|갔다|왔어요|건너|지나|올라|내려|따라|향해|도망|산책|다다다|타다닥|사뿐|살금살금|걸음|성큼|폴짝|깡충|총총|돌아왔|돌아갔|들어갔|나갔|나왔|가까워|멀어|와서|찾아와|찾아갔/;
+/** 가는 길 · 보이기만 · 바람 (그곳에 있는 게 아님): 「미끄럼틀로 가는 길에 · 교실을 향해 · 창밖으로 운동장이 · 저기 도서관이 보였어요」 */
+const NOT_THERE = /보였|보여|창밖|창문 너머|저기|저 멀리|생각|꿈|그림/;
+/** 그곳 말 바로 뒤가 가는 길이면 아직 거기 있는 게 아님 (「미끄럼틀로 가는 길에 · 교실을 향해」). 문장 다른 곳의 「무지개 쪽으로」는 상관없다 */
+const ON_THE_WAY = /^[^.!?]{0,10}?(?:가는 길|가다가|가려|향해|쪽으로|가고 싶|까지 가)/;
+/** [그곳 말, 맞는 장면, 쓸 수 있는 장소(카드) · 지금 장면 조건, 주인공이 주어여야 하나] */
+const AT_SCENE: [RegExp, string, (place: string, loc: string) => boolean, boolean][] = [
+  [/(?:부엌|식탁)(?:에서|에|으로|로)\s?[^.!?]{0,18}?(?:씻|앉|먹|놓|섰|서 있|들어|돌아|차렸|도왔)/, "home-kitchen", (_p, l) => l.startsWith("home"), true],
+  // 집 마당 · 골목: 주인공이 거기 있다고 하거나(「골목을 걸었어요」) 집에 막 돌아온 쪽(「집으로 돌아왔어요. 대문 앞에서 엄마가」)만.
+  // 「창밖에서 소리가 들렸어요. 대문 앞에서 친구가 울고」는 집 안 (needHero, 아래 arrived)
+  [/(?:대문 앞|마당|골목)(?:에서|에|으로|로|을)/, "home", (_p, l) => l === "home-living", true],
+  // 마당 · 대문에서 안으로 들어가거나 방 안 말이면 거실 (「대문 안으로 들어갔어요 · 유자 냄새가 방 안에 퍼졌어요」)
+  [/(?:대문 안|현관|집 안)(?:으로|에)\s?[^.!?]{0,6}?들어|방 안에|거실에|거실로/, "home-living", (_p, l) => l === "home", false],
+  // 가게 안 (빵집 · 꽃집 · 문구점 안에 있거나 들어감, 문을 열고 들어감): 가게 안 장면 town-shop (11/11 새로 그림)
+  [/(?:빵집|가게|꽃집|문구점|약국|서점|과일 가게)(?: 안에| 안으로| 안|에서|에|으로|로)\s?[^.!?]{0,16}?(?:숨었|숨어|달려갔|들어갔|들어가|들어섰|들어왔|있는 어른)|(?:빵집|가게|꽃집|문구점) 문을 (?:열고|활짝)/, "town-shop", () => true, true],
+  [/시장(?:에서|에|으로|로)\s?[^.!?]{0,14}?(?:도착|들어|걸었|돌아다|구경)/, "town-market", () => true, true],
+  [/놀이터(?:에서|에|으로|로)\s?[^.!?]{0,10}?(?:들어갔|도착|놀|뛰|왔어요|돌아왔)/, "playground", (p) => p === "town" || p === "playground", true],
+  [/(?:그네|미끄럼틀)(?:에|까지|를|을|에서)?\s?[^.!?]{0,8}?(?:앉|타|데려다|올라|내려)|그네가[^.!?]{0,10}흔들/, "playground", (p) => p === "playground", false],
+  [/(?:시냇물|시냇가|개울|냇가)(?: 옆| 앞)?(?:에서|에|으로|로|을)\s?[^.!?]{0,8}?(?:지나|걸|앉|섰|놀|도착|건너)/, "forest-stream", (p) => p === "forest", false],
+];
+/** 주인공이 지금 있는 곳을 글이 분명히 말하면 그 장면, 아니면 undefined (가는 길 · 보이기만 · 다른 사람만 거기 있는 문장은 빼고) */
+export function whereHeroIs(text: string, place: string, loc: string): string | undefined {
+  for (const sen of text.replace(/“[^”]*”/g, " ").split(/(?<=[.!?])\s*/)) {
+    if (NOT_THERE.test(sen)) continue;
+    for (const [rx, to, can, needHero] of AT_SCENE) {
+      const m = rx.exec(sen);
+      if (to === loc || !can(place, loc) || !m || ON_THE_WAY.test(sen.slice(m.index))) continue;
+      // 「토토와 친구는 · 나와 엄마는」처럼 주인공이 함께 하는 것도 주인공
+      const withHero = /데려다|우리|(?:^|\s)나와 /.test(sen) || (!!heroWord && sen.includes(heroWord + "와 "));
+      if (needHero && subjectOf(sen, [], heroWord) !== "hero" && !withHero && !(to === "home" && HOME_TEXT.test(text))) continue;
+      return to;
+    }
+  }
+  return undefined;
+}
 /** 집에 온 뒤 다시 나가는 말 (없으면 다음 쪽도 집) */
 const LEAVE_HOME = /밖으로|밖에 나|나갔|나가|나왔|나서|집을 나|떠났|숲|바다|동굴|놀이터|학교|마을|공원|시장|우주/;
 /** 꿈 쪽: 꿈 글에 나온 물건만 놓고, 현실에서 이어 오던 물건은 잠시 뺀다(깨면 다시). 「꿈속에서 나뭇잎 배를 타고」에 캠핑장 텐트가 있었다 */
@@ -1167,6 +1207,16 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       if (HOME_TEXT.test(p.text)) loc = HOME_BED.test(p.text) ? "home-bedroom" : "home-living";
       else if (prevLoc?.startsWith("home") && !LEAVE_HOME.test(p.text)) loc = prevLoc;   // 집에 온 뒤로는 나간다는 말이 없으면 집
     }
+    // 주인공이 실제로 그곳에 있다고 분명히 말하면 그 장면 (대본이 적은 자리 · 장소 카드보다 앞): 「부엌에서 방울토마토를 씻었어요」가 거실,
+    // 「그네에 앉아」가 산책길, 집 이야기 「빵집 안 포대 뒤에 숨었어요」가 거실이었다 (11/11 사용자 「대본 내용이랑 뒷배경이 안 맞는 것」)
+    const there = whereHeroIs(p.text, place, loc);
+    if (there) loc = there;
+    // 가게 안에 들어갔으면 나온다는 말(「밖으로 나왔어요 · 빵집 앞 의자에」)이 없는 한 가게 안: 「빵집 안 포대 뒤에 숨었어요」 다음
+    // 「할아버지가 웃고 있었어요 · 오븐에서 빵 냄새」가 바깥 시장 거리였다 (11/11)
+    else if (prevLoc === "town-shop" && loc.startsWith("town") && !/나왔|나와|나가|나섰|밖으로|밖에 나|앞 의자|(?:빵집|가게|꽃집|문구점) 앞|골목|거리/.test(p.text)) loc = "town-shop";
+    // 장소 카드 밖 장면으로 옮겼으면(놀이터 · 빵집) 나간다는 말이 없는 한 다음 쪽도 그곳: 7쪽 「놀이터로 들어갔어요」 다음 8쪽
+    // 「친구와 그네를 탔어요」가 다시 마을 거리였다 (11/11). 집은 위에서 따로 잇는다
+    else if (prevLoc && !prevLoc.startsWith("home") && !LOCATIONS[place]?.some((s) => s.id === prevLoc) && !/나왔|나와|나가|나섰|떠났|돌아왔|돌아갔|돌아가|집으로|밖으로/.test(p.text)) loc = prevLoc;
     // 물고기(지느러미형) 주인공은 바다에서 늘 바닷속 — 모래사장 · 방파제 글이어도 물 밖에 세우지 않는다 (11/10 사용자 「물고기는 바다 안에서」)
     if (form === "finned" && place === "sea") loc = "sea-underwater";
     const st = stageIdx(p.stage);
@@ -1323,7 +1373,12 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     }
 
     // 주인공: 걷기 · 뛰기는 옮겨 가고, 제자리 동작은 몇 번 하고 멈춘다
-    const move = p.action === "walk" ? "walk" : p.action === "run" ? "run" : "none";
+    // 대본 동작이 걷기 · 뛰기여도 쪽 글에 움직이는 말이 없고 「가슴이 콩닥콩닥 뛰었어요 · 마음이 콩콩 뛰었어요」뿐이면 제자리:
+    // 「토토가 살며시 물었어요. 가슴이 두근두근 뛰었어요」에 주인공이 걸어갔다 (11/11 사용자 「중의적 표현들도 다 감수하고 대본 검사」)
+    // 숨는 쪽은 숨을 곳으로 옮겨 가는 것이라 그대로 (「바위 뒤에 숨었어요 … 가슴이 쉬지 않고 뛰었어요」)
+    const stillHeart = (p.action === "walk" || p.action === "run") && HEART_BEAT.test(p.text) && !/숨었|숨어|숨는|몸을 숨|숨겼/.test(p.text)
+      && !MOVE_WORDS.test(p.text.replace(/“[^”]*”/g, " ").replace(new RegExp(HEART_BEAT.source, "g"), " "));
+    const move = stillHeart ? "none" : p.action === "walk" ? "walk" : p.action === "run" ? "run" : "none";
     let from = x, to = x;
     let goal: string | undefined;
     if (move !== "none") {

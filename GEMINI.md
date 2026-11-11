@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/11 글과 배경**: `plan.ts` `whereHeroIs(text, place, loc)` 가 `AT_SCENE`([그곳 말, 장면, 쓸 조건, 주인공 주어 필요]) 로 주인공이 있는 장면을 정한다(`locationFor` · 집 장면 뒤, 대본 scene.location 보다 앞). 카드 밖 장면 · 가게 안(`town-shop`)은 나간다는 말이 없으면 잇는다. 새 장소 경우는 `tools/scene-check/where.ts` 에 더한다. 걷기 · 뛰기는 대본 `action` 인데 `HEART_BEAT` 뿐이면 제자리
 - **11/11 쪽 완성**: `S09Story` 는 `pageReady(i)` = `audioReady`(쪽 음성을 fetch 해 blob 주소로 `audioGot`) && `sceneReady`. 1쪽 전에는 `Waiting`(「책을 펴고 있어요」, `OPEN_WAIT_MS` 20초), 다음 쪽 단추는 `nextBusy`. 숨는 곳 커튼 `props/curtain.webp`
 - **11/11 장면 5차**: `underPerson` 은 이어 남은 물건이 사람 · 주인공 자리(`placed[0]` 포함)와 겹치면 사람 뒤에(작은 것 폭 1할, 큰 것 2할). 검사 가림은 인물 · 주인공 모두 그림 칸 가운데 6할
 - **11/11 장면 4차**: `personX` 순서는 틈 있는 자리 → 몸 7할 안 겹침(같은 쪽) → 반대쪽 빈자리(들어오는 사람) → 몸 반 안 겹침(같은 쪽) → 끝. 장소 그림을 쪽 소품으로 쓸 때는 `THINGS` 에 「장소/파일」(`playground/swing.webp`)과 `props-ar.json` 비율. 앉는 자리 `SEAT_WORDS` 에 빈 이름이면 앉는 자리 아님
