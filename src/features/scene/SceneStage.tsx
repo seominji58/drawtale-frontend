@@ -910,7 +910,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const blinkNow = play && !REDUCE ? fx.blinks.filter((b) => heard(b.at)) : [];
   const inBlink = (t: { at?: number }) => t.at !== undefined && t.at >= 0 && blinkNow.some((b) => t.at! >= b.start && t.at! < b.end);
   const shownThings = [...thingSpots, ...posedSpots.filter((v) => v.at).map((v) => v.t)];
-  const blinkScene = blinkNow.filter((b) => !shownThings.some((t) => t.at !== undefined && t.at >= b.start && t.at < b.end)).map((b) => {
+  const blinkScene = blinkNow.filter((b) => b.light && !shownThings.some((t) => t.at !== undefined && t.at >= b.start && t.at < b.end)).map((b) => {
     const sen = b.sentence;
     const spot = /등대/.test(sen) ? layoutObj(/lighthouse/) : /가로등/.test(sen) ? layoutObj(/lamp/)
       : /등불|랜턴|초롱/.test(sen) ? layoutObj(/lantern/) : /창/.test(sen) && layout.window ? { x: layout.window.x, y: layout.window.y } : null;
@@ -1039,7 +1039,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 손 인사 그림띠를 보이는 중이면 그때 멈춘 그림으로 바꿔 돈다
   const personSpin = new Set<string>(REDUCE || !play ? [] : [
     ...joyful.filter((jy) => jy.who.startsWith("p-")).map((jy) => jy.who),
-    ...fx.spins.filter((sp) => heard(sp.at) && otherSpins(sp.before)).map((sp) => {
+    // 사람이 도는 말일 때만 — 「토성이 빙그르르 돌면서」처럼 사람이 아닌 것이 돌면 아무도 돌지 않는다 (11/11 전수 점검)
+    ...fx.spins.filter((sp) => heard(sp.at) && otherSpins(sp.before)
+      && subjectOf(sp.before, visiblePeople.map((v) => v.p.name ?? ""), heroName) !== null).map((sp) => {
       const v = visiblePeople.find((q) => q.p.name && sp.before.includes(q.p.name)) ?? visiblePeople[0];
       return v && (!v.p.enter || arrived) ? `p-${v.p.id}` : "";
     }).filter(Boolean),
