@@ -340,7 +340,7 @@ export function readAt(text: string, i: number): number {
 export type JoyKind = "heart" | "star" | "flower";
 export type HeroGesture = "bow" | "nod" | "shiver" | "crouch";
 export interface SceneFx {
-  bright: number; tears: { at: number; sentence: string; pos?: number; other?: boolean }[]; spins: { at: number; before: string }[];
+  bright: number; tears: { at: number; sentence: string; pos?: number; other?: boolean; before?: string }[]; spins: { at: number; before: string }[];
   /** 깜빡이는 빛 (11/10 사용자 「깜빡이다 — 소품이면 그 소품, 아니면 장면 전체」). at: 그 말의 자리, start · end: 그 문장 (글자 위치) */
   /** light: 불빛 말 — 아니면(별 · 반딧불이) 그 소품이 화면에 있을 때만 깜빡인다 */
   blinks: { at: number; start: number; end: number; sentence: string; light: boolean }[];
@@ -411,12 +411,15 @@ const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
 const BRIGHT = /어둠이 (?:물러|걷|사라)|환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|불이 (?:[가-힣]+,? ){0,3}(?:켜졌|켜져|켜지|들어왔)|불을 (?:[가-힣]+,? ){0,3}(?:켰|켜|밝)|불빛에|불빛이 (?:[가-힣]+,? ){0,3}(?:비|퍼|가득|환|새어|새|켜)|등불이 (?:[가-힣]+,? ){0,3}(?:켜|비)|빛이 새어 나왔|환한 (?:불빛|빛)|빛이 (?:[가-힣]+,? ){0,3}(?:들어왔|쏟아)|해가 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟|올라왔|올라오|나왔|얼굴을|빼꼼)|해님이 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟|올라|나왔|방긋|얼굴을|빼꼼)|밤이 지나|동이 트|날이 (?:밝|새|샜)|아침이 (?:밝|됐|되|왔)|햇(?:살|빛)이 (?:[가-힣]+,? ){0,3}(?:가득|쏟|들어|비)/;
 // 낱말 첫머리의 「울」만 — 「기울었어요 · 배울게요」의 울은 울음이 아니다 (11/11 전수 점검: 고개가 갸웃 기울었는데 눈물)
 const CRY = /(?<![가-힣])(?:울었|울고|울어|울먹)|울음을 터|울음이 터|눈물|훌쩍|엉엉|글썽|흐느/;
-const NOT_CRY = /눈물이 (?:말랐|마르)|눈물 대신|눈물 자국|닦자|닦으|닦는|그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었|쏙 들어|들어갔|참았|참고|꾹 참|눈물이 (?:싹|쏙)|눈물이 뚝 (?:그|멈)|눈물을 (?:거두|멈)/;   // 「눈물이 뚝뚝 떨어졌어요」는 우는 것 (11/10)
+// 「갈매기가 끼룩끼룩 울었어요 · 냉장고만 웅웅 울었어요 · 시간이 훌쩍 갔어요」는 우는 것이 아니다 (11/11 전수 점검: 주인공 눈에서 눈물)
+const NOT_CRY = /(?:끼룩|부엉부엉|웅웅|맴맴|개굴|짹짹|꼬끼오|음매|멍멍|야옹|귀뚤|뻐꾹|까악|찌르르)[가-힣]*,? (?:[가-힣]+ ){0,3}울|(?:갈매기|산새|매미|귀뚜라미|뻐꾸기|까마귀|냉장고|사이렌)(?:이|가|들이|만)? (?:[가-힣]+ ){0,2}울|훌쩍 (?:갔|지나|뛰|넘|커|컸|자랐|날아|올라|떠나)|시간이 훌쩍|눈물(?:이|을)? (?:[가-힣]+ )?(?:말랐|마르|말랐)|눈물방울이 (?:[가-힣]+ ){0,2}(?:빛나|반짝)|눈물(?:방울)?이 (?:[가-힣]+ ){0,3}사라|눈물이 (?:하나도 |이제 |더는 )*없|눈물 대신|눈물 자국|닦자|닦으|닦는|그쳤|그치|닦았|닦아|닦고|멈췄|안 울|울지 않|울지 마|뚝 그|웃음이|웃었|쏙 들어|들어갔|참았|참고|꾹 참|눈물이 (?:싹|쏙)|눈물이 뚝 (?:그|멈)|눈물을 (?:거두|멈)/;   // 「눈물이 뚝뚝 떨어졌어요」는 우는 것 (11/10)
 /** 문장의 주인 (저장 이야기 3,069편 점검 11/10 — 「천장에서 물방울이 떨어졌어요」 · 「새들이 노래했어요」의 연출이 주인공에게 났다).
  *  "hero" 주인공 · "other" 이름 없는 사람(친구 · 아저씨 …) · 인물 이름 · null(사람이 아닌 것이 주어 — 연출 없음).
  *  주어를 쓰지 않은 문장은 주인공 (그림책은 「나」를 자주 뺀다) */
 const PERSON_WORD = /^(?:친구|친구들|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|아기|아이|아이들|요원|경찰관|주인|안내원|대장|선장|박사|의사|간호사|아가씨|모두|다들|가족)$|님$|(?:아저씨|아주머니|선생님|요원|할머니|할아버지|친구)$/;
-const BODY_WORD = /^(?:눈물|눈|마음|가슴|얼굴|몸|웃음|미소|땀|땀방울|기분|목소리|코|입|귀|손|발|배|머리|볼|어깨|다리|날개|꼬리|숨|숨소리|용기|힘|무릎|팔|이마|눈가|잠|생각|좋은 생각|꿈|걱정|겁|배꼽)$/;
+const BODY_WORD = /^(?:눈물|눈|마음|가슴|얼굴|몸|웃음|미소|땀|땀방울|기분|목소리|코|입|귀|손|발|배|머리|볼|어깨|다리|날개|꼬리|숨|숨소리|용기|힘|무릎|팔|이마|눈가|잠|생각|좋은 생각|꿈|걱정|겁|배꼽|울음|울음소리|눈물방울)$/;
+/** 「창가 구석에서 · 복도 끝에서 친구가」의 창가 · 복도는 주어가 아니라 자리 — 「가 · 도」로 끝나는 자리 낱말 (11/11 전수 점검: 친구가 우는데 주인공이 울었다) */
+const PLACE_GA = /^(?:창가|시냇가|바닷가|강가|냇가|물가|길가|호숫가|연못가|개울가|우물가|냇물가|복도|인도|차도|보도)$/;
 /** 마디를 끝내는 말 (「~고 · ~며 · ~자 · ~니 · ~는데 · ~지만」, 쉼표). 자 · 니로 끝나는 이름씨(혼자 · 의자 · 할머니 · 주머니)는 빼고 */
 const CLAUSE_END = /[가-힣]*(?:고|며|면서|어서|아서|해서|여서|는데|은데|지만|더니|다가|려고)(?=[\s,]|$)|[가-힣]*(?<!혼|의|모|상|과|액|남|여|사|전|왕|글|숫|감|부|피)자(?=[\s,]|$)|[가-힣]*(?:보|오|가|하|주|되|나|켜|열|으|들|서|치)니(?=[\s,]|$)|,/g;
 /** 앞 마디와 주어가 바뀌기 쉬운 끝 (「엄마가 안아 주자 · 가 보니 · 열어 주었는데」 다음은 다른 사람 · 나) */
@@ -456,7 +459,7 @@ function subjectNear(t: string, people: string[], hero: string | null | undefine
   if (lastEnd && (!last || SWITCH_END.test(lastEnd[0].trim()))) return "hero";
   return undefined;
 }
-export function subjectOf(sen: string, people: string[], hero?: string | null, at?: number): string | null {
+export function subjectOf(sen: string, people: string[], hero?: string | null, at?: number, fallback: string | null = "hero"): string | null {
   const t = sen.replace(/“[^”]*”/g, (q) => " ".repeat(q.length));
   if (at !== undefined) {
     const near = subjectNear(t, people, hero, at);
@@ -492,12 +495,16 @@ export function subjectOf(sen: string, people: string[], hero?: string | null, a
       }
       continue;
     }
-    if (/^(?:그때|오늘|이번|그날|그런데|그래서|이제|어느새|드디어|정말|모두|다시)$/.test(w)) continue;
+    if (/^(?:그때|오늘|이번|그날|그런데|그래서|이제|어느새|드디어|정말|모두|다시)$/.test(w) || PLACE_GA.test(w + m[2])) continue;
+    // 「웅덩이 옆 · 책꽂이 앞에서 친구가」의 웅덩이 · 책꽂이는 자리, 「물어도 · 그래도」는 이음말 — 주어가 아니다 (11/11 전수 점검)
+    if (/^\s*(?:옆|앞|뒤|위|아래|밑|안|속|끝|쪽|근처|사이|가운데|구석|너머)(?:에|에서|으로|쪽)?(?=[\s,])/.test(t.slice(m.index! + m[0].length))) continue;
+    if (m[2] === "도" && /(?:[어아해워와봐여져쳐돼]|그래|가까이)$/.test(w)) continue;
+    if (w + m[2] === "가까이" || w + m[2] === "어디선가" || (m[2] === "가" && /(?:[어아]|다가)$/.test(w) && w.length >= 2)) continue;   // 「기어가 보니 · 걸어가니」
     // 받침 뒤 「는 · 은」은 꾸밈말(웃는 · 반짝이는)일 때가 많다 — 「이 · 가」 주어만 사람이 아닌 것으로 본다
     // 「돌벽도 숨어 버렸어요 · 박쥐들도 날갯짓」— 사람이 아닌 것에 「도」가 붙어도 그것이 주어 (11/10 전수 점검)
     if (m[2] === "이" || m[2] === "가" || m[2] === "도") return null;
   }
-  return "hero";
+  return fallback;
 }
 /** 따옴표 말 뒤에 이어지는 말 (“…” 하고 · 라고 · 하며) — 앞 문장과 이어 누가 하는지 본다 */
 const CONT = /^\s*(?:하고|라고|하며|하면서|하자|하니|하는|이라고|고 )/;
@@ -509,9 +516,12 @@ export function sceneFx(text: string): SceneFx {
   const bAt = firstHit(text, BRIGHT, NOT_BRIGHT);
   const tears: SceneFx["tears"] = [];
   const re = /[^.!?”]+[.!?”]*/g;
-  let prev = "";
+  let prev = "", told = "";
   for (let m = re.exec(text); m; m = re.exec(text)) {
     const sen = CONT.test(m[0]) ? prev + m[0] : m[0];
+    // 앞 문장(대사만 있는 문장은 건너뜀) — 「친구가 울고 있었어요. 훌쩍훌쩍, 작은 어깨가 들썩였어요」처럼 주어를 뺀 우는 문장은 앞 문장의 사람 (11/11)
+    const before = told;
+    if (!sen.trimStart().startsWith("“") || CONT.test(m[0])) told = sen;
     prev = sen;
     // 자리는 우는 말(「울었어요」)이 나오는 곳 — 문장 첫머리면 「민지가 혼자」를 읽을 때 벌써 떨어졌다 (11/10)
     // 묻는 말 · 따옴표 대사는 우는 것이 아니다 — 「“왜 울어?” 하고 나는 물었어요」에서 주인공 눈에 눈물이 났다 (11/10)
@@ -520,7 +530,7 @@ export function sceneFx(text: string): SceneFx {
     const asks = sen.includes("?") || /소리(?:가|를|에)(?=\s)/.test(sen);
     if (!asks && sen.trimStart().startsWith("“")) continue;
     const c = CRY.exec(sen);
-    if (c && !NOT_CRY.test(sen)) tears.push({ at: readAt(text, posIn(m, sen, c.index)), sentence: sen, pos: c.index, other: asks || undefined });
+    if (c && !NOT_CRY.test(sen)) tears.push({ at: readAt(text, posIn(m, sen, c.index)), sentence: sen, pos: c.index, other: asks || undefined, before: before || undefined });
   }
   // 도는 말: 그 문장에서 그 말 앞부분(누가 도는지 — 장면이 정한다)과 자리
   const spins: SceneFx["spins"] = [];
@@ -720,6 +730,8 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
       if (src === "props/flag.webp" && /꽂/.test(sen)) continue;
       // 「종이배」는 큰 배 그림이 아니다
       if (src === "props/boat.webp" && /종이 ?배/.test(m[0])) continue;
+      // 「구름 이불 · 나뭇잎 이불 · 잎 이불」은 천 이불이 아니다 (11/11 전수 점검: 우주 · 숲에 담요가 깔렸다)
+      if (src === "props/blanket.webp" && /(?:구름|나뭇잎|잎|꽃잎|눈|별빛|햇살|낙엽|이끼|풀) ?$/.test(said.slice(Math.max(0, m.index - 4), m.index))) continue;
     }
     if (spot === "wall" && !indoor) continue;   // 바깥에는 걸 벽이 없다
     if (skip.has(src)) continue;
@@ -1043,7 +1055,7 @@ const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table",
   "clock", "log", "cushion", "footprints", "stump", "shells", "swing"]);
 /** 집이라고 분명히 말하는 쪽 (11/11 사용자 「추천대로」): 어느 장소 이야기든 집 장면으로 옮긴다. 동굴 이야기 끝 「엄마가 집에 도착해
  *  침대에 눕혀 주었어요」가 동굴 호수 장면이었고, 「할아버지 집 이불 속에」의 이불이 숲에 놓였다. 「집에 가고 싶어」 같은 바람 · 앞일은 아니다 */
-const HOME_TEXT = /집(?:에|으로)\s?(?:무사히\s|드디어\s)?(?:도착|돌아왔|돌아와|들어왔|들어와|왔어요|와서|오자)|집 (?:이불|침대|안|방|거실)|(?:침대|이불 속)에\s?(?:눕|누워|누웠|쏙)/;
+const HOME_TEXT = /집(?:에|으로)\s?(?:무사히\s|드디어\s)?(?:도착|돌아왔|돌아와|들어왔|들어와|왔어요|와서|오자|오니|갔어요|돌아갔)|숙소(?:에서|에|로)\s?(?:[가-힣]+\s){0,3}(?:누|잠|눕)|집 (?:이불|침대|안|방|거실)|(?:침대|이불 속)에\s?(?:눕|누워|누웠|쏙)/;
 const HOME_BED = /침대|이불|베개|잠이 들|잠들|눕|누워|누웠/;
 /** 집에 온 뒤 다시 나가는 말 (없으면 다음 쪽도 집) */
 const LEAVE_HOME = /밖으로|밖에 나|나갔|나가|나왔|나서|집을 나|떠났|숲|바다|동굴|놀이터|학교|마을|공원|시장|우주/;

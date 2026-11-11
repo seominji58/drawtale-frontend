@@ -1140,7 +1140,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const stopsAt = [...fx.calms.map((c) => ({ at: c.at, who: whoOf(c.sentence, false, false, c.pos) })),
     ...fx.joys.map((jy) => ({ at: jy.at, who: whoOf(jy.sentence, jy.kind === "heart", !!jy.other, jy.pos) }))].filter((c) => heard(c.at));
   const crying = fx.tears.filter((t) => heard(t.at)).map((t) => {
-    const w = whoOf(t.sentence, false, !!t.other, t.pos);
+    // 주어를 뺀 우는 문장(「눈물이 뚝뚝 떨어졌어요」)은 앞 문장의 사람 — 앞 문장도 주어가 없으면 전처럼 주인공 (11/11)
+    const bare = !t.other && t.before && subjectOf(t.sentence, visiblePeople.map((v) => v.p.name ?? ""), heroName, t.pos, "") === "";
+    // 앞 문장이 사람이 아닌 것의 말(「무릎에 흙이 묻었어요」)이면 그 문장 그대로 (주인공)
+    const w = (bare ? whoOf(t.before!, false, false) : null) ?? whoOf(t.sentence, false, !!t.other, t.pos);
     if (t.other && w?.key === "hero") return null;   // 상대가 울어야 하는데 옆에 인물이 없으면 아무도 울지 않는다
     if (!ready(w)) return null;
     if (stopsAt.some((c) => c.at > t.at && c.who?.key === w.key)) return null;
