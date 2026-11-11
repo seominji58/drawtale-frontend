@@ -10,7 +10,7 @@ import { ENGINE, fetchPageAudio } from "@/api";
 import { firstClip, firstFrameSrc } from "@/features/story/clip";
 import { artOf } from "@/features/character/art";
 import PlaceScene, { Hero, placeOf, usePlaceLayout } from "@/features/story/PlaceScene";
-import SceneStage, { preloadStripsFor } from "@/features/scene/SceneStage";
+import SceneStage, { preloadScene, preloadStripsFor } from "@/features/scene/SceneStage";
 import { envCueAt, planPages, sceneFx } from "@/features/scene/plan";
 import { formOf } from "@/features/character/forms";
 import { ORDER_GAME, useSettings } from "@/store/settings";
@@ -403,6 +403,27 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
   );
   // 등장인물 그림띠는 책을 열 때 미리 읽어 둔다, 처음 붙을 때 안 읽혀 있으면 첫 장들이 휙휙 지나갔다 (11/9)
   useEffect(() => { if (scenes) preloadStripsFor(scenes); }, [scenes]);
+  // 쪽 장면 그림도 미리 읽는다: 지금 쪽 다음부터 차례로. 다음 쪽 그림이 다 읽히기 전에는 「다음 쪽」 대신 「만드는 중」
+  // (11/11 사용자 「장면 렌더링 · 음성 생성이 끝나고 넘어가져야 하는데 넘어간 뒤 아무것도 안 나오다가 나와」).
+  // 느린 망에서 끝없이 막지 않게 한 쪽에 8초가 지나면 그냥 연다 (장면은 그림이 오는 대로 그려진다)
+  const [sceneReady, setSceneReady] = useState<Set<number>>(() => new Set());
+  useEffect(() => {
+    if (!scenes) return;
+    let alive = true;
+    const mark = (i: number) => alive && setSceneReady((s) => (s.has(i) ? s : new Set(s).add(i)));
+    (async () => {
+      for (let i = pg; i < scenes.length && alive; i++) {
+        if (sceneReady.has(i)) continue;
+        const pi = pages[i];
+        const sprite = pi.sprite && pi.spriteUrl ? { url: pi.spriteUrl, ...pi.sprite } : null;
+        await Promise.race([preloadScene(scenes[i], sprite, pi.spriteLeft ?? null), new Promise((ok) => setTimeout(ok, SCENE_WAIT_MS))]);
+        mark(i);
+      }
+    })();
+    return () => { alive = false; };
+  }, [scenes, pg]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const sceneLocked = !!scenes && pg < pages.length - 1 && !sceneReady.has(pg + 1);
+  const nextBusy = nextLocked || sceneLocked;
   // 들어온 쪽과 그 앞에 보던 쪽 — 앞으로 넘겨 들어왔을 때만 움직인다
   const [entered, setEntered] = useState<{ pg: number; from: number | null }>({ pg: 0, from: null });
   useEffect(() => { setEntered((e) => (e.pg === pg ? e : { pg, from: e.pg })); }, [pg]);
@@ -597,8 +618,8 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
         {last
           ? <BigButton className="next" go onClick={() => { stop(); onDone(); }}>{ORDER_GAME ? "순서 맞추기" : "다 봤어요"}</BigButton>
           // 다음 쪽 음성을 만드는 동안은 「만드는 중」(흐려지지 않음), 다 되면 「다음 쪽」
-          : <BigButton className="next" onClick={() => { if (!nextLocked) go(pg + 1); }}>
-              <span aria-live="polite">{nextLocked ? "만드는 중" : "다음 쪽"}</span>
+          : <BigButton className="next" onClick={() => { if (!nextBusy) go(pg + 1); }}>
+              <span aria-live="polite">{nextBusy ? "만드는 중" : "다음 쪽"}</span>
             </BigButton>}
       </div>
 
@@ -627,6 +648,8 @@ function SpeedSeg({ onChange }: { onChange: (rate: number) => void }) {
 /** 브라우저 TTS 가 1초에 읽는 글자 수 어림 (rate 0.95, 한국어) — 진행 바용 */
 const TTS_CHARS_PER_SEC = 6.5;
 
+/** 다음 쪽 장면 그림을 이만큼 기다리면 다 안 읽혀도 「다음 쪽」을 연다 */
+const SCENE_WAIT_MS = 8000;
 /** 첫 쪽만으로 연 책의 나머지 쪽 음성을 이 간격으로 다시 묻는다, 최대 횟수 (약 11분: 서버는 10분 지나면 「만드는 중」을 뗀다) */
 const LATE_AUDIO_MS = 2000;
 const LATE_AUDIO_TRIES = 330;

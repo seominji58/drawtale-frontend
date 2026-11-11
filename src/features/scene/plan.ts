@@ -65,7 +65,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/손전등/, "props/flashlight.webp", 0.1, "ground"],
   [/랜턴|등불/, "props/lantern.webp", 0.17, "ground"],
   [W1("공"), "props/ball.webp", 0.12, "ground"],
-  [/빵(?!빵)/, "props/bread.webp", 0.08, "ground"],
+  [/빵(?!빵|집)/, "props/bread.webp", 0.08, "ground"],   // 「빵집 주인 아저씨」는 빵이 아니다 (11/11, 151번)
   [/의자/, "props/chair.webp", 0.3, "ground"],
   [/벤치/, "town-park/bench.webp", 0.28, "ground"],
   [/반창고/, "props/bandage.webp", 0.08, "ground"],
@@ -650,6 +650,8 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
       const after = said.slice(m.index + m[0].length, m.index + m[0].length + 8);
       // 「로켓이 없었어요 · 담요도 없이 · 집에 두고 와서」 — 없다고 한 물건 (20건)
       if (/없었|없어|없이|없는|없다|두고 (?:와|왔|나)|놓고 (?:와|왔)|안 가져|못 가져|가져오지 않/.test(sen)) continue;
+      // 「주머니 속 조개를 만지니」 — 주머니 · 가방 속 물건은 보이지 않는다 (11/11 렌더 검사: 앞 쪽 조개가 화면 반대편에 다시 섰다)
+      if (/(?:주머니|가방|배낭|호주머니) ?(?:속|안)(?:의|에|에서|에 든)? ?$/.test(said.slice(Math.max(0, m.index - 10), m.index))) continue;
       // 「이불처럼 포근 · 별처럼 반짝 · 작은 나무 같아」 — 비유 (33건)
       if (/^[가-힣]{0,1}\s?(?:처럼|같|모양)/.test(after)) continue;
       // 「종이배」는 큰 배 그림이 아니다

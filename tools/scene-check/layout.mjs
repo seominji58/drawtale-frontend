@@ -57,7 +57,9 @@ function issuesOf(s) {
   for (const b of s.bg) {
     const rx = Object.entries(SAID).find(([k]) => b.name === k || b.name.startsWith(k))?.[1];
     if (!rx || !rx.test(s.text)) continue;
-    const covered = Math.max(0, ...figs.map((f) => inter(body(f), b) / Math.max(1e-6, area(b))));
+    // 앉는 자리 물건은 주인공이 일부러 그 앞에 붙어 선다 (주인공만 빼고 잰다)
+    const seatHere = s.seat && (SEAT_NAMES[s.seat] ?? [s.seat]).includes(b.name);
+    const covered = Math.max(0, ...figs.filter((f) => !(seatHere && f.name === "주인공")).map((f) => inter(body(f), b) / Math.max(1e-6, area(b))));
     if (covered > 0.4) out.push(["글이 말하는 배경 물건이 가림", `${b.name} ${Math.round(covered * 100)}%`]);
   }
   // 11/10 소품 겹침 고침 확인: 카드 표지판(인물 줄에 선다)이 배경 표지판 · 쪽 글 화살표와 함께 섬
@@ -82,7 +84,8 @@ function issuesOf(s) {
       || ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "nest"].includes(t.name)
       // 사람 뒤 자리(발 줄보다 위)에 놓인 땅 소품도 사람보다 먼저 그린다 (11/10)
       || (t.spot === "ground" && t.y1 < 0.915);
-    if (!held && !seatThing) for (const f of figs) {
+    // 카드 표지판은 사람이 아니다: 표지판 기둥 밑 화분 · 조개는 가림이 아니다 (표지판끼리 · 소품과는 아래 소품 검사가 본다)
+    if (!held && !seatThing) for (const f of figs.filter((g) => g.name !== "sign")) {
       const fb = f.name === "주인공" ? { ...f, x0: f.x0 + (f.x1 - f.x0) * 0.2, x1: f.x1 - (f.x1 - f.x0) * 0.2 } : f;
       const o = inter(t, fb) / Math.max(1e-6, area(t));
       if (o > 0.2) out.push(["소품이 인물을 가림", `${t.name} ↔ ${f.name} ${Math.round(o * 100)}%`]);
@@ -97,7 +100,9 @@ function issuesOf(s) {
     for (const u of s.things.slice(i + 1)) {
       if (kin(t.name, u.name)) out.push(["같은 종류 소품 둘", `${t.name} + ${u.name}`]);
       const o = inter(t, u) / Math.max(1e-6, Math.min(area(t), area(u)));
-      if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose))) out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
+      // 사람 손에 든 것이 사람 뒤에 그리는 넓은 풍경(텐트 …) 앞에 오는 것은 겹침이 아니다 (「랜턴을 든 엄마」 앞 텐트)
+      const wideBack = (HELD.has(t.pose) || HELD.has(u.pose)) && [t.name, u.name].some((n) => ["tent", "spaceship", "rocket", "boat", "bridge", "dune"].includes(n));
+      if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose)) && !wideBack) out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
     }
     const h = t.y1 - t.y0;
     // 대문 · 텐트 · 우주선 · 로켓은 실제로 아이보다 크다 (11/9 소품 키를 실제 크기 기준으로), 1.25 배까지

@@ -102,6 +102,31 @@ export function preloadStripsFor(plans: PagePlan[]): void {
   }
 }
 
+/** 한 쪽 장면에 들 그림(장소 배치 · 배경판 · 배경 물건 · 쪽 소품 · 주인공 그림 묶음)을 미리 읽고 풀어 둔다.
+ *  책 화면은 다음 쪽이 다 읽힌 뒤에 「다음 쪽」을 연다: 넘기고 나서 그림이 오면 빈 쪽이 보였다가 장면이 나타났다 (11/11 사용자) */
+const sceneWait = new Map<string, Promise<void>>();
+type SpriteRef = { url: string; frames: number; box: [number, number, number, number] } | null | undefined;
+export function preloadScene(plan: PagePlan, sprite: SpriteRef, spriteLeft?: SpriteRef): Promise<void> {
+  const key = `${plan.key ?? ""}|${plan.location}|${sprite?.url ?? ""}|${spriteLeft?.url ?? ""}`;
+  let w = sceneWait.get(key);
+  if (!w) {
+    const pic = (url: string) => {
+      const im = new Image();
+      im.src = url;
+      return (typeof im.decode === "function" ? im.decode() : new Promise<void>((ok, no) => { im.onload = () => ok(); im.onerror = no; })).catch(() => {});
+    };
+    const base = sceneBase(plan.location);
+    w = loadLayout(plan.location).then((l) => Promise.all([
+      pic(base + l.plate),
+      ...l.objects.map((o) => pic(base + o.src)),
+      ...(plan.things ?? []).map((t) => pic(thingSrc(t.src))),
+      ...[sprite, spriteLeft].filter((v): v is NonNullable<SpriteRef> => !!v?.url).map((v) => loadSprite(v.url, v).then(() => {}, () => {})),
+    ])).then(() => {}, () => {});
+    sceneWait.set(key, w);
+  }
+  return w;
+}
+
 const REDUCE = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const FPS = 12;
 // 걷기 · 뛰기는 AI 가 제자리로 렌더하고(11/3 저녁) 화면이 그림 칸째 옮긴다. 옮기는 속도가 렌더의 걸음 속도와
@@ -395,14 +420,25 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 앞 쪽에서 자리를 잡아 둔 붙박이 물건(이어 온 것 · 다시 나온 것)도 그 앞에 서지 않는다. 앉는 자리는 빼고 (그 옆에 붙어 선다).
   // 전에는 이어 온 의자 · 조개 · 돌 앞에 주인공 · 인물이 서서 1,253쪽에서 물건을 가렸다 (11/10 이어짐 검사)
   const seatKindNow = plan.hero.seat ? kindOf(`${plan.hero.seat}.webp`) : null;
+  // 이어 남은 작은 물건(조개 · 화분 · 발자국 …): 사람 그림 칸(팔 여백까지)이 2할 넘게 덮지 않게 (발 위에 놓인 것처럼 보였다, 11/11)
+  const smallPinned = new Set<[number, number]>();
   const pinnedSpans: [number, number][] = (plan.things ?? []).flatMap((t) => {
     const pin = t.keep && !t.pose && t.spot !== "air" && t.spot !== "wall" ? PINS.get(t.keep) : undefined;
     // 넓은 풍경 물건(텐트 · 우주선 · 로켓 · 배 · 다리 · 모래 언덕)은 사람이 앞에 서도 자연스럽다: 피하면 사람들이 좁은 데로 몰려 겹쳤다.
     // 깃발 · 우체통처럼 좁고 키 큰 것은 피한다 (앞에 서면 기둥이 몸을 뚫은 것처럼 보였다, 11/10)
     if (!pin || kindOf(t.src) === seatKindNow || WIDE_SCENERY.has(kindOf(t.src))) return [];
     const half = (pin.h * t.ar / aspect) / 2;
-    return [[pin.x - half, pin.x + half] as [number, number]];
+    const sp: [number, number] = [pin.x - half, pin.x + half];
+    if (pin.h < 0.15) smallPinned.add(sp);
+    return [sp];
   });
+  // 이어 온 물건이 배경 그림에 이미 있으면(바다의 모래성) 소품은 안 그리고 배경 것이 그 물건이다: 그것도 이어 온 물건처럼 앞에 서지 않는다
+  // (11/11 렌더 검사: 「내 모래성」 이야기에서 엄마 · 안전 요원이 배경 모래성 앞에 서서 쪽 내내 가렸다)
+  const keptKinds = new Set((plan.things ?? []).filter((t) => t.kept && !t.pose).map((t) => kindOf(t.src)));
+  for (const o of layout.objects) {
+    const k = kindOf(o.src);
+    if (o.foot !== undefined && keptKinds.has(k) && !saidKinds.has(k) && k !== seatKindNow && !WIDE_SCENERY.has(k)) pinnedSpans.push(spanOf(o));
+  }
   const avoidSpans = [...saidSpans, ...pinnedSpans];
   /** 주인공 몸(가운데 6할)이 그 물건을 3할 넘게 가리면 옆에 선다: 옮겨 오면 다가온 쪽, 제자리면 가까운 쪽. 자리가 없으면 그대로 */
   const besideSaid = (x: number, dir: number) => {
@@ -519,7 +555,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const figureSpans = new Set<[number, number]>([placed[0]]);
   /** 사람 몸 가운데가 이어 남은 작은 물건 · 글이 말하는 배경 물건을 4할 넘게 가리지 않는가 (사람끼리는 조금 겹쳐도 된다).
    *  11/10 이어짐 검사: 손잡고 오는 아빠가 화분 위에, 끝에서 들어온 선생님이 계단 소품 위에 섰다 */
-  const clearOfThings = (c: number, half: number) => pinnedSpans.every(([l, r]) => Math.min(c + half * 0.5, r) - Math.max(c - half * 0.5, l) <= (r - l) * 0.4)
+  const clearOfThings = (c: number, half: number) => pinnedSpans.every((sp) => {
+    const [l, r] = sp, k = smallPinned.has(sp) ? 1 : 0.5, lim = smallPinned.has(sp) ? 0.2 : 0.4;
+    return Math.min(c + half * k, r) - Math.max(c - half * k, l) <= (r - l) * lim;
+  })
     // 글이 말하는 배경 물건은 몸 가운데가 조금도 가리지 않게 (모래성 앞에 섰다)
     && saidSpans.every(([l, r]) => c + half * 0.5 <= l || c - half * 0.5 >= r);
   /** c 가 물건 위면 가장 가까운 물건 옆 (lo~hi 안), 없으면 그대로 */
@@ -572,9 +611,17 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     if (sameSide) {
       // 끝부터 안쪽으로 물건 위가 아니고 사람과 반 넘게 겹치지 않는 곳, 없으면 끝 그대로
       // (사람 겹침을 따지지 않고 안쪽으로 찾으면 주인공 자리까지 와서 9할 넘게 겹쳤다, 11/11 렌더 검사)
-      let ex = right ? hi : lo;
+      let ex = right ? hi : lo, found = false;
       for (let c = ex; right ? c >= lo : c <= hi; c += right ? -0.01 : 0.01)
-        if (side(c) && clearOfThings(c, half) && freeOfFigures(c - half * 0.5, c + half * 0.5)) { ex = c; break; }
+        if (side(c) && clearOfThings(c, half) && freeOfFigures(c - half * 0.5, c + half * 0.5)) { ex = c; found = true; break; }
+      // 그런 자리가 없으면(주인공과 끝 사이가 좁은데 둘이 들어옴) 그쪽에서 사람과 가장 덜 겹치는 자리: 끝에 그대로 서면 앞 사람과 통째로 겹쳤다
+      // (11/11 렌더 검사 「아저씨 뒤로 한 아이가 따라왔어요」 98%)
+      if (!found) {
+        const over = (c: number) => [...figureSpans].reduce((sum, [l, r]) => sum + Math.max(0, Math.min(c + half, r) - Math.max(c - half, l)), 0);
+        let best = over(ex);
+        for (let c = ex; right ? c >= lo : c <= hi; c += right ? -0.01 : 0.01)
+          if (side(c) && clearOfThings(c, half) && over(c) < best - 0.005) { best = over(c); ex = c; }
+      }
       take(ex);
       return { x: ex, back: false };
     }
@@ -597,7 +644,15 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   let followTaken = false;
   followMs.current = followWho && travel !== 0 ? timing.ms : 0;
   lateMs.current = 0;
-  const people = behind.map((p) => {
+  // 함께 움직이는 사람이 먼저 자리를 잡는다 (주인공 바로 옆 자리는 그 사람 것): 나중에 잡으면 먼저 선 엄마 위에
+  // 손잡은 경찰관이 겹쳐 섰다 (11/11 렌더 검사 95%). 그리는 순서는 원래대로
+  const followFirst = followWho && travel !== 0
+    ? behind.findIndex((q) => q.id !== "sign" && !!prop(q.id) && (followWho === q.name || followWho === "*")) : -1;
+  const placeOrder = followFirst > 0 ? [followFirst, ...behind.map((_, i) => i).filter((i) => i !== followFirst)] : behind.map((_, i) => i);
+  const placedPeople = new Map<number, ReturnType<typeof placePerson>>();
+  for (const i of placeOrder) placedPeople.set(i, placePerson(behind[i]));
+  const people = behind.map((_, i) => placedPeople.get(i)!);
+  function placePerson(p: (typeof behind)[number]) {
     const base0 = prop(p.id);
     if (!base0) return null;
     const wRatio = p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45;
@@ -634,7 +689,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const enterSide: "left" | "right" | undefined = enter === "right" && spot.x < hero.to - 0.05 ? "left"
       : enter === "left" && spot.x > hero.to + 0.05 ? "right" : enter;
     return { p: enterSide === p.enter ? p : { ...p, enter: enterSide }, s, spot, sb, follow: undefined as { from: number } | undefined };
-  });
+  }
   // 옆모습(4족형 · 사슬형 · 지느러미형) 주인공이 보는 쪽 — 그림의 머리 쪽(facing)과 다르면 좌우로 뒤집는다.
   // 옮겨 가면 가는 쪽(렌더가 머리 쪽으로 걷는다, 11/4 「얼굴 방향에 따라 < 인지 > 인지」), 제자리면 가장 가까운 인물 · 동물 쪽,
   // 아무도 없으면 앞 쪽에서 보던 쪽 (hero.face). 옮겨 갈 때만 뒤집으면 다음 쪽에서 원래 방향으로 돌아가 옆 친구 · 박쥐에게
@@ -861,7 +916,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const pin = !v.at ? pinOf(v.t) : undefined;
     if (!pin) continue;
     const span: [number, number] = [pin.x - halfOf(v.t, pin.h), pin.x + halfOf(v.t, pin.h)];
-    (v.t.spot === "air" ? airPlaced : placed).push(span);
+    (v.t.spot === "air" || v.t.spot === "wall" ? airPlaced : placed).push(span);
     if (pin.h < 0.15) smallSpans.add(span);
   }
   const remember = <T extends { x: number; h: number; footY?: number }>(t: ThingPlan, at: T): T => {
@@ -869,6 +924,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     return at;
   };
   const lead = form && form !== "biped" ? (headSide !== 0 ? headSide : hero.face) : 0;
+  // 벽에 거는 것은 창(배경 창 그림 · 장소 창 자리)을 피한다: 우주선 둥근 창 위에 벽시계가 걸려 창밖 지구를 가렸다 (11/11)
+  const winObj = layout.objects.find((o) => /window/.test(o.src));
+  const winSpan: [number, number] | undefined = winObj ? spanOf(winObj)
+    : layout.window ? [layout.window.x - (layout.window.h * 0.6) / aspect, layout.window.x + (layout.window.h * 0.6) / aspect] : undefined;
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
     const pin = pinOf(t);
     if (pin) return { ...t, h: pin.h, x: pin.x, footY: pin.footY };
@@ -883,7 +942,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       return remember(t, { ...t, h: Math.min(t.h, tr.h * 0.16), x: tr.x, footY: tr.foot! - tr.h * 0.42 });
     }
     const air = t.spot === "air";
-    const list = air ? airPlaced : placed;
+    // 벽에 거는 것(시계 · 그림)은 높이 걸리니 공중 소품과 자리를 나눈다: 땅 소품 자리로 셈해 창밖 지구가 벽시계 위에 겹쳤다 (11/11)
+    const list = air || t.spot === "wall" ? airPlaced : placed;
     // 큰 땅 소품은 배경 물건과 겹치지 않는 자리를 먼저(원래 크기 · 0.75 배까지), 없으면 겹쳐도. 사람 · 소품끼리는 늘 피한다.
     // 넓은 물건(시소 · 다리 · 텐트 · 바위)은 자리가 없으면 조금 작게라도 놓는다 — 전에는 통째로 빠졌다(좁은 화면에서 11%)
     const tryList: [boolean, number, boolean?, boolean?][] = air ? [[false, 1]]
@@ -894,6 +954,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         : [[false, 1], [false, 0.75], [false, 0.55]];
     for (const [avoidBg, scale, overSmall, overPeople] of tryList) {
       const open = (a: number, b: number) => list.every((sp) => b <= sp[0] || a >= sp[1] || (overSmall && smallSpans.has(sp)) || (overPeople && figureSpans.has(sp)))
+        && (t.spot !== "wall" || !winSpan || b <= winSpan[0] || a >= winSpan[1])
         && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r));
       const h = t.h * scale, half = (h * t.ar / aspect) / 2;
       const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
@@ -905,7 +966,11 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         if (lead) tries.push(hero.to + lead * off, hero.to - lead * off);
         else if (k % 2 === 0) tries.push(hero.to - off, hero.to + off); else tries.push(hero.to + off, hero.to - off);
       }
-      const x = tries.find((c) => c >= lo && c <= hi && open(c - half - gap, c + half + gap));
+      const ok = tries.filter((c) => c >= lo && c <= hi && open(c - half - gap, c + half + gap));
+      // 배경 물건과 겹칠 수밖에 없으면 가장 덜 겹치는 자리 (첫 자리를 그냥 쓰면 깃발 기둥이 파라솔 기둥에 붙었다, 11/11 렌더 검사)
+      const bgOver = (c: number) => bgSpans.reduce((sum, [l, r]) => sum + Math.max(0, Math.min(c + half, r) - Math.max(c - half, l)), 0);
+      const x = !avoidBg && !air && t.h >= 0.28 && ok.length
+        ? ok.reduce((a, b) => (bgOver(b) < bgOver(a) - 0.005 ? b : a)) : ok[0];
       if (x === undefined) continue;
       const span: [number, number] = [x - half, x + half];
       list.push(span);
