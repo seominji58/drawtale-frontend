@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/11 장면 4차**: `personX` 순서는 틈 있는 자리 → 몸 7할 안 겹침(같은 쪽) → 반대쪽 빈자리(들어오는 사람) → 몸 반 안 겹침(같은 쪽) → 끝. 장소 그림을 쪽 소품으로 쓸 때는 `THINGS` 에 「장소/파일」(`playground/swing.webp`)과 `props-ar.json` 비율. 앉는 자리 `SEAT_WORDS` 에 빈 이름이면 앉는 자리 아님
 - **11/11 장면 3차**: 사람 뒤에 그린 소품은 `data-behind="1"`(`behindPeople`), 검사 페이지가 `behind` 로 넘기고 `layout.mjs` 는 가림에서 뺀다. 함께 걷는 사람은 뒤 자리가 물건 위면 앞쪽(`clearOfThings`). `plan.ts` 꽃집 · 꽂는 깃발 제외
 - **11/11 연출 주인 (마디)**: `subjectOf(sen, people, hero, at)` 의 넷째 인자는 연출 말 자리, `subjectNear` 가 그 마디(`CLAUSE_END`)의 사람 주어를 먼저 본다. `SceneFx` 눈물 · 그침 · 기쁨에 `pos`. 조사 없는 주인공 이름은 주어 아님. 함께 기뻐함은 `SceneStage` `together`. 시험 `tools/scene-check/subject.ts`(새 경우는 여기에 더한다)
 - **11/11 연출 주인**: `plan.ts` `subjectOf` 는 몸 낱말(`BODY_WORD`) 바로 앞 낱말이 사람(`PERSON_WORD` · 인물 이름 · 주인공 이름 · 내)이면 그 사람을 주어로 (「친구 눈물이 뚝뚝」)

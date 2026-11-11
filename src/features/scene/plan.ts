@@ -121,6 +121,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/상자|박스/, "props/box.webp", 0.16, "ground"],
   [/모래 언덕/, "props/dune.webp", 0.16, "ground"],   // 「언덕」만이면 뒷산 언덕도 걸린다
   [/시소/, "props/seesaw.webp", 0.26, "ground"],
+  // 「그네에 앉아」인데 그네 없는 길 · 공원이었다 (11/11 렌더 검사): 놀이터 배경의 그네 그림을 쪽 소품으로 (배경에 그네가 있으면 안 놓는다)
+  [/그네/, "playground/swing.webp", 0.4, "ground"],
   [/텐트/, "props/tent.webp", 0.55, "ground"],
   // B. 장소 배경에만 있던 그림을 다른 장소에서도 (배경에 이미 있으면 SceneStage 가 또 놓지 않는다)
   // 「돌았어요」 · 「돌아왔어요」 빼고, 짧은 「돌」은 앞 글자와 떨어진 것만 — 「곰돌이 컵」에 부엌 바닥 돌멩이 (11/9 전체 배치 검사)
@@ -222,7 +224,7 @@ const POSES: [ThingPose, RegExp][] = [
   ["back", /(?<!발)등에 (?:태우|태웠|태워|업|얹|싣|실|올려|올렸)/],   // 「발등에 올려」 빼고
   ["head", /머리에 (?:쓰|썼|얹)|^\s*(?:(?:꾹|푹|눌러|살짝)\s*)*(?:쓰고|썼|써)/],
   // 「풍선이 둥실 내려와 친구 품에 쏙 안겼어요」 — 품에 · 손에 와 안겼 사이에 쏙 · 폭 · 꼭이 끼어도 (11/10)
-  ["hand", /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) [가-힣]|손에 (?:들|쥐|꼭)|(?:들고|쥐고) |(?:높이|번쩍|두 손으로|살짝) 들(?:었|어|고)|들어 (?:주|보이|올리)|(?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐)\s*)?(?:안|들어|잡|쥐)|꼭 안|껴안|안고 /],
+  ["hand", /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) [가-힣]|손에 (?:들|쥐|꼭)|(?:들고|쥐고) |(?:높이|번쩍|두 손으로|살짝) 들(?:었|어|고)|들어 (?:주|보이|올리)|(?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐)\s*)?(?:안|들어|잡|쥐)|꼭 안|껴안|안고 |^\s*[가-힣]+(?:의)? 품(?: 안)?에서 /],   // 「곰 인형도 토토 품에서 흔들흔들」: 소품 바로 뒤 「누구 품에서」만 (11/11)
 ];
 /** 사람을 가리키는 말 끝 (「~도」 주어를 사람일 때만 볼 때) */
 const PERSON_TAIL = /(?:친구|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|안내원|선장님?|박사님?|요원|경찰관|지킴이|등대지기|소방관|의사|간호사)$/;
@@ -251,7 +253,9 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   const me = isMe;
   // 「친구 품에 안겼어요」 · 「아저씨 손에 들어왔어요」 — 품 · 손의 주인이 든 사람 (소품이 주어라 앞에서 주어를 찾으면 주인공이 됐다)
   // 「공을 꼭 안고 엄마 품에 기댔어요」의 엄마는 공을 든 사람이 아니다: 품 · 손에 「안기다 · 들어가다 · 쥐다」일 때만 (11/11 전수 점검)
-  const owner = /([가-힣]+(?: [가-힣]+)?)(?:의)? (?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐|가득)\s*)?(?:안|들어|잡|쥐|놓|담|올려)/.exec(rest)?.[1];
+  // 「곰 인형도 토토 품에서 흔들흔들」처럼 품 · 손 안에서 하는 것도 그 사람이 든 것
+  const owner = (/([가-힣]+(?: [가-힣]+)?)(?:의)? (?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐|가득)\s*)?(?:안|들어|잡|쥐|놓|담|올려)/.exec(rest)
+    ?? /([가-힣]+(?: [가-힣]+)?)(?:의)? (?:품|손)(?: 안)?에서/.exec(rest))?.[1];
   // 「손전등을 든 엄마 · 등불을 든 동굴 안내원이」 — 든 사람이 뒤에 온다 (11/10 전수 점검: 땅에 놓였다)
   const heldBy = /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) ([가-힣]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|도|와|과|께서|였|이었|이에요|예요|$|[\s,.!])/.exec(rest)?.[1];
   if (heldBy && pose === "hand") return { pose, subject: me(heldBy) ? "hero" : heldBy };
@@ -680,6 +684,7 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   "props/puddle.webp": (l, indoor) => !indoor && !l.startsWith("space"),
   // 대문 · 우체통은 바깥에만: 「창밖에서 … 대문 앞에서」에 거실 바닥에 대문이 섰다 (11/10 이어짐 검사)
   "props/gate.webp": (_l, indoor) => !indoor,
+  "playground/swing.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater"),
   "props/mailbox.webp": (_l, indoor) => !indoor,
 };
 
@@ -1035,7 +1040,7 @@ const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0
  *  저장 카드 이야기 1,024편 중 663편에서 같은 배경인데 글에 낱말이 빠진 쪽에서 사라졌다. 들고 다니는 것(공 · 손전등 · 책 · 담요 …)은 뺀다 */
 const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs",
   "seesaw", "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug",
-  "clock", "log", "cushion", "footprints", "stump", "shells"]);
+  "clock", "log", "cushion", "footprints", "stump", "shells", "swing"]);
 /** 집이라고 분명히 말하는 쪽 (11/11 사용자 「추천대로」): 어느 장소 이야기든 집 장면으로 옮긴다. 동굴 이야기 끝 「엄마가 집에 도착해
  *  침대에 눕혀 주었어요」가 동굴 호수 장면이었고, 「할아버지 집 이불 속에」의 이불이 숲에 놓였다. 「집에 가고 싶어」 같은 바람 · 앞일은 아니다 */
 const HOME_TEXT = /집(?:에|으로)\s?(?:무사히\s|드디어\s)?(?:도착|돌아왔|돌아와|들어왔|들어와|왔어요|와서|오자)|집 (?:이불|침대|안|방|거실)|(?:침대|이불 속)에\s?(?:눕|누워|누웠|쏙)/;
@@ -1052,7 +1057,7 @@ const SMALL_KEEP_MAX = 2;
 const GONE_AFTER = /^.{0,14}?(?:무너|부서|사라졌|사라지|치웠|치우|떠내려|날아가|날아갔|가져갔|가져가|주워|주웠|집어|들고 갔|넣었|넣어|쓸려|녹아|터졌|떠났|떠나)/;
 /** 앉는 · 올라가는 · 기대는 자리 (그 문장에서 자리 낱말이 동사보다 앞) → 장면 그림 이름 */
 const SEAT_WORDS: [RegExp, string][] = [[/그루터기/, "stump"], [/벤치/, "chair"], [/의자/, "chair"], [/바위/, "rocks"], [/통나무/, "log"],
-  [/소파/, "sofa"], [/침대/, "bed"], [/그네/, "swing"], [/시소/, "seesaw"], [/계단/, "stairs"], [/방석/, "cushion"], [/돌(?:멩이)?(?=에|위)/, "rocks"]];
+  [/소파/, "sofa"], [/구름 침대|침대 같은|침대처럼/, ""], [/침대/, "bed"], [/등대[^.]{0,6}계단/, "lighthouse"], [/그네/, "swing"], [/시소/, "seesaw"], [/계단/, "stairs"], [/방석/, "cushion"], [/돌(?:멩이)?(?=에|위)/, "rocks"]];
 const SIT_VERB = /앉|올라가|올라섰|누워|누웠|기대/;
 const nameOfSrc = (src: string) => src.split("/").pop()!.replace(/\.webp$/, "");
 /** 주인공(나 · 이름)이 앉는 문장의 자리. 다른 인물만 앉는 문장(「아기 토끼가 옆에 앉았어요」)은 주인공이 「나란히 · 같이」일 때만 */
@@ -1063,7 +1068,8 @@ export function seatOf(text: string): string | undefined {
     if (subjectOf(sen, [], heroWord, v) !== "hero" && !/나란히|같이|함께|우리/.test(sen)) continue;
     for (const [rx, kind] of SEAT_WORDS) {
       const m = rx.exec(sen);
-      if (m && m.index < v) return kind;
+      // 「구름 침대 · 침대처럼」은 장면의 앉는 자리가 아니다 (빈 이름)
+      if (m && m.index < v) return kind || undefined;
     }
   }
   return undefined;

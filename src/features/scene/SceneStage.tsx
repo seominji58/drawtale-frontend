@@ -595,16 +595,18 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         // 글이 말하는 배경 물건(모래성 · 벤치 …) 앞은 전처럼 비운다 (조금 겹치는 것도 안 됨)
         && saidSpans.every(([l, r]) => c + half * 0.7 <= l || c - half * 0.7 >= r))
       // 그래도 없으면 말한 물건 가장자리(빈 팔 여백만)는 닿아도 된다: 바로 뒤로 보내면 주인공과 9할 넘게 겹쳤다 (11/11 렌더 검사)
-      ?? tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.7, c + half * 0.7) && clearOfThings(c, half))
-      ?? tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.5, c + half * 0.5) && clearOfThings(c, half));
+      ?? tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.7, c + half * 0.7) && clearOfThings(c, half));
     const take = (c: number) => { const sp: [number, number] = [c - half, c + half]; placed.push(sp); figureSpans.add(sp); };
     if (at !== undefined) { take(at); return { x: at, back: false }; }
     // 들어오는 쪽에 틈이 없으면 반대쪽 빈자리 (표지판 말고 사람만) — 오른쪽에서 둘이 들어오는데 자리가 없어 둘 다 오른쪽 끝 같은 자리에
     // 서서 엄마 · 아빠가 완전히 겹쳤다 (11/11 장면 검사). 그 사람은 가까운 끝에서 들어온다(아래 enterSide)
+    // 같은 쪽에서 반 사람 겹쳐 서기보다 먼저 본다: 왼쪽이 텅 비었는데 엄마 · 아빠가 오른쪽 끝에 46% 겹쳐 섰다 (11/11 렌더 검사)
     if (sameSide && wRatio !== 0.6) {
       const any = tries.find((c) => c >= lo && c <= hi && freeOfFigures(c - half * 0.7, c + half * 0.7) && clearOfThings(c, half));
       if (any !== undefined) { take(any); return { x: any, back: false }; }
     }
+    const tight = tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.5, c + half * 0.5) && clearOfThings(c, half));
+    if (tight !== undefined) { take(tight); return { x: tight, back: false }; }
     // 표지판은 틈이 없어도 가는 쪽 끝에 (좁은 화면 · 팔 넓은 그림에서 손끝과 조금 닿는 정도) — 반대편 뒤로 가지 않게
     // 들어온 사람은 그쪽 끝 조금 뒤에 (작아져 주인공과 겹쳐도 앞뒤로 읽힌다)
     // 들어온 사람도 앞줄 끝에 (옆 사람과 조금 겹쳐도): 뒤로 보내면 작고 높게 서서 공중에 뜬 것처럼 보였다 (11/10 사용자 「6쪽에 친구가 공중에 떠 있다」)
