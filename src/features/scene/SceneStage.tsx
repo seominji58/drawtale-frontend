@@ -1117,8 +1117,11 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((o) => o?.key === v.key) === k);
   // 등장인물도 기쁘거나(별 · 꽃 · 하트) 그 사람이 도는 말이면 좌우로 뒤집었다 돌아온다 (11/10 「손 인사 말고도 기쁜 상황에서 뒤집기」).
   // 손 인사 그림띠를 보이는 중이면 그때 멈춘 그림으로 바꿔 돈다
-  const personSpin = new Set<string>(REDUCE || !play ? [] : [
-    ...joyful.filter((jy) => jy.who.startsWith("p-")).map((jy) => jy.who),
+  // 등장인물은 글에 그 사람이 돈다고 적혔을 때만 돈다 (11/11 사용자 「등장인물이 빙글빙글 도는 기준이 너무 없다」 — 전에는 기쁨 연출
+  // (빙그레 웃었어요 · 안아 주었어요 · 고마워)만 붙어도 돌아, 인물이 나오는 쪽의 23%에서 돌았다. 글에 도는 말은 36쪽뿐).
+  // 기쁨은 꽃 · 하트 · 별 연출만. 물건이 도는 쪽(바람개비 …)은 사람이 돌지 않는다
+  const thingSpins = (plan.things ?? []).some((t) => t.motion === "spin");
+  const personSpin = new Set<string>(REDUCE || !play || thingSpins ? [] : [
     // 사람이 도는 말일 때만 — 「토성이 빙그르르 돌면서」처럼 사람이 아닌 것이 돌면 아무도 돌지 않는다 (11/11 전수 점검)
     ...fx.spins.filter((sp) => heard(sp.at) && otherSpins(sp.before)
       && subjectOf(sp.before, visiblePeople.map((v) => v.p.name ?? ""), heroName) !== null).map((sp) => {
