@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/11 연출 주인**: `plan.ts` `subjectOf` 는 몸 낱말(`BODY_WORD`) 바로 앞 낱말이 사람(`PERSON_WORD` · 인물 이름 · 주인공 이름 · 내)이면 그 사람을 주어로 (「친구 눈물이 뚝뚝」)
 - **11/11 쪽 넘김 · 장면 2차**: `SceneStage` `preloadScene(plan, sprite, spriteLeft)` 가 한 쪽 그림(배치 · 배경판 · 배경 물건 · 쪽 소품 · 주인공 묶음)을 받아 풀어 둔다. `S09Story` 는 지금 쪽 다음부터 차례로 부르고 `sceneReady` 에 없으면 `nextBusy`(「만드는 중」, `SCENE_WAIT_MS` 8초). 인물은 함께 걷는 사람 먼저(`placeOrder` · `placePerson`), 이어 온 물건이 배경에 있으면 피함(`keptKinds`), 작은 이어 남은 물건 `smallPinned`(사람 칸 2할), 벽 소품은 `airPlaced` · `winSpan`. `plan.ts` 빵집 · 주머니 속
 - **11/11 장면 인물 · 소품 자리 · 집 장면 · 꿈 쪽**: `SceneStage` 는 사람 자리(`figureSpans`, 주인공 + 인물)를 따로 두고 이어 남은 물건 · 글이 말하는 배경 물건 앞을 피한다(`clearOfThings`, 함께 걷는 사람은 `besideThings`). 들어오는 · 함께 걷는 사람은 물건을 피해도 주인공과 반 넘게 겹치는 자리로 가지 않는다. 큰 소품은 자리가 없으면 사람 뒤(`tryList` overPeople, `behindPeople`). `plan.ts` `HOME_TEXT` · `HOME_BED` · `LEAVE_HOME`(집 장면 바꾸기), `DREAM_TEXT`(꿈 쪽은 그 쪽 물건만, 이어 가지 않음), `SMALL_KEEP` · `SMALL_KEEP_MAX = 2`, 남의 것이 무너진 말(`othersOne`)은 이어 온 것 그대로. 검사 `layout.mjs` · `continuity.ts` 는 꿈 쪽 · 작은 물건 제한을 사라짐으로 세지 않음
 - **11/10 밤낮 이어짐**: 다음 쪽 `prevEnv` 는 앞 쪽 끝 모습(S09 안의 셈, 검사 도구는 같은 셈 `plan.envAfter`). `planPages` 다섯째 인자 주인공 이름(`heroWord` · `isMe`). 넓은 풍경(`WIDE_SCENERY`) · 둥지는 사람 뒤에(`behindPeople`). 백엔드 쪽 음성은 끝나는 대로(`PageAudioProgress.done` · `_fill_page_audio`)

@@ -431,7 +431,18 @@ export function subjectOf(sen: string, people: string[], hero?: string | null): 
     const named = people.find((n) => n && (n === w || n.replace(/\s+/g, "").endsWith(w) || n.split(/\s+/).includes(w)));
     if (named) return named;
     if (PERSON_WORD.test(w)) return "other";
-    if (BODY_WORD.test(w) || /^(?:그때|오늘|이번|그날|그런데|그래서|이제|어느새|드디어|정말|모두|다시)$/.test(w)) continue;
+    // 「친구 눈물이 뚝뚝 · 엄마 목소리가」: 몸 낱말 바로 앞에 사람이 붙어 있으면(「의」 없이) 그 사람 것 (11/11 사용자: 친구 눈물인데 주인공 눈에서 눈물)
+    if (BODY_WORD.test(w)) {
+      const before = /([가-힣]+?)(?:의)?\s$/.exec(t.slice(0, m.index))?.[1];
+      if (before) {
+        if (before === "내" || before === "제" || before === hero) return "hero";
+        const owner = people.find((n) => n && (n === before || n.replace(/\s+/g, "").endsWith(before) || n.split(/\s+/).includes(before)));
+        if (owner) return owner;
+        if (PERSON_WORD.test(before)) return "other";
+      }
+      continue;
+    }
+    if (/^(?:그때|오늘|이번|그날|그런데|그래서|이제|어느새|드디어|정말|모두|다시)$/.test(w)) continue;
     // 받침 뒤 「는 · 은」은 꾸밈말(웃는 · 반짝이는)일 때가 많다 — 「이 · 가」 주어만 사람이 아닌 것으로 본다
     // 「돌벽도 숨어 버렸어요 · 박쥐들도 날갯짓」— 사람이 아닌 것에 「도」가 붙어도 그것이 주어 (11/10 전수 점검)
     if (m[2] === "이" || m[2] === "가" || m[2] === "도") return null;
