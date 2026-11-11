@@ -509,6 +509,21 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 글이 말하는 배경 물건 앞도 비워 둔다 (위 saidSpans): 인물 · 소품이 그 앞에 서지 않는다
   const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf], ...avoidSpans];
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);
+  // 사람 자리 (주인공 + 인물): 큰 소품이 배경 물건과 겹치느니 이 뒤에 선다 (아래 thingSpots)
+  const figureSpans = new Set<[number, number]>([placed[0]]);
+  /** 사람 몸 가운데가 이어 남은 작은 물건 · 글이 말하는 배경 물건을 4할 넘게 가리지 않는가 (사람끼리는 조금 겹쳐도 된다).
+   *  11/10 이어짐 검사: 손잡고 오는 아빠가 화분 위에, 끝에서 들어온 선생님이 계단 소품 위에 섰다 */
+  const clearOfThings = (c: number, half: number) => pinnedSpans.every(([l, r]) => Math.min(c + half * 0.5, r) - Math.max(c - half * 0.5, l) <= (r - l) * 0.4)
+    // 글이 말하는 배경 물건은 몸 가운데가 조금도 가리지 않게 (모래성 앞에 섰다)
+    && saidSpans.every(([l, r]) => c + half * 0.5 <= l || c - half * 0.5 >= r);
+  /** c 가 물건 위면 가장 가까운 물건 옆 (lo~hi 안), 없으면 그대로 */
+  const besideThings = (c: number, half: number, lo: number, hi: number) => {
+    if (clearOfThings(c, half)) return c;
+    // 물건 옆으로 옮기다 주인공 · 인물 위로 가지 않게 (함께 걷는 선생님이 주인공과 9할 겹쳤다, 11/11 렌더 검사)
+    const offFigures = (x: number) => [...figureSpans].every(([l, r]) => x + half * 0.5 <= l || x - half * 0.5 >= r);
+    const cands = avoidSpans.flatMap(([l, r]) => [l - half * 0.6, r + half * 0.6]).filter((x) => x >= lo && x <= hi && clearOfThings(x, half) && offFigures(x));
+    return cands.length ? cands.sort((a, b) => Math.abs(a - c) - Math.abs(b - c))[0] : c;
+  };
   /** 자리 { x, back } — back 이면 설 자리가 없어 조금 뒤(작게 · 약간 위)에 선다. 그림책에서 뒤에 선 사람처럼 */
   // enterFrom: 걸어 들어오는 쪽 — 그쪽(주인공 기준)에만 선다. 오른쪽에서 들어온 친구가 주인공 뒤를 지나 왼쪽에 섰다 (11/9 사용자)
   const personX = (x: number, h: number, wRatio = 0.45, sameSide = false, enterFrom?: "left" | "right", pack = false): { x: number; back: boolean } => {
@@ -529,13 +544,28 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const side = (c: number) => !sameSide || (right ? c >= hero.to : c <= hero.to);
     // 틈이 없으면 뒤로 보내기 전에 양옆을 조금 겹쳐 앞줄에 — 사람 그림은 양옆이 팔 · 빈 여백이라 3할 겹쳐도 나란히 선 것으로 읽힌다
     // (11/10 — 0.01 모자라 뒤에 작게 · 떠서 섰다)
+    const freeOfFigures = (a: number, b: number) => placed.every((sp) => !figureSpans.has(sp) || b <= sp[0] || a >= sp[1]);
     const at = tries.find((c) => c >= lo && c <= hi && side(c) && free(c - half - gap, c + half + gap))
-      ?? tries.find((c) => c >= lo && c <= hi && side(c) && free(c - half * 0.7, c + half * 0.7));
-    if (at !== undefined) { placed.push([at - half, at + half]); return { x: at, back: false }; }
+      ?? tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.7, c + half * 0.7) && clearOfThings(c, half)
+        // 글이 말하는 배경 물건(모래성 · 벤치 …) 앞은 전처럼 비운다 (조금 겹치는 것도 안 됨)
+        && saidSpans.every(([l, r]) => c + half * 0.7 <= l || c - half * 0.7 >= r))
+      // 그래도 없으면 말한 물건 가장자리(빈 팔 여백만)는 닿아도 된다: 바로 뒤로 보내면 주인공과 9할 넘게 겹쳤다 (11/11 렌더 검사)
+      ?? tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.7, c + half * 0.7) && clearOfThings(c, half))
+      ?? tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.5, c + half * 0.5) && clearOfThings(c, half));
+    const take = (c: number) => { const sp: [number, number] = [c - half, c + half]; placed.push(sp); figureSpans.add(sp); };
+    if (at !== undefined) { take(at); return { x: at, back: false }; }
     // 표지판은 틈이 없어도 가는 쪽 끝에 (좁은 화면 · 팔 넓은 그림에서 손끝과 조금 닿는 정도) — 반대편 뒤로 가지 않게
     // 들어온 사람은 그쪽 끝 조금 뒤에 (작아져 주인공과 겹쳐도 앞뒤로 읽힌다)
     // 들어온 사람도 앞줄 끝에 (옆 사람과 조금 겹쳐도): 뒤로 보내면 작고 높게 서서 공중에 뜬 것처럼 보였다 (11/10 사용자 「6쪽에 친구가 공중에 떠 있다」)
-    if (sameSide) { const ex = right ? hi : lo; placed.push([ex - half, ex + half]); return { x: ex, back: false }; }
+    if (sameSide) {
+      // 끝부터 안쪽으로 물건 위가 아니고 사람과 반 넘게 겹치지 않는 곳, 없으면 끝 그대로
+      // (사람 겹침을 따지지 않고 안쪽으로 찾으면 주인공 자리까지 와서 9할 넘게 겹쳤다, 11/11 렌더 검사)
+      let ex = right ? hi : lo;
+      for (let c = ex; right ? c >= lo : c <= hi; c += right ? -0.01 : 0.01)
+        if (side(c) && clearOfThings(c, half) && freeOfFigures(c - half * 0.5, c + half * 0.5)) { ex = c; break; }
+      take(ex);
+      return { x: ex, back: false };
+    }
     // 남는 공간이 많은 쪽 끝 — 뒤에 서서 작아지니 겹쳐도 앞뒤로 읽힌다
     const leftRoom = Math.min(...placed.map(([l]) => l)), rightRoom = 1 - Math.max(...placed.map(([, r]) => r));
     const bx = rightRoom >= leftRoom ? hi - 0.02 : lo + 0.02;
@@ -578,7 +608,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       const half = (s.h * wRatio / aspect) / 2;
       const off = heroHalf + half + 0.01;
       const clampX = (c: number) => Math.min(1 - half - 0.01, Math.max(half + 0.01, c));
-      return { p: { ...p, enter: undefined }, s, spot: { x: clampX(hero.to - travel * off), back: false }, sb: s,
+      const fx = besideThings(clampX(hero.to - travel * off), half, half + 0.01, 1 - half - 0.01);
+      const fsp: [number, number] = [fx - half, fx + half];
+      placed.push(fsp); figureSpans.add(fsp);
+      return { p: { ...p, enter: undefined }, s, spot: { x: fx, back: false }, sb: s,
         follow: { from: hero.from - travel * off } };
     }
     const spot = personX(s.x, s.h, wRatio, p.id === "sign", enter, !!enter && entering[enter] > 1);
@@ -838,13 +871,14 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const list = air ? airPlaced : placed;
     // 큰 땅 소품은 배경 물건과 겹치지 않는 자리를 먼저(원래 크기 · 0.75 배까지), 없으면 겹쳐도. 사람 · 소품끼리는 늘 피한다.
     // 넓은 물건(시소 · 다리 · 텐트 · 바위)은 자리가 없으면 조금 작게라도 놓는다 — 전에는 통째로 빠졌다(좁은 화면에서 11%)
-    const tryList: [boolean, number, boolean?][] = air ? [[false, 1]]
+    const tryList: [boolean, number, boolean?, boolean?][] = air ? [[false, 1]]
       // 이어 갈 물건(keep)은 여러 쪽에 그대로 남으니 배경 물건과 겹치지 않는 자리를 작게라도 먼저 (11/10 이어짐 검사: 파라솔 앞 깃발이 6쪽 내내)
-      : t.h >= 0.28 ? (t.keep ? [[true, 1], [true, 0.75], [true, 0.55], [true, 1, true], [true, 0.75, true], [false, 1], [false, 0.75], [false, 0.55]]
-        : [[true, 1], [true, 0.75], [true, 1, true], [false, 1], [false, 0.75], [false, 0.55]])
+      // 그래도 없으면 사람 뒤에 (사람이 그 물건을 조금 가리는 편이 배경 물건과 기둥끼리 겹치는 것보다 낫다, 11/10 깃발 · 파라솔)
+      : t.h >= 0.28 ? (t.keep ? [[true, 1], [true, 0.75], [true, 0.55], [true, 1, true], [true, 0.75, true], [true, 1, true, true], [true, 0.75, true, true], [false, 1], [false, 0.75], [false, 0.55]]
+        : [[true, 1], [true, 0.75], [true, 1, true], [true, 1, true, true], [false, 1], [false, 0.75], [false, 0.55]])
         : [[false, 1], [false, 0.75], [false, 0.55]];
-    for (const [avoidBg, scale, overSmall] of tryList) {
-      const open = (a: number, b: number) => list.every((sp) => b <= sp[0] || a >= sp[1] || (overSmall && smallSpans.has(sp)))
+    for (const [avoidBg, scale, overSmall, overPeople] of tryList) {
+      const open = (a: number, b: number) => list.every((sp) => b <= sp[0] || a >= sp[1] || (overSmall && smallSpans.has(sp)) || (overPeople && figureSpans.has(sp)))
         && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r));
       const h = t.h * scale, half = (h * t.ar / aspect) / 2;
       const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
@@ -861,7 +895,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       const span: [number, number] = [x - half, x + half];
       list.push(span);
       if (h < 0.15) smallSpans.add(span);
-      return remember(t, { ...t, h, x, footY: undefined as number | undefined });
+      // 사람 뒤에 선 것은 사람 발 줄보다 조금 뒤에 (그리기도 사람 뒤 — behindPeople)
+      const behind = !!overPeople && [...figureSpans].some(([l, r]) => !(span[1] <= l || span[0] >= r));
+      return remember(t, { ...t, h, x, footY: behind ? H.foot - 0.03 : undefined as number | undefined });
     }
     return null;   // 줄여도 놓을 자리가 없으면 겹치지 않게 뺀다 (글에서 먼저 나온 것이 먼저 자리를 잡는다)
   }).filter((t): t is NonNullable<typeof t> => !!t)
@@ -875,7 +911,17 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 나레이션이 없으면(소리 끔 · 읽기 전) 쪽에 들어와 자리를 잡은 뒤에. 끝 모습이면 처음부터
   // 시작 모습(넘기는 동안 기다리는 쪽)에서는 아무 연출도 없다 — 전에는 재생 전이면 다 보여 줘 사람이 오기 전에 눈물부터 떨어졌다
   const heard = (at: number) => mode === "end" || (play && phase === 1 && (narration === undefined || narration >= at));
-  const behindPeople = (t: ThingPlan) => WIDE_SCENERY.has(kindOf(t.src)) || kindOf(t.src) === "nest";
+  // 넓은 풍경 · 둥지, 그리고 사람 뒤 자리(발 줄보다 위)에 놓인 땅 소품은 사람보다 먼저 그린다
+  // 이어 남은 물건 자리에 사람이 설 수밖에 없었으면(자리가 없음) 물건을 사람 뒤에: 사람 앞을 물건이 가리면 그 위에 선 것처럼 보였다 (11/10 계단 · 선생님)
+  const personSpans = [...figureSpans].filter((sp) => sp !== placed[0]);
+  const underPerson = (t: { x: number; h: number; ar: number; keep?: string }) => {
+    if (!t.keep) return false;
+    const half = (t.h * t.ar / aspect) / 2;
+    return personSpans.some(([l, r]) => Math.min(t.x + half, r) - Math.max(t.x - half, l) > half * 0.4);
+  };
+  const behindPeople = (t: ThingPlan & { footY?: number; x?: number }) => WIDE_SCENERY.has(kindOf(t.src)) || kindOf(t.src) === "nest"
+    || (t.spot !== "air" && t.spot !== "wall" && t.footY !== undefined && t.footY < H.foot - 0.025)
+    || (t.x !== undefined && t.spot !== "air" && t.spot !== "wall" && underPerson(t as { x: number; h: number; ar: number; keep?: string }));
   const renderThing = (t: (typeof thingSpots)[number], k: number) => (
         <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
              className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}

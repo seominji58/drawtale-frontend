@@ -79,7 +79,9 @@ function issuesOf(s) {
     // 앉는 자리 물건은 주인공이 일부러 붙어 선다. 주인공은 그림 칸이 팔까지 넓어 몸 가운데 6할만 본다 (11/10)
     const seatThing = (s.seat && (SEAT_NAMES[s.seat] ?? [s.seat]).includes(t.name))
       // 사람 뒤에 그리는 넓은 풍경 · 나무에 걸린 둥지는 사람을 가리지 않는다 (SceneStage behindPeople)
-      || ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "nest"].includes(t.name);
+      || ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "nest"].includes(t.name)
+      // 사람 뒤 자리(발 줄보다 위)에 놓인 땅 소품도 사람보다 먼저 그린다 (11/10)
+      || (t.spot === "ground" && t.y1 < 0.915);
     if (!held && !seatThing) for (const f of figs) {
       const fb = f.name === "주인공" ? { ...f, x0: f.x0 + (f.x1 - f.x0) * 0.2, x1: f.x1 - (f.x1 - f.x0) * 0.2 } : f;
       const o = inter(t, fb) / Math.max(1e-6, area(t));
@@ -133,11 +135,14 @@ for (const ps of byStory.values()) {
   ps.sort((a, b) => a.pi - b.pi);
   ps.forEach((s, i) => {
     const prev = ps[i - 1];
-    if (prev && prev.location === s.location) {
+    // 꿈 쪽(현실 물건을 잠시 뺌)과 작은 물건 2개 제한은 사라짐으로 세지 않는다 (plan DREAM_TEXT · SMALL_KEEP)
+    const dreamy = (t) => /꿈\s?속|꿈에서|꿈나라|꿈을 꾸|꿈을 꿨/.test(t);
+    const SMALLK = new Set(["flowers", "pebble", "shells", "mushroom", "puddle", "footprints", "cushion", "flowerpot"]);
+    if (prev && prev.location === s.location && !dreamy(prev.text) && !dreamy(s.text)) {
       for (const t of free(prev).filter((t) => KEEP.has(t.name))) {
         const u = free(s).find((v) => v.name === t.name);
         // 같은 종류(작은 돌 → 바위 · 벤치 → 의자)가 대신 섰으면 사라진 것이 아니다
-        if (!u) { if (!GONE.test(prev.text) && !free(s).some((v) => kin(v.name, t.name)) && !s.bg.some((v) => kin(v.name, t.name))) s.issues.push(["같은 배경인데 물건이 사라짐", t.name]); continue; }
+        if (!u) { if (!SMALLK.has(t.name) && !GONE.test(prev.text) && !free(s).some((v) => kin(v.name, t.name)) && !s.bg.some((v) => kin(v.name, t.name))) s.issues.push(["같은 배경인데 물건이 사라짐", t.name]); continue; }
         // 처음 나온 쪽의 등장 움직임(통통 · 흔들 · 반짝) 중에 잰 크기는 비교하지 않는다
         if (/\bm-/.test(t.cls ?? "") || /\bm-/.test(u.cls ?? "")) continue;
         const dx = Math.abs(cx(u) - cx(t)), dh = Math.abs((u.y1 - u.y0) - (t.y1 - t.y0)), dy = Math.abs(u.y1 - t.y1);

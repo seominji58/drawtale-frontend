@@ -66,9 +66,12 @@ cases.forEach((c: any, ci: number) => {
     const here = new Set((pl.things ?? []).filter((t) => !t.pose || t.pose === "high").map((t) => nameOf(t.src)));
     // 1) 다음 쪽에서 사라짐
     const nx = plans[i + 1];
-    if (nx && nx.location === pl.location) {
+    // 꿈 쪽(현실 물건을 잠시 뺌 · 꿈 물건은 잇지 않음)과 작은 물건 2개 제한으로 뺀 것은 사라짐이 아니다 (plan DREAM_TEXT · SMALL_KEEP)
+    const DREAM = /꿈\s?속|꿈에서|꿈나라|꿈을 꾸|꿈을 꿨/;
+    const SMALL = new Set(["flowers", "pebble", "shells", "mushroom", "puddle", "footprints", "cushion", "flowerpot"]);
+    if (nx && nx.location === pl.location && !DREAM.test(bp[i].text) && !DREAM.test(bp[i + 1].text)) {
       const there = new Set((nx.things ?? []).map((t) => nameOf(t.src)));
-      for (const n of here) if (FIXED.has(n) && !there.has(n) && !bgOf(loc).includes(n)) {
+      for (const n of here) if (FIXED.has(n) && !SMALL.has(n) && !there.has(n) && !bgOf(loc).includes(n)) {
         const back = plans.slice(i + 2).some((q) => q.location === pl.location && (q.things ?? []).some((t) => nameOf(t.src) === n));
         gone.push({ key: `${ci}:${i + 2}`, title: c.book.title, loc, thing: n, text: bp[i + 1].text.slice(0, 60),
           stillInBg: !!EN[n]?.test(bp[i + 1].scene?.background ?? ""), back });

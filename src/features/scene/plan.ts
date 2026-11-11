@@ -973,6 +973,18 @@ const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0
 const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs",
   "seesaw", "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug",
   "clock", "log", "cushion", "footprints", "stump", "shells"]);
+/** 집이라고 분명히 말하는 쪽 (11/11 사용자 「추천대로」): 어느 장소 이야기든 집 장면으로 옮긴다. 동굴 이야기 끝 「엄마가 집에 도착해
+ *  침대에 눕혀 주었어요」가 동굴 호수 장면이었고, 「할아버지 집 이불 속에」의 이불이 숲에 놓였다. 「집에 가고 싶어」 같은 바람 · 앞일은 아니다 */
+const HOME_TEXT = /집(?:에|으로)\s?(?:무사히\s|드디어\s)?(?:도착|돌아왔|돌아와|들어왔|들어와|왔어요|와서|오자)|집 (?:이불|침대|안|방|거실)|(?:침대|이불 속)에\s?(?:눕|누워|누웠|쏙)/;
+const HOME_BED = /침대|이불|베개|잠이 들|잠들|눕|누워|누웠/;
+/** 집에 온 뒤 다시 나가는 말 (없으면 다음 쪽도 집) */
+const LEAVE_HOME = /밖으로|밖에 나|나갔|나가|나왔|나서|집을 나|떠났|숲|바다|동굴|놀이터|학교|마을|공원|시장|우주/;
+/** 꿈 쪽: 꿈 글에 나온 물건만 놓고, 현실에서 이어 오던 물건은 잠시 뺀다(깨면 다시). 「꿈속에서 나뭇잎 배를 타고」에 캠핑장 텐트가 있었다 */
+const DREAM_TEXT = /꿈\s?속|꿈에서|꿈나라|꿈을 꾸|꿈을 꿨/;
+/** 이어 가는 작은 물건(꽃 · 돌 · 조개 …)은 최근 것 2개까지: 버스 정류장에 의자 · 화분 · 꽃이 쌓였다(이어 온 물건 2개 이상 908쪽) */
+const SMALL_KEEP = new Set(["flowers", "pebble", "shells", "mushroom", "puddle", "footprints", "cushion", "flowerpot"]);
+const SMALL_KEEP_MAX = 2;
+
 /** 그 물건이 치워지거나 없어지는 말: 그 쪽까지만 있고 다음 쪽부터는 잇지 않는다 */
 const GONE_AFTER = /^.{0,14}?(?:무너|부서|사라졌|사라지|치웠|치우|떠내려|날아가|날아갔|가져갔|가져가|주워|주웠|집어|들고 갔|넣었|넣어|쓸려|녹아|터졌|떠났|떠나)/;
 /** 앉는 · 올라가는 · 기대는 자리 (그 문장에서 자리 낱말이 동사보다 앞) → 장면 그림 이름 */
@@ -1068,6 +1080,10 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
   for (const [pi, p] of pages.entries()) {
     const prevLoc = loc;
     loc = locationFor(place, p, loc);
+    if (place !== "home") {
+      if (HOME_TEXT.test(p.text)) loc = HOME_BED.test(p.text) ? "home-bedroom" : "home-living";
+      else if (prevLoc?.startsWith("home") && !LEAVE_HOME.test(p.text)) loc = prevLoc;   // 집에 온 뒤로는 나간다는 말이 없으면 집
+    }
     // 물고기(지느러미형) 주인공은 바다에서 늘 바닷속 — 모래사장 · 방파제 글이어도 물 밖에 세우지 않는다 (11/10 사용자 「물고기는 바다 안에서」)
     if (form === "finned" && place === "sea") loc = "sea-underwater";
     const st = stageIdx(p.stage);
@@ -1266,7 +1282,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props, heroName) }))
       .filter((t) => !hideCard || (!!t.holder && t.holder !== "hero"));
     // 배경이 바뀌면 이어 오던 물건은 여기서 끝 (숨기 쪽도 그대로 둔다: 숨은 곳 앞에서 사라지면 어색하다)
-    if (loc !== keptLoc) { kept = []; keptLoc = loc; lastKeys = new Map(); }
+    const dream = DREAM_TEXT.test(p.text);
+    if (!dream && loc !== keptLoc) { kept = []; keptLoc = loc; lastKeys = new Map(); }
     // 주기: 「할머니가 사과를 쥐여 주었어요」면 할머니 손 → 받는 사람 손. 받는 사람을 모르면(주인공이 줬는데 「…에게」가 없음) 그 쪽 첫 인물
     for (const [k, t] of fresh.entries()) {
       if (t.at === undefined || t.name !== undefined) continue;
@@ -1281,7 +1298,7 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
         ...(from ? { give: { from, at: readAt(p.text, gv.verb) } } : { appearAt: readAt(p.text, gv.verb) }) };
     }
     const things: ThingPlan[] = [];
-    for (const t of fresh) {
+    for (const t of dream ? [] : fresh) {
       const n = nameOfSrc(t.src);
       if (t.name !== undefined || !KEEP_THINGS.has(n)) {
         // 앞 쪽에도 있던 것이면 그 자리 (손에 든 것 · 날아가는 것은 그 쪽 자리대로)
@@ -1295,13 +1312,23 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       // 치움 · 없어짐은 그 물건이 목적어 · 주어일 때만: 「편지를 우체통에 넣었어요」의 우체통은 그대로 (11/10 이어짐 검사)
       const after = t.at !== undefined ? p.text.slice(t.at) : "";
       const asPlace = /^\S*?(?:에서|에게|에|안|속|위|옆|앞|뒤|아래|밑|쪽|으로|로)(?=\s|$|[.,!?”])/.test(after.split(/\s/)[0] ?? "");
-      const goneAfter = t.pose === "hand" || t.pose === "head" || (!asPlace && GONE_AFTER.test(after));
+      // 「친구 모래성이 무너져」: 남의 것이 무너진 말이면 앞에서 이어 온 주인공 것은 그대로 (11/11 이어짐 검사)
+      const othersOne = !!old && t.at !== undefined && /(?:친구|동생|형|누나|언니|오빠|다른)(?:의)?\s$/.test(p.text.slice(Math.max(0, t.at - 6), t.at));
+      const goneAfter = t.pose === "hand" || t.pose === "head" || (!asPlace && !othersOne && GONE_AFTER.test(after));
       things.push(t.pose ? t : { ...t, keep });
       kept = kept.filter((k) => k !== old);
       if (!t.pose && !goneAfter) kept.push({ ...t, keep });
     }
+    // 작은 물건은 최근 것 2개까지 (이 쪽 글에 나온 것은 빼고 센다). 넘는 오래된 것은 이어 가기에서 아주 뺀다(다시 나타났다 사라지지 않게)
+    if (!dream) {
+      const smallOld = kept.filter((k) => SMALL_KEEP.has(nameOfSrc(k.src)) && !things.some((t) => nameOfSrc(t.src) === nameOfSrc(k.src)));
+      const dropSmall = new Set(smallOld.slice(0, Math.max(0, smallOld.length - SMALL_KEEP_MAX)));
+      kept = kept.filter((k) => !dropSmall.has(k));
+    }
     // 이 쪽 글에 없는 이어 온 물건: 처음 자리 그대로, 움직임 없이. 글에서 먼저 나온 것 다음에 (자리를 먼저 잡게 하지는 SceneStage)
-    for (const k of kept) if (!things.some((t) => nameOfSrc(t.src) === nameOfSrc(k.src)))
+    // 꿈 쪽은 꿈 글에 나온 물건만 (이어 가기 열쇠도 주지 않는다, 깨면 현실 물건이 그 자리에 다시)
+    if (dream) things.push(...fresh.map((t) => ({ ...t, keep: undefined })));
+    else for (const k of kept) if (!things.some((t) => nameOfSrc(t.src) === nameOfSrc(k.src)))
       things.push({ ...k, kept: true, motion: undefined, at: undefined, pose: undefined, holder: undefined });
     // 이 쪽에서 처음 나오는 물건(앞 쪽에 없던 것)은 나레이션이 그 말에 왔을 때 나타난다. 주기는 주는 사람 손에서 이미 보인다
     for (const [k, t] of things.entries()) {
@@ -1309,7 +1336,7 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       if (t.keep && lastKeys.has(nameOfSrc(t.src))) continue;
       things[k] = { ...t, appearAt: readAt(p.text, t.at) };
     }
-    lastKeys = new Map(things.filter((t) => t.keep).map((t) => [nameOfSrc(t.src), t.keep!]));
+    if (!dream) lastKeys = new Map(things.filter((t) => t.keep).map((t) => [nameOfSrc(t.src), t.keep!]));
     const seat = move === "none" ? seatOf(p.text) : undefined;
     out.push({
       location: loc,
