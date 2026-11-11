@@ -418,7 +418,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 앉는 자리 (「그루터기에 앉아」): 그 물건 앞에 선다. 쪽 소품이면 기억한 자리(처음 나온 쪽), 이 쪽에 처음 나오면 주인공이 서려던
   // 자리에 놓고 기억한다. 배경 물건이면 그 물건 자리. 없으면 그대로 (11/10 「그루터기에 앉아 쉰다고 하는데 위치는 그대로」)
   const seatKind = plan.hero.seat ? kindOf(`${plan.hero.seat}.webp`) : null;
-  const seatThing = seatKind ? (plan.things ?? []).find((t) => !t.pose && kindOf(t.src) === seatKind) : undefined;
+  // 배경 그림에 같은 물건(벤치 · 바위)이 있으면 그 배경 물건 앞에 — 쪽 소품은 배경과 같으면 화면에서 빠져, 보이지 않는 소품 자리에
+  // 앉아 주인공이 그 자리에 그대로 서 있었다 (11/11 장면 검사 「벤치에 앉아」)
+  const seatInBg = !!seatKind && layout.objects.some((o) => o.foot !== undefined && kindOf(o.src) === seatKind);
+  const seatThing = seatKind && !seatInBg ? (plan.things ?? []).find((t) => !t.pose && kindOf(t.src) === seatKind) : undefined;
   const seatBg = seatKind && !seatThing
     ? layout.objects.filter((o) => o.foot !== undefined && kindOf(o.src) === seatKind)
       .sort((a, b) => Math.abs(a.x - plan.hero.to) - Math.abs(b.x - plan.hero.to))[0] : undefined;
@@ -923,6 +926,17 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 나레이션이 없으면(소리 끔 · 읽기 전) 쪽에 들어와 자리를 잡은 뒤에. 끝 모습이면 처음부터
   // 시작 모습(넘기는 동안 기다리는 쪽)에서는 아무 연출도 없다 — 전에는 재생 전이면 다 보여 줘 사람이 오기 전에 눈물부터 떨어졌다
   const heard = (at: number) => mode === "end" || (play && phase === 1 && (narration === undefined || narration >= at));
+  // 이 쪽에 새로 나온 땅 소품도 인물과 겹치면 인물 뒤에 — 화분 · 벤치 · 블록이 아빠 · 할아버지 다리를 가렸다 (11/11 장면 검사)
+  const peopleSpans = people.flatMap((v) => {
+    if (!v || v.p.id === "sign") return [];
+    const half = (v.sb.h * (PEOPLE[v.p.id]?.w ?? 0.45) / aspect) / 2;
+    return [[v.spot.x - half, v.spot.x + half] as [number, number]];
+  });
+  const overPerson = (t: ThingPlan & { x?: number }) => {
+    if (t.spot === "air" || t.spot === "wall" || t.x === undefined) return false;
+    const half = (t.h * t.ar / aspect) / 2;
+    return peopleSpans.some(([l, r]) => Math.min(t.x! + half, r) - Math.max(t.x! - half, l) > half * 0.4);
+  };
   // 넓은 풍경 · 둥지, 그리고 사람 뒤 자리(발 줄보다 위)에 놓인 땅 소품은 사람보다 먼저 그린다
   // 이어 남은 물건 자리에 사람이 설 수밖에 없었으면(자리가 없음) 물건을 사람 뒤에: 사람 앞을 물건이 가리면 그 위에 선 것처럼 보였다 (11/10 계단 · 선생님)
   const personSpans = [...figureSpans].filter((sp) => sp !== placed[0]);
@@ -933,7 +947,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   };
   const behindPeople = (t: ThingPlan & { footY?: number; x?: number }) => WIDE_SCENERY.has(kindOf(t.src)) || kindOf(t.src) === "nest"
     || (t.spot !== "air" && t.spot !== "wall" && t.footY !== undefined && t.footY < H.foot - 0.025)
-    || (t.x !== undefined && t.spot !== "air" && t.spot !== "wall" && underPerson(t as { x: number; h: number; ar: number; keep?: string }));
+    || (t.x !== undefined && t.spot !== "air" && t.spot !== "wall" && underPerson(t as { x: number; h: number; ar: number; keep?: string }))
+    || overPerson(t);
   const renderThing = (t: (typeof thingSpots)[number], k: number) => (
         <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
              className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}
