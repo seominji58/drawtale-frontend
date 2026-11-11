@@ -202,7 +202,7 @@ const WIDE_LEN = 1.25, WIDE_MAX_H = 0.85;
  *  열쇠에 이야기 값이 들어 있어 이야기끼리 섞이지 않는다. 먼저 그려진 쪽이 정하고 나머지는 따른다 */
 const PINS = new Map<string, { x: number; h: number; footY?: number }>();
 /** 사람이 앞에 서도 되는 넓은 풍경 물건 */
-const WIDE_SCENERY = new Set(["tent", "spaceship", "rocket", "boat", "bridge", "dune"]);
+const WIDE_SCENERY = new Set(["tent", "spaceship", "rocket", "boat", "bridge", "dune", "railing"]);
 const HERO_AT = new Map<string, number>();
 /** 등장인물 자리: 쪽 열쇠 + 이름(없으면 그림) → 가로 자리 */
 const PEOPLE_AT = new Map<string, number>();
@@ -958,6 +958,12 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     if (kindOf(t.src) === "nest" && trees.length) {
       const tr = trees.reduce((a, b) => (Math.abs(b.x - hero.to) > Math.abs(a.x - hero.to) ? b : a));   // 주인공과 먼 나무
       return remember(t, { ...t, h: Math.min(t.h, tr.h * 0.16), x: tr.x, footY: tr.foot! - tr.h * 0.42 });
+    }
+    // 난간은 주인공 바로 뒤에 손 높이로 가로질러 (「난간을 잡고 걸었어요」, 11/11): 옆에 따로 세우면 낮은 벤치처럼 보였다.
+    // 사람 뒤에 그리고(WIDE_SCENERY) 다른 소품 자리는 막지 않는다
+    if (kindOf(t.src) === "railing") {
+      const half = halfOf(t, t.h);
+      return remember(t, { ...t, x: Math.min(1 - half - 0.01, Math.max(half + 0.01, hero.to)), footY: H.foot - 0.03 });
     }
     const air = t.spot === "air";
     // 벽에 거는 것(시계 · 그림)은 높이 걸리니 공중 소품과 자리를 나눈다: 땅 소품 자리로 셈해 창밖 지구가 벽시계 위에 겹쳤다 (11/11)

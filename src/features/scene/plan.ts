@@ -166,6 +166,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/연못(?!가)/, "props/pond.webp", 0.12, "ground"],
   [/(?<!거미|별 ?)그물(?! ?무늬| ?모양)/, "props/net.webp", 0.3, "ground"],   // 우주 「별 그물」은 고기잡이 그물이 아니다
   [/책상/, "props/desk.webp", 0.3, "ground"],
+  // 숲 나무 다리 · 방파제 길 · 동굴 길의 「난간을 잡고 걸었어요」(11/11 사용자 「난간도 그려서 넣어줘」, gen_scene_props7.py). 아이 허리 높이
+  [/난간/, "props/railing.webp", 0.22, "ground"],
   [/모래성/, "props/sandcastle.webp", 0.13, "ground"],
   [/행성/, "props/planet.webp", 0.14, "air"],
   [W1("지구"), "props/earth.webp", 0.14, "air"],
@@ -732,6 +734,7 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   "props/junglegym.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
   "props/pond.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
   "props/net.webp": (l) => !l.startsWith("space"),
+  "props/railing.webp": (l) => !l.startsWith("space") && l !== "sea-underwater",
   // 방 책상은 방 안에만, 교실은 배경에 책상들이 있다
   "props/desk.webp": (l, indoor) => indoor && l !== "school-classroom",
   // 침대는 방 안에만 (보건실 · 우주선 침실 포함)
@@ -1104,7 +1107,7 @@ const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0
 /** 붙박이 물건: 한 번 나오면 배경이 같은 동안 그 자리에 그대로 둔다 (11/10 사용자 「새 둥지가 3쪽부터 사라져, 장소가 바뀔 때 사라지게」).
  *  저장 카드 이야기 1,024편 중 663편에서 같은 배경인데 글에 낱말이 빠진 쪽에서 사라졌다. 들고 다니는 것(공 · 손전등 · 책 · 담요 …)은 뺀다 */
 const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs",
-  "monkeybars", "tunnel", "booth", "parkgate", "slide", "lamp", "flowerbed", "fountain", "pavilion", "bed", "junglegym", "pond", "desk",
+  "monkeybars", "tunnel", "booth", "parkgate", "slide", "lamp", "flowerbed", "fountain", "pavilion", "bed", "junglegym", "pond", "desk", "railing",
   "seesaw", "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug",
   "clock", "log", "cushion", "footprints", "stump", "shells", "swing"]);
 /** 집이라고 분명히 말하는 쪽 (11/11 사용자 「추천대로」): 어느 장소 이야기든 집 장면으로 옮긴다. 동굴 이야기 끝 「엄마가 집에 도착해

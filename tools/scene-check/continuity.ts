@@ -24,7 +24,7 @@ const bgOf = (loc: string): string[] => {
 // 붙박이: 놓인 곳에 그대로 있는 물건 (들고 다니는 공 · 손전등 · 책 · 편지 같은 것은 뺀다)
 const FIXED = new Set(["nest", "tent", "sign", "arrow", "bench", "chair", "table", "flag", "mailbox", "gate", "fence", "bridge", "stairs",
   "seesaw", "boat", "sandcastle", "flowerpot", "flowers", "mushroom", "puddle", "rocks", "pebble", "dune", "rocket", "spaceship", "rug",
-  "clock", "log", "cushion", "footprints", "stump", "shells", "monkeybars", "tunnel", "booth", "parkgate", "slide", "lamp", "flowerbed", "fountain", "pavilion", "bed", "junglegym", "pond", "desk"]);   // plan.ts KEEP_THINGS 와 같게 (담요는 들고 다닌다)
+  "clock", "log", "cushion", "footprints", "stump", "shells", "monkeybars", "tunnel", "booth", "parkgate", "slide", "lamp", "flowerbed", "fountain", "pavilion", "bed", "junglegym", "pond", "desk", "railing"]);   // plan.ts KEEP_THINGS 와 같게 (담요는 들고 다닌다)
 // 배경 계획(영어)에 그 물건이 아직 있다고 적혀 있나
 const EN: Record<string, RegExp> = { nest: /nest/i, tent: /tent/i, sign: /sign/i, arrow: /arrow|sign/i, bench: /bench/i, chair: /chair/i,
   table: /table/i, flag: /flag/i, mailbox: /mailbox|post ?box/i, gate: /gate/i, fence: /fence/i, bridge: /bridge/i, stairs: /stair|step/i,
@@ -49,7 +49,7 @@ const SAID: [RegExp, string[]][] = [
   [/소파/, ["sofa"]], [/침대/, ["bed"]], [/책상/, ["desks", "table", "desk"]], [/책장|책꽂이/, ["shelf"]], [/피아노/, ["piano"]], [/칠판/, ["board"]],
   [/사물함/, ["lockers"]], [/식탁/, ["table"]], [/텐트/, ["tent"]], [/로켓/, ["rocket"]], [/우주선/, ["spaceship", "rocket", "@space-ship"]],
   [/화단|꽃밭/, ["flowerbed", "flowers", "butterflybush"]], [/울타리/, ["fence"]], [/계단/, ["stairs"]], [/연못/, ["pond"]], [/가판대/, ["stall"]],
-  [/돌기둥/, ["stalactite", "crystal"]], [/난간/, []], [/쉼터/, ["pavilion"]], [/방파제/, ["@sea-pier"]], [/철문/, ["parkgate", "gate"]], [/그물/, ["net"]], [/밧줄/, ["rope"]],
+  [/돌기둥/, ["stalactite", "crystal"]], [/난간/, ["railing"]], [/쉼터/, ["pavilion"]], [/방파제/, ["@sea-pier"]], [/철문/, ["parkgate", "gate"]], [/그물/, ["net"]], [/밧줄/, ["rope"]],
 ];
 const NOT_SEEN = /없었|없어|없는|않았|않아|안 보|어디에도|아까|꿈\s?속|꿈에서|창\s?밖|창문 (?:밖|너머)|생각|떠올|이야기를|가고 싶|가 보고 싶|타고 싶|놀고 싶/;
 const said: { key: string; word: string; loc: string; shown: boolean; text: string }[] = [];
