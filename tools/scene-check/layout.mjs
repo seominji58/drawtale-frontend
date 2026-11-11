@@ -83,7 +83,9 @@ function issuesOf(s) {
       // 사람 뒤에 그리는 넓은 풍경 · 나무에 걸린 둥지는 사람을 가리지 않는다 (SceneStage behindPeople)
       || ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "nest"].includes(t.name)
       // 사람 뒤 자리(발 줄보다 위)에 놓인 땅 소품도 사람보다 먼저 그린다 (11/10)
-      || (t.spot === "ground" && t.y1 < 0.915);
+      || (t.spot === "ground" && t.y1 < 0.915)
+      // 장면이 사람보다 먼저(뒤에) 그린 소품 (SceneStage behindPeople: 사람 자리에 어쩔 수 없이 겹친 이어 남은 물건 · 넓은 풍경)
+      || t.behind;
     // 카드 표지판은 사람이 아니다: 표지판 기둥 밑 화분 · 조개는 가림이 아니다 (표지판끼리 · 소품과는 아래 소품 검사가 본다)
     if (!held && !seatThing) for (const f of figs.filter((g) => g.name !== "sign")) {
       const fb = f.name === "주인공" ? { ...f, x0: f.x0 + (f.x1 - f.x0) * 0.2, x1: f.x1 - (f.x1 - f.x0) * 0.2 } : f;

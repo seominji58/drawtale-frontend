@@ -675,7 +675,12 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       const half = (s.h * wRatio / aspect) / 2;
       const off = heroHalf + half + 0.01;
       const clampX = (c: number) => Math.min(1 - half - 0.01, Math.max(half + 0.01, c));
-      const fx = besideThings(clampX(hero.to - travel * off), half, half + 0.01, 1 - half - 0.01);
+      // 뒤에 설 자리가 물건 위뿐이면 주인공 앞쪽(가는 쪽)에 나란히: 손잡고 걷는 아빠 · 안내원이 이어 남은 화분 · 발자국 위에 섰다 (11/11 렌더 검사)
+      let fx = besideThings(clampX(hero.to - travel * off), half, half + 0.01, 1 - half - 0.01);
+      if (!clearOfThings(fx, half)) {
+        const ahead2 = besideThings(clampX(hero.to + travel * off), half, half + 0.01, 1 - half - 0.01);
+        if (clearOfThings(ahead2, half) && [...figureSpans].every(([l, r]) => ahead2 + half * 0.5 <= l || ahead2 - half * 0.5 >= r)) fx = ahead2;
+      }
       const fsp: [number, number] = [fx - half, fx + half];
       placed.push(fsp); figureSpans.add(fsp);
       return { p: { ...p, enter: undefined }, s, spot: { x: fx, back: false }, sb: s,
@@ -1015,7 +1020,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     || (t.x !== undefined && t.spot !== "air" && t.spot !== "wall" && underPerson(t as { x: number; h: number; ar: number; keep?: string }))
     || overPerson(t);
   const renderThing = (t: (typeof thingSpots)[number], k: number) => (
-        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"}
+        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"} data-behind={behindPeople(t) ? "1" : undefined}
              className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={thingSrc(t.src)}

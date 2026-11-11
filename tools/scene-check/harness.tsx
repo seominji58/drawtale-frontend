@@ -82,7 +82,7 @@ function measure(el: HTMLElement) {
   return {
     hero: pick(".scene-hero").map((e) => box(e))[0] ?? null,
     people: pick(".scene-person, .scene-person-walk").map((e) => ({ name: name(e.querySelector("img") ?? e), ...box(e) })),
-    things: pick(".scene-thing").map((e) => ({ name: name(e), pose: e.getAttribute("data-pose"), spot: e.getAttribute("data-spot"), cls: e.className, ...box(e) })),
+    things: pick(".scene-thing").map((e) => ({ name: name(e), pose: e.getAttribute("data-pose"), spot: e.getAttribute("data-spot"), behind: e.getAttribute("data-behind") === "1", cls: e.className, ...box(e) })),
     bg: pick(".scene-obj.scene-bg").map((e) => ({ name: name(e), ...box(e) })),
     cover: pick(".scene-cover").map((e) => ({ name: name(e), ...box(e) })),
   };

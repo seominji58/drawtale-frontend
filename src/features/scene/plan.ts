@@ -97,7 +97,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/인형/, "props/teddy.webp", 0.14, "ground"],
   // 「게」는 앞 글자와 떨어진 것만 — 「가게를」 · 「빨래집게가」에 꽃게가 섰다 (11/9 배치 검사)
   [/꽃게|작은 게|(?<![가-힣])게(?: 한|가|를|도)(?![가-힣])/, "props/crab.webp", 0.07, "ground"],
-  [/깃발/, "props/flag.webp", 0.48, "ground"],
+  [/(?<!나뭇가지 |나뭇잎 |종이 |작은 |꼬마 )깃발/, "props/flag.webp", 0.48, "ground"],   // 「성 꼭대기에 나뭇가지 깃발을 꽂았어요」는 큰 깃발이 아니다 (11/11)
   [/우체통/, "props/mailbox.webp", 0.44, "ground"],
   // 구름다리(놀이터 기구) · 징검다리는 나무 다리가 아니다 (11/10 소품 점검: 놀이터 · 우주 「별 징검다리」에 나무 다리가 섰다)
   [/(?<!구름|징검)다리를 건|나무다리|돌다리|(?<!구름|징검)다리 위|작은 다리/, "props/bridge.webp", 0.22, "ground"],
@@ -130,7 +130,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   // 그루터기 (11/10 새 그림). 앉을 수 있는 아이 무릎 높이
   [/그루터기/, "props/stump.webp", 0.17, "ground"],
   [/바위/, "cave/rocks.webp", 0.3, "ground"],
-  [/꽃(?!게)|장미/, "forest-flowers/flowers.webp", 0.12, "ground"],
+  [/꽃(?!게|집)|장미/, "forest-flowers/flowers.webp", 0.12, "ground"],   // 「꽃집 주인」은 꽃이 아니다 (11/11, 108번)
   [/식탁/, "home-kitchen/table.webp", 0.34, "ground"],
   // 등대는 소품으로 세우지 않는다 — 주인공 옆 땅에 아이 키만 한 등대가 장난감처럼 섰다 (11/4 사용자). 등대는 부두 배경(sea-pier)에 크게 있다
   [/버섯/, "forest/mushroom.webp", 0.1, "ground"],
@@ -711,6 +711,8 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
       if (/(?:주머니|가방|배낭|호주머니) ?(?:속|안)(?:의|에|에서|에 든)? ?$/.test(said.slice(Math.max(0, m.index - 10), m.index))) continue;
       // 「이불처럼 포근 · 별처럼 반짝 · 작은 나무 같아」 — 비유 (33건)
       if (/^[가-힣]{0,1}\s?(?:처럼|같|모양)/.test(after)) continue;
+      // 「모래성에 깃발을 꽂았어요」 — 꽂는 깃발은 작아 큰 깃발 그림이 아니다
+      if (src === "props/flag.webp" && /꽂/.test(sen)) continue;
       // 「종이배」는 큰 배 그림이 아니다
       if (src === "props/boat.webp" && /종이 ?배/.test(m[0])) continue;
     }
