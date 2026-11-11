@@ -1012,10 +1012,12 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 넓은 풍경 · 둥지, 그리고 사람 뒤 자리(발 줄보다 위)에 놓인 땅 소품은 사람보다 먼저 그린다
   // 이어 남은 물건 자리에 사람이 설 수밖에 없었으면(자리가 없음) 물건을 사람 뒤에: 사람 앞을 물건이 가리면 그 위에 선 것처럼 보였다 (11/10 계단 · 선생님)
   const personSpans = [...figureSpans].filter((sp) => sp !== placed[0]);
+  // 작은 것(화분 · 조개 · 발자국, 키 0.2 미만)은 조금만 겹쳐도(폭 1할) 사람 · 주인공 뒤에: 손잡고 걷는 아빠 · 주인공 다리 앞을 화분이 가렸다 (11/11 렌더 검사)
   const underPerson = (t: { x: number; h: number; ar: number; keep?: string }) => {
     if (!t.keep) return false;
-    const half = (t.h * t.ar / aspect) / 2;
-    return personSpans.some(([l, r]) => Math.min(t.x + half, r) - Math.max(t.x - half, l) > half * 0.4);
+    // 주인공 자리(placed[0])도 본다: 의자 옆 화분 · 호숫가 바위가 주인공 다리 앞에 그려졌다
+    const half = (t.h * t.ar / aspect) / 2, small = t.h < 0.2;
+    return [...personSpans, placed[0]].some(([l, r]) => Math.min(t.x + half, r) - Math.max(t.x - half, l) > half * (small ? 0.2 : 0.4));
   };
   const behindPeople = (t: ThingPlan & { footY?: number; x?: number }) => WIDE_SCENERY.has(kindOf(t.src)) || kindOf(t.src) === "nest"
     || (t.spot !== "air" && t.spot !== "wall" && t.footY !== undefined && t.footY < H.foot - 0.025)

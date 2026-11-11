@@ -88,7 +88,8 @@ function issuesOf(s) {
       || t.behind;
     // 카드 표지판은 사람이 아니다: 표지판 기둥 밑 화분 · 조개는 가림이 아니다 (표지판끼리 · 소품과는 아래 소품 검사가 본다)
     if (!held && !seatThing) for (const f of figs.filter((g) => g.name !== "sign")) {
-      const fb = f.name === "주인공" ? { ...f, x0: f.x0 + (f.x1 - f.x0) * 0.2, x1: f.x1 - (f.x1 - f.x0) * 0.2 } : f;
+      // 인물 그림도 양옆이 팔 · 투명 여백이라 주인공처럼 가운데 6할만 본다 (11/11: 아빠 옆 화분이 그림 칸 여백에만 걸렸는데 가림으로 셌다)
+      const fb = { ...f, x0: f.x0 + (f.x1 - f.x0) * 0.2, x1: f.x1 - (f.x1 - f.x0) * 0.2 };
       const o = inter(t, fb) / Math.max(1e-6, area(t));
       if (o > 0.2) out.push(["소품이 인물을 가림", `${t.name} ↔ ${f.name} ${Math.round(o * 100)}%`]);
     }
