@@ -1213,16 +1213,23 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     // (11/10 사용자 「숨었다가 나오면 이야기 상 표현돼야 하는데 그냥 진행」)
     const HIDE_TEXT = /(?:숨었|숨어|숨는|쏙 숨|몸을 숨|숨겼|숨어 있|숨죽)/;
     const OUT_TEXT = /(?:나왔|나와|빠져나|고개를 (?:내밀|쏙)|빼꼼|밖으로)/;
-    const hidingCard = p.stage === "action" && picks.action === "hide";
+    // 「숨었어요」 카드는 행동 단계 **첫 쪽**에서만 숨긴다. 다음 쪽은 글대로(아직 숨어 있다 · 찾는 중이면 계속, 찾았다 · 나왔다면 보인다).
+    // 전에는 행동 단계 모든 쪽에 걸려 「여기 있었구나! · 바위 뒤에서 뛰어나왔어요」 쪽에도 주인공이 안 보였다 (11/11 전수 점검 129편)
+    const hidingCard = p.stage === "action" && picks.action === "hide" && !out.some((_, k) => pages[k].stage === "action");
     // 숨는 사람이 주인공일 때만 — 「토끼가 숨었어요 · 공이 어디 숨었을까?」에 주인공이 사라졌다 (11/10). 묻는 말 · 따옴표 대사도 빼고
-    const heroHides = p.text.split(/(?<=[.!?”])\s*/).some((sen) => HIDE_TEXT.test(sen) && !sen.includes("?") && !sen.trimStart().startsWith("“")
+    // 「어젯밤 내가 숨었던 바위 · 숨었었어」 — 지난 일은 숨기가 아니다. 대사는 먼저 지우고 문장을 자른다 (11/11 전수 점검)
+    const said = unquoted(p.text);
+    const PAST_HIDE = /숨었던|숨었었|숨던|어젯밤|아까 숨|(?:숨어|숨은 채) [가-힣]*(?:던|기다린|지낸|있던|버틴) /;
+    const heroHides = said.split(/(?<=[.!?])\s*/).some((sen) => HIDE_TEXT.test(sen) && !sen.includes("?") && !PAST_HIDE.test(sen)
       && !/숨바꼭질|숨은 그림|숨을 (?:쉬|크게|고르|내쉬|들이)/.test(sen) && subjectOf(sen.slice(0, sen.search(HIDE_TEXT)), [], heroName) === "hero");
     const hidingText = heroHides && !OUT_TEXT.test(p.text);
     // 앞 쪽에서 숨은 주인공은 이 쪽 글이 「아직 숨어 있다」고 할 때만 계속 숨는다 — 그 밖에는 다시 보인다.
     // 전에는 나온다는 말이 없으면 끝까지 숨어 주인공 없이 이야기가 이어졌다 (11/10 「한 번 숨은 주인공이 다시 나타나지 않았다」)
     const STILL_HIDING = /숨어 (?:있|서|지켜|기다)|숨은 채|꼭꼭 숨|숨죽|가만히 (?:숨|있|기다|웅크)|몸을 (?:웅크|낮)/;
-    const stillHidden = !hidingCard && !hidingText && out.length > 0 && out[out.length - 1].hero.hide !== null && !OUT_TEXT.test(p.text)
-      && (p.text.split(/(?<=[.!?”])\s*/).some((sen) => STILL_HIDING.test(sen) && subjectOf(sen.slice(0, sen.search(STILL_HIDING)), [], heroName) === "hero")
+    // 찾았다는 말 — 「여기 있었구나 · 찾았다 · 있었네」(대사여도)면 보인다
+    const FOUND = /찾았|발견|여기 있|있었구나|있었네|거기 있|숨었구나|나왔|나와/;
+    const stillHidden = !hidingCard && !hidingText && out.length > 0 && out[out.length - 1].hero.hide !== null && !OUT_TEXT.test(p.text) && !FOUND.test(p.text)
+      && (said.split(/(?<=[.!?])\s*/).some((sen) => STILL_HIDING.test(sen) && !PAST_HIDE.test(sen) && subjectOf(sen.slice(0, sen.search(STILL_HIDING)), [], heroName) === "hero")
         // 「친구가 나를 찾으러 왔어요」 — 찾는 중이면 아직 숨어 있다 (찾았어요 · 발견하면 보인다)
         || (/(?:를|을) 찾(?:으러|고 있|아 ?다니|는)|찾으며|술래/.test(p.text) && !/찾았|발견|여기 있/.test(p.text)));
     const hiding = hidingCard || hidingText || stillHidden;
