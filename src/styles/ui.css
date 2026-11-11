@@ -1111,8 +1111,9 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   animation: joy-pop 2.3s ease-out 2, joy-stay 1.6s ease-in-out 4.6s infinite alternate both;
   stroke: rgba(58, 46, 38, .55); stroke-width: 1.2; stroke-linejoin: round; paint-order: stroke; }
 .scene-joy.j-heart svg { fill: #F2557A; }
-/* 별은 밝은 하늘 · 모래에 묻혀 잘 안 보였다 (11/10) — 진한 노랑 · 진한 테두리 · 둘레 빛 */
-.scene-joy.j-star svg { fill: #FFC21A; stroke: #B07A00; stroke-width: 1.6; filter: drop-shadow(0 0 4px rgba(255, 196, 40, .95)) drop-shadow(0 0 10px rgba(255, 170, 0, .6)); }
+/* 별은 밝은 하늘 · 모래에 묻혀 잘 안 보였다 (11/10): 진한 노랑 · 진한 테두리 · 둘레 빛.
+   11/11 사용자 「별 빛도 줄여줘」: 빛 번짐 두 겹(4px · 10px)에 조각 사이가 메워져 하트보다 훨씬 많아 보였다 → 한 겹 2px, 테두리는 하트 · 꽃 굵기 */
+.scene-joy.j-star svg { fill: #FFC21A; stroke: #B07A00; stroke-width: 1.2; filter: drop-shadow(0 0 2px rgba(255, 196, 40, .8)); }
 .scene-joy.j-flower svg { fill: #FF6FA8; }
 /* 물방울이 똑똑 (11/10): 장면 위에서 떨어져 바닥에 톡 튄다 */
 .scene-drip { position: absolute; inset: 0; z-index: 6; pointer-events: none; overflow: hidden; }

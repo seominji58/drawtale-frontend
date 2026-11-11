@@ -1161,7 +1161,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     || /[가-힣]+(?:와|과|랑|이랑) [가-힣]+(?:는|은|가|이) /.test(sen);
   const joyful = fx.joys.filter((jy) => play && heard(jy.at)).flatMap((jy) => {
     if (!together(jy.sentence)) return [{ jy, w: whoOf(jy.sentence, jy.kind === "heart", !!jy.other, jy.pos) }];
-    return [{ jy, w: whoOf("나는", false) }, ...visiblePeople.slice(0, 2).map((v) => ({ jy, w: whoOf(v.p.name ?? "친구", false, true) }))];
+    // 이름에 조사를 붙여 그 사람을 찾는다: 「친구」만 넘기면 주어를 못 찾아 첫 인물(아저씨)이 두 번 잡히고 친구는 빠졌다 (11/11 효과 점검)
+    return [{ jy, w: whoOf("나는", false) }, ...visiblePeople.slice(0, 2).map((v) => ({ jy, w: whoOf(`${v.p.name ?? "친구"}가`, false, true) }))];
   }).map(({ jy, w }, k) => {
     if (!ready(w)) return null;
     // 머리 둘레를 감싼다 — 칸 가운데가 얼굴 높이, 칸 크기는 그 사람 키 기준 (11/10 「별이 머리 주변에 가득 있어야」)
@@ -1169,7 +1170,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     // 옆모습은 머리가 그림 끝에 작게 있다 — 머리보다 조금 위에 걸어 얼굴을 덮지 않게
     const size = w.side ? w.scale * 0.75 : w.h;
     return { key: `${w.key}-${k}`, who: w.key, x: w.x, y: w.side ? w.top : (w.head + w.face) / 2, size, kind: jy.kind, follow: w.follow };
-  }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((o) => o?.who === v.who && o?.kind === v.kind) === k);   // 한 사람에 같은 연출 하나
+  }).filter((v, k, all): v is NonNullable<typeof v> => !!v
+    // 한 사람에 효과 하나 (하트 > 별 > 꽃): 「웃었어요 … 고마워」에 같은 사람 머리 위로 꽃과 하트 고리가 겹쳐 30개였다 (11/11 사용자)
+    && !all.some((o, j) => !!o && o.who === v.who && (JOY_RANK[o.kind] < JOY_RANK[v.kind] || (o.kind === v.kind && j < k))));
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
   // 그 말 앞의 주어가 주인공이 아니면(친구 · 이름 · 박쥐들이 · 돌들이 …) 주인공은 돌지 않는다
@@ -1440,15 +1443,15 @@ const WATER: Record<string, number> = { sea: 0.6 };
 /** 물고기가 헤엄치는 물 높이 (발끝, 화면 높이 대비) — 개울 · 호수 · 바다 배경판의 물결 띠 */
 const FISH_LINE: Record<string, number> = { "forest-stream": 0.67, "cave-lake": 0.6, sea: 0.6, "sea-pier": 0.6 };
 /** 기쁨 연출 조각 [가로 자리 %, 늦게 시작(초), 칸 폭 대비 크기] — 머리 위에서 엇갈려 피어오른다 */
-const JOY_RING: [number, number, number, number][] = (() => {
-  // 머리 둘레 [가로 %, 세로 %, 늦게 시작(초), 칸 높이 대비 크기 %] — 위쪽 반원 열두 개 + 머리 위 안쪽 셋.
-  // 왼쪽 아래부터 시계 방향으로 차례로 피어난다
-  const ring = Array.from({ length: 12 }, (_, k): [number, number, number, number] => {
-    const a = ((200 - k * (220 / 11)) * Math.PI) / 180;
-    return [50 + 47 * Math.cos(a), 52 - 50 * Math.sin(a), k * 0.12, [22, 30, 18][k % 3]];
-  });
-  return [...ring, [36, 14, 0.5, 16], [64, 10, 0.8, 20], [50, -6, 1.1, 24]];
-})();
+// 머리 둘레 [가로 %, 세로 %, 늦게 시작(초), 칸 높이 대비 크기 %]: 위쪽 반원에 고르게 열 개, 왼쪽 아래부터 시계 방향으로 차례로 피어난다.
+// 11/11 사용자 「10개로 적용」: 전에는 반원 12 + 머리 위 안쪽 3 = 15개라, 「모두 기뻐했어요」에 세 사람이 받으면 45개로 별이 너무 많아 보였다.
+// 수가 준 만큼 한 조각을 조금 크게 (16~30% → 20~30%). 비교 페이지 https://claude.ai/artifact/Tk7hwSi6htT4VNh7A4Ydrw
+const JOY_RING: [number, number, number, number][] = Array.from({ length: 10 }, (_, k): [number, number, number, number] => {
+  const a = ((200 - k * (220 / 9)) * Math.PI) / 180;
+  return [50 + 47 * Math.cos(a), 52 - 50 * Math.sin(a), k * 0.14, [24, 30, 20, 28, 22][k % 5]];
+});
+/** 한 사람에 효과가 둘이면 앞의 것 하나 */
+const JOY_RANK: Record<"heart" | "star" | "flower", number> = { heart: 0, star: 1, flower: 2 };
 const JOY_PATH: Record<"heart" | "star" | "flower", string> = {
   heart: "M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 4.3 2.4h2c.7-1.2 2.1-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z",
   star: "M12 1.5l2.9 7.1 7.6.6-5.8 5 1.8 7.4L12 17.6l-6.5 4 1.8-7.4-5.8-5 7.6-.6z",

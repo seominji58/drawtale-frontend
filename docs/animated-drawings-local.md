@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/11 기쁨 연출 10개 · 별 빛 · 한 사람에 하나 | **끝**: `SceneStage` `JOY_RING` 10개 · `JOY_RANK`(하트 > 별 > 꽃) · `together` 친구 포함, `ui.css` 별 빛 한 겹 2px. 확인 4쪽 모두 한 사람 한 고리 · 10조각 |
 | 11/11 글과 배경 · 가게 안 · 중의적 말 | **끝**: `plan.ts` `whereHeroIs` · `AT_SCENE`(가는 길 `ON_THE_WAY`, 보이기만 `NOT_THERE`) · 카드 밖 장면 잇기 · 가게 안 잇기, `scenes/town-shop`, `PERSON_WORD` 자연 「님」 제외, `HEART_BEAT` · `MOVE_WORDS`, 목소리 떨림. 시험 `tools/scene-check/where.ts` |
 | 11/11 쪽 완성 뒤 보여 주기 · 커튼 | **끝** (실제 모드 확인): `S09Story` `pageReady`(음성 `audioGot` + 장면 `sceneReady`) · `opened`(1쪽 완성 뒤 편다) · 세 쪽씩 미리 받기, `preloadScene` 에 등장인물 그림띠, 커튼 `props/curtain.webp` (연출 주인 소리 · 앞 문장 · 숙소 · 비유 이불은 서민지 님 `a8a70d8`) |
 | 11/11 장면 남은 문제 5차 | **끝**: 문제 쪽 78 → 50. `underPerson` 작은 것(키 0.2 미만) 폭 1할 · 주인공 자리 포함, `layout.mjs` 가림은 인물도 몸 가운데 6할 |

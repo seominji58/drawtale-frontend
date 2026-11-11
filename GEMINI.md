@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/11 기쁨 연출**: `SceneStage` `JOY_RING` 은 머리 위 반원 10조각. `joyful` 은 사람(`who`)마다 하나만, 둘이면 `JOY_RANK` 순(하트 > 별 > 꽃). 별 빛은 `ui.css` `.scene-joy.j-star` 한 겹 2px
 - **11/11 글과 배경**: `plan.ts` `whereHeroIs(text, place, loc)` 가 `AT_SCENE`([그곳 말, 장면, 쓸 조건, 주인공 주어 필요]) 로 주인공이 있는 장면을 정한다(`locationFor` · 집 장면 뒤, 대본 scene.location 보다 앞). 카드 밖 장면 · 가게 안(`town-shop`)은 나간다는 말이 없으면 잇는다. 새 장소 경우는 `tools/scene-check/where.ts` 에 더한다. 걷기 · 뛰기는 대본 `action` 인데 `HEART_BEAT` 뿐이면 제자리
 - **11/11 쪽 완성**: `S09Story` 는 `pageReady(i)` = `audioReady`(쪽 음성을 fetch 해 blob 주소로 `audioGot`) && `sceneReady`. 1쪽 전에는 `Waiting`(「책을 펴고 있어요」, `OPEN_WAIT_MS` 20초), 다음 쪽 단추는 `nextBusy`. 숨는 곳 커튼 `props/curtain.webp`
 - **11/11 장면 5차**: `underPerson` 은 이어 남은 물건이 사람 · 주인공 자리(`placed[0]` 포함)와 겹치면 사람 뒤에(작은 것 폭 1할, 큰 것 2할). 검사 가림은 인물 · 주인공 모두 그림 칸 가운데 6할
