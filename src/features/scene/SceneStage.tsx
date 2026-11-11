@@ -1093,10 +1093,11 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   type Who = { key: string; x: number; face: number; head: number; top: number; h: number; scale: number; side: boolean; follow: boolean; enter: boolean;
     cx: number; foot: number; dir: number };
   // other: 상대(등장인물)가 하는 것 — 「나는 친구를 웃게 했어요」 · 「왜 울어?」. 주어 「나」를 보지 않는다
-  const whoOf = (sentence: string, thanks = false, other0 = false): Who | null => {
+  const whoOf = (sentence: string, thanks = false, other0 = false, pos?: number): Who | null => {
     // 문장의 주인 (subjectOf). 사람이 아닌 것이 주어면 아무도 아니다. 이름 없는 사람(친구 · 아저씨)은 옆 인물, 그 쪽에 인물이
     // 없으면 아무도 아니다 (주인공에게 대신 나지 않게). 고마워 · 묻는 말 · 웃게 했어요(other0)는 상대
-    const subj = subjectOf(sentence, visiblePeople.map((v) => v.p.name ?? ""), heroName);
+    // pos: 연출 말(울었어요 · 웃었어요)의 자리 — 그 마디의 주어를 본다 (「가 보니 친구가 울고 있었어요」)
+    const subj = subjectOf(sentence, visiblePeople.map((v) => v.p.name ?? ""), heroName, pos);
     if (subj === null && !other0) return null;
     const me = !other0 && subj === "hero" && !(thanks && /^\s*“/.test(sentence));
     const named = subj && subj !== "hero" && subj !== "other" ? visiblePeople.find((v) => v.p.name === subj) : undefined;
@@ -1127,10 +1128,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     return arrived;
   };
   // 그친 자리: 같은 사람이 그 뒤에 눈물을 닦거나 기뻐하면 눈물이 멈춘다 (전에는 쪽 끝까지 계속 떨어졌다)
-  const stopsAt = [...fx.calms.map((c) => ({ at: c.at, who: whoOf(c.sentence) })),
-    ...fx.joys.map((jy) => ({ at: jy.at, who: whoOf(jy.sentence, jy.kind === "heart", !!jy.other) }))].filter((c) => heard(c.at));
+  const stopsAt = [...fx.calms.map((c) => ({ at: c.at, who: whoOf(c.sentence, false, false, c.pos) })),
+    ...fx.joys.map((jy) => ({ at: jy.at, who: whoOf(jy.sentence, jy.kind === "heart", !!jy.other, jy.pos) }))].filter((c) => heard(c.at));
   const crying = fx.tears.filter((t) => heard(t.at)).map((t) => {
-    const w = whoOf(t.sentence, false, !!t.other);
+    const w = whoOf(t.sentence, false, !!t.other, t.pos);
     if (t.other && w?.key === "hero") return null;   // 상대가 울어야 하는데 옆에 인물이 없으면 아무도 울지 않는다
     if (!ready(w)) return null;
     if (stopsAt.some((c) => c.at > t.at && c.who?.key === w.key)) return null;
@@ -1138,9 +1139,13 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   }).filter((v, k, all): v is NonNullable<typeof v> => !!v && all.findIndex((w) => w?.key === v.key) === k);
   // 기쁨 · 고마움: 그 사람 머리 위로 하트 · 별 · 꽃이 피어오른다 (나레이션이 그 말에 오면 한 번)
   // 「우리는 · 우리 둘은 · 함께 · 서로」 — 둘이 같이 하는 것은 주인공과 옆 인물 모두 같은 연출 (11/10 「친해졌다는 둘이 같은 표현」)
-  const together = (sen: string) => /우리(?:는|가|도| 둘| 모두)|둘이|둘은|서로|다 같이|함께 (?:웃|기뻐|손)|친구가 (?:됐|되었|되어)|단짝/.test(sen);
+  // 「엄마도, 토토도, 아저씨도 모두 기뻐했어요」 · 「친구가 웃자 토토도 따라 웃었어요」 · 「토토와 친구는 깔깔 웃었어요」도 같이 (11/11 전수 점검)
+  const together = (sen: string) => /우리(?:는|가|도| 둘| 모두)|둘이|둘은|서로|다 같이|함께 (?:웃|기뻐|손)|친구가 (?:됐|되었|되어)|단짝/.test(sen)
+    || /모두 (?:기뻐|웃|신이)/.test(sen) || /[가-힣]+도,? [^.!?]*[가-힣]+도[ ,]/.test(sen)
+    || /(?:웃자|웃으니|웃고)[ ,][^.!?]*[가-힣]+도 (?:따라 |덩달아 |같이 )?(?:웃|깔깔|키득|기뻐|신)/.test(sen)
+    || /[가-힣]+(?:와|과|랑|이랑) [가-힣]+(?:는|은|가|이) /.test(sen);
   const joyful = fx.joys.filter((jy) => play && heard(jy.at)).flatMap((jy) => {
-    if (!together(jy.sentence)) return [{ jy, w: whoOf(jy.sentence, jy.kind === "heart", !!jy.other) }];
+    if (!together(jy.sentence)) return [{ jy, w: whoOf(jy.sentence, jy.kind === "heart", !!jy.other, jy.pos) }];
     return [{ jy, w: whoOf("나는", false) }, ...visiblePeople.slice(0, 2).map((v) => ({ jy, w: whoOf(v.p.name ?? "친구", false, true) }))];
   }).map(({ jy, w }, k) => {
     if (!ready(w)) return null;
@@ -1153,7 +1158,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 빙글 돌기: 주인공 그림을 좌우로 뒤집었다 돌아오기를 세 번 (2D 그림이라 도는 것처럼). 그 말 앞에 다른 사람(이름 · 친구)이
   // 있거나 그 말로 도는 소품(바람개비 …)이 있으면 주인공은 돌지 않는다. 나레이션이 그 말에 오면 한 번
   // 그 말 앞의 주어가 주인공이 아니면(친구 · 이름 · 박쥐들이 · 돌들이 …) 주인공은 돌지 않는다
-  const otherSpins = (before: string) => subjectOf(before, visiblePeople.map((v) => v.p.name ?? ""), heroName) !== "hero";
+  const otherSpins = (before: string) => subjectOf(before, visiblePeople.map((v) => v.p.name ?? ""), heroName, before.length) !== "hero";
   const canMove = play && !REDUCE && !hero.fallen && !heroGone;
   const spinAt = canMove && !(plan.things ?? []).some((t) => t.motion === "spin")
     ? Math.max(-1, ...fx.spins.filter((sp) => heard(sp.at) && !otherSpins(sp.before)).map((sp) => sp.at)) : -1;
@@ -1189,7 +1194,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const personSpin = new Set<string>(REDUCE || !play || thingSpins ? [] : [
     // 사람이 도는 말일 때만 — 「토성이 빙그르르 돌면서」처럼 사람이 아닌 것이 돌면 아무도 돌지 않는다 (11/11 전수 점검)
     ...fx.spins.filter((sp) => heard(sp.at) && otherSpins(sp.before)
-      && subjectOf(sp.before, visiblePeople.map((v) => v.p.name ?? ""), heroName) !== null).map((sp) => {
+      && subjectOf(sp.before, visiblePeople.map((v) => v.p.name ?? ""), heroName, sp.before.length) !== null).map((sp) => {
       const v = visiblePeople.find((q) => q.p.name && sp.before.includes(q.p.name)) ?? visiblePeople[0];
       return v && (!v.p.enter || arrived) ? `p-${v.p.id}` : "";
     }).filter(Boolean),
