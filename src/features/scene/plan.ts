@@ -419,7 +419,8 @@ export function subjectOf(sen: string, people: string[], hero?: string | null): 
   // 이름은 글자 그대로 찾는다 (정규식 기호가 섞여도)
   if (hero && t.split(/[\s,]+/).some((w) => w === hero || (w.startsWith(hero) && /^(?:이|가|는|은|도|이는|이가|이도)$/.test(w.slice(hero.length))))) return "hero";
   // 「친구 눈에서 눈물이 · 민지의 볼에」 — 누구의 눈 · 얼굴인지 적혀 있으면 그 사람 (11/10)
-  const owner = /([가-힣]+)(?:의)? (?:눈|두 눈|눈가|볼|얼굴|뺨)(?:에서|에|이|가|을|은)?(?=[\s,]|$)/.exec(t)?.[1];
+  // 「친구 얼굴을 보니 눈물이 났어요」의 얼굴은 보는 대상이라 그 사람이 아니다: 「을」은 「볼을 타고」처럼 눈물이 흐르는 자리일 때만 (11/11)
+  const owner = /([가-힣]+)(?:의)? (?:눈|두 눈|눈가|볼|얼굴|뺨)(?:에서|에|이|가|은|[을를](?= 타고| 따라))?(?=[\s,]|$)/.exec(t)?.[1];
   if (owner && owner !== "내" && owner !== "제") {
     const named = people.find((n) => n && (n === owner || n.split(/\s+/).includes(owner)));
     if (named) return named;
