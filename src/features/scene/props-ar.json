@@ -131,5 +131,11 @@
  "props/umbrella.webp": 1.086,
  "props/wateringcan.webp": 1.531,
  "sea-pier/lighthouse.webp": 0.353,
- "town-park/bench.webp": 1.689
+ "town-park/bench.webp": 1.689,
+ "home-living/sofa.webp": 1.665,
+ "home-bedroom/bed.webp": 1.717,
+ "school-hallway/lockers.webp": 1.234,
+ "space-ship/seat.webp": 1.021,
+ "home-bedroom/toybox.webp": 0.995,
+ "playground/slide.webp": 1.13
 }

@@ -34,6 +34,13 @@ const COVERS: [RegExp, string, number][] = [
   [/책장/, "school-library/shelf.webp", 0.38],
   [/책상/, "school-classroom/desks.webp", 0.32],
   [/식탁|탁자/, "home-kitchen/table.webp", 0.34],
+  // 이미 있는 장소 그림을 숨는 곳으로 (11/11 전수 점검: 「소파 뒤 · 신발장 뒤 · 의자 뒤」에 숨을 것 없이 주인공이 그냥 사라졌다)
+  [/소파|쿠션/, "home-living/sofa.webp", 0.34],
+  [/침대/, "home-bedroom/bed.webp", 0.32],
+  [/신발장|사물함|옷장|장롱|책꽂이/, "school-hallway/lockers.webp", 0.46],
+  [/장난감 (?:상자|통)/, "home-bedroom/toybox.webp", 0.28],
+  [/의자/, "space-ship/seat.webp", 0.32],
+  [/버섯/, "forest/mushroom.webp", 0.34],
   // 새로 그린 숨는 곳 (11/3, tools/art/gen_objects.py)
   [/담요|이불|침낭|잠자리 주머니|돗자리/, "props/blanket.webp", 0.3],
   [/텐트/, "props/tent.webp", 0.44],
@@ -631,9 +638,23 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     // 대본이 말한 자리(손에 듦 · 머리에 씀 · 떠내려감 · 날아감 · 떨어짐)는 장면 그림과 같이 (11/6)
     hits.push({ at, t: { src: p.png, h: p.height, ar: 1, name: p.name, ...(at >= 0 ? thingPose(text, at, at + last.length, "ground", indoor) : {}) }, key: last });
   }
+  // 대사 속 말(「“꽃밭에 가 볼까?”」)은 화면에 놓지 않는다 — 대사를 지운 글에서 찾는다 (자리는 그대로) (11/11 전수 점검 693건)
+  const said = unquoted(text);
   for (const [re, src, h, spot] of THINGS) {
-    const m = re.exec(text);
+    const m = re.exec(said);
     if (!m) continue;
+    {
+      const from = Math.max(said.lastIndexOf(".", m.index), said.lastIndexOf("!", m.index), said.lastIndexOf("?", m.index)) + 1;
+      const ends = [".", "!", "?"].map((c) => said.indexOf(c, m.index)).filter((k) => k >= 0);
+      const sen = said.slice(from, ends.length ? Math.min(...ends) + 1 : said.length);
+      const after = said.slice(m.index + m[0].length, m.index + m[0].length + 8);
+      // 「로켓이 없었어요 · 담요도 없이 · 집에 두고 와서」 — 없다고 한 물건 (20건)
+      if (/없었|없어|없이|없는|없다|두고 (?:와|왔|나)|놓고 (?:와|왔)|안 가져|못 가져|가져오지 않/.test(sen)) continue;
+      // 「이불처럼 포근 · 별처럼 반짝 · 작은 나무 같아」 — 비유 (33건)
+      if (/^[가-힣]{0,1}\s?(?:처럼|같|모양)/.test(after)) continue;
+      // 「종이배」는 큰 배 그림이 아니다
+      if (src === "props/boat.webp" && /종이 ?배/.test(m[0])) continue;
+    }
     if (spot === "wall" && !indoor) continue;   // 바깥에는 걸 벽이 없다
     if (skip.has(src)) continue;
     if (loc && ONLY_AT[src] && !ONLY_AT[src](loc, indoor)) continue;
