@@ -702,6 +702,8 @@ export interface PropPlan {
   name?: string;
   /** 이 쪽에서 들어오면 어느 쪽에서 걸어오는지. 없으면 처음부터 서 있다 */
   enter?: "left" | "right";
+  /** 걸어 들어오는 사람이 등장하는 자리 (나레이션 진행 0~1) — 그 말에 오기 전까지 화면 밖에서 기다린다. 없으면 쪽 시작부터 */
+  enterAt?: number;
   /** 숨을 것(cover)의 그림 · 키 */
   src?: string;
   h?: number;
@@ -1213,10 +1215,30 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
         const sen = p.text.split(/(?<=[.!?”])\s*/).find((t) => t.replace(/“[^”]*”/g, " ").includes(name));
         return !!sen && THERE.test(sen) && !COMES.test(sen);
       };
-      for (const { c, kind } of scripted) props.push({
-        id: kind, name: c.name, x: xs.get(c.name),
-        enter: prevNames.includes(c.name) || already(c.name) || (!!seenHere(c.name) && !COMES.test(p.text)) ? undefined : "right",
-      });
+      // 등장 자리: 그 사람(이름 · 호칭, 이름 없으면 「한 아이 · 누군가」)이 처음 나오는 문장의 시작. 바로 앞에 붙은 대사(「“여기 있었구나!”
+      // 선생님 목소리였어요」)가 있으면 그 대사부터. 쪽 앞부분(2할 안)이면 처음부터 (11/11 전수 점검: 쪽 끝에 나오는 사람 349쪽이
+      // 쪽이 시작되자마자 걸어 들어왔다)
+      const entryAt = (name: string): number | undefined => {
+        const words = name.split(/\s+/).map((w) => w.replace(/님$/, "")).filter((w) => w.length >= 2 && !TITLES.has(w));
+        const keys = [name, ...words];
+        const GENERIC = /(?:한|어떤|작은|낯선|모르는) (?:아이|여자아이|남자아이|친구|사람|어른|아저씨|아주머니|할머니|할아버지)|누군가|(?:여자|남자)아이가/;
+        const u = unquoted(p.text);
+        for (const m of u.matchAll(/[^.!?]+[.!?]*/g)) {
+          const sen = m[0];
+          if (!keys.some((k) => sen.includes(k)) && !GENERIC.test(sen)) continue;
+          let at = m.index! + (sen.length - sen.trimStart().length);
+          // 바로 앞이 대사면 그 대사의 시작으로
+          const before = p.text.slice(0, at).trimEnd();
+          if (before.endsWith("”")) { const q = before.lastIndexOf("“"); if (q >= 0) at = q; }
+          const f = at / Math.max(1, p.text.length);
+          return f < 0.2 ? undefined : readAt(p.text, at);
+        }
+        return undefined;
+      };
+      for (const { c, kind } of scripted) {
+        const enter = prevNames.includes(c.name) || already(c.name) || (!!seenHere(c.name) && !COMES.test(p.text)) ? undefined : "right" as const;
+        props.push({ id: kind, name: c.name, x: xs.get(c.name), enter, ...(enter ? { enterAt: entryAt(c.name) } : {}) });
+      }
     }
 
     // 주인공: 걷기 · 뛰기는 옮겨 가고, 제자리 동작은 몇 번 하고 멈춘다
@@ -1239,6 +1261,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       });
       goal = (toward ?? props.find((q) => q.id === "sign") ?? props.find((q) => q.id === "adult" || q.id === cardAdult)
         ?? props.find((q) => q.id === "friend" || q.id === cardFriend))?.id;
+      // 주인공이 다가가는 사람은 처음부터 그 자리에 — 늦게 들어오면 주인공이 빈 자리로 달려간다 (11/11)
+      for (const q of props) if (q.id === goal) delete q.enterAt;
       from = 1 / 3;
       to = 2 / 3;
     }

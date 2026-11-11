@@ -285,6 +285,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     return () => clearTimeout(a);
   }, [plan, play, phase]);
   const arrived = mode === "end" || arrivedFor === plan;
+  // 나레이션이 그 사람 말에 와서 늦게 걸어 들어온 사람 — 들어오기 시작한 뒤 ENTER_MS 가 지나면 「다 왔다」 (11/11)
+  const [lateArrived, setLateArrived] = useState<{ plan: PagePlan | null; keys: Set<string> }>({ plan: null, keys: new Set() });
+  const lateGoing = useRef<{ plan: PagePlan | null; keys: Set<string> }>({ plan: null, keys: new Set() });
 
   useEffect(() => {
     setLateGiveUp(false);
@@ -554,6 +557,12 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       ?? tries.find((c) => c >= lo && c <= hi && side(c) && freeOfFigures(c - half * 0.5, c + half * 0.5) && clearOfThings(c, half));
     const take = (c: number) => { const sp: [number, number] = [c - half, c + half]; placed.push(sp); figureSpans.add(sp); };
     if (at !== undefined) { take(at); return { x: at, back: false }; }
+    // 들어오는 쪽에 틈이 없으면 반대쪽 빈자리 (표지판 말고 사람만) — 오른쪽에서 둘이 들어오는데 자리가 없어 둘 다 오른쪽 끝 같은 자리에
+    // 서서 엄마 · 아빠가 완전히 겹쳤다 (11/11 장면 검사). 그 사람은 가까운 끝에서 들어온다(아래 enterSide)
+    if (sameSide && wRatio !== 0.6) {
+      const any = tries.find((c) => c >= lo && c <= hi && freeOfFigures(c - half * 0.7, c + half * 0.7) && clearOfThings(c, half));
+      if (any !== undefined) { take(any); return { x: any, back: false }; }
+    }
     // 표지판은 틈이 없어도 가는 쪽 끝에 (좁은 화면 · 팔 넓은 그림에서 손끝과 조금 닿는 정도) — 반대편 뒤로 가지 않게
     // 들어온 사람은 그쪽 끝 조금 뒤에 (작아져 주인공과 겹쳐도 앞뒤로 읽힌다)
     // 들어온 사람도 앞줄 끝에 (옆 사람과 조금 겹쳐도): 뒤로 보내면 작고 높게 서서 공중에 뜬 것처럼 보였다 (11/10 사용자 「6쪽에 친구가 공중에 떠 있다」)
@@ -618,7 +627,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     if (plan.key) PEOPLE_AT.set(`${plan.key}:${who}`, spot.x);
     // 뒤에 서는 사람: 조금만 작고 조금만 위 (0.8 배 · 0.07 위는 떠 보였다, 11/10)
     const sb = spot.back ? { ...s, h: s.h * 0.9, foot: (s.foot ?? 0.93) - 0.035 } : s;
-    return { p: enter === p.enter ? p : { ...p, enter }, s, spot, sb, follow: undefined as { from: number } | undefined };
+    // 반대쪽 빈자리에 서게 된 사람은 가까운 쪽 끝에서 들어온다 (주인공을 가로질러 걷지 않게)
+    const enterSide: "left" | "right" | undefined = enter === "right" && spot.x < hero.to - 0.05 ? "left"
+      : enter === "left" && spot.x > hero.to + 0.05 ? "right" : enter;
+    return { p: enterSide === p.enter ? p : { ...p, enter: enterSide }, s, spot, sb, follow: undefined as { from: number } | undefined };
   });
   // 옆모습(4족형 · 사슬형 · 지느러미형) 주인공이 보는 쪽 — 그림의 머리 쪽(facing)과 다르면 좌우로 뒤집는다.
   // 옮겨 가면 가는 쪽(렌더가 머리 쪽으로 걷는다, 11/4 「얼굴 방향에 따라 < 인지 > 인지」), 제자리면 가장 가까운 인물 · 동물 쪽,
@@ -1026,7 +1038,14 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       cx: heroX, foot: topY + drawn.h, dir: side ? headSide : 1 };
   };
   // 걸어 들어오는 사람은 제자리에 다 온 뒤에 운다 · 기뻐한다 — 전에는 화면 밖에서 오는 중인데 설 자리에 눈물부터 떨어졌다 (11/10)
-  const ready = (w: Who | null): w is Who => !!w && (!w.enter || arrived);
+  // 늦게 들어오는 사람은 그 사람이 다 걸어 들어온 뒤에 운다 · 기뻐한다
+  const ready = (w: Who | null): w is Who => {
+    if (!w) return false;
+    if (!w.enter) return true;
+    const pp = plan.props.find((q) => `p-${q.id}` === w.key);
+    if (pp?.enterAt !== undefined && mode !== "end") return lateArrived.plan === plan && lateArrived.keys.has(w.key);
+    return arrived;
+  };
   // 그친 자리: 같은 사람이 그 뒤에 눈물을 닦거나 기뻐하면 눈물이 멈춘다 (전에는 쪽 끝까지 계속 떨어졌다)
   const stopsAt = [...fx.calms.map((c) => ({ at: c.at, who: whoOf(c.sentence) })),
     ...fx.joys.map((jy) => ({ at: jy.at, who: whoOf(jy.sentence, jy.kind === "heart", !!jy.other) }))].filter((c) => heard(c.at));
@@ -1127,7 +1146,21 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         if (!v) return null;
         const { p, s, spot, sb, follow } = v;
         // 걸어 들어오는 인물: 처음엔 화면 밖, 끝 모습에서 제자리. 함께 움직이는 인물은 주인공 뒤 출발점에서 주인공과 같은 빠르기로
-        const x = phase === 0 && follow ? follow.from : phase === 0 && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
+        // 늦게 들어오는 사람(enterAt): 나레이션이 그 사람 말에 오기 전까지 화면 밖에서 기다린다
+        const waitIn = !!p.enter && p.enterAt !== undefined && mode !== "end" && !heard(p.enterAt);
+        if (p.enter && p.enterAt !== undefined && !waitIn && play) {
+          const key = `p-${p.id}`;
+          if (lateGoing.current.plan !== plan) lateGoing.current = { plan, keys: new Set() };
+          if (!lateGoing.current.keys.has(key)) {
+            lateGoing.current.keys.add(key);
+            window.setTimeout(() => setLateArrived((a) => {
+              const keys = new Set(a.plan === plan ? a.keys : []);
+              keys.add(key);
+              return { plan, keys };
+            }), REDUCE ? 0 : ENTER_MS);
+          }
+        }
+        const x = phase === 0 && follow ? follow.from : (phase === 0 || waitIn) && p.enter ? (p.enter === "left" ? -0.14 : 1.14) : spot.x;
         const move: CSSProperties = { transition: REDUCE || !play ? "none"
           : follow ? `left ${timing.ms}ms linear, filter 2.6s ease` : `left ${ENTER_MS}ms cubic-bezier(.3,.15,.45,1), filter 2.6s ease` };
         // 가만히 있는 동안 숨쉬기 · 깡충 (11/9 「등장인물이 다 가만히 있다」) — 사람마다 박자를 엇갈려 같이 들썩이지 않게
@@ -1159,12 +1192,19 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         const lateReady = lateWalk && stripReady.has(stripUrl(p.id, "walk"));
         if (lateWalk) lateMs.current = LATE_WAIT_MS;
         const offX = p.enter === "left" ? -0.14 : 1.14;
-        if (lateWalk && !lateReady) {
+        // 늦게 들어오는 사람: 기다리는 동안은 화면 밖 멈춘 그림, 그 말에 오면 그때부터 걸어 들어온다(아래 늦은 걷기와 같은 길)
+        if (waitIn) {
           return <img key={`${p.id}-${p.name ?? k}`} className="scene-obj scene-person" src={base + s.src} alt=""
                       style={{ ...spotStyle({ ...sb, x: offX }), transition: "none" }} />;
         }
-        if (lateReady) {
-          lateStarted.current.ids.add(lateKey);
+        const delayedGo = !!p.enter && p.enterAt !== undefined && mode !== "end" && !!moves?.walk && !follow && !spinning
+          && stripReady.has(stripUrl(p.id, "walk"));
+        if (lateWalk && !lateReady && !delayedGo) {
+          return <img key={`${p.id}-${p.name ?? k}`} className="scene-obj scene-person" src={base + s.src} alt=""
+                      style={{ ...spotStyle({ ...sb, x: offX }), transition: "none" }} />;
+        }
+        if (lateReady || delayedGo) {
+          if (lateReady) lateStarted.current.ids.add(lateKey);
           const m = moves!.walk!;
           const tall = sb.h * (1 + m.pad_top + m.pad_bottom);
           const vars = { ["--until" as string]: `${ENTER_MS}ms`, ["--lag" as string]: "0ms", ["--dur" as string]: `${m.sec}s`,
