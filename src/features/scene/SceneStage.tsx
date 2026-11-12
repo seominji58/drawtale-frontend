@@ -828,6 +828,19 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         const x = Math.min(0.9, hero.to + heroHalf + thingW(t.h) / 2);
         return { x, cls: play ? "m-blow" : "m-gone", style: spotStyle({ src: t.src, x, foot: H.foot - H.h * 0.85, h: t.h }) };
       }
+      case "top": {    // 식탁 · 책상 · 계산대 윗면 (그림 위에서 2~3할 아래가 윗면). 없으면 보통 자리
+        // 글이 말한 것 먼저: 식탁 · 탁자 → 식탁, 책상 → 책상, 계산대 → 계산대, 선반 → 선반 (싱크대 위에 과자가 올라갔다, 11/12)
+        const want = /책상/.test(text) ? /desks|desk/ : /계산대|카운터/.test(text) ? /counter|stall/ : /선반/.test(text) ? /shelf/ : /table/;
+        const surf = layout.objects.find((o) => o.foot !== undefined && want.test(o.src))
+          ?? layout.objects.find((o) => o.foot !== undefined && /table|desks|desk|counter|shelf|stall/.test(o.src));
+        if (!surf || surf.foot === undefined) return null;
+        const sw = (surf.h * arOf(surf.src.startsWith("../") ? surf.src.slice(3) : `${plan.location}/${surf.src}`, 1.5) / aspect);
+        const h = Math.min(t.h, surf.h * 0.35);
+        // 같은 윗면에 둘 이상이면 옆으로 나란히 (글에 나온 차례)
+        const k = topCount++;
+        const x = surf.x + ((k % 3) - (k >= 2 ? 1 : 0.5)) * sw * 0.28;
+        return { x, cls: "", style: spotStyle({ src: t.src, x, foot: surf.foot - surf.h * 0.72 + h * 0.08, h }) };
+      }
       case "high": {   // 배경 나무 꼭대기에 걸림
         const tree = layout.objects.find((o) => /tree|pine/.test(o.src));
         if (!tree || tree.foot === undefined) return null;
@@ -918,6 +931,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const things = (plan.things ?? []).map((t) => (indoor && !t.pose && TO_WINDOW.has(t.src) ? { ...t, pose: "window" as const } : t));
   // 같은 종류는 하나만, 화분이 있으면 꽃은 화분 꽃이라 또 놓지 않는다 (「화분에 꽃이 피었어요」에 화분 · 꽃밭이 같이 섰다)
   const hasPot = things.some((t) => kindOf(t.src) === "flowerpot");
+  let topCount = 0;
   const posedSpots = things.filter((t, i) => !bgKinds.has(kindOf(t.src)) && things.findIndex((o) => kindOf(o.src) === kindOf(t.src)) === i
       && !(hasPot && kindOf(t.src) === "flowers")).map((t) => ({ t, at: t.pose ? posedOrOther(t) : null,
         // 주기: 주는 사람 손 자리 (주는 말 전까지)
@@ -981,7 +995,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     // 다른 장소 배경에서 빌려 온 큰 붙박이(가로등 · 정문 · 정자 · 미끄럼틀 …)는 빈자리가 없으면 세우지 않는다: 시장 가판대 · 바닷가 파라솔 ·
     // 놀이터 미끄럼틀과 기둥끼리 겹쳤다 (11/11 전체 검사 72쪽)
     const struct = STRUCT.test(t.src);
-    const tryList: [boolean, number, boolean?, boolean?][] = struct ? [[true, 1], [true, 0.8], [true, 1, true], [true, 0.8, true]]
+    // 그래도 없으면 배경 물건을 무시하고 서되(사람 · 소품 · 글이 말한 배경 물건은 계속 피함), 그 자리와 겹치는 글에 없는 배경 물건은 이 쪽에서 감춘다
+    // (아래 hiddenBg, 11/12 소품 크기 점검: 놀이터 배경에 그네 · 미끄럼틀 · 나무가 있어 「정글짐 · 구름다리」가 96쪽 중 8 · 0쪽만 나왔다)
+    const tryList: [boolean, number, boolean?, boolean?][] = struct ? [[true, 1], [true, 0.8], [true, 1, true], [true, 0.8, true], [false, 1], [false, 0.8]]
       : air ? [[false, 1]]
       // 이어 갈 물건(keep)은 여러 쪽에 그대로 남으니 배경 물건과 겹치지 않는 자리를 작게라도 먼저 (11/10 이어짐 검사: 파라솔 앞 깃발이 6쪽 내내)
       // 그래도 없으면 사람 뒤에 (사람이 그 물건을 조금 가리는 편이 배경 물건과 기둥끼리 겹치는 것보다 낫다, 11/10 깃발 · 파라솔)
@@ -1020,6 +1036,29 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     // 손에 듦 · 머리에 씀인데 그 자리에 놓지 못해 옆 땅에 놓인 내 소품은 등장 통통 (가만히 있으면 내 그림이 나온 줄 모른다)
     .map((t) => (t.name !== undefined && !t.motion && (t.pose === "hand" || t.pose === "head" || t.pose === "mouth" || t.pose === "back")
       ? { ...t, motion: "pop" as const } : t));
+  // 배경에 윗면이 없어 땅에 놓인 「위에 놓인 물건」은 쪽 소품 책상 · 식탁 위로 (「책상 위에 물뿌리개」, 11/12)
+  {
+    const desk = thingSpots.find((t) => /\/(?:desk|table)\.webp$/.test(t.src) && t.x !== undefined);
+    let k = 0;
+    if (desk) for (const [i, t] of thingSpots.entries()) {
+      if (t.pose !== "top" || t === desk) continue;
+      const dw = halfOf(desk, desk.h) * 2, h = Math.min(t.h, desk.h * 0.35);
+      thingSpots[i] = { ...t, h, x: desk.x! + ((k++ % 3) - 0.5) * dw * 0.3, footY: (desk.footY ?? 0.95) - desk.h * 0.72 + h * 0.08 };
+    }
+    // 책상 위 물건은 책상보다 나중에 그려 위에 보이게
+    if (desk && k) thingSpots.sort((a, b) => (a.pose === "top" ? 1 : 0) - (b.pose === "top" ? 1 : 0));
+  }
+  // 큰 붙박이가 선 자리의 배경 물건은 감춘다: 글이 말하지 않은 것만, 그 물건 폭의 3할 넘게 겹칠 때 (위 tryList)
+  const hiddenBg = new Set<number>();
+  for (const t of thingSpots) {
+    if (!STRUCT.test(t.src) || t.x === undefined) continue;
+    const half = halfOf(t, t.h);
+    layout.objects.forEach((o, i) => {
+      if (o.foot === undefined || BACKDROP.test(o.src) || saidKinds.has(kindOf(o.src))) return;
+      const [l, r] = spanOf(o);
+      if (Math.max(0, Math.min(r, t.x + half) - Math.max(l, t.x - half)) > (r - l) * 0.3) hiddenBg.add(i);
+    });
+  }
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
 
   // 쪽 연출 (11/10): 환해짐 · 눈물. 나레이션이 그 말의 자리에 오면 보인다 (나레이션이 없으면 쪽에 들어올 때, 끝 모습이면 처음부터)
@@ -1269,7 +1308,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
           ))}
         </div>
       )}
-      {layout.objects.map((o, k) => (
+      {layout.objects.map((o, k) => (hiddenBg.has(k) ? null :
         <img key={k} className="scene-obj scene-bg" src={base + o.src} alt="" style={spotStyle(o)} />
       ))}
       {/* 넓은 풍경 물건(텐트 · 배 · 모래 언덕 …)과 나무에 걸린 둥지는 사람 뒤에 (앞에 그리면 사람을 덮었다, 11/10) */}
@@ -1522,7 +1561,7 @@ const SIGN_W = 0.74;
 /** 맨 뒤 풍경 배경 물건 (소품이 앞에 서도 된다) */
 const BACKDROP = /(?:^|\/)(?:building|houses|house)\.webp$/;
 /** 빈자리가 없으면 빼는 큰 붙박이 소품 */
-const STRUCT = /(?:lamp|parkgate|booth|pavilion|junglegym|monkeybars|fountain|slide|bed|shelf|sofa|bus|lockers)\.webp$/;   // 책장 · 소파 · 버스도 (11/12 책장이 화면 밖으로 나갔다)
+const STRUCT = /(?:lamp|parkgate|booth|pavilion|junglegym|monkeybars|fountain|slide|bed|shelf|sofa|bus|lockers|piano)\.webp$/;   // 책장 · 소파 · 버스도 (11/12 책장이 화면 밖으로 나갔다)
 // 학교 배경 철봉(bars)이 있으면 구름다리를 또 세우지 않는다 (11/11)
 const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign", bench: "chair", toybox: "box", drum: "drums", pebble: "rocks", monkeybars: "bars" };
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */

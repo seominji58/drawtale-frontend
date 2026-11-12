@@ -19,7 +19,8 @@ const url = (i, n) => `${BASE}?f=${FILE}&i=${i}&n=${n}${EXTRA}`;
 const area = (r) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
 const inter = (a, b) => area({ x0: Math.max(a.x0, b.x0), x1: Math.min(a.x1, b.x1), y0: Math.max(a.y0, b.y0), y1: Math.min(a.y1, b.y1) });
 const outside = (r) => 1 - inter(r, { x0: 0, x1: 1, y0: 0, y1: 1 }) / Math.max(1e-6, area(r));
-const BIG_THINGS = new Set(["gate", "tent", "spaceship", "rocket"]);
+// 대문 · 텐트 · 우주선 · 로켓 · 큰 놀이 기구 · 가로등 · 안내소 · 정자 · 버스는 실제로 아이보다 크다 (11/12 큰 붙박이 더함)
+const BIG_THINGS = new Set(["gate", "tent", "spaceship", "rocket", "parkgate", "booth", "junglegym", "monkeybars", "lamp", "pavilion", "slide", "bus", "shelf", "lockers"]);
 const HELD = new Set(["hand", "head", "mouth", "back", "window", "high", "water", "blown"]);
 // 배경 그림의 물건 · 쪽 글 소품 중 같은 것 (이름이 달라 bgKinds 가 못 거른다)
 // 11/10 서민지 님 SceneStage SAME_KIND 에 더한 것: 화살표 = 표지판, 벤치 = 의자, 장난감 상자 = 상자, 북 = 북들

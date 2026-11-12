@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/12 큰 붙박이 · 윗면**: `STRUCT` 는 빈자리가 없으면 배경 물건을 무시하고 서고, 그 자리의 글에 없는 배경 물건은 `hiddenBg` 로 감춘다. 식탁 · 책상 위 · 접시의 작은 물건은 자세 `top`(`plan.ts` `ON_TOP`)
 - **11/12 넘어진 자세**: 폭 맞춤 형태(사슬 · 4족 · 날개 · 지느러미)는 `fallen-wide`(발끝 축 3도). 검사 페이지는 `?lift=&size=`(서버 형태 정의 hero.float · size)로 앱과 같게 그린다
 - **11/12 사람 아닌 형태 검사**: `node tools/scene-check/out/organic.mjs forms-long.json`(형태별 검사 포함), 장면 검사는 `EXTRA="sprite=out/real/bird_side.webp&frames=48&box=…&fit=width&facing=1" node tools/scene-check/layout.mjs 512 16 forms-winged.json`. 작은 동물 대본 인물은 동물 그림(`ANIMAL_SRC`, 생김새 `CREATURE_DESC`)
 - **11/12 물건 한도**: 한 쪽 물건 3개(`MAX_THINGS`)를 넘으면 큰 물건(키 0.28 이상)을 먼저 남긴다. 없다는 말은 그 물건 바로 뒤에서만 본다
