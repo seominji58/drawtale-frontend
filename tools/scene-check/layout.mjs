@@ -21,7 +21,8 @@ const inter = (a, b) => area({ x0: Math.max(a.x0, b.x0), x1: Math.min(a.x1, b.x1
 const outside = (r) => 1 - inter(r, { x0: 0, x1: 1, y0: 0, y1: 1 }) / Math.max(1e-6, area(r));
 // 대문 · 텐트 · 우주선 · 로켓 · 큰 놀이 기구 · 가로등 · 안내소 · 정자 · 버스는 실제로 아이보다 크다 (11/12 큰 붙박이 더함)
 const BIG_THINGS = new Set(["gate", "tent", "spaceship", "rocket", "parkgate", "booth", "junglegym", "monkeybars", "lamp", "pavilion", "slide", "bus", "shelf", "lockers"]);
-const HELD = new Set(["hand", "head", "mouth", "back", "window", "high", "water", "blown"]);
+// top: 식탁 · 책상 위에 올린 물건 (11/12): 배경 식탁과 겹치고 땅보다 위인 것이 맞다
+const HELD = new Set(["hand", "head", "mouth", "back", "window", "high", "water", "blown", "top"]);
 // 배경 그림의 물건 · 쪽 글 소품 중 같은 것 (이름이 달라 bgKinds 가 못 거른다)
 // 11/10 서민지 님 SceneStage SAME_KIND 에 더한 것: 화살표 = 표지판, 벤치 = 의자, 장난감 상자 = 상자, 북 = 북들
 const SAME = [["castle", "sandcastle", "sea-castle"], ["tree", "pine"], ["flowers", "flowerbed", "flower"], ["rock", "rocks", "stone", "pebble"],
@@ -110,7 +111,7 @@ function issuesOf(s) {
       if (kin(t.name, u.name)) out.push(["같은 종류 소품 둘", `${t.name} + ${u.name}`]);
       const o = inter(t, u) / Math.max(1e-6, Math.min(area(t), area(u)));
       // 사람 손에 든 것이 사람 뒤에 그리는 넓은 풍경(텐트 · 난간 · 표지판 …) 앞에 오는 것은 겹침이 아니다 (「랜턴을 든 엄마」 앞 텐트, 11/12 난간 · 표지판 앞 손전등)
-      const wideBack = (HELD.has(t.pose) || HELD.has(u.pose)) && [t.name, u.name].some((n) => ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "railing", "arrow", "sign", "sign-green", "lamp", "mailbox"].includes(n));
+      const wideBack = (HELD.has(t.pose) || HELD.has(u.pose)) && [t.name, u.name].some((n) => ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "railing", "arrow", "sign", "sign-green", "lamp", "mailbox", "desk", "table"].includes(n));
       // 난간은 사람 뒤에 가로지르는 풍경이라 그 앞의 다리 · 버섯 · 배와 겹쳐도 된다 (11/12)
       if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose)) && !wideBack && t.name !== "railing" && u.name !== "railing") out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
     }
@@ -202,7 +203,7 @@ const sizeRows = [...sizes].map(([n, v]) => { v.sort((a, b) => a - b); return { 
 console.log("\n■ 소품 크기 (주인공 키 대비, 쪽 수 · 가장 작게 · 가운데 · 가장 크게)");
 console.log(sizeRows.map((r) => `${r.n} ${r.c} · ${r.min.toFixed(2)} / ${r.med.toFixed(2)} / ${r.max.toFixed(2)}`).join("\n"));
 fs.writeFileSync(`tools/scene-check/out/${TAG}-sizes.json`, JSON.stringify(sizeRows, null, 1));
-// 장소마다 놓인 소품 (엉뚱한 물건 찾기용) — 소품 이름 → 장소 → [쪽]
+// 장소마다 놓인 소품 (엉뚱한 물건 찾기용): 소품 이름 → 장소 → [쪽]
 const where = {};
 for (const s of all) for (const t of s.things) ((where[t.name] ??= {})[s.location] ??= []).push(s.key);
 fs.writeFileSync(`tools/scene-check/out/${TAG}-things.json`, JSON.stringify({ where, text: Object.fromEntries(all.map((s) => [s.key, s.text])) }, null, 1));

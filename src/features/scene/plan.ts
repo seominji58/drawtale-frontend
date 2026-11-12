@@ -1821,11 +1821,14 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     }
     if (!dream) lastKeys = new Map(things.filter((t) => t.keep).map((t) => [nameOfSrc(t.src), t.keep!]));
     const seat = move === "none" ? seatOf(p.text) : undefined;
+    // 주인공이 받거나 들고 있는 물건이 있는 제자리 쪽은 가만히 서서 든다: 손을 흔들거나 뛰는 동안은 손 자리를 못 써 받은 물건이 바닥에 놓였다
+    // (11/12 사용자 「물건을 건네준다는 표현 때 물건이 대상한테 안 주고 바닥에 주는데」)
+    const heroHolds = move === "none" && things.some((t) => t.holder === "hero" && t.pose === "hand");
     out.push({
       location: loc,
       env: { night: night && !litHere, sun, weather, dim: dimNow && !litHere && !glowIn, lightsOn: turnsOn && !litHere, glow: glowIn && !litHere && !morningHere },
-      hero: { from, to, move, loops: heroStill ? 0 : LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,
-        calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal, seat, stay: move === "none" && pi > 0 && prevLoc === loc && !hiding },
+      hero: { from, to, move, loops: heroStill || heroHolds ? 0 : LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,
+        calm: move === "none" && (CALM_ACTIONS.has(p.action) || heroHolds), face, goal, seat, stay: move === "none" && pi > 0 && prevLoc === loc && !hiding },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다 (위 fresh)
       things,

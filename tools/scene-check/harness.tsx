@@ -43,6 +43,9 @@ const SPRITE = q.get("sprite") ? { url: q.get("sprite")!, frames: Number(q.get("
 const FIT = (q.get("fit") ?? "height") as "height" | "width";
 // ?lift=0.4&size=0.6: 형태 정의(서버 /forms 의 hero.float · size)대로 띄우고 줄인다, 앱 S09Story 와 같게 (11/12 사람 아닌 형태 검사)
 const LIFT = Number(q.get("lift") ?? 0), SIZE = Number(q.get("size") ?? 1);
+// 주인공 손끝 자리 (앱은 AI 가 잰 still_hands). 기본 사람 그림(hero-stand)은 미리 잰 값, 다른 그림은 ?hands=lx,ly,rx,ry (11/12 「건네준다」 점검)
+const HANDS_Q = q.get("hands")?.split(",").map(Number);
+const HERO_HANDS = HANDS_Q?.length === 4 ? { l: HANDS_Q.slice(0, 2), r: HANDS_Q.slice(2) } : q.get("still") ? null : { l: [0.112, 0.649], r: [0.911, 0.64] };
 // ?label=1: 칸 위에 쪽 글도 적는다 (사람이 눈으로 볼 때)
 const LABEL = q.get("label") === "1";
 // ?narr=0.4: 나레이션이 쪽 글의 그 자리(0~1)까지 읽은 재생 모습 (소품이 대사에 맞춰 나타나는지 · 주기, 11/10)
@@ -121,7 +124,7 @@ function App() {
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
         <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location} data-seat={plan.hero.seat ?? ""}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage form={c.form} lift={LIFT} size={SIZE} prevFly={pi > 0 ? plans[pi - 1].hero.fly : null} plan={plan} prevEnv={pi > 0 ? envAfter(plans[pi - 1], pageText(c, plans, pi - 1), plan) : null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY || NARR !== undefined ? (flipped ? "play" : "start") : "end"} narration={NARR} pageAction={PLAY} text={pageText(c, plans, pi)} />
+          <SceneStage heroHands={HERO_HANDS} form={c.form} lift={LIFT} size={SIZE} prevFly={pi > 0 ? plans[pi - 1].hero.fly : null} plan={plan} prevEnv={pi > 0 ? envAfter(plans[pi - 1], pageText(c, plans, pi - 1), plan) : null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY || NARR !== undefined ? (flipped ? "play" : "start") : "end"} narration={NARR} pageAction={PLAY} text={pageText(c, plans, pi)} />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {LABEL ? pageText(c, plans, pi) : plan.location}</span>
         </div>
       )))}

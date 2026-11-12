@@ -1007,7 +1007,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     for (const [avoidBg, scale, overSmall, overPeople] of tryList) {
       const open = (a: number, b: number) => list.every((sp) => b <= sp[0] || a >= sp[1] || (overSmall && smallSpans.has(sp)) || (overPeople && figureSpans.has(sp)))
         && (t.spot !== "wall" || !winSpan || b <= winSpan[0] || a >= winSpan[1])
-        && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r));
+        && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r))
+        // 배경을 무시하고 서는 큰 붙박이도 글이 말한 배경 물건(「미끄럼틀 옆」)은 피한다
+        && (avoidBg || !struct || saidSpans.every(([l, r]) => b <= l || a >= r));
       const h = t.h * scale, half = (h * t.ar / aspect) / 2;
       const lo = half + 0.01, hi = 1 - half - 0.01, gap = 0.012;
       const tries: number[] = [];
@@ -1056,7 +1058,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     layout.objects.forEach((o, i) => {
       if (o.foot === undefined || BACKDROP.test(o.src) || saidKinds.has(kindOf(o.src))) return;
       const [l, r] = spanOf(o);
-      if (Math.max(0, Math.min(r, t.x + half) - Math.max(l, t.x - half)) > (r - l) * 0.3) hiddenBg.add(i);
+      // 좁은 붙박이(가로등)도 감춘다: 둘 중 좁은 쪽 폭의 3할 넘게 겹치면 (그네 앞에 가로등이 섰다, 11/12)
+      if (Math.max(0, Math.min(r, t.x + half) - Math.max(l, t.x - half)) > Math.min(r - l, half * 2) * 0.3) hiddenBg.add(i);
     });
   }
   const front = plan.props.filter((p) => p.id === "cover" && p.src);
@@ -1092,7 +1095,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     || (t.x !== undefined && t.spot !== "air" && t.spot !== "wall" && underPerson(t as { x: number; h: number; ar: number; keep?: string }))
     || overPerson(t);
   const renderThing = (t: (typeof thingSpots)[number], k: number) => (
-        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"} data-behind={behindPeople(t) ? "1" : undefined}
+        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"} data-behind={behindPeople(t) ? "1" : undefined} data-pose={t.pose === "top" && t.footY !== undefined ? "top" : undefined}
              className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={thingSrc(t.src)}

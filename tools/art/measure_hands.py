@@ -20,6 +20,8 @@ OUT = FRONT / "src" / "features" / "scene" / "hands.json"
 PEOPLE = ["friend", "friend2", "adult", "mom", "dad", "grandma", "grandpa", "teacher", "aunt", "nurse", "busdriver",
           "spacekid-m", "spacekid-f"] + [f"{k}-{g}" for k in ("caveguide", "astronaut", "ranger", "lifeguard", "shopkeeper",
                                                                "keeper", "police", "cook", "mail", "spacepolice") for g in "mf"]
+# 잠수부 · 외계인도 사람처럼 손에 든다 (11/12 「건네준다」 점검: 바닷속 잠수부 · 외계인에게 준 물건이 바닥에 놓였다)
+PEOPLE += ["diver-m", "diver-f", "diverkid-m", "diverkid-f", "alien"]
 
 
 def hands(path: Path) -> dict:
