@@ -12,7 +12,9 @@ const TOTAL = Number(process.argv[2] ?? 160), STEP = Number(process.argv[3] ?? 1
 // 이야기 묶음 파일 (tools/scene-check/out/ 안) 과 결과 이름 앞말
 const FILE = process.argv[4] ?? "cases.json", TAG = FILE.replace(/\.json$/, "");
 const BASE = `http://localhost:5174/tools/scene-check/harness.html`;
-const url = (i, n) => `${BASE}?f=${FILE}&i=${i}&n=${n}`;
+// EXTRA="sprite=out/real/bird_side.webp&frames=48&box=…&fit=width&facing=1": 주인공 그림을 형태별 그림띠로 (사람 아닌 형태 검사, 11/12)
+const EXTRA = process.env.EXTRA ? `&${process.env.EXTRA}` : "";
+const url = (i, n) => `${BASE}?f=${FILE}&i=${i}&n=${n}${EXTRA}`;
 
 const area = (r) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
 const inter = (a, b) => area({ x0: Math.max(a.x0, b.x0), x1: Math.min(a.x1, b.x1), y0: Math.max(a.y0, b.y0), y1: Math.min(a.y1, b.y1) });

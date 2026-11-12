@@ -7,12 +7,14 @@
 //     --define:import.meta.env='{"BASE_URL":"/","MODE":"production"}' --outfile=tools/scene-check/out/organic.mjs
 //   node tools/scene-check/out/organic.mjs        → 종류별 개수 · 예, out/organic.json
 import fs from "node:fs";
-import { planPages, sceneFx, subjectOf } from "@/features/scene/plan";
+import { planPages, sceneFx, subjectOf, FLY_TEXT } from "@/features/scene/plan";
 import { CHOICES, choicesFor } from "@/features/story/choices";
 import type { BookPage } from "@/types/story";
 
 const HERO = "토토";
-const cases = JSON.parse(fs.readFileSync("tools/scene-check/out/all-long.json", "utf8"));
+// node organic.mjs [묶음 파일=all-long.json]: 사람 아닌 형태(forms-long.json, 이야기마다 form)도 (11/12 사용자 「비휴머노이드도」)
+const FILE = process.argv[2] ?? "all-long.json";
+const cases = JSON.parse(fs.readFileSync(`tools/scene-check/out/${FILE}`, "utf8"));
 const fill = (t: string) => t.replace(/\{이름\}/g, HERO).replace(/\{조사:([^}]+)\}/g, "$1");
 const idOf = (k: "place" | "problem", l: string) => CHOICES[k].find((c) => c.label === l)?.id;
 const idIn = (k: "action" | "result", l: string, pr?: string) => choicesFor(k, pr).find((c) => c.label === l)?.id;
@@ -30,7 +32,7 @@ const W = (w: string) => `(?<![가-힣])${w}(?:들)?(?:이|가|은|는|도|를|�
 const ANIMAL_WORDS: [RegExp, string][] = [
   [/하늘다람쥐|다람쥐/, "squirrel"], [/산?토끼/, "rabbit"], [new RegExp(`${W("새")}|(?:아기|작은|엄마|파랑|파란|노란|하얀|빨간|예쁜) 새(?!\s?(?:둥지|집|책|친구|신발|옷))|참새|비둘기|부엉이|올빼미|까치|까마귀`), "bird"], [/갈매기/, "seagull"],
   [/박쥐/, "bat"], [/나비(?!넥타이)/, "butterfly"], [/물고기/, "fish"], [/금붕어/, "fishbowl"], [/고양이/, "cat"], [new RegExp(`강아지|(?<!(?:한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|몇|여러) )${W("개")}`), "dog"], [/애벌레/, "caterpillar"],
-  [new RegExp(`${W("게")}|꽃게|소라게|${W("작은 게")}`), "crab"], [/해파리/, "jellyfish"], [/거북/, "turtle"], [/개구리/, "frog"], [/반딧불/, "firefly"], [/어항/, "fishbowl"],
+  [new RegExp(`${W("게")}|꽃게|소라게|${W("작은 게")}`), "crab"], [/해파리/, "jellyfish"], [/거북/, "turtle"], [/개구리/, "frog"], [/반딧불/, "firefly"], [/어항/, "fishbowl"], [/무당벌레/, "ladybug"], [/달팽이/, "snail"],
 ];
 const isHeroWord = (w: string) => w === HERO || /^(?:나|내|저|제|우리|우린|나랑|나와)$/.test(w) || w.endsWith(HERO);
 const kindOfWord = (w: string, people: string[]): "hero" | "person" | "animal" | "thing" => {
@@ -89,13 +91,16 @@ cases.forEach((c: any, ci: number) => {
   const pr = idOf("problem", c.problem);
   const bp = c.book.pages.map((p: any) => ({ ...p, text: fill(p.text), childWords: p.child_words ?? "" })) as (BookPage & { lines?: { speaker: string; text: string }[] })[];
   const plans = planPages(bp, { place: idOf("place", c.place), problem: pr, action: idIn("action", c.action, pr), result: idIn("result", c.result, pr) } as any,
-    c.book.character_sheet ?? {}, [], HERO);
+    c.book.character_sheet ?? {}, [], HERO, c.form ?? null);
+  const form: string = c.form ?? "biped";
   const sheet: Record<string, string> = c.book.character_sheet ?? {};
   const cast = Object.keys(sheet);
   plans.forEach((pl, i) => {
     pages++;
     const key = `${ci}:${i + 1}`, text = bp[i].text, said = text.replace(/“[^”]*”/g, (m) => " ".repeat(m.length));
     const onStage = pl.props.filter((q) => q.id !== "sign" && q.id !== "cover").map((q) => q.name ?? q.id);
+    // 대본 인물인 작은 동물(무당벌레 · 꼬마 게 …)은 동물 그림으로 서 있다
+    for (const t of pl.things ?? []) for (const [rx, id] of ANIMAL_WORDS) if (nameOf(t.src) === id) for (const n of cast) if (rx.test(n + "가")) onStage.push(n);
     const people = [...cast, ...onStage];
     const things = pl.things ?? [];
     // 1) 동작 주인: 장면이 주인공에게 붙이는 빙글 · 몸짓(SceneStage otherSpins 와 같은 판단)인데 그 마디 주어가 물건 · 동물 · 다른 사람.
@@ -185,10 +190,11 @@ cases.forEach((c: any, ci: number) => {
       if (t.at === undefined) continue;
       const w = /[가-힣]+/.exec(said.slice(t.at))?.[0] ?? "";
       const base = w.replace(/(?:이었|였|이에요|예요|이야|이란|이라|이라는).*$/, "");
-      if (COPULA.test(said.slice(t.at + base.length))) add("정체 말에 소품", key, `${nameOf(t.src)} 「${w}」`, sentenceAt(text, t.at));
+      // 「빛나던 것은 소라였어요 · 그 갈매기였어요」는 그 물건이 정말 있는 것이라 맞다. 선물처럼 앞의 다른 물건을 가리키는 말만
+      if (COPULA.test(said.slice(t.at + base.length)) && nameOf(t.src) === "gift") add("정체 말에 소품", key, `${nameOf(t.src)} 「${w}」`, sentenceAt(text, t.at));
     }
     // 7) 배경: 불을 켠 말인데 밝힐 것이 없음 · 밤 말 없이 밤 · 밤 말인데 낮
-    if (/(?:랜턴|손전등|등불|초롱|촛불)(?:을|를|이|에)? [^.!?]{0,8}?(?:켰|켜|비추|비췄|빛)/.test(said) && !things.some((t) => /lantern|flashlight|candle/.test(t.src)))
+    if (/(?:랜턴|손전등|등불|초롱(?!초롱)|촛불)(?:을|를|이|에)? [^.!?]{0,8}?(?:켰|켜|비추|비췄|빛)/.test(said.replace(/초롱초롱/g, "")) && !things.some((t) => /lantern|flashlight|candle/.test(t.src)))
       add("불빛 물건이 없음", key, "랜턴 · 손전등을 켰는데 장면에 없음", sentenceAt(text, said.search(/랜턴|손전등|등불|초롱|촛불/)));
     // 8) 쪽 동작(대본 action)이 글과 맞나: 주인공이 뛰는(jump) 쪽인데 주인공 문장에 뛰는 말이 없음
     //    주인공이 가만히 있다고(앉아 · 누워 · 잠 · 쳐다봄 · 숨음 · 기다림 · 울음) 하는데 장면은 뛰기 · 춤 · 손 흔들기 · 걷기를 한다
@@ -198,7 +204,26 @@ cases.forEach((c: any, ci: number) => {
       const heroSens = said.split(/(?<=[.!?])\s*/).filter((s) => s.trim() && subjectOf(s, people, HERO, undefined, "hero") === "hero");
       // 숨기는 숨으러 가는 것(걷기 · 뛰기 쪽)이라 가만히가 아니다
       const still = heroSens.filter((s) => STILL.test(s) && !((moving === "walk" || moving === "run") && /^(?:숨었|숨어)$/.test(STILL.exec(s)![0])));
-      if (still.length && !heroSens.some((s) => ACTION_WORDS[moving].test(s))) add("쪽 동작이 글과 어긋남", key, `장면 ${moving}, 주인공은 「${STILL.exec(still[0])![0]}」`, still[0]);
+      // 날아 내려앉기 · 날아가 숨기는 움직임이다 (날개형)
+      if (still.length && !heroSens.some((s) => ACTION_WORDS[moving].test(s) || /내려앉|날아|날았|퍼덕|파닥|기어|꿈틀|헤엄/.test(s))) add("쪽 동작이 글과 어긋남", key, `장면 ${moving}, 주인공은 「${STILL.exec(still[0])![0]}」`, still[0]);
+    }
+  });
+  // 형태별: 날개형은 주인공이 나는 문장에서 떠야 하고 앉으면 내려와야 한다. 손 없는 형태는 손에 든 것이 땅에 놓인다
+  plans.forEach((pl, i) => {
+    const key = `${ci}:${i + 1}`, said = bp[i].text.replace(/“[^”]*”/g, (m) => " ".repeat(m.length));
+    const sens = said.split(/(?<=[.!?])\s*/).filter((s) => s.trim());
+    const heroSens = sens.filter((s) => subjectOf(s, [], HERO, undefined, "hero") === "hero");
+    if (form === "winged") {
+      const flies = heroSens.find((s) => FLY_TEXT.test(s) && !/날아가는 [가-힣]|날던 [가-힣]/.test(s));
+      const lands = heroSens.find((s) => /앉았|앉아|내려앉|내려왔|착지|걸었|걸어|뒤뚱/.test(s));
+      if (flies && !pl.hero.fly && !lands) add("[날개형] 나는데 땅에", key, "주인공이 나는 문장인데 hero.fly 아님", flies);
+      if (pl.hero.fly && lands && !flies) add("[날개형] 앉았는데 떠 있음", key, "앉는 말인데 계속 남", lands);
+    }
+    if (form !== "biped" && form !== "quadruped") for (const t of pl.things ?? []) {
+      if (t.holder === "hero" && t.pose === "hand") add(`[${form}] 손 없는데 손에 듦`, key, nameOf(t.src), sentenceAt(bp[i].text, t.at ?? 0));
+    }
+    if (form === "quadruped") for (const t of pl.things ?? []) {
+      if (t.holder === "hero" && t.pose === "hand" && t.h > 0.2) add("[4족형] 입에 물기엔 큰 것", key, `${nameOf(t.src)} 키 ${t.h}`, sentenceAt(bp[i].text, t.at ?? 0));
     }
   });
   // 이야기 단위: 인물이 말 없이 사라짐 · 생김
@@ -222,4 +247,4 @@ for (const [k, xs] of [...byKind].sort((a, b) => b[1].length - a[1].length)) {
   const seen = new Set<string>();
   for (const x of xs) { if (seen.has(x.detail + x.text) || seen.size >= 6) continue; seen.add(x.detail + x.text); console.log(`  ${x.key} ${x.detail} | ${x.text}`); }
 }
-fs.writeFileSync("tools/scene-check/out/organic.json", JSON.stringify({ flags, pages: Object.fromEntries([...pageFlags].map(([k, v]) => [k, [...v]])) }, null, 1));
+fs.writeFileSync(`tools/scene-check/out/${FILE.replace(/\.json$/, "")}-organic.json`, JSON.stringify({ flags, pages: Object.fromEntries([...pageFlags].map(([k, v]) => [k, [...v]])) }, null, 1));

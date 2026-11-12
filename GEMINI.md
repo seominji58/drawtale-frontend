@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/12 사람 아닌 형태 검사**: `node tools/scene-check/out/organic.mjs forms-long.json`(형태별 검사 포함), 장면 검사는 `EXTRA="sprite=out/real/bird_side.webp&frames=48&box=…&fit=width&facing=1" node tools/scene-check/layout.mjs 512 16 forms-winged.json`. 작은 동물 대본 인물은 동물 그림(`ANIMAL_SRC`, 생김새 `CREATURE_DESC`)
 - **11/12 물건 한도**: 한 쪽 물건 3개(`MAX_THINGS`)를 넘으면 큰 물건(키 0.28 이상)을 먼저 남긴다. 없다는 말은 그 물건 바로 뒤에서만 본다
 - **11/12 미리 받기**: `S09Story` 는 지금 쪽 · 다음 쪽 장면 그림을 먼저 혼자 받고 나머지를 세 줄로. 재기는 `tools/scene-check/prefetch.mjs [kbps] [rtt] [이야기 …]`
 - **11/12 유기 전수 점검**: `tools/scene-check/organic.ts` 가 쪽마다 동작 주인 · 든 물건 · 동물 · 인물 · 쪽 동작을 본다(주어 판단은 장면과 같은 `subjectOf`). 빙글 · 몸짓 주인은 그 말의 마디 끝까지(`sceneFx` `upToClause`), 손에 듦은 `HANDHELD_USE` · `HOLD_NOW` · `lightHolder` · 생김새 `CARRIED`, 동물 자리는 `animalPlace`, 대본에 없는 그 자리 사람은 `calledIn`, 가만히 있는 쪽은 대본 동작 안 함(`STILL_MOVE` · `STILL_LOOP`)

@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/12 사람 아닌 형태 전수 점검 | **진행**: 날개 · 사슬 · 4족 841편, 걸린 쪽 388 → 149. `plan.ts` 날기 주어(`heroLead` · 어찌말) · 작은 동물 대본 인물(`ANIMAL_SRC` · `CREATURE_DESC`) · `locations.ts` 등대 곁 부두. 형태별 장면 검사 `EXTRA=… layout.mjs` 돌리는 중 |
 | 11/12 글이 말하는 물건 남은 130 | **끝**: 130 → 16. `plan.ts` 계단 뒤돌아보기 · 없음 말 자리 · 큰 물건 먼저(한도 3) · 숨는 쪽 큰 붙박이 · `COVERS` 계단 · 소파 · 책장 · 버스 · 표지판 · 교문 · 로켓 문 앞 장소 |
 | 11/12 다음 쪽 먼저 받기 | **끝**: `S09Story` 지금 · 다음 쪽 먼저, 나머지 세 줄. 느린 망 다음 쪽 2.25 → 1.38초(`prefetch.mjs`) |
 | 11/12 대본 · 장면 유기 전수 점검 | **끝**: `organic.ts` 걸린 쪽 987 → 249. `plan.ts` `upToClause`(빙글 · 몸짓 주인) · `HANDHELD_USE` · `HOLD_NOW` · `lightHolder` · `CARRIED` · 이어 들기 · `animalPlace` · `calledIn` · `ACTION_SAY` / `STILL_*`, 동물 그림 5장 |

@@ -133,6 +133,8 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/금붕어|어항/, "props/fishbowl.webp", 0.13, "ground"],
   [/거북/, "props/turtle.webp", 0.08, "ground"],
   [/해파리/, "props/jellyfish.webp", 0.09, "ground"],
+  [/무당벌레/, "props/ladybug.webp", 0.05, "ground"],   // 날개형 이야기 대본 인물 (11/12, gen_scene_props9.py)
+  [/달팽이/, "props/snail.webp", 0.06, "ground"],
   // pt_docs 18 「장면 소품 보강」 (11/4) — A. 숨는 곳 그림을 옆에 놓인 물건으로도 (가림막보다 작게)
   [/담요|이불/, "props/blanket.webp", 0.12, "ground"],
   [/상자|박스/, "props/box.webp", 0.16, "ground"],
@@ -158,7 +160,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   // 주인공이 신고 있는 신발(끈을 묶었어요 · 신발 끝에 물이 · 신발을 신고)은 놓지 않는다: 「신발 끈을 꼭 묶었어요」에 주인공 발 옆에
   // 운동화 한 켤레가 또 놓였다 (11/11 사용자). 벗어 놓은 신발 · 신발장 앞 신발만
   [/(?:운동화|신발)(?!\s?(?:끈|끝|코|이 젖|이 흠뻑|이 축축|에 (?:흙|물|모래)|이 (?:벗겨|미끄))|장)(?!(?:을|를)?\s?(?:꼭\s?|다시\s?|얼른\s?)?신(?:고|었|은|어|는))/, "props/sneakers.webp", 0.07, "ground"],
-  [new RegExp(`${W1("나비").source}|(?<![가-힣])나비들`), "props/butterfly.webp", 0.08, "air"],   // 「나비들이」 (11/12)
+  [new RegExp(`${W1("나비").source}|(?<![가-힣])나비들|(?:노랑|흰|호랑|배추)나비`), "props/butterfly.webp", 0.08, "air"],   // 「나비들이」 (11/12)
   [/발자국/, "props/footprints.webp", 0.04, "ground"],
   [/화살표/, "props/arrow.webp", 0.4, "ground"],
   // D. 글에 나오는데 그림이 없던 놀이터 · 바깥 물건 (11/11 사용자 994번 「터널이라는데 내용도 이상하고」, tools/art/gen_scene_props5.py).
@@ -176,6 +178,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/쉼터|정자/, "props/pavilion.webp", 0.5, "ground"],
   [/침대/, "home-bedroom/bed.webp", 0.3, "ground"],
   [/소파/, "home-living/sofa.webp", 0.26, "ground"],
+  [/사물함/, "school-hallway/lockers.webp", 0.42, "ground"],
   // 「책장이 점점 가까워졌어요」의 책장(책꽂이). 「책장이 사락사락 넘어가 · 책장을 넘겼어요」는 책의 쪽이라 빼고 (11/12)
   [/책꽂이|책장(?!(?:이|을|을 한 장|이 한 장)?\s?(?:[가-힣]+\s)?(?:넘|사락|팔락|펄럭))/, "school-library/shelf.webp", 0.4, "ground"],
   // 버스 안에서 탄 말(「버스를 타고 가다가 · 버스 창문에」)은 빼고, 버스가 서거나 지나가는 바깥 장면만 (11/12)
@@ -496,7 +499,7 @@ const NOT_CRY = /(?:끼룩|부엉부엉|웅웅|맴맴|개굴|짹짹|꼬끼오|�
 /** 문장의 주인 (저장 이야기 3,069편 점검 11/10 — 「천장에서 물방울이 떨어졌어요」 · 「새들이 노래했어요」의 연출이 주인공에게 났다).
  *  "hero" 주인공 · "other" 이름 없는 사람(친구 · 아저씨 …) · 인물 이름 · null(사람이 아닌 것이 주어 — 연출 없음).
  *  주어를 쓰지 않은 문장은 주인공 (그림책은 「나」를 자주 뺀다) */
-const PERSON_WORD = /^(?:친구|친구들|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|아기|아이|아이들|요원|경찰관|주인|안내원|대장|선장|박사|의사|간호사|아가씨|모두|다들|가족)$|(?<!해|햇|달|별|구름|바람|하늘|꽃|나무)님$|(?:아저씨|아주머니|선생님|요원|할머니|할아버지|친구)$/;
+const PERSON_WORD = /^(?:친구|친구들|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|아기|아이|아이들|요원|경찰관|주인|안내원|대장|선장|박사|의사|간호사|아가씨|모두|다들|가족|그분|어른|어른들|직원|지킴이|사람)$|(?<!해|햇|달|별|구름|바람|하늘|꽃|나무)님$|(?:아저씨|아주머니|선생님|요원|할머니|할아버지|친구|지킴이|안내원|직원)$/;   // 「그분은 · 어른은 고개를 끄덕이며」 (11/12 사람 아닌 형태 점검)
 const BODY_WORD = /^(?:눈물|눈|마음|가슴|얼굴|몸|웃음|미소|땀|땀방울|기분|목소리|코|입|귀|손|발|배|머리|볼|어깨|다리|날개|꼬리|숨|숨소리|용기|힘|무릎|팔|이마|눈가|잠|생각|좋은 생각|꿈|걱정|겁|배꼽|울음|울음소리|눈물방울)$/;
 /** 「창가 구석에서 · 복도 끝에서 친구가」의 창가 · 복도는 주어가 아니라 자리 — 「가 · 도」로 끝나는 자리 낱말 (11/11 전수 점검: 친구가 우는데 주인공이 울었다) */
 const PLACE_GA = /^(?:창가|시냇가|바닷가|강가|냇가|물가|길가|호숫가|연못가|개울가|우물가|냇물가|복도|인도|차도|보도)$/;
@@ -810,6 +813,7 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   // 방 책상은 방 안에만, 교실은 배경에 책상들이 있다
   "props/desk.webp": (l, indoor) => indoor && l !== "school-classroom",
   "home-living/sofa.webp": (_l, indoor) => indoor,
+  "school-hallway/lockers.webp": (l) => l.startsWith("school-") && l !== "school-hallway",
   "school-library/shelf.webp": (_l, indoor) => indoor,
   "town-busstop/bus.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave|forest)/.test(l),
   // 침대는 방 안에만 (보건실 · 우주선 침실 포함)
@@ -1147,6 +1151,12 @@ const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "c
 /** 손에 듦 · 머리에 씀: 문장의 주어를 그 쪽에 선 인물로 (이름 낱말이 겹치거나 같은 그림 종류). 못 찾으면 자리 없이 땅에 */
 /** 동물이 있는 자리 · 움직임: 「나무 틈에서 하늘다람쥐가 고개를 쏙 내밀었어요」는 나무 위(high), 「하늘다람쥐가 슝 날아올랐어요」는 공중을 미끄러지듯
  *  (11/12 전수 점검 40번: 땅에 가만히 있었다) */
+/** 대본 생김새 설명(영어) → 한국어 동물 이름 (그 낱말로 그림을 찾는다) */
+const CREATURE_DESC: [RegExp, string][] = [[/firefl/i, "반딧불이"], [/ladybug|ladybird/i, "무당벌레"], [/snail/i, "달팽이"], [/crab/i, "꽃게"],
+  [/seagull|gull/i, "갈매기"], [/butterfl/i, "나비"], [/frog/i, "개구리"], [/turtle/i, "거북"], [/jellyfish/i, "해파리"], [/bird|chick|sparrow/i, "작은 새"], [/fish/i, "물고기"]];
+/** 작은 동물 그림 (대본 인물이 이것이면 그림으로 세운다) */
+const ANIMAL_SRC = new Set(["props/crab.webp", "props/seagull.webp", "props/firefly.webp", "props/butterfly.webp", "props/bird.webp", "props/fish.webp",
+  "props/frog.webp", "props/turtle.webp", "props/jellyfish.webp", "props/caterpillar.webp", "props/octopus.webp", "props/ladybug.webp", "props/snail.webp"]);
 const TREE_ANIMALS = new Set(["props/squirrel.webp", "props/bird.webp", "props/cat.webp", "props/bat.webp"]);
 function animalPlace(t: ThingPlan, text: string): Partial<ThingPlan> {
   if (!TREE_ANIMALS.has(t.src) || t.at === undefined) return {};
@@ -1225,7 +1235,7 @@ const HOME_TEXT = /집(?:에|으로)\s?(?:무사히\s|드디어\s)?(?:도착|돌
 const HOME_BED = /침대|이불|베개|잠이 들|잠들|눕|누워|누웠/;
 /** 가슴 · 마음이 뛰는 말 (움직임이 아님) */
 /** 그 쪽에서 그 자리에서 무엇을 하는 사람 (주어 + 그 자리의 일). 지난 일 · 먼 곳 · 꿈 · 전화 · 안 보임은 빼고 */
-const ON_SCENE = /열어 주|웃|건네|다가|안아|쓰다듬|데려다|손을 (?:꼭 )?잡|따라|비춰|붙여 주|도와|내밀|토닥|업어|꺼내 주|나와|나왔|들고 (?:있|서|왔)|앉아|서 있|기다리고/;
+const ON_SCENE = /열어 주|웃|건네|다가|안아|쓰다듬|데려다|손을 (?:꼭 )?잡|따라|비춰|붙여 주|도와|내밀|토닥|업어|꺼내 주|나와|나왔|들고 (?:있|서|왔)|앉아|서 있|기다리고|울고 있|울었|훌쩍|(?:찾으러|데리러) (?:왔어요|온 거|와 주)|들고 [가-힣 ]{0,10}(?:왔어요|온 거)/;
 const NOT_ON_SCENE = /꿈|전화|사진|그림|보낸|멀리서|어디|안 보|보이지|없었|없어|생각|떠올|말해 주었|해 준 말|기억|들려|목소리|부르는 소리|이야기|소포|편지/;
 function calledIn(text: string, heroName?: string | null): string[] {
   const out: string[] = [];
@@ -1468,11 +1478,23 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       if (/(?:는|던|은)$/.test(word) && /^\s+[가-힣]/.test(t.slice(m.index + word.length))) return false;
       const before = t.slice(0, m.index);
       // 「우주선은 · 새는 날아갔어요」 — 은 · 는 앞이 주인공(나 · 이름 · 우리)이 아니면 그것이 난다
-      const topic = [...before.matchAll(/([가-힣]+)(?:은|는)(?=[\s,]|$)/g)].map((x) => x[1]).pop();
-      if (topic && !/^(?:나|난|우리|내)$/.test(topic) && !(heroName && topic.startsWith(heroName))) return false;
+      // 꾸밈말(「밝은 곳 · 설레는 마음 · 떨어지는 잎」)은 주제어가 아니다 (11/12 날개형 점검: 「나는 밝은 곳으로 날아갔어요」에 주인공이 날지 않았다)
+      const topic = [...before.matchAll(/([가-힣]+)(은|는)(?=[\s,]|$)/g)]
+        .filter((x) => !ADNOMINAL.test(x[0]) && !(x[2] === "는" && x[1] !== "나" && /[리지레추우하있없오보노치키피시미기드르]$/.test(x[1]))).map((x) => x[1]).pop();
+      // 「나는 …」으로 시작하면 뒤의 꾸밈말 · 어찌말(「좁은 굴 · 높이 날아」)은 주어가 아니다. 사람 · 동물이 따로 주어로 나올 때만 그것이 난다 (11/12 날개형 점검)
+      const heroLead = /^\s*(?:[가-힣]+,\s*)*(?:나는|난|나도|우리는|우리도|내가|나와 )/.test(before) || (!!heroName && new RegExp(`^\\s*(?:[가-힣]+,\\s*)*${heroName}(?:는|가|도)\\s`).test(before));
+      const otherBeing = (w?: string) => !!w && (PERSON_WORD.test(w) || /새|나비|박쥐|벌|잠자리|다람쥐|토끼|친구|엄마|아빠|비행기|연|풍선|우주선|로켓|모자|잎|꽃잎|씨앗|구름|나뭇잎|공|종이/.test(w));
+      if (topic && !/^(?:나|난|우리|내)$/.test(topic) && !(heroName && topic.startsWith(heroName)) && !/(?:^|[\s,])나와 /.test(before) && !(heroLead && !otherBeing(topic))) return false;
       // 나는 말 바로 앞의 「~이 · ~가」가 다른 것이면 그것이 난다 — 「나는 친구의 별 연이 날아갔다고 말했어요」 (11/10 전수 점검)
-      const near = [...before.matchAll(/([가-힣]+)(?:이|가)(?=[\s,]|$)/g)].map((x) => x[1]).pop();
-      if (near && !/^(?:내|제|몸|나)$/.test(near) && !(heroName && near.startsWith(heroName))) return false;
+      // 「나는 신이 나서 · 걱정이 되어 · 버섯이 난 풀밭에서 나는」: 주인공 말(나는 · 난 · 우리는 · 이름)이 그 뒤에 오면 주인공 (11/12 날개형 점검 137쪽)
+      const nearM = [...before.matchAll(/([가-힣]+)(?:이|가)(?=[\s,]|$)/g)].pop();
+      const near = nearM?.[1];
+      const heroAfter = !!nearM && /(?:^|[\s,])(?:나는|난|나도|내가|우리는|우리도|나와)(?=[\s,])/.test(before.slice(nearM.index! + nearM[0].length));
+      const heroBefore = /(?:^|[\s,])(?:나는|난|나도|내가|우리는|우리도)(?=[\s,])/.test(before.slice(0, nearM?.index ?? 0));
+      const idiom = !!near && /^(?:신|걱정|기분|마음|용기|겁|힘|숨|눈물|웃음)$/.test(near);
+      // 「가까이 · 높이 · 같이 · 깊이 · 많이 · 나란히」는 어찌말이지 주어가 아니다 (11/12 날개형 점검: 「가까이 보려고 낮게 날아」)
+      const adverb = !!near && /^(?:가까|높|깊|같|많|낮|길|넓|멀|빨|조용|천천|나란|살며시|살그머|가만)$/.test(near);
+      if (near && !adverb && !heroAfter && !(heroBefore && idiom) && !(heroLead && !otherBeing(near)) && !/^(?:내|제|몸|나)$/.test(near) && !(heroName && near.startsWith(heroName))) return false;
       return subjectOf(before, [], heroName, before.length) === "hero";
     });
     const landHere = !flyHere && LAND_TEXT.test(p.text);
@@ -1676,6 +1698,16 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
         || /내려|떨어|뛰어내|나왔|기어 나/.test(p.text) ? t : { ...t, pose: "high" as const }))
       // 숨어 있는 쪽도 큰 붙박이(「대문이 열리고 엄마가 나왔어요」의 대문)는 세운다 (11/12 글이 말하는 물건 점검)
       .filter((t) => !hideCard || (!!t.holder && t.holder !== "hero") || t.h >= 0.28);
+    // 대본 인물이 사람 그림으로 못 바꾸는 작은 동물(꼬마 게 · 갈매기 · 반딧불이 · 노랑나비 …)이면 그 동물 그림으로 세운다
+    // (11/12 사람 아닌 형태 점검: 대본 인물로만 나와 장면에 아무것도 없었다)
+    for (const ch of p.scene?.characters ?? []) {
+      if (kindOfName(ch.name) || fresh.some((t) => t.name === ch.name)) continue;
+      // 이름만으로 모르면(반딧불이 「초롱이 · 반짝이」) 대본의 생김새 설명(영어)으로
+      const desc = sheetDesc(ch.name);
+      const byDesc = CREATURE_DESC.find(([rx]) => rx.test(desc))?.[1];
+      const t = byDesc ? { ...thingsFor(`${byDesc}가 있었어요.`, [], isIndoor(loc), new Set(), loc)[0] } : thingsFor(`${ch.name}가 있었어요.`, [], isIndoor(loc), new Set(), loc)[0];
+      if (t && ANIMAL_SRC.has(t.src) && !fresh.some((x) => x.src === t.src)) fresh.push({ ...t, at: undefined, motion: thingMotion(t, p.text, weather) });
+    }
     // 배경이 바뀌면 이어 오던 물건은 여기서 끝 (숨기 쪽도 그대로 둔다: 숨은 곳 앞에서 사라지면 어색하다)
     const dream = DREAM_TEXT.test(p.text);
     if (!dream && loc !== keptLoc) { kept = []; keptLoc = loc; lastKeys = new Map(); }

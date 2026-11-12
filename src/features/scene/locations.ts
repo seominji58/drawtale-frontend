@@ -81,6 +81,8 @@ export function locationFor(place: string, page: BookPage, prev?: string): strin
   if (place === "cave" && /동굴 (?:안|속)|굴 (?:안|속)|동굴 깊/.test(page.text ?? "") && !/동굴 (?:입구|앞|밖)/.test(page.text ?? "")) return "cave";
   // 앞 쪽에서 동굴 안으로 들어갔으면, 나간다는 말이 없는 한 계속 안쪽 (대본이 쪽마다 입구라고 적어도)
   if (place === "cave" && prev === "cave" && loc === "cave-entrance" && !/입구|밖|나왔|나와|나가|나섰/.test(page.text ?? "")) return "cave";
+  // 대본이 「바다」라고 적어도 글이 등대 곁을 말하면(「등대 아래에 내려앉았어요 · 하얀 등대 옆으로 파도가」) 등대가 그려진 부두 (11/12 사람 아닌 형태 점검 18문장)
+  if (place === "sea" && loc === "sea" && /등대 (?:아래|옆|앞|곁|문|꼭대기)|(?:하얀|빨간|커다란) 등대/.test(page.text ?? "") && !/물속|바닷속/.test(page.text ?? "")) return "sea-pier";
   if (loc && subs.some((s) => s.id === loc)) return loc;
   // 영어 배경 문장이 먼저, 그다음 쪽 한국어 글 — 짧은 이야기 · 예전 이야기는 배경 문장이 없다 (11/3).
   // 한 줄로 이어 붙여 「먼저 나온 낱말」이 배경 문장 쪽에서 먼저 잡히게
