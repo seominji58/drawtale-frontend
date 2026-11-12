@@ -24,6 +24,7 @@ const COVERS: [RegExp, string, number][] = [
   [/상자|박스|포대|궤짝/, "props/box.webp", 0.36],
   [/덤불|수풀|풀숲|나무(?= ?(?:뒤|뿌리|밑|아래|사이|옆))|화분|잎/, "props/bush.webp", 0.38],
   [/바위|돌멩이|돌 /, "cave-entrance/rocks.webp", 0.3],
+  [/계단/, "props/stairs.webp", 0.36],   // 「구령대 계단 아래에 숨었어요」 (11/12: 숨는 쪽에서 계단이 빠졌다)
   [/틈|돌벽|굴 벽/, "cave/rocks.webp", 0.3],
   [/통나무/, "forest-trail/log.webp", 0.22],
   [/고깃배|보트|배 (?:뒤|안|밑|옆)/, "sea-pier/boat.webp", 0.26],
@@ -81,7 +82,9 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/대문/, "props/gate.webp", 0.45, "ground"],
   [/조개|불가사리/, "props/shells.webp", 0.07, "ground"],
   [/웅덩이/, "props/puddle.webp", 0.05, "ground"],
-  [/^(?!.*등대).*계단/s, "props/stairs.webp", 0.3, "ground"],   // 등대 돌계단 · 등대 안 계단에 장난감 계단이 섰다 (11/4)
+  // 「등대 아래 돌계단」은 등대 그림 쪽 (11/4). 전에는 「^(?!.*등대).*계단」이라 문장 처음부터 계단까지를 통째로 잡아, 그 사이의 구름다리 · 철문이
+  // 「같은 낱말」로 지워지고 계단이 쪽 첫머리에 나타났다 (11/12 글이 말하는 물건 점검)
+  [/(?<!(?:등대|구령대)[^.!?]{0,10})계단/, "props/stairs.webp", 0.3, "ground"],   // 구령대 계단은 구령대 그림   // 등대 돌계단 · 등대 안 계단에 장난감 계단이 섰다 (11/4)
   [/가방|배낭/, "props/backpack.webp", 0.14, "ground"],
   [/시계/, "props/clock.webp", 0.13, "wall"],
   [/모자/, "props/hat.webp", 0.08, "ground"],
@@ -118,7 +121,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
     "props/bird.webp", 0.12, "air"],
   [/박쥐/, "props/bat.webp", 0.14, "air"],
   [/토끼/, "props/rabbit.webp", 0.16, "ground"],
-  [/다람쥐/, "props/squirrel.webp", 0.11, "ground"],
+  [/(?<!솔방울 |도토리 |솔방울로 만든 )다람쥐/, "props/squirrel.webp", 0.11, "ground"],   // 「솔방울 다람쥐」는 만든 장난감 (11/12)
   // 고양이 · 강아지 그림은 대본 인물로만 쓰였다. 글에만 나오는 것도 (11/12 전수 점검). 「강아지 집 · 고양이 인형」은 아래 NOT_REAL · 자리 말로 걸러짐
   [/고양이/, "props/cat.webp", 0.14, "ground"],
   [/강아지(?! ?집)/, "props/dog.webp", 0.16, "ground"],
@@ -170,10 +173,15 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/분수/, "town-park/fountain.webp", 0.26, "ground"],
   [/쉼터|정자/, "props/pavilion.webp", 0.5, "ground"],
   [/침대/, "home-bedroom/bed.webp", 0.3, "ground"],
+  [/소파/, "home-living/sofa.webp", 0.26, "ground"],
+  // 「책장이 점점 가까워졌어요」의 책장(책꽂이). 「책장이 사락사락 넘어가 · 책장을 넘겼어요」는 책의 쪽이라 빼고 (11/12)
+  [/책꽂이|책장(?!(?:이|을|을 한 장|이 한 장)?\s?(?:[가-힣]+\s)?(?:넘|사락|팔락|펄럭))/, "school-library/shelf.webp", 0.4, "ground"],
+  // 버스 안에서 탄 말(「버스를 타고 가다가 · 버스 창문에」)은 빼고, 버스가 서거나 지나가는 바깥 장면만 (11/12)
+  [/버스(?! ?(?:를 타|에 타|안|창문|정류장|기사|를 기다))/, "town-busstop/bus.webp", 0.4, "ground"],
   // F. 새로 그린 5장 (11/11 글이 말하는 물건 점검, tools/art/gen_scene_props6.py). 줄넘기 줄 · 「그물 무늬」는 빼고
   [/정글짐/, "props/junglegym.webp", 0.42, "ground"],
   [/밧줄/, "props/rope.webp", 0.08, "ground"],
-  [/연못(?!가)/, "props/pond.webp", 0.12, "ground"],
+  [/연못/, "props/pond.webp", 0.12, "ground"],   // 「연못가에 앉았어요」도 연못이 있다 (11/12)
   [/(?<!거미|별 ?)그물(?! ?무늬| ?모양)/, "props/net.webp", 0.3, "ground"],   // 우주 「별 그물」은 고기잡이 그물이 아니다
   [/책상/, "props/desk.webp", 0.3, "ground"],
   // 숲 나무 다리 · 방파제 길 · 동굴 길의 「난간을 잡고 걸었어요」(11/11 사용자 「난간도 그려서 넣어줘」, gen_scene_props7.py). 아이 허리 높이
@@ -777,10 +785,10 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   // 구름다리 · 터널 · 안내소 · 정문도 바깥에만 (「아빠 무릎에 앉아 구름다리 이야기를 했어요」는 집 안), 바닷속 · 우주 빼고
   "playground/slide.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater"),
   "town/lamp.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater") && !l.startsWith("cave"),
-  "playground-path/flowerbed.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea") && !l.startsWith("cave"),
+  "playground-path/flowerbed.webp": (l, indoor) => l === "school-hallway" || (!indoor && !l.startsWith("space") && !l.startsWith("sea") && !l.startsWith("cave")),
   "town-park/fountain.webp": (l, indoor) => !indoor && !l.startsWith("space") && !l.startsWith("sea-underwater") && !l.startsWith("cave"),
   // 정자는 숲 · 공원 · 마을 바깥 (동굴 · 우주 · 바닷속 「쉼터」는 다른 모양이라 놓지 않는다)
-  "props/pavilion.webp": (l, indoor) => !indoor && !/^(?:space|sea-underwater|cave)/.test(l),
+  "props/pavilion.webp": (l, indoor) => l === "cave-entrance" || l === "cave-lake" || (!indoor && !/^(?:space|sea-underwater|cave)/.test(l)),   // 동굴 입구 · 동굴 호수 쉼터 (11/12)
   "props/junglegym.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
   "props/pond.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
   "props/net.webp": (l) => !l.startsWith("space"),
@@ -791,10 +799,13 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   "props/railing.webp": (l) => !l.startsWith("space") && l !== "sea-underwater",
   // 방 책상은 방 안에만, 교실은 배경에 책상들이 있다
   "props/desk.webp": (l, indoor) => indoor && l !== "school-classroom",
+  "home-living/sofa.webp": (_l, indoor) => indoor,
+  "school-library/shelf.webp": (_l, indoor) => indoor,
+  "town-busstop/bus.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave|forest)/.test(l),
   // 침대는 방 안에만 (보건실 · 우주선 침실 포함)
   "home-bedroom/bed.webp": (_l, indoor) => indoor,
   ...Object.fromEntries(["monkeybars", "tunnel", "booth", "parkgate"].map((n) => [`props/${n}.webp`,
-    (l: string, indoor: boolean) => !indoor && !l.startsWith("sea-underwater") && !l.startsWith("space")])),   // 나무 안내소는 외계 행성에 어색하고 우주선 소품 자리를 뺏었다
+    (l: string, indoor: boolean) => !indoor && !l.startsWith("sea-underwater") && (n === "booth" ? l !== "space" : !l.startsWith("space"))])),   // 안내소는 행성 · 우주선 안내소(「행성 안내소가 보였어요」)도, 큰 붙박이라 자리가 없으면 빠진다
 };
 /** 몸에 걸친 물건 (11/11 사용자 「발자국이라면서 신발 있고」): 「장갑을 끼고 · 가방을 메고 · 헬멧 끈을 채우고 · 담요를 두르고」는 그 사람이 지닌 것이라
  *  땅에 따로 세우지 않는다. 신발은 THINGS 정규식에서 거른다 */
@@ -824,7 +835,9 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
       const sen = said.slice(from, ends.length ? Math.min(...ends) + 1 : said.length);
       const after = said.slice(m.index + m[0].length, m.index + m[0].length + 8);
       // 「로켓이 없었어요 · 담요도 없이 · 집에 두고 와서」 — 없다고 한 물건 (20건)
-      if (/없었|없어|없이|없는|없다|두고 (?:와|왔|나)|놓고 (?:와|왔)|안 가져|못 가져|가져오지 않/.test(sen)) continue;
+      // 없다는 말은 그 물건 바로 뒤에서만: 「빈 그네가 아무도 없이 흔들렸어요」의 그네는 있다 (11/12 글이 말하는 물건 점검)
+      if (/^[가-힣]{0,2}\s?(?:도|이|가|은|는|을|를)?\s?(?:하나도 |아무것도 |어디에도 |어디서도 |더는 |이제 |아직 )?(?:없|안 보|보이지 않)/.test(said.slice(m.index + m[0].length))
+        || /두고 (?:와|왔|나)|놓고 (?:와|왔)|안 가져|못 가져|가져오지 않/.test(sen)) continue;
       // 「주머니 속 조개를 만지니」 — 주머니 · 가방 속 물건은 보이지 않는다 (11/11 렌더 검사: 앞 쪽 조개가 화면 반대편에 다시 섰다)
       if (/(?:주머니|가방|배낭|호주머니) ?(?:속|안)(?:의|에|에서|에 든)? ?$/.test(said.slice(Math.max(0, m.index - 10), m.index))) continue;
       // 「이불처럼 포근 · 별처럼 반짝 · 작은 나무 같아」 — 비유 (33건)
@@ -873,7 +886,9 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     }
     hits.push({ at, t: { src, h, ar: ar(src), spot, at, ...pose }, key: m[0] });
   }
-  return hits.sort((a, b) => a.at - b.at).slice(0, MAX_THINGS).map((x) => x.t);
+  // 한도를 넘으면 큰 물건(대문 · 쉼터 · 구름다리 …)을 먼저 남기고 작은 것(꽃 · 돌)을 뺀다: 작은 것이 먼저 나와 큰 붙박이가 빠졌다 (11/12)
+  const keep = new Set([...hits].sort((a, b) => (b.t.h >= 0.28 ? 1 : 0) - (a.t.h >= 0.28 ? 1 : 0) || a.at - b.at).slice(0, MAX_THINGS));
+  return hits.filter((x) => keep.has(x)).sort((a, b) => a.at - b.at).map((x) => x.t);
 }
 export function coverFor(text: string): { src: string; h: number } | null {
   let best: { src: string; h: number } | null = null, at = Infinity;
@@ -1246,7 +1261,9 @@ const AT_SCENE: [RegExp, string, (place: string, loc: string) => boolean, boolea
   // 방파제에 있는 쪽은 나무 바닥 부두 배경 (모래사장 배경이었다, 11/11 글이 말하는 물건 점검)
   [/방파제(?:에|에서|위|위에서|위를|입구에|끝에|끝까지|를|로|으로)?\s?[^.!?]{0,10}?(?:도착|걸|섰|서 있|앉|올라|달려|뛰|낚시|갔)/, "sea-pier", (p) => p === "sea", false],
   // 교문을 지나는 · 교문 앞에 선 쪽은 학교 바깥 (교실 배경에 「교문을 지났어요」였다, 11/11 글이 말하는 물건 점검 772번)
-  [/교문(?:을|에|앞에|앞에서|옆에|옆에서|으로)?\s?[^.!?]{0,8}?(?:지나|지났|섰|서 있|도착|기다렸|기다리)/, "school", (p) => p === "school", true],
+  [/교문(?:을|에|앞에|앞에서|옆에|옆에서|으로)?\s?[^.!?]{0,14}?(?:지나|지났|섰|서 있|도착|기다렸|기다리|배웅|마중)/, "school", (p) => p === "school", false],
+  // 우주선 안 배경인데 「로켓 문 앞에 내려섰어요 · 저기 멀리 빨간 로켓」은 바깥 (11/12)
+  [/(?:로켓|우주선) (?:문 )?(?:앞|옆|밖)(?:에|에서|으로)\s?[^.!?]{0,8}?(?:내려|섰|서 있|도착|달려|걸어)/, "space", (p) => p === "space", true],
   [/(?:그네|미끄럼틀)(?:에|까지|를|을|에서)?\s?[^.!?]{0,8}?(?:앉|타|데려다|올라|내려)|그네가[^.!?]{0,10}흔들/, "playground", (p) => p === "playground", false],
   // 놀이 기구를 지나며 노는 말(「구름다리를 건너고 긴 터널을 지났어요」)은 기구가 있는 놀이터, 벤치 길이 아니다 (11/11 사용자 994번).
   // 모래 터널은 빼고
@@ -1471,6 +1488,10 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       if (ADULT_RESULTS.has(picks.result)) keep("adult", "left");
       if (picks.result === "found_way") props.push(sign);
     }
+    // 글이 표지판을 말하면(「저 앞에 표지판이 보였어요」) 카드가 아니어도 세운다 (11/12). 배경 표지판이 있으면 SceneStage 가 또 세우지 않는다
+    if (!props.some((q) => q.id === "sign") && /표지판(?!처럼| 같| 그림)/.test(p.text.replace(/“[^”]*”/g, " "))) {
+      props.push(sign);
+    }
     // 대본 인물이 있으면 사람은 그것으로 바꾼다 (표지판 · 숨을 것은 카드대로 둔다)
     // 대본 인물 목록에서 빠졌는데 글에서 그 자리에서 무엇을 하는 사람(「엄마가 문을 열어 주었어요 · 기사님이 웃어 주었어요」)도 세운다
     // (11/12 전수 점검: 대본 목록에 「친구」만 있어 문을 열어 준 엄마가 없었다). 대본 인물과 같은 사람(이름 · 그림 종류가 같음)은 빼고
@@ -1641,7 +1662,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
         // 앞 쪽에서 날아가 「옆 나무로 사뿐히 내려앉았어요」면 이 쪽은 나무 위
         || !out[out.length - 1].things.some((x) => x.src === t.src && (x.pose === "high" || (x.spot === "air" && /나무(?:로|에|위로|가지로)[^.!?]{0,12}(?:내려앉|앉았|앉아)/.test(pages[pi - 1]?.text ?? ""))))
         || /내려|떨어|뛰어내|나왔|기어 나/.test(p.text) ? t : { ...t, pose: "high" as const }))
-      .filter((t) => !hideCard || (!!t.holder && t.holder !== "hero"));
+      // 숨어 있는 쪽도 큰 붙박이(「대문이 열리고 엄마가 나왔어요」의 대문)는 세운다 (11/12 글이 말하는 물건 점검)
+      .filter((t) => !hideCard || (!!t.holder && t.holder !== "hero") || t.h >= 0.28);
     // 배경이 바뀌면 이어 오던 물건은 여기서 끝 (숨기 쪽도 그대로 둔다: 숨은 곳 앞에서 사라지면 어색하다)
     const dream = DREAM_TEXT.test(p.text);
     if (!dream && loc !== keptLoc) { kept = []; keptLoc = loc; lastKeys = new Map(); }

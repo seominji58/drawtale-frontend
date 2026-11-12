@@ -45,13 +45,14 @@ const SAID: [RegExp, string[]][] = [
   [/미끄럼틀/, ["slide"]], [/그네/, ["swing"]], [/시소/, ["seesaw"]], [/정글짐/, ["junglegym"]], [/구름다리/, ["monkeybars", "bars"]],
   [/(?<!모래 )터널/, ["tunnel"]], [/안내소/, ["booth"]], [/정문|교문/, ["parkgate", "gate"]], [/대문/, ["gate", "house"]],
   [/벤치/, ["bench"]], [/표지판/, ["sign", "arrow", "sign-green"]], [/파라솔/, ["parasol"]], [/모래성/, ["castle", "sandcastle"]],
-  [/등대/, ["lighthouse", "stairs"]], [/버스(?!\s?정류장)/, ["bus"]], [/정류장/, ["shelter", "bus"]], [/가로등/, ["lamp"]], [/분수/, ["fountain"]],
-  [/소파/, ["sofa"]], [/침대/, ["bed"]], [/책상/, ["desks", "table", "desk"]], [/책장|책꽂이/, ["shelf"]], [/피아노/, ["piano"]], [/칠판/, ["board"]],
+  [/등대/, ["lighthouse", "stairs"]], [/등대[^.!?]{0,10}계단/, ["lighthouse", "stairs"]], [/버스(?!\s?정류장)/, ["bus"]], [/정류장/, ["shelter", "bus"]], [/가로등/, ["lamp"]], [/분수/, ["fountain"]],
+  [/소파/, ["sofa"]], [/침대/, ["bed"]], [/책상/, ["desks", "table", "desk"]], [/책꽂이|책장(?!(?:이|을)?\s?(?:[가-힣]+\s)?(?:넘|사락|팔락))/, ["shelf"]], [/피아노/, ["piano"]], [/칠판/, ["board"]],
   [/사물함/, ["lockers"]], [/식탁/, ["table"]], [/텐트/, ["tent"]], [/로켓/, ["rocket"]], [/우주선/, ["spaceship", "rocket", "@space-ship"]],
-  [/화단|꽃밭/, ["flowerbed", "flowers", "butterflybush"]], [/울타리/, ["fence"]], [/계단/, ["stairs"]], [/연못/, ["pond"]], [/가판대/, ["stall"]],
+  [/화단|꽃밭/, ["flowerbed", "flowers", "butterflybush"]], [/울타리/, ["fence"]], [/(?<!(?:등대|구령대)[^.!?]{0,10})계단/, ["stairs"]], [/구령대[^.!?]{0,6}계단/, ["podium", "stairs"]], [/연못/, ["pond", "@cave-lake"]], [/가판대/, ["stall"]],
   [/돌기둥/, ["stalactite", "crystal"]], [/난간/, ["railing"]], [/쉼터/, ["pavilion"]], [/방파제/, ["@sea-pier"]], [/철문/, ["parkgate", "gate"]], [/그물/, ["net"]], [/밧줄/, ["rope"]],
 ];
-const NOT_SEEN = /없었|없어|없는|않았|않아|안 보|어디에도|아까|꿈\s?속|꿈에서|창\s?밖|창문 (?:밖|너머)|생각|떠올|이야기를|가고 싶|가 보고 싶|타고 싶|놀고 싶/;
+// 그림 · 꿈 · 소리 · 냄새 · 지난 일 · 갈 곳(「정문까지 데려다 줬어요」) · 책 쪽(「책장이 넘어가는 소리」)도 장면에 없어도 된다 (11/12)
+const NOT_SEEN = /없었|없어|없는|않았|않아|안 보|어디에도|아까|꿈\s?속|꿈에서|꿈을|창\s?밖|창문 (?:밖|너머)|문 너머|생각|떠올|이야기를|가고 싶|가 보고 싶|타고 싶|놀고 싶|그림|소리가 (?:[가-힣]+ )?들|냄새|잡던|까지 데려다|책장(?:이|을) (?:[가-힣]+ )?(?:넘|한 장)|뚫고 싶|터널 (?:끝|속)|버스를 타고|버스 창문|별 그물|그물을 휙/;
 const said: { key: string; word: string; loc: string; shown: boolean; text: string }[] = [];
 
 // 주기 문장 (11/10 사용자 「할머니가 사과를 손에 쥐여 줬다고 했는데 사과도 없고」): 「…을/를 … 건네 · 쥐여 주 · 나눠 주 · 주었」

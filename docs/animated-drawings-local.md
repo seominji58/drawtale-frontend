@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/12 글이 말하는 물건 남은 130 | **끝**: 130 → 16. `plan.ts` 계단 뒤돌아보기 · 없음 말 자리 · 큰 물건 먼저(한도 3) · 숨는 쪽 큰 붙박이 · `COVERS` 계단 · 소파 · 책장 · 버스 · 표지판 · 교문 · 로켓 문 앞 장소 |
 | 11/12 다음 쪽 먼저 받기 | **끝**: `S09Story` 지금 · 다음 쪽 먼저, 나머지 세 줄. 느린 망 다음 쪽 2.25 → 1.38초(`prefetch.mjs`) |
 | 11/12 대본 · 장면 유기 전수 점검 | **끝**: `organic.ts` 걸린 쪽 987 → 249. `plan.ts` `upToClause`(빙글 · 몸짓 주인) · `HANDHELD_USE` · `HOLD_NOW` · `lightHolder` · `CARRIED` · 이어 들기 · `animalPlace` · `calledIn` · `ACTION_SAY` / `STILL_*`, 동물 그림 5장 |
 | 11/11 난간 | **끝**: `props/railing.webp`, `plan.ts` 난간 규칙, `SceneStage` 주인공 뒤 손 높이(`WIDE_SCENERY`). 글 물건 없음 166 → 128 |

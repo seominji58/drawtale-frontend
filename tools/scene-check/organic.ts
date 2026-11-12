@@ -152,7 +152,8 @@ cases.forEach((c: any, ci: number) => {
     //    글에 나오는 동물이 장면에 없음 (인물로도 없음)
     for (const [rx, id] of ANIMAL_WORDS) {
       const m = rx.exec(said);
-      if (!m || /없|않|꿈|그림|인형|모양|처럼|같/.test(sentenceAt(said, m.index))) continue;
+      // 만든 것(「솔방울 다람쥐」) · 집(「강아지 집」) · 멀어지는 소리도 장면에 없어도 된다
+      if (!m || /없|않|꿈|그림|인형|모양|처럼|같|솔방울 다람쥐|강아지 집|노래가|소리가/.test(sentenceAt(said, m.index))) continue;
       if (things.some((t) => nameOf(t.src) === id) || onStage.some((n) => n === id || n.includes(m[0].replace(/[가는도들]$/, "")))) continue;
       add("동물이 장면에 없음", key, `${m[0].replace(/[가는도들]$/, "")} (${id})`, sentenceAt(text, m.index));
     }
