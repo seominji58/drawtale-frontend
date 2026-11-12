@@ -89,28 +89,34 @@ def put(base: Image.Image, im: Image.Image, x: float, anchor: str, y: float, h: 
 
 
 def card(place, objs, d) -> None:
-    """장소 카드: 배경판에서 위 · 가운데 정사각(높이 78%)을 잘라 물건을 가운데로 모으고 0.8 배로 얹는다 —
-    가장자리 물건이 잘리지 않고 빈 땅이 덜 보이게 (장면과 같은 그림 · 같은 좌표 표를 쓰되 카드만 구도를 줄인다)"""
-    plate = Image.open(PLATE_SRC[place]).convert("RGBA").resize((1536, 1024))
-    side, top = 798, 61
-    sq = plate.crop(((1536 - side) // 2, top, (1536 + side) // 2, top + side))
+    """장소 카드: 배경판 위쪽을 카드 그림 칸 비율(가로 1.55 : 세로 1, card_fit.py 와 같음)로 잘라 물건을 가운데로 모아 얹는다 —
+    가장자리 물건이 잘리지 않고 빈 땅이 덜 보이게 (장면과 같은 그림 · 같은 좌표 표를 쓰되 카드만 구도를 줄인다).
+    전에는 정사각(512)이라 칸에 꽉 채우면 위아래가 잘려 숲 버섯 · 바다 모래성 · 우주 로켓 · 동굴 수정 아래가 안 보였다 (2026-11-12 사용자)"""
+    src = PLATE_SRC[place] if PLATE_SRC[place].exists() else d / "plate.webp"
+    plate = Image.open(src).convert("RGBA").resize((1536, 1024))
+    # 높이 640: 물건 발끝 아래 땅을 조금 두고 위 하늘을 줄인다 (위에 붙는 물건(행성 · 종유석)은 자른 칸 위에서 잰다)
+    ch = 640
+    feet = [y * 1024 for _, _, a, y, _ in objs if a == "foot"]
+    top = min(1024, round(max(feet) + 0.09 * ch)) - ch
+    cw = round(ch * 1.55)
+    base = plate.crop(((1536 - cw) // 2, top, (1536 + cw) // 2, top + ch))
+    sq = Image.new("RGBA", base.size, (0, 0, 0, 0))
     # 카드에는 나무를 넣지 않는다: 집 · 놀이터 · 학교 · 마을 카드에 같은 나무가 찍혀 있었다 (2026-11-12 사용자). 남은 물건은 가운데로
-    base = sq; sq = Image.new("RGBA", base.size, (0, 0, 0, 0))
     for oid, x, a, y, h in objs:
         if oid.endswith("tree"):
             continue
         im = Image.open((d / f"{oid}.webp").resolve()).convert("RGBA")
         th = round(h * 1024 * 0.8); tw = round(im.width * th / im.height)
-        if tw > side * 0.6:   # 넓은 건물이 카드 밖으로 나가지 않게
-            th = round(th * side * 0.6 / tw); tw = round(side * 0.6)
+        if tw > ch * 0.6:   # 넓은 건물이 카드 밖으로 나가지 않게
+            th = round(th * ch * 0.6 / tw); tw = round(ch * 0.6)
         im = im.resize((tw, th), Image.LANCZOS)
-        cx = (0.5 + (x - 0.5) * 0.62) * side
-        py = y * 1024 - top
+        cx = cw / 2 + (x - 0.5) * 0.62 * ch
+        py = y * ch if a == "top" else y * 1024 - top
         sq.alpha_composite(im, (round(cx - tw / 2), round(py) if a == "top" else round(py - th)))
-    x0, _, x1, _ = sq.getbbox(); dx = round(side / 2 - (x0 + x1) / 2) if any(o[0].endswith("tree") for o in objs) else 0
+    x0, _, x1, _ = sq.getbbox(); dx = round(cw / 2 - (x0 + x1) / 2) if any(o[0].endswith("tree") for o in objs) else 0
     moved = Image.new("RGBA", sq.size, (0, 0, 0, 0)); moved.alpha_composite(sq, (max(0, dx), 0), (max(0, -dx), 0, sq.width, sq.height))
     base.alpha_composite(moved)
-    base.resize((512, 512), Image.LANCZOS).save(FRONT / "icons" / "place" / f"{place}.webp", "WEBP", quality=82, method=6)
+    base.resize((620, 400), Image.LANCZOS).save(FRONT / "icons" / "place" / f"{place}.webp", "WEBP", quality=84, method=6)
 
 
 def main() -> None:
