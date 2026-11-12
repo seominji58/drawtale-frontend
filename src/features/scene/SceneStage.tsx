@@ -1229,7 +1229,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const face = hd ? hd.y + drawn.h * 0.14 : topY + drawn.h * (side ? 0.26 : 0.16);
     const scale = Math.max(drawn.h, drawn.w * aspect * 0.5, 0.2);
     // top: 그림 맨 윗선 — 옆모습의 머리 자리(hd)는 주둥이 높이라 거기에 별 아치를 걸면 얼굴을 덮었다
-    return { key: "hero", x, face, head: hd ? hd.y : topY, top: topY, h: drawn.h, scale, side, follow: true, enter: false,
+    // 옆모습은 머리 꼭대기(서버가 그림에서 잰 자리)를 윗선으로: 그림 맨 윗선이면 꼬리가 머리보다 높은 물고기는 별 · 기호가 꼬리 높이에 떴다 (11/12 사용자)
+    return { key: "hero", x, face, head: hd ? hd.y : topY, top: side && hd ? hd.y : topY, h: drawn.h, scale, side, follow: true, enter: false,
       cx: heroX, foot: topY + drawn.h, dir: side ? headSide : 1 };
   };
   // 걸어 들어오는 사람은 제자리에 다 온 뒤에 운다 · 기뻐한다 — 전에는 화면 밖에서 오는 중인데 설 자리에 눈물부터 떨어졌다 (11/10)
@@ -1291,7 +1292,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const dim = !!env.dim && !brightOn;
   // 만화 기호 연출 (11/10): 그 문장의 사람에게. 자리 · 크기는 연출마다 (화면 높이 · 너비 대비, 칸 가운데가 자리)
   const marks = fx.marks.filter((mk) => play && heard(mk.at)).map((mk) => {
-    const w = whoOf(mk.sentence);
+    // 「보글보글, 물방울이 올라왔어요」처럼 물방울이 주어면 사람이 없다고 그리지 않았다 — 물방울은 주인공 둘레에 (11/12 사용자 물고기)
+    const w = whoOf(mk.sentence) ?? (mk.kind === "bubble" ? whoOf("나는") : null);
     if (!ready(w)) return null;
     const s = w.scale, side = (k: number) => (s * k) / aspect;
     const head = (dx: number, k: number, ar: number) => ({ x: w.x + w.dir * side(dx), y: w.top - s * 0.02, h: s * k, wd: side(k * ar) });

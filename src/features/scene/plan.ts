@@ -503,6 +503,7 @@ const MARKS: [MarkKind, RegExp][] = [
   ["sparkle", /깨끗해(?:졌|지)|깨끗하게 (?:닦|치우|씻|정리|청소)|말끔(?:해|하게)|반짝반짝하게 (?:닦|만들)|새것처럼|윤이 (?:나|반짝)|청소를 (?:다|끝)/],
 ];
 /** 기호 연출에서 뺄 말 — 「가슴이 쿵쾅」 · 「쿵쿵 뛰는 가슴」은 먼지가 아니다 */
+const COOKING = /끓|국|찌개|수프|스프|냄비|솥|냄새|된장|라면|죽을|요리|부엌/;
 const NOT_MARK = /가슴이 (?:쿵|두근)|마음이 쿵/;
 const GESTURES: [HeroGesture, RegExp][] = [
   ["bow", /꾸벅|허리를 (?:숙여|굽혀|굽히)|고개 숙여 인사|고개를 숙여 인사|절을 (?:했|하)/],
@@ -703,6 +704,8 @@ export function sceneFx(text: string): SceneFx {
     if (NOT_MARK.test(m[0])) continue;
     for (const [kind, re] of MARKS) {
       const k = re.exec(m[0]);
+      // 「국이 보글보글 끓고 · 보글보글 된장국 냄새」는 물방울이 아니다 (11/12 전수 점검: 「보글보글」 문장 43개 중 33개가 요리)
+      if (k && kind === "bubble" && COOKING.test(m[0])) continue;
       if (k) { marks.push({ at: readAt(text, m.index + k.index), sentence: sen, kind }); break; }
     }
   }
