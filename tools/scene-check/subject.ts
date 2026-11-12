@@ -76,12 +76,23 @@ for (const [t, n] of CRY_CASES) {
   const got = sceneFx(t).tears.length;
   if (got !== n) { bad++; console.log(`X [울음] ${t} → 눈물 ${got} (기대 ${n})`); }
 }
+// 도는 · 몸짓 주인: 장면이 주인공을 돌리나(SceneStage otherSpins 와 같은 판단) [글, 주인공이 도는가] (11/12 전수 점검 40번 「팽이가 돌았어요」)
+const SPIN_CASES: [string, boolean][] = [
+  ["뱅글뱅글, 도토리 팽이가 나무뿌리 위에서 돌았어요.", false], ["한 바퀴, 또 한 바퀴 토성 고리가 천천히 돌았어요.", false],
+  ["토토는 빙글빙글 돌았어요.", true], ["토토는 손을 흔들며 빙글빙글 돌기도 했어요.", true], ["나는 손을 흔들며 빙글빙글 춤도 추었어요.", true],
+  ["빙글빙글, 토토가 신나게 돌았어요.", true], ["바람개비가 빙글빙글 돌았어요.", false],
+];
+for (const [t, want] of SPIN_CASES) {
+  const sp = sceneFx(t).spins[0];
+  const got = !!sp && subjectOf(sp.before, [], HERO, sp.before.length) === "hero";
+  if (got !== want) { bad++; console.log(`X [빙글] ${t} → 주인공 ${got} (기대 ${want})`); }
+}
 for (const [sen, cue, people, want] of CASES) {
   const at = sen.indexOf(cue);
   if (at < 0) { console.log("? 연출 말이 문장에 없음", cue, sen); bad++; continue; }
   const got = subjectOf(sen, people, HERO, at);
   if (got !== want) { bad++; console.log(`X ${sen}  [${cue}] → ${got} (기대 ${want})`); }
 }
-const total = CASES.length + CRY_CASES.length + SHIVER_CASES.length;
+const total = CASES.length + CRY_CASES.length + SHIVER_CASES.length + SPIN_CASES.length;
 console.log(`연출 주인 ${total - bad}/${total}`);
 process.exitCode = bad ? 1 : 0;

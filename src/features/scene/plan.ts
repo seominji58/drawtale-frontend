@@ -98,7 +98,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/선물/, "props/gift.webp", 0.12, "ground"],
   [/인형/, "props/teddy.webp", 0.14, "ground"],
   // 「게」는 앞 글자와 떨어진 것만 — 「가게를」 · 「빨래집게가」에 꽃게가 섰다 (11/9 배치 검사)
-  [/꽃게|작은 게|(?<![가-힣])게(?: 한|가|를|도)(?![가-힣])/, "props/crab.webp", 0.07, "ground"],
+  [/꽃게|소라게|작은 게|꼬마 게|아기 게|(?<![가-힣])게(?: 한|가|를|도)(?![가-힣])/, "props/crab.webp", 0.07, "ground"],
   [/(?<!나뭇가지 |나뭇잎 |종이 |작은 |꼬마 )깃발/, "props/flag.webp", 0.48, "ground"],   // 「성 꼭대기에 나뭇가지 깃발을 꽂았어요」는 큰 깃발이 아니다 (11/11)
   [/우체통/, "props/mailbox.webp", 0.44, "ground"],
   // 구름다리(놀이터 기구) · 징검다리는 나무 다리가 아니다 (11/10 소품 점검: 놀이터 · 우주 「별 징검다리」에 나무 다리가 섰다)
@@ -113,11 +113,21 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/화분/, "props/flowerpot.webp", 0.16, "ground"],
   // 대본 인물로 나오지 않고 글에만 나오는 작은 동물 (인물로 나오면 인물 그림이 선다)
   // 「새 책 · 새 친구 · 새 둥지」의 새(new)는 빼고 — 조사가 붙거나 「작은 새」처럼 꾸밈말이 앞에 올 때만 (11/4, 씨앗 문장 120개가 잘못 걸렸다)
-  [/(?:^|[^가-힣])새(?:를|가|는|도|들|한 마리|와|랑|의|야|에게)(?=[^가-힣]|$)|(?:작은|아기|파랑|파란|예쁜|노란|빨간|하얀|조그만|귀여운|어미|엄마|아빠|산|바다) ?새(?=[^가-힣]|$)/,
+  // 「새들이 · 아기 새들이」(들 뒤에 조사)와 참새 · 비둘기 · 부엉이 · 올빼미 · 까치 · 까마귀 · 산새도 (11/12 전수 점검: 새 문장 80쪽에 새가 없었다)
+  [/(?:^|[^가-힣])새(?:들)?(?:를|가|는|도|이|와|랑|의|야|에게|한 마리|두 마리)(?=[^가-힣]|$)|(?:^|[^가-힣])새들(?=[^가-힣]|$)|(?:작은|아기|파랑|파란|예쁜|노란|빨간|하얀|조그만|귀여운|어미|엄마|아빠|산|바다) ?새(?:들)?(?=[^가-힣]|이|가|은|는|도|을|를|와|에게|$)|참새|비둘기|부엉이|올빼미|까치(?!발)|까마귀|딱따구리|종달새|제비(?!꽃)/,
     "props/bird.webp", 0.12, "air"],
   [/박쥐/, "props/bat.webp", 0.14, "air"],
   [/토끼/, "props/rabbit.webp", 0.16, "ground"],
   [/다람쥐/, "props/squirrel.webp", 0.11, "ground"],
+  // 고양이 · 강아지 그림은 대본 인물로만 쓰였다 — 글에만 나오는 것도 (11/12 전수 점검). 「강아지 집 · 고양이 인형」은 아래 NOT_REAL · 자리 말로 걸러짐
+  [/고양이/, "props/cat.webp", 0.14, "ground"],
+  [/강아지(?! ?집)/, "props/dog.webp", 0.16, "ground"],
+  // 그림이 없던 동물 (11/12 전수 점검, tools/art/gen_scene_props8.py)
+  [/개구리/, "props/frog.webp", 0.07, "ground"],
+  [/반딧불/, "props/firefly.webp", 0.05, "air"],
+  [/금붕어|어항/, "props/fishbowl.webp", 0.13, "ground"],
+  [/거북/, "props/turtle.webp", 0.08, "ground"],
+  [/해파리/, "props/jellyfish.webp", 0.09, "ground"],
   // pt_docs 18 「장면 소품 보강」 (11/4) — A. 숨는 곳 그림을 옆에 놓인 물건으로도 (가림막보다 작게)
   [/담요|이불/, "props/blanket.webp", 0.12, "ground"],
   [/상자|박스/, "props/box.webp", 0.16, "ground"],
@@ -143,7 +153,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   // 주인공이 신고 있는 신발(끈을 묶었어요 · 신발 끝에 물이 · 신발을 신고)은 놓지 않는다: 「신발 끈을 꼭 묶었어요」에 주인공 발 옆에
   // 운동화 한 켤레가 또 놓였다 (11/11 사용자). 벗어 놓은 신발 · 신발장 앞 신발만
   [/(?:운동화|신발)(?!\s?(?:끈|끝|코|이 젖|이 흠뻑|이 축축|에 (?:흙|물|모래)|이 (?:벗겨|미끄))|장)(?!(?:을|를)?\s?(?:꼭\s?|다시\s?|얼른\s?)?신(?:고|었|은|어|는))/, "props/sneakers.webp", 0.07, "ground"],
-  [W1("나비"), "props/butterfly.webp", 0.08, "air"],
+  [new RegExp(`${W1("나비").source}|(?<![가-힣])나비들`), "props/butterfly.webp", 0.08, "air"],   // 「나비들이」 (11/12)
   [/발자국/, "props/footprints.webp", 0.04, "ground"],
   [/화살표/, "props/arrow.webp", 0.4, "ground"],
   // D. 글에 나오는데 그림이 없던 놀이터 · 바깥 물건 (11/11 사용자 994번 「터널이라는데 내용도 이상하고」, tools/art/gen_scene_props5.py).
@@ -250,26 +260,52 @@ const POSES: [ThingPose, RegExp][] = [
   ["back", /(?<!발)등에 (?:태우|태웠|태워|업|얹|싣|실|올려|올렸)/],   // 「발등에 올려」 빼고
   ["head", /머리에 (?:쓰|썼|얹)|^\s*(?:(?:꾹|푹|눌러|살짝)\s*)*(?:쓰고|썼|써)/],
   // 「풍선이 둥실 내려와 친구 품에 쏙 안겼어요」 — 품에 · 손에 와 안겼 사이에 쏙 · 폭 · 꼭이 끼어도 (11/10)
-  ["hand", /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) [가-힣]|손에 (?:들|쥐|꼭)|(?:들고|쥐고) |(?:높이|번쩍|두 손으로|살짝) 들(?:었|어|고)|들어 (?:주|보이|올리)|(?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐)\s*)?(?:안|들어|잡|쥐)|꼭 안|껴안|안고 |^\s*[가-힣]+(?:의)? 품(?: 안)?에서 /],   // 「곰 인형도 토토 품에서 흔들흔들」: 소품 바로 뒤 「누구 품에서」만 (11/11)
+  ["hand", /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) [가-힣]|손에 (?:들|쥐|꼭)|(?<![가-힣])(?:들고|쥐고) |(?:높이|번쩍|두 손으로|살짝) 들(?:었|어|고)|들어 (?:주|보이|올리)|(?:품|손)에 (?:(?:쏙|폭|꼭|살포시|사뿐)\s*)?(?:안|들어|잡|쥐)|꼭 안|껴안|안고 |^\s*[가-힣]+(?:의)? 품(?: 안)?에서 /],   // 「곰 인형도 토토 품에서 흔들흔들」: 소품 바로 뒤 「누구 품에서」만 (11/11)
 ];
 /** 사람을 가리키는 말 끝 (「~도」 주어를 사람일 때만 볼 때) */
 const PERSON_TAIL = /(?:친구|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|아줌마|이모|고모|삼촌|언니|오빠|형|누나|동생|안내원|선장님?|박사님?|요원|경찰관|지킴이|등대지기|소방관|의사|간호사)$/;
-function thingPose(text: string, at: number, end: number, spot: Spot, indoor = false): { pose?: ThingPose; subject?: string } {
-  const from = Math.max(text.lastIndexOf(".", at), text.lastIndexOf("!", at), text.lastIndexOf("?", at), text.lastIndexOf("”", at)) + 1;
+/** 손에 들고 쓰는 물건: 「할머니가 랜턴을 켰어요 · 아빠가 손전등을 흔들었어요」도 그 사람 손에 (11/12 전수 점검 40번: 랜턴이 땅에 놓였다) */
+const HANDHELD = new Set(["props/lantern.webp", "props/flashlight.webp", "props/umbrella.webp", "props/basket.webp", "props/balloons.webp"]);
+const HANDHELD_USE = /^\s*(?:(?:[가-힣]+,?\s){0,2})?(?:켰|켜고|켜며|켜자|켜서|켜 들|켜 주|비추|비췄|비춰|흔들었|흔들며|흔들고|흔들어|가려|가렸|쓰고|썼|펼쳤|펴 들|폈)/;
+/** 물건 바로 뒤 「(다시 · 꼭) 쥐었어요 · 들었어요 · 안았어요 · 끌어안았어요」 */
+const HOLD_NOW = /^\s*(?:(?:다시|꼭|살며시|살짝|두 손으로|단단히|소중히|조심조심|조심스럽게|얼른|번쩍|높이|주워|꺼내|집어|하나|하나를|한 개)\s?){0,3}(?:쥐었|쥐어|쥐고|쥐며|안았|안아|끌어안|들었|들어 보|집어 들|주워 들)/;
+/** 꾸밈말(「작은 · 반짝이는」)은 주어가 아니다. 「나는」은 빼고 */
+const ADNOMINAL = /^(?:작은|높은|낮은|같은|많은|적은|좋은|넓은|깊은|얕은|붉은|검은|밝은|맑은|젖은|늙은|낡은|굵은|얇은|짧은|둥근|동그란|커다란|조그만|반짝이는|빛나는|하는|있는|없는|웃는|우는|노는|자는|보는|오는|가는|새로운|따뜻한|차가운|예쁜|귀여운)$/;
+/** 손에 들고 쓰는 물건의 낱말 (이어 들기에서 내려놓는 말을 찾을 때) */
+const HELD_WORD: Record<string, RegExp> = { "props/lantern.webp": /랜턴|등불|초롱/, "props/flashlight.webp": /손전등/, "props/umbrella.webp": /우산/,
+  "props/basket.webp": /바구니/, "props/balloons.webp": /풍선/ };
+/** 사람 생김새(대본 character_sheet)에 지닌 물건 → 그 그림 */
+const CARRIED: [RegExp, string][] = [[/lantern/i, "props/lantern.webp"], [/flashlight|torch/i, "props/flashlight.webp"], [/umbrella/i, "props/umbrella.webp"], [/basket/i, "props/basket.webp"]];
+function thingPose(text: string, at: number, end: number, spot: Spot, indoor = false, src = ""): { pose?: ThingPose; subject?: string } {
+  let from = Math.max(text.lastIndexOf(".", at), text.lastIndexOf("!", at), text.lastIndexOf("?", at), text.lastIndexOf("”", at)) + 1;
+  // 「할머니가 “이제 갈 시간이야” 하며 랜턴을 켰어요」: 대사 뒤 「하며 · 하고 · 라고」로 이어지면 대사 앞까지 한 문장 (11/12 전수 점검: 주인공 손에 들렸다)
+  if (text[from - 1] === "”" && /^\s*(?:하며|하고|하자|하면서|라고|이라고|하고는)\s/.test(text.slice(from))) {
+    const open = text.lastIndexOf("“", from - 1);
+    if (open >= 0) from = Math.max(text.lastIndexOf(".", open), text.lastIndexOf("!", open), text.lastIndexOf("?", open), text.lastIndexOf("”", open - 1)) + 1;
+  }
   const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, end)).filter((i) => i >= 0);
   const sentence = text.slice(from, ends.length ? Math.min(...ends) + 1 : text.length);
   if (indoor && spot === "air" && WINDOW_TEXT.test(sentence)) return { pose: "window" };
   const after = text.slice(end, from + sentence.length);
-  const lead = /^[가-힣]{0,3}?(?:이|가|을|를|은|는|도)(?=[\s,]|$)|^(?:이|가|을|를|은|는|도)/.exec(after);
-  if (!lead) return {};
-  const rest = after.slice(lead[0].length);
+  // 「도토리 하나를 주워 들고 · 랜턴 빛을 손으로 가려」처럼 낱말 뒤에 수 · 빛 말이 붙어도 (11/12 전수 점검)
+  const lead = /^[가-힣]{0,3}?(?:이|가|을|를|은|는|도)(?=[\s,]|$)|^(?:이|가|을|를|은|는|도)|^\s(?:하나|한 개|두 개|세 개|몇 개|한 알|한 송이|한 줌|한 움큼|빛|불빛|불)(?:을|를|만|도|이)?(?=[\s,]|$)/.exec(after);
+  // 「솔방울 다람쥐를 · 빵 봉투를 · 소라 껍데기를 꼭 안았어요」처럼 두 낱말 이름은 손에 듦일 때만 (11/12 전수 점검)
+  // 「손전등으로 바위 옆을 비췄어요」도 든 것
+  const lead2 = lead ? null : /^\s[가-힣]{1,4}(?:을|를)(?=\s)|^(?:으로|로)(?=\s)/.exec(after);
+  if (!lead && !lead2) return {};
+  const rest = after.slice((lead ?? lead2)![0].length);
   let pose = POSES.find(([, rx]) => rx.test(rest))?.[0];
+  // 「물뿌리개를 다시 꼭 쥐었어요 · 마지막 블록을 들었어요 · 화분을 꼭 끌어안았어요」 (11/12 전수 점검: 땅에 놓였다)
+  if (!pose && HOLD_NOW.test(rest)) pose = "hand";
+  if (!pose && HANDHELD.has(src) && HANDHELD_USE.test(rest)) pose = "hand";
+  if (lead2 && pose !== "hand") return {};
   if (!pose) return {};
   if (spot === "air" && (pose === "water" || pose === "blown")) return {};   // 행성 · 새는 원래 떠 있고 날아다닌다
   if (pose === "head" && !/모자|왕관|나뭇잎|화관/.test(text.slice(at, end))) return {};
   // 주어: 소품 앞에서 마지막으로 「…이/가/은/는」 붙은 말. 「내 손에 쥐여 주었어요」면 주인공
   const before = text.slice(from, at);
-  const subj = [...before.matchAll(/([가-힣{}:]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|께서)\s/g)].pop()?.[1];
+  // 「나는 작은 바구니를」의 「작은」 같은 꾸밈말은 주어가 아니다 (11/12 전수 점검: 주인공 손이 아니라 땅에 놓였다)
+  const subj = [...before.matchAll(/([가-힣{}:]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|께서)\s/g)].filter((m) => !ADNOMINAL.test(m[0].trim().split(/\s+/).pop()!)).pop()?.[1];
   // 「오늘 나는」처럼 주어 앞에 꾸밈말이 붙어도 마지막 낱말로 본다 (11/6 — 「오늘 나」가 주인공이 아닌 것으로 읽혔다)
   // 「할아버지도 손전등을 들고」 — 사람 말에 「도」가 붙으면 그 사람 (11/10 전수 점검: 주인공 손에 쥐여졌다)
   const also = [...before.matchAll(/([가-힣]+(?: [가-힣]+){0,2}?)도\s/g)].pop();
@@ -286,9 +322,12 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   const heldBy = /^\s*(?:꼭 |높이 |두 손에 |손에 )?(?:든|쥔|안은) ([가-힣]+(?: [가-힣]+){0,2}?)(?:이|가|은|는|도|와|과|께서|였|이었|이에요|예요|$|[\s,.!])/.exec(rest)?.[1];
   if (heldBy && pose === "hand") return { pose, subject: me(heldBy) ? "hero" : heldBy };
   if (owner && pose === "hand" && !/^(?:내|나의|제)$/.test(owner)) return { pose, subject: owner };
+  // 「안내원의 손전등이 · 아저씨 손전등이 길을 비춰 줬어요」: 물건 앞에 붙은 사람이 그 물건을 든 사람 (11/12 전수 점검)
+  const ownerBefore = /([가-힣]+?(?: [가-힣]+?)?)(?:의)? $/.exec(text.slice(Math.max(from, at - 14), at))?.[1];
+  if (pose === "hand" && ownerBefore && PERSON_TAIL.test(ownerBefore)) return { pose, subject: ownerBefore };
   const subject = /내 손|내 품|나에게|내게/.test(rest) || !subj || me(subj) || me(subjLast) ? "hero" : subj;
   // 입에 묾 · 등에 태움은 소품이 목적어(「공을 물고」)일 때만 — 「새가 벌레를 물고」의 새는 무는 쪽이다
-  if ((pose === "mouth" || pose === "back") && !/(?:을|를|도)$/.test(lead[0])) return {};
+  if ((pose === "mouth" || pose === "back") && !/(?:을|를|도)$/.test((lead ?? lead2)![0])) return {};
   if (pose === "hand" || pose === "head" || pose === "mouth" || pose === "back") return { pose, subject };
   return { pose };
 }
@@ -331,7 +370,7 @@ export function giveOf(text: string, at: number): { giver: string; receiver: str
 export type ThingMotion = "flutter" | "float" | "glide" | "sway" | "swim" | "drift" | "roll" | "wind" | "bounce" | "pop"
   | "spin" | "glow" | "grow" | "shrink" | "shake";
 const ALWAYS_MOVING: Record<string, ThingMotion> = {
-  "props/butterfly.webp": "flutter", "props/bird.webp": "float", "props/bat.webp": "float", "props/seagull.webp": "glide",
+  "props/butterfly.webp": "flutter", "props/firefly.webp": "float", "props/frog.webp": "bounce", "props/bird.webp": "float", "props/bat.webp": "float", "props/seagull.webp": "glide",
   "props/balloons.webp": "sway", "props/fish.webp": "swim", "props/planet.webp": "drift", "props/earth.webp": "drift",
   "props/shootingstar.webp": "glide",
 };
@@ -432,6 +471,8 @@ const GESTURES: [HeroGesture, RegExp][] = [
   ["crouch", /웅크|움츠|오므리|오므렸|날개를 (?:꼭 |살며시 |가만히 )?접|쪼그|몸을 (?:작게|낮추|낮췄|낮춰|동그랗게)/],
 ];
 const DOZE = /꾸벅\s*꾸벅\s*졸|꾸벅\s*졸/;
+/** 검사 도구(tools/scene-check/organic.ts)가 같은 말을 찾게 */
+export const FX_WORDS = { get spin() { return SPIN; }, gestures: GESTURES, doze: DOZE };
 /** 장면 전체가 밝아지는 말 — 「반짝」 · 「깜빡」처럼 작은 빛은 소품만 빛나고 장면은 그대로 */
 // 「멀리서 불빛이 보였어요」 · 「별이 빛났어요」는 장면 전체가 밝아지는 것이 아니다 (저장 이야기 점검 11/10)
 const BRIGHT = /어둠이 (?:물러|걷|사라)|환해|환하게 (?:빛|밝|비|보|켜)|환히|환한 빛|밝아(?:졌|지|져)|밝혔|밝혀|빛이 (?:가득|퍼|쏟|환)|빛으로 (?:가득|환)|불이 (?:[가-힣]+,? ){0,3}(?:켜졌|켜져|켜지|들어왔)|불을 (?:[가-힣]+,? ){0,3}(?:켰|켜|밝)|불빛에|불빛이 (?:[가-힣]+,? ){0,3}(?:비|퍼|가득|환|새어|새|켜)|등불이 (?:[가-힣]+,? ){0,3}(?:켜|비)|빛이 새어 나왔|환한 (?:불빛|빛)|빛이 (?:[가-힣]+,? ){0,3}(?:들어왔|쏟아)|해가 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟|올라왔|올라오|나왔|얼굴을|빼꼼)|해님이 (?:(?!지|저물|졌)(?![가-힣]*(?:이|가|은|는) )[가-힣]+,? ){0,3}(?:떴|떠올|뜨|솟|올라|나왔|방긋|얼굴을|빼꼼)|밤이 지나|동이 트|날이 (?:밝|새|샜)|아침이 (?:밝|됐|되|왔)|햇(?:살|빛)이 (?:[가-힣]+,? ){0,3}(?:가득|쏟|들어|비)/;
@@ -525,6 +566,8 @@ export function subjectOf(sen: string, people: string[], hero?: string | null, a
     // 「웅덩이 옆 · 책꽂이 앞에서 친구가」의 웅덩이 · 책꽂이는 자리, 「물어도 · 그래도」는 이음말 — 주어가 아니다 (11/11 전수 점검)
     if (/^\s*(?:옆|앞|뒤|위|아래|밑|안|속|끝|쪽|근처|사이|가운데|구석|너머)(?:에|에서|으로|쪽)?(?=[\s,])/.test(t.slice(m.index! + m[0].length))) continue;
     if (m[2] === "도" && /(?:[어아해워와봐여져쳐돼]|그래|가까이)$/.test(w)) continue;
+    // 「빙글빙글 돌기도 했어요 · 춤도 추었어요 · 인사도 했어요」의 「도」는 하는 일이지 주어가 아니다 (11/12)
+    if (m[2] === "도" && /(?:[가-힣]기|춤|노래|인사|박수|손뼉|장난|구경|청소|공부|숙제)$/.test(w)) continue;
     if (w + m[2] === "가까이" || w + m[2] === "어디선가" || (m[2] === "가" && /(?:[어아]|다가)$/.test(w) && w.length >= 2)) continue;   // 「기어가 보니 · 걸어가니」
     // 받침 뒤 「는 · 은」은 꾸밈말(웃는 · 반짝이는)일 때가 많다 — 「이 · 가」 주어만 사람이 아닌 것으로 본다
     // 「돌벽도 숨어 버렸어요 · 박쥐들도 날갯짓」— 사람이 아닌 것에 「도」가 붙어도 그것이 주어 (11/10 전수 점검)
@@ -538,6 +581,13 @@ const CONT = /^\s*(?:하고|라고|하며|하면서|하자|하니|하는|이라�
 const posIn = (m: RegExpExecArray, sen: string, i: number) => m.index + Math.max(0, i - (sen.length - m[0].length));
 /** 따옴표 대사를 같은 길이의 빈칸으로 — 「달님 뜨면 환해질 거야」 같은 바람 · 앞일 말로 장면이 바뀌지 않게 (자리는 그대로) */
 const unquoted = (t: string) => t.replace(/“[^”]*”/g, (q) => " ".repeat(q.length));
+/** 그 말이 있는 마디 끝까지 (누가 하는지 볼 글): 「뱅글뱅글, 도토리 팽이가 나무뿌리 위에서 돌았어요」처럼 주어가 그 말 뒤에 오면
+ *  말 앞부분만 보던 장면이 주인공이 도는 것으로 읽었다 (11/12 전수 점검 40번). 마디는 「…고 · …며 · …자 · …니」나 문장 끝에서 끊는다 */
+function upToClause(sen: string, at: number): string {
+  const rest = sen.slice(at);
+  const e = /[가-힣](?:고|며|면서|자|니까?|는데|더니|다가|어서|아서|해서|지만)(?=[\s,])|[.!?”]/.exec(rest);
+  return sen.slice(0, e ? at + e.index + e[0].length : sen.length);
+}
 export function sceneFx(text: string): SceneFx {
   const bAt = firstHit(text, BRIGHT, NOT_BRIGHT);
   const tears: SceneFx["tears"] = [];
@@ -564,7 +614,7 @@ export function sceneFx(text: string): SceneFx {
   for (let m = re2.exec(text); m; m = re2.exec(text)) {
     // 어지럽거나 무섭게 도는 것(「머리가 빙글빙글」 · 「눈앞이 빙빙」 · 「어지러워서」)은 신나서 도는 게 아니다 (11/10)
     const c = m[0].includes("?") || DIZZY.test(m[0]) || SAD_TEXT.test(m[0]) ? null : SPIN.exec(m[0]);
-    if (c) spins.push({ at: readAt(text, m.index + c.index), before: m[0].slice(0, c.index) });
+    if (c) spins.push({ at: readAt(text, m.index + c.index), before: upToClause(m[0], c.index) });
   }
   const gestures: SceneFx["gestures"] = [];
   const re4 = /[^.!?”]+[.!?”]*/g;
@@ -574,7 +624,7 @@ export function sceneFx(text: string): SceneFx {
       const g = gre.exec(m[0]);
       // 「목소리가 작게 떨렸어요」는 몸이 떠는 게 아니다 (11/11 중의적 말 점검)
       if (g && kind === "shiver" && /목소리(?:가|도|는|까지)?\s*(?:[가-힣]+\s*)?$/.test(m[0].slice(0, g.index))) continue;
-      if (g) gestures.push({ at: readAt(text, m.index + g.index), before: m[0].slice(0, g.index), kind });
+      if (g) gestures.push({ at: readAt(text, m.index + g.index), before: upToClause(m[0], g.index), kind });
     }
   }
   gestures.sort((a, b) => a.at - b.at);
@@ -734,6 +784,10 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   "props/junglegym.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
   "props/pond.webp": (l, indoor) => !indoor && !/^(?:space|sea|cave)/.test(l),
   "props/net.webp": (l) => !l.startsWith("space"),
+  "props/turtle.webp": (l) => l.startsWith("sea"),
+  "props/jellyfish.webp": (l) => l.startsWith("sea"),
+  "props/frog.webp": (l) => !/^(?:space|sea)/.test(l),
+  "props/firefly.webp": (l) => !/^(?:space|sea)/.test(l),
   "props/railing.webp": (l) => !l.startsWith("space") && l !== "sea-underwater",
   // 방 책상은 방 안에만, 교실은 배경에 책상들이 있다
   "props/desk.webp": (l, indoor) => indoor && l !== "school-classroom",
@@ -784,6 +838,8 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
       // 몸에 걸친 물건 (모자는 「머리에 쓰고」면 머리 자리로 가니 「친구 모자 끝」처럼 남이 쓴 것만)
       if (WORN_SRC.has(src) && (src !== "props/hat.webp" ? WORN_AFTER.test(said.slice(m.index + m[0].length).replace(/^(?:을|를|이|가|도)/, ""))
         : /(?:친구|엄마|아빠|할머니|할아버지|선생님|아저씨|아주머니|언니|오빠|형|누나|동생)(?:의)? $/.test(said.slice(Math.max(0, m.index - 6), m.index)))) continue;
+      // 「하늘다람쥐에게 주는 선물이었어요 · 기사님들께 드리는 선물이라고」: 선물은 앞에서 말한 물건(도토리 · 쿠키)이라 선물 상자를 세우지 않는다 (11/12 전수 점검)
+      if (src === "props/gift.webp" && /^(?:이었|였|이에요|예요|이야|이라고|이라는|이란|로\s|으로\s|이랍니다)/.test(said.slice(m.index + m[0].length))) continue;
       // 「정문까지 데려다 줬어요」는 갈 곳이라 이 쪽에는 아직 없다 (11/11 994번: 6쪽부터 정문이 섰는데 8쪽에 「드디어 정문이 보였어요」)
       if (/^(?:까지|으로|로)\s?(?:데려다|바래다|모셔다)/.test(said.slice(m.index + m[0].length))) continue;
       // 모래 터널 이야기의 「터널 속」 (11/11)
@@ -804,14 +860,14 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
     if (NOT_REAL.test(text.slice(at + word.length))) continue;
     // 처음 나온 자리에서 자리 말이 없으면 뒤에 다시 나온 자리에서 손 · 머리를 찾는다 — 「노란 등불이 다가왔어요. 등불을 든 엄마가」
     // 처음 문장만 보아 등불이 땅에 놓였다 (11/10 전수 점검)
-    let pose = thingPose(text, at, at + word.length, spot, indoor);
+    let pose = thingPose(text, at, at + word.length, spot, indoor, src);
     if (!pose.pose) {
       const g = new RegExp(re.source, "g");
       g.lastIndex = m.index + m[0].length;
       for (let m2 = g.exec(text); m2; m2 = g.exec(text)) {
         const l2 = wordRe && /^[^가-힣]/.test(m2[0]) ? 1 : 0;
         const w2 = wordRe ? m2[0].slice(l2).replace(/(?:을|를|이|가|은|는|과|와|도|랑|들|한 마리|의)$/, "") : m2[0];
-        const p2 = thingPose(text, m2.index + l2, m2.index + l2 + w2.length, spot, indoor);
+        const p2 = thingPose(text, m2.index + l2, m2.index + l2 + w2.length, spot, indoor, src);
         if (p2.pose === "hand" || p2.pose === "head") { pose = p2; break; }
       }
     }
@@ -1062,6 +1118,32 @@ const GROWN = /\b(?:adult|man|woman|mother|father|grand\w*|teacher|officer|owner
 const NOT_KID = new Set(["alien", "bat", "bird", "rabbit", "squirrel", "dog", "cat", "baby", "classmates", "friend", "friend2"]);
 
 /** 손에 듦 · 머리에 씀: 문장의 주어를 그 쪽에 선 인물로 (이름 낱말이 겹치거나 같은 그림 종류). 못 찾으면 자리 없이 땅에 */
+/** 동물이 있는 자리 · 움직임: 「나무 틈에서 하늘다람쥐가 고개를 쏙 내밀었어요」는 나무 위(high), 「하늘다람쥐가 슝 날아올랐어요」는 공중을 미끄러지듯
+ *  (11/12 전수 점검 40번: 땅에 가만히 있었다) */
+const TREE_ANIMALS = new Set(["props/squirrel.webp", "props/bird.webp", "props/cat.webp", "props/bat.webp"]);
+function animalPlace(t: ThingPlan, text: string): Partial<ThingPlan> {
+  if (!TREE_ANIMALS.has(t.src) || t.at === undefined) return {};
+  const s0 = Math.max(text.lastIndexOf(".", t.at), text.lastIndexOf("!", t.at), text.lastIndexOf("?", t.at), text.lastIndexOf("”", t.at)) + 1;
+  const ends = [".", "!", "?"].map((c) => text.indexOf(c, t.at!)).filter((i) => i >= 0);
+  const sen = text.slice(s0, ends.length ? Math.min(...ends) + 1 : text.length);
+  if (/날아올|날아갔|날아가|날았|슝 날|활공|훨훨/.test(text.slice(t.at, s0 + sen.length))) return { spot: "air", motion: "glide" };
+  if (/나무 (?:틈|구멍|위|꼭대기|가지)|나뭇가지|가지 위|둥지(?:에서|에|안|속)/.test(sen) && !/(?:나무|나뭇가지|가지|둥지)(?:에서|에|로)? (?:내려|떨어)/.test(sen)) return { pose: "high" };
+  return {};
+}
+/** 켜진 랜턴 · 손전등이 땅에 혼자 있지 않게: 「안내원 선생님의 손전등이 켜졌어요 · 손전등 불빛이 다가왔어요」는 앞에 붙은 사람, 없으면
+ *  그 쪽에 사람이 하나뿐이면 그 사람 손에 (11/12 전수 점검: 땅에 놓이거나, 숨는 쪽에서는 아예 빠졌다) */
+function lightHolder(t: ThingPlan, text: string, props: PropPlan[]): Partial<ThingPlan> {
+  if (!LIGHT_SRC.has(t.src) || t.at === undefined) return {};
+  const s0 = Math.max(text.lastIndexOf(".", t.at), text.lastIndexOf("!", t.at), text.lastIndexOf("?", t.at)) + 1;
+  const ends = [".", "!", "?"].map((c) => text.indexOf(c, t.at!)).filter((i) => i >= 0);
+  const sen = text.slice(s0, ends.length ? Math.min(...ends) + 1 : text.length);
+  if (!/불빛|빛|켜졌|켜지|켰|비추|비췄|비춰|다가|반짝/.test(sen)) return {};
+  const people = props.filter((q) => isPerson(q.id));
+  const before = /([가-힣]+?)(?:의)? $/.exec(text.slice(s0, t.at))?.[1];
+  const named = before && people.find((q) => (q.name ?? "").includes(before) || (q.name ?? "").split(/\s+/).some((w) => w && before.includes(w)));
+  const who = named ?? (people.length === 1 ? people[0] : undefined);
+  return who ? { pose: "hand", holder: who.name ?? who.id } : {};
+}
 function holderOf(t: ThingPlan, props: PropPlan[], heroName?: string | null): Partial<ThingPlan> {
   if (t.pose !== "hand" && t.pose !== "head" && t.pose !== "mouth" && t.pose !== "back") return {};
   // 이야기 글에는 아이 이름이 들어가 있다 — 「하루가 손전등을 들고 · 하루 손에 쥐여 주며」도 주인공 (11/10 전수 점검: 땅에 놓였다)
@@ -1115,6 +1197,32 @@ const KEEP_THINGS = new Set(["nest", "tent", "arrow", "bench", "chair", "table",
 const HOME_TEXT = /집(?:에|으로)\s?(?:무사히\s|드디어\s)?(?:도착|돌아왔|돌아와|들어왔|들어와|왔어요|와서|오자|오니|갔어요|돌아갔)|숙소(?:에서|에|로)\s?(?:[가-힣]+\s){0,3}(?:누|잠|눕)|집 (?:이불|침대|안|방|거실)|(?:침대|이불 속)에\s?(?:눕|누워|누웠|쏙)/;
 const HOME_BED = /침대|이불|베개|잠이 들|잠들|눕|누워|누웠/;
 /** 가슴 · 마음이 뛰는 말 (움직임이 아님) */
+/** 그 쪽에서 그 자리에서 무엇을 하는 사람 (주어 + 그 자리의 일). 지난 일 · 먼 곳 · 꿈 · 전화 · 안 보임은 빼고 */
+const ON_SCENE = /열어 주|웃|건네|다가|안아|쓰다듬|데려다|손을 (?:꼭 )?잡|따라|비춰|붙여 주|도와|내밀|토닥|업어|꺼내 주|나와|나왔|들고 (?:있|서|왔)|앉아|서 있|기다리고/;
+const NOT_ON_SCENE = /꿈|전화|사진|그림|보낸|멀리서|어디|안 보|보이지|없었|없어|생각|떠올|말해 주었|해 준 말|기억|들려|목소리|부르는 소리|이야기|소포|편지/;
+function calledIn(text: string, heroName?: string | null): string[] {
+  const out: string[] = [];
+  for (const sen of text.replace(/“[^”]*”/g, " ").split(/(?<=[.!?])\s*/)) {
+    if (!ON_SCENE.test(sen) || NOT_ON_SCENE.test(sen)) continue;
+    // 「초인종이 울려서 엄마가 문을 열어 주었어요」: 사람인 주어를 찾을 때까지
+    for (const m of sen.matchAll(/(?:^|\s)((?:[가-힣]+ )?[가-힣]+?)(?:이|가|께서|도)\s/g)) {
+      const w = m[1].trim();
+      if (!w || w === heroName || !PERSON_TAIL.test(w.split(" ").pop()!) || /친구들|사람|아이|인형/.test(w)) continue;
+      if (!out.includes(w)) out.push(w);
+      break;
+    }
+  }
+  return out;
+}
+/** 쪽 동작마다 주인공 문장에 있으면 그 동작을 하는 말 */
+const ACTION_SAY: Record<string, RegExp> = {
+  jump: /뛰|폴짝|깡충|점프|껑충|펄쩍|들썩|만세|팔짝/, run: /달려|달렸|달리|뛰어|뛰었|뛰며|후다닥|타다닥|헐레벌떡|쌩/,
+  walk: /걸|걸음|다가|나아|따라|돌아서|돌아왔|돌아갔|나갔|나섰|나서|갔어요|왔어요|건너|지나|살금|뚜벅|콩콩|총총|기어|올라|내려|향했|이동/,
+  dance: /춤|덩실|빙글|흔들흔들|들썩/, wave: /흔들|인사|안녕|반가/,
+};
+/** 주인공이 가만히 있는 말: 걷기 · 뛰기 쪽 (숨기는 숨으러 가는 것이라 뺀다) · 제자리 동작 쪽 */
+const STILL_MOVE = /앉아|앉았|앉은 채|누워|누웠|잠이 들|잠들|쳐다보|바라보았|올려다보|내려다보|기다렸|멈춰 섰|멈췄|가만히 서|서 있(?:어요|었어요|었|었다)|입을 벌|꼼짝/;
+const STILL_LOOP = /앉아|앉았|앉은 채|누워|누웠|잠이 들|잠들|쳐다보|바라보았|올려다보|내려다보|숨었|숨어|숨죽|기다렸|멈춰 섰|멈췄|가만히|입을 벌|꼼짝|울었|울고|훌쩍|엉엉/;
 const HEART_BEAT = /(?:가슴|심장|마음)(?:이|은|도|까지)? (?:[가-힣]+,? ){0,3}뛰[가-힣]*/;
 /** 주인공이 옮겨 가는 말 (걷기 · 뛰기 동작을 그대로 둘 때) */
 const MOVE_WORDS = /걸어|걸었|걷|달려|달렸|달리|뛰어|뛰었|뛰며|뛰다|다가|갔어요|갔다|왔어요|건너|지나|올라|내려|따라|향해|도망|산책|다다다|타다닥|사뿐|살금살금|걸음|성큼|폴짝|깡충|총총|돌아왔|돌아갔|들어갔|나갔|나왔|가까워|멀어|와서|찾아와|찾아갔/;
@@ -1229,6 +1337,7 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
   // 생김새 설명이 없어 호칭만으로 평범한 아저씨 그림이 섰다 (11/4 팀원 시험 — 우주 경찰관 이야기 마지막 쪽).
   // 설명이 없는 이름은 ① 이름 낱말이 겹치는 인물 ② 호칭뿐이면 앞에 나온 같은 성별 인물의 그림을 이어 쓴다
   const sheetKey = (n: string) => Object.keys(sheet).find((k) => k.replace(/\s+/g, "") === n.replace(/\s+/g, ""));
+  const sheetDesc = (n: string) => { const k = sheetKey(n) ?? Object.keys(sheet).find((x) => x.includes(n) || n.includes(x)); return k ? sheet[k] : ""; };
   const seenKinds: { name: string; kind: PersonId }[] = [];
   const renamed = new Map<string, PersonId>();
   // 카드로 세우는 어른 · 친구(장면 계획이 없는 짧은 이야기 · 예전 이야기)는 장소에 맞는 그림 — 우주에서 「어른에게 물어봤어요」면
@@ -1363,7 +1472,14 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       if (picks.result === "found_way") props.push(sign);
     }
     // 대본 인물이 있으면 사람은 그것으로 바꾼다 (표지판 · 숨을 것은 카드대로 둔다)
-    const scripted = (p.scene?.characters ?? [])
+    // 대본 인물 목록에서 빠졌는데 글에서 그 자리에서 무엇을 하는 사람(「엄마가 문을 열어 주었어요 · 기사님이 웃어 주었어요」)도 세운다
+    // (11/12 전수 점검: 대본 목록에 「친구」만 있어 문을 열어 준 엄마가 없었다). 대본 인물과 같은 사람(이름 · 그림 종류가 같음)은 빼고
+    const listed = p.scene?.characters ?? [];
+    const called = Array.isArray(p.scene?.characters) ? calledIn(p.text, heroName).filter((n) => {
+      const k = kindOfName(n);
+      return k && !listed.some((c) => c.name === n || c.name.includes(n) || n.includes(c.name) || kindOfName(c.name) === k);
+    }) : [];
+    const scripted = [...listed, ...called.map((name) => ({ name, slot: "right-middle" }))]
       .map((c) => ({ c, kind: kindOfName(c.name) }))
       .filter((v): v is { c: { name: string; slot: string }; kind: PersonId } => !!v.kind);
     for (const v of scripted) if (!seenKinds.some((q) => q.name === v.c.name)) seenKinds.push({ name: v.c.name, kind: v.kind });
@@ -1443,7 +1559,12 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     // 숨는 쪽은 숨을 곳으로 옮겨 가는 것이라 그대로 (「바위 뒤에 숨었어요 … 가슴이 쉬지 않고 뛰었어요」)
     const stillHeart = (p.action === "walk" || p.action === "run") && HEART_BEAT.test(p.text) && !/숨었|숨어|숨는|몸을 숨|숨겼/.test(p.text)
       && !MOVE_WORDS.test(p.text.replace(/“[^”]*”/g, " ").replace(new RegExp(HEART_BEAT.source, "g"), " "));
-    const move = stillHeart ? "none" : p.action === "walk" ? "walk" : p.action === "run" ? "run" : "none";
+    // 주인공이 가만히 있다고 하는 쪽(「풀밭에 누워 · 입을 벌린 채 쳐다보았어요 · 앉아서 기다렸어요」)은 대본 동작(걷기 · 뛰기 · 점프 · 춤 ·
+    // 손 흔들기)을 하지 않는다: 하늘다람쥐가 날아오르는 쪽에 주인공이 폴짝 뛰었다 (11/12 전수 점검 280쪽). 주인공 문장에 그 동작 말이 있으면 그대로
+    const heroSens = p.text.replace(/“[^”]*”/g, " ").split(/(?<=[.!?])\s*/).filter((sen) => sen.trim() && subjectOf(sen, props.map((q) => q.name ?? ""), heroName, undefined, "hero") === "hero");
+    const doing = ACTION_SAY[p.action];
+    const heroStill = !!doing && heroSens.some((sen) => (p.action === "walk" || p.action === "run" ? STILL_MOVE : STILL_LOOP).test(sen)) && !heroSens.some((sen) => doing.test(sen));
+    const move = stillHeart || (heroStill && (p.action === "walk" || p.action === "run")) ? "none" : p.action === "walk" ? "walk" : p.action === "run" ? "run" : "none";
     let from = x, to = x;
     let goal: string | undefined;
     if (move !== "none") {
@@ -1502,11 +1623,18 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     // 숨기 카드 쪽은 숨을 것만 — 단 다른 사람이 손에 든 것(「손전등을 든 엄마가 찾으러 왔어요」)은 그 사람 손에 (11/10 전수 점검)
     const hideCard = p.stage === "action" && picks.action === "hide";
     const fresh: ThingPlan[] = thingsFor(p.text, mine, isIndoor(loc), new Set([
-        ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel"].includes(q.id)).map((q) => `props/${q.id}.webp`),
+        ...props.filter((q) => ["bird", "bat", "rabbit", "squirrel", "cat", "dog"].includes(q.id)).map((q) => `props/${q.id}.webp`),
         ...(loc === "space-ship" ? ["props/spaceship.webp", "props/rocket.webp"] : []),
         // 숨는 곳으로 선 그림(미끄럼틀 · 정자 · 커튼 …)은 소품으로 또 세우지 않는다 (11/11 미끄럼틀 · 쉼터 소품을 더하면서)
         ...props.filter((q) => q.id === "cover" && q.src).map((q) => q.src!),
       ]), loc).map((t) => ({ ...t, motion: thingMotion(t, p.text, weather), ...holderOf(t, props, heroName) }))
+      .map((t) => (t.holder || t.pose ? t : { ...t, ...lightHolder(t, p.text, props) }))
+      .map((t) => (t.holder || t.pose ? t : { ...t, ...animalPlace(t, p.text) }))
+      // 앞 쪽에서 나무 위에 있던 동물은 내려온다는 말이 없으면 그대로 나무 위 (11/12: 5쪽 나무 틈 하늘다람쥐가 6쪽에 땅에 있었다)
+      .map((t) => (t.pose || t.spot === "air" || !TREE_ANIMALS.has(t.src) || !out.length || out[out.length - 1].location !== loc
+        // 앞 쪽에서 날아가 「옆 나무로 사뿐히 내려앉았어요」면 이 쪽은 나무 위
+        || !out[out.length - 1].things.some((x) => x.src === t.src && (x.pose === "high" || (x.spot === "air" && /나무(?:로|에|위로|가지로)[^.!?]{0,12}(?:내려앉|앉았|앉아)/.test(pages[pi - 1]?.text ?? ""))))
+        || /내려|떨어|뛰어내|나왔|기어 나/.test(p.text) ? t : { ...t, pose: "high" as const }))
       .filter((t) => !hideCard || (!!t.holder && t.holder !== "hero"));
     // 배경이 바뀌면 이어 오던 물건은 여기서 끝 (숨기 쪽도 그대로 둔다: 숨은 곳 앞에서 사라지면 어색하다)
     const dream = DREAM_TEXT.test(p.text);
@@ -1557,6 +1685,23 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     if (dream) things.push(...fresh.map((t) => ({ ...t, keep: undefined })));
     else for (const k of kept) if (!things.some((t) => nameOfSrc(t.src) === nameOfSrc(k.src)))
       things.push({ ...k, kept: true, motion: undefined, at: undefined, pose: undefined, holder: undefined });
+    // 생김새에 지닌 물건(「a lantern」)이 글에 나오면 그 사람 손에: 「커다란 까만 눈이 랜턴 빛에 빛났어요」에 랜턴이 땅에 놓였다 (11/12 전수 점검)
+    for (const [k, t] of things.entries()) {
+      if (t.holder || t.pose || t.name !== undefined || !HANDHELD.has(t.src)) continue;
+      const owner = props.find((q) => isPerson(q.id) && q.name && CARRIED.some(([rx, src]) => src === t.src && rx.test(sheetDesc(q.name!))));
+      if (owner) things[k] = { ...t, pose: "hand", holder: owner.name, keep: undefined, kept: undefined };
+    }
+    // 들고 있던 물건(랜턴 · 손전등 · 우산 · 바구니 · 풍선)은 그 사람이 같은 곳에 있는 동안 계속 든다: 2쪽에 켠 랜턴이 3쪽에 없었다 (11/12)
+    const prevHeld = out.length && out[out.length - 1].location === loc ? out[out.length - 1].things.filter((t) => t.pose === "hand" && t.holder && HANDHELD.has(t.src)) : [];
+    for (const t of dream ? [] : prevHeld) {
+      if (things.some((x) => x.src === t.src)) continue;
+      const here = t.holder === "hero" || props.some((q) => (q.name ?? q.id) === t.holder);
+      // 내려놓음 · 줌 · 끔은 그 물건을 말한 문장에서만 (「도토리를 놓아 두었어요」에 할머니 랜턴이 사라졌다)
+      const word = HELD_WORD[t.src];
+      const dropped = !!word && p.text.split(/(?<=[.!?])\s*/).some((sen) => word.test(sen) && /내려놓|내려 놓|두고|놓아 두|놓았|건네|주었|줬|넣었|껐|끄고|접었|날아가|놓쳤|잃어|떨어뜨/.test(sen));
+      if (!here || dropped) continue;
+      things.push({ ...t, at: undefined, appearAt: undefined, give: undefined, motion: undefined, kept: true });
+    }
     // 이 쪽에서 처음 나오는 물건(앞 쪽에 없던 것)은 나레이션이 그 말에 왔을 때 나타난다. 주기는 주는 사람 손에서 이미 보인다
     for (const [k, t] of things.entries()) {
       if (t.kept || t.at === undefined || t.appearAt !== undefined || t.give) continue;
@@ -1568,7 +1713,7 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     out.push({
       location: loc,
       env: { night: night && !litHere, sun, weather, dim: dimNow && !litHere && !glowIn, lightsOn: turnsOn && !litHere, glow: glowIn && !litHere && !morningHere },
-      hero: { from, to, move, loops: LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,
+      hero: { from, to, move, loops: heroStill ? 0 : LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,
         calm: move === "none" && CALM_ACTIONS.has(p.action), face, goal, seat, stay: move === "none" && pi > 0 && prevLoc === loc && !hiding },
       props,
       // 대본 인물로 이미 선 동물은 글에 나와도 또 놓지 않고, 우주선 안에서는 우주선을 놓지 않는다 (위 fresh)

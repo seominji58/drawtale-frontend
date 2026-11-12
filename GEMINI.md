@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/12 유기 전수 점검**: `tools/scene-check/organic.ts` 가 쪽마다 동작 주인 · 든 물건 · 동물 · 인물 · 쪽 동작을 본다(주어 판단은 장면과 같은 `subjectOf`). 빙글 · 몸짓 주인은 그 말의 마디 끝까지(`sceneFx` `upToClause`), 손에 듦은 `HANDHELD_USE` · `HOLD_NOW` · `lightHolder` · 생김새 `CARRIED`, 동물 자리는 `animalPlace`, 대본에 없는 그 자리 사람은 `calledIn`, 가만히 있는 쪽은 대본 동작 안 함(`STILL_MOVE` · `STILL_LOOP`)
 - **11/11 글이 말하는 물건**: `continuity.ts` 의 `SAID`(낱말 → 그림 이름, `@장소` 는 배경판에 그려진 것)로 글이 말하는 물건이 장면에 있는지 센다. 새 물건 그림을 넣으면 `plan.ts` `THINGS` · `ONLY_AT` · `KEEP_THINGS` 와 이 표를 같이 고친다. 몸에 걸친 물건은 `WORN_SRC`. 앞모습 꾸벅 원근은 `--persp`(주인공 키 3배)
 - **11/11 기쁨 연출**: `SceneStage` `JOY_RING` 은 머리 위 반원 10조각. `joyful` 은 사람(`who`)마다 하나만, 둘이면 `JOY_RANK` 순(하트 > 별 > 꽃). 별 빛은 `ui.css` `.scene-joy.j-star` 한 겹 2px
 - **11/11 글과 배경**: `plan.ts` `whereHeroIs(text, place, loc)` 가 `AT_SCENE`([그곳 말, 장면, 쓸 조건, 주인공 주어 필요]) 로 주인공이 있는 장면을 정한다(`locationFor` · 집 장면 뒤, 대본 scene.location 보다 앞). 카드 밖 장면 · 가게 안(`town-shop`)은 나간다는 말이 없으면 잇는다. 새 장소 경우는 `tools/scene-check/where.ts` 에 더한다. 걷기 · 뛰기는 대본 `action` 인데 `HEART_BEAT` 뿐이면 제자리
