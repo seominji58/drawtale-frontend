@@ -737,6 +737,10 @@ function thingMotion(t: ThingPlan, text: string, weather: Weather | null): Thing
   if (LIGHT_SRC.has(src)) return LIGHT_OFF.test(text) ? undefined : LIGHT_ON.test(text) ? "glow" : undefined;
   // 장면 물건도 그 물건이 나온 문장의 말대로 (11/9 테스트 4번 「소품 연출이 고정적」) — 반짝 · 빙글 · 커짐 · 사라짐 · 흔들림 …
   if (t.at !== undefined && t.at >= 0 && !t.pose) {
+    // 「데굴데굴 굴러가는 달 돌 · 둥실 떠다니는 풍선」처럼 움직임 말이 물건 바로 앞에서 꾸며도 (11/12 사용자 754번: 굴러가는 돌이 안 보였다)
+    const before = text.slice(Math.max(0, t.at - 14), t.at);
+    if (/(?:굴러가는|굴러오는|데굴데굴|떼굴떼굴|구르는)\s*(?:[가-힣]+\s)?$/.test(before)) return "roll";
+    if (/(?:떠다니는|둥실둥실|날아다니는|떠가는)\s*(?:[가-힣]+\s)?$/.test(before)) return "float";
     const m = sentenceMotion(text, t.at);
     if (m) return m;
   }
@@ -1018,6 +1022,8 @@ export interface PagePlan {
   props: PropPlan[];
   /** 쪽 글에 나온 물건 · 내 소품 — 주인공 옆 땅에 */
   things: ThingPlan[];
+  /** 글이 「보이지 않았어요 · 없어졌어요」라고 한 배경 물건 그림 이름 (다시 보이거나 찾을 때까지 감춘다, 11/12 「로켓이 보이지 않았어요」) */
+  hideBg?: string[];
   /** 이야기 안 쪽 열쇠 (이야기마다 다른 값 + 쪽 번호). 장면이 쪽 사이 자리를 기억하는 데 쓴다 */
   key?: string;
 }
@@ -1289,6 +1295,12 @@ function calledIn(text: string, heroName?: string | null): string[] {
   }
   return out;
 }
+/** 배경 그림 물건 → 글에서 부르는 말 (안 보인다 · 다시 보였다를 찾을 때) */
+const BG_WORD: [string, string][] = [["rocket", "로켓|우주선"], ["boat", "배|보트"], ["tent", "텐트"], ["lighthouse", "등대"], ["bus", "버스"],
+  ["house", "집"], ["houses", "집"], ["swing", "그네"], ["slide", "미끄럼틀"], ["bench", "벤치"], ["fountain", "분수"], ["sign", "표지판"], ["castle", "모래성"], ["stall", "가판대"], ["rover", "탐사차"]];
+const BG_GONE = (w: string) => new RegExp(`(?:${w})(?:이|가|도|은|는)? (?:[가-힣]+ )?(?:보이지 않|안 보|없었|없어|사라졌|사라지)`);
+// 「보이지 않았어요」의 「보이」는 다시 보인 것이 아니다 (앞의 BG_GONE 을 먼저 본다)
+const BG_BACK = (w: string) => new RegExp(`(?:${w})(?:이|가|도|을|를)? (?:[가-힣]+ ){0,2}(?:보였(?!지)|보여(?!도)|나타났|나타나|찾았|찾아|도착)|(?:${w})(?:에|으로|로) (?:[가-힣]+ )?(?:돌아|도착|들어)`);
 /** 쪽 동작마다 주인공 문장에 있으면 그 동작을 하는 말 */
 const ACTION_SAY: Record<string, RegExp> = {
   jump: /뛰|폴짝|깡충|점프|껑충|펄쩍|들썩|만세|팔짝/, run: /달려|달렸|달리|뛰어|뛰었|뛰며|후다닥|타다닥|헐레벌떡|쌩/,
@@ -1406,6 +1418,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
   const cover = coverFor(pages.filter((p) => p.stage === "action").map((p) => p.text).join(" "));
   // 표지판 색: 글이 「초록색 표지판」이라 하면 그 쪽부터 끝까지 초록 판 (11/11 사용자 994번 「초록 표지판」에 나무색 표지판)
   let signSrc: string | undefined;
+  // 안 보이는 배경 물건 (같은 곳에 있는 동안)
+  let lostBg = new Set<string>(), lostLoc: string | undefined;
   // 대본이 쪽마다 등장인물을 적은 이야기(장면 계획)는 대본을 따른다 — 인물이 없는 쪽은 비워 둔다.
   // 카드로 사람(어른 · 친구)을 세우는 것은 장면 계획이 없는 예전 이야기만 (11/4 사용자 — 주인공 혼자 로켓 창밖을 보는
   // 마지막 쪽에 결과 카드 때문에 남자 어른이 섰다)
@@ -1824,7 +1838,14 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     // 주인공이 받거나 들고 있는 물건이 있는 제자리 쪽은 가만히 서서 든다: 손을 흔들거나 뛰는 동안은 손 자리를 못 써 받은 물건이 바닥에 놓였다
     // (11/12 사용자 「물건을 건네준다는 표현 때 물건이 대상한테 안 주고 바닥에 주는데」)
     const heroHolds = move === "none" && things.some((t) => t.holder === "hero" && t.pose === "hand");
+    if (loc !== lostLoc) { lostBg = new Set(); lostLoc = loc; }
+    const plainText = p.text.replace(/“[^”]*”/g, " ");
+    for (const [kind, w] of BG_WORD) {
+      if (BG_GONE(w).test(plainText)) lostBg.add(kind);
+      else if (BG_BACK(w).test(plainText)) lostBg.delete(kind);
+    }
     out.push({
+      ...(lostBg.size ? { hideBg: [...lostBg] } : {}),
       location: loc,
       env: { night: night && !litHere, sun, weather, dim: dimNow && !litHere && !glowIn, lightsOn: turnsOn && !litHere, glow: glowIn && !litHere && !morningHere },
       hero: { from, to, move, loops: heroStill || heroHolds ? 0 : LOOP_ACTIONS[p.action] ?? (p.action === "idle" ? 0 : KEEP_LOOPING), fallen: p.stage === "problem" && picks.problem === "fall", hide, fly,

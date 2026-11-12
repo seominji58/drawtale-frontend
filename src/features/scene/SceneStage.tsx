@@ -865,15 +865,24 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
         let hx: number, hy: number, outer: "l" | "r", bodyH: number;
         if (t.holder === "hero" && quad) return onQuad(t, "mouth");   // 4족형은 입에 문다
         if (t.holder === "hero") {
-          // 주인공은 가만히 있는 쪽만 — 걷거나 팔이 움직이면 손에서 떨어져 보인다
+          // 가만히 서 있는 쪽, 그리고 걸어가는 쪽도 손에 든 채 주인공과 같은 빠르기로 옮겨 간다. 걷는 쪽을 빼면 「곰 인형을 안고
+          // 걸어갔어요」 · 「손전등을 들고 돌아왔어요」의 물건이 바닥에 놓였다 (11/12 손에 듦 792개 중 땅 80개가 모두 이것)
           const drawW = spr ? (spr.box[2] - spr.box[0]) * (H.h / Math.max(0.05, spr.box[3] - spr.box[1])) / aspect
             : stillAr ? H.h * stillAr / aspect : 0;
-          if (!upright || !heroHands || !hero.calm || !drawW) return null;
-          // 사람이 서 있지 않은 쪽 손 (둘 다 비었으면 그림 오른쪽 손)
+          const walking = hero.move !== "none" && !hero.fly;
+          if (!upright || !heroHands || !(hero.calm || walking) || !drawW) return null;
+          // 사람이 서 있지 않은 쪽 손 (둘 다 비었으면 화면 오른쪽 손). 그림을 뒤집어 그렸으면 그림의 왼손이 화면 오른쪽
           outer = people.some((v) => v && v.spot.x > hero.to) && !people.some((v) => v && v.spot.x < hero.to) ? "l" : "r";
-          hx = heroX + (heroHands[outer][0] - 0.5) * drawW;
-          hy = H.foot - H.h + heroHands[outer][1] * H.h;
+          const side = flipped ? (outer === "r" ? "l" : "r") : outer;
+          hx = heroX + (flipped ? -1 : 1) * (heroHands[side][0] - 0.5) * drawW;
+          hy = H.foot - H.h + heroHands[side][1] * H.h;
           bodyH = H.h;
+          if (walking) {
+            const h = Math.min(t.h, bodyH * (SIDE_GRIP.has(t.src) ? 0.1 : 0.2)), w = thingW(h);
+            const x = SIDE_GRIP.has(t.src) ? hx + (outer === "r" ? 0.4 : -0.4) * w : hx;
+            const base = spotStyle({ src: t.src, x, foot: SIDE_GRIP.has(t.src) ? hy + h / 2 : hy - h * 0.08 + h, h });
+            return { x, cls: "", style: { ...base, ...(SIDE_GRIP.has(t.src) && outer === "r" ? { transform: "translateX(-50%) scaleX(-1)" } : {}), ...withHero } };
+          }
         } else {
           if (!holder) return null;
           const hand = (HANDS as Record<string, { l: number[]; r: number[] }>)[holder.p.id];
@@ -932,7 +941,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   // 같은 종류는 하나만, 화분이 있으면 꽃은 화분 꽃이라 또 놓지 않는다 (「화분에 꽃이 피었어요」에 화분 · 꽃밭이 같이 섰다)
   const hasPot = things.some((t) => kindOf(t.src) === "flowerpot");
   let topCount = 0;
-  const posedSpots = things.filter((t, i) => !bgKinds.has(kindOf(t.src)) && things.findIndex((o) => kindOf(o.src) === kindOf(t.src)) === i
+  // 굴러가는 · 날아가는 물건은 배경에 같은 종류가 있어도 따로 움직이는 것이라 세운다 (11/12 「데굴데굴 굴러가는 달 돌」이 안 보였다).
+  // 손에 든 · 주고받는 물건도 그렇다: 침실 장난감 상자 · 동굴 돌 · 입구 랜턴이 배경에 있다고 「장난감 상자를 안고」 · 「박쥐가 돌을 건넸어요」가 안 그려졌다
+  const posedSpots = things.filter((t, i) => (!bgKinds.has(kindOf(t.src)) || (t.motion === "roll" && !t.kept) || t.pose === "hand" || !!t.give) && things.findIndex((o) => kindOf(o.src) === kindOf(t.src)) === i
       && !(hasPot && kindOf(t.src) === "flowers")).map((t) => ({ t, at: t.pose ? posedOrOther(t) : null,
         // 주기: 주는 사람 손 자리 (주는 말 전까지)
         from: t.give ? inScreen(t, posed({ ...t, holder: t.give.from })) : null }))
@@ -1052,6 +1063,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   }
   // 큰 붙박이가 선 자리의 배경 물건은 감춘다: 글이 말하지 않은 것만, 그 물건 폭의 3할 넘게 겹칠 때 (위 tryList)
   const hiddenBg = new Set<number>();
+  // 글이 안 보인다고 한 배경 물건 (plan.hideBg)
+  layout.objects.forEach((o, i) => { if (plan.hideBg?.includes(o.src.split("/").pop()!.replace(/\.webp$/, ""))) hiddenBg.add(i); });
   for (const t of thingSpots) {
     if (!STRUCT.test(t.src) || t.x === undefined) continue;
     const half = halfOf(t, t.h);
@@ -1112,7 +1125,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     : { opacity: heard(appearAt(t)!) ? 1 : 0, transition: "opacity .45s ease" });
   const handStyle = (v: { t: ThingPlan; at: { style: CSSProperties } | null; from: { style: CSSProperties } | null }): CSSProperties =>
     v.t.give && v.from && !heard(v.t.give.at) ? { ...v.from.style, transition: "left .9s ease, bottom .9s ease, opacity .45s ease" }
-      : { ...v.at!.style, ...(v.t.give && v.from ? { transition: "left .9s ease, bottom .9s ease, opacity .45s ease" } : {}), ...appear(v.t) };
+      : { ...v.at!.style, ...(v.t.give && v.from ? { transition: "left .9s ease, bottom .9s ease, opacity .45s ease" } : {}), ...appear(v.t),
+          // 주인공과 같이 옮겨 가는 것(걸으며 든 것)은 나타나기 전환과 옮겨 가기 전환을 함께 (나타나기만 남으면 제자리에서 튀었다)
+          ...(v.at!.style.transition && appear(v.t).transition && !(v.t.give && v.from) ? { transition: `${v.at!.style.transition}, opacity .45s ease` } : {}) };
   const brightOn = fx.bright >= 0 && heard(fx.bright);
   // 누가 우나: 그 문장에 「나」가 있으면 주인공, 이름이 나온 인물이면 그 사람, 아니면 옆 인물(「친구가 울고 있었어요」), 없으면 주인공
   const visiblePeople = people.filter((v): v is NonNullable<typeof v> => !!v && v.p.id !== "sign");
