@@ -442,18 +442,19 @@ function BookView({ story, imageUrl, keypoints, muteAll, onDone }: {
     let alive = true;
     const mark = (i: number) => alive && setSceneReady((s) => (s.has(i) ? s : new Set(s).add(i)));
     (async () => {
-      // 지금 쪽 · 다음 쪽부터, 세 쪽씩 함께 받는다 (한 쪽씩 차례로 받으면 느린 망에서 기다림이 길었다)
+      // 지금 쪽 · 다음 쪽을 먼저 혼자 받고(망을 나눠 쓰지 않게), 그 뒤 쪽들은 세 쪽씩 함께 받는다.
+      // 전에는 처음부터 세 줄이 같이 받아 느린 망에서 다음 쪽이 늦게 끝났다 (11/12 사용자 「두 쪽씩 미리 받는 게 더 빠를려나」, 재기 tools/scene-check/prefetch.mjs)
       const order = scenes.map((_, i) => i).filter((i) => i >= pg && !sceneReady.has(i));
-      let next = 0;
-      const worker = async () => {
-        while (alive && next < order.length) {
-          const i = order[next++];
-          const pi = pages[i];
-          const sprite = pi.sprite && pi.spriteUrl ? { url: pi.spriteUrl, ...pi.sprite } : null;
-          await Promise.race([preloadScene(scenes[i], sprite, pi.spriteLeft ?? null), new Promise((ok) => setTimeout(ok, SCENE_WAIT_MS))]);
-          mark(i);
-        }
+      const load = async (i: number) => {
+        const pi = pages[i];
+        const sprite = pi.sprite && pi.spriteUrl ? { url: pi.spriteUrl, ...pi.sprite } : null;
+        await Promise.race([preloadScene(scenes[i], sprite, pi.spriteLeft ?? null), new Promise((ok) => setTimeout(ok, SCENE_WAIT_MS))]);
+        mark(i);
       };
+      for (const i of order.filter((i) => i <= pg + 1)) { if (!alive) return; await load(i); }
+      const rest = order.filter((i) => i > pg + 1);
+      let next = 0;
+      const worker = async () => { while (alive && next < rest.length) await load(rest[next++]); };
       await Promise.all([worker(), worker(), worker()]);
     })();
     return () => { alive = false; };

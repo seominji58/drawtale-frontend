@@ -9,6 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
+| 11/12 다음 쪽 먼저 받기 | **끝**: `S09Story` 지금 · 다음 쪽 먼저, 나머지 세 줄. 느린 망 다음 쪽 2.25 → 1.38초(`prefetch.mjs`) |
 | 11/12 대본 · 장면 유기 전수 점검 | **끝**: `organic.ts` 걸린 쪽 987 → 249. `plan.ts` `upToClause`(빙글 · 몸짓 주인) · `HANDHELD_USE` · `HOLD_NOW` · `lightHolder` · `CARRIED` · 이어 들기 · `animalPlace` · `calledIn` · `ACTION_SAY` / `STILL_*`, 동물 그림 5장 |
 | 11/11 난간 | **끝**: `props/railing.webp`, `plan.ts` 난간 규칙, `SceneStage` 주인공 뒤 손 높이(`WIDE_SCENERY`). 글 물건 없음 166 → 128 |
 | 11/11 글이 말하는 물건 · 꾸벅 · 걸친 물건 | **끝**: `continuity.ts` `SAID` 로 장면에 없는 물건 문장 637 → 153, 새 그림 9장(`gen_scene_props5.py` · `6.py`), `plan.ts` `WORN_SRC` · 장소 규칙(구름다리 · 터널 → 놀이터, 방파제 → 부두, 교문 → 학교, 「물속」 좁힘), `SceneStage` `--persp`(주인공 키 3배). 남은 것: 난간 38 |

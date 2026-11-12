@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/12 미리 받기**: `S09Story` 는 지금 쪽 · 다음 쪽 장면 그림을 먼저 혼자 받고 나머지를 세 줄로. 재기는 `tools/scene-check/prefetch.mjs [kbps] [rtt] [이야기 …]`
 - **11/12 유기 전수 점검**: `tools/scene-check/organic.ts` 가 쪽마다 동작 주인 · 든 물건 · 동물 · 인물 · 쪽 동작을 본다(주어 판단은 장면과 같은 `subjectOf`). 빙글 · 몸짓 주인은 그 말의 마디 끝까지(`sceneFx` `upToClause`), 손에 듦은 `HANDHELD_USE` · `HOLD_NOW` · `lightHolder` · 생김새 `CARRIED`, 동물 자리는 `animalPlace`, 대본에 없는 그 자리 사람은 `calledIn`, 가만히 있는 쪽은 대본 동작 안 함(`STILL_MOVE` · `STILL_LOOP`)
 - **11/11 글이 말하는 물건**: `continuity.ts` 의 `SAID`(낱말 → 그림 이름, `@장소` 는 배경판에 그려진 것)로 글이 말하는 물건이 장면에 있는지 센다. 새 물건 그림을 넣으면 `plan.ts` `THINGS` · `ONLY_AT` · `KEEP_THINGS` 와 이 표를 같이 고친다. 몸에 걸친 물건은 `WORN_SRC`. 앞모습 꾸벅 원근은 `--persp`(주인공 키 3배)
 - **11/11 기쁨 연출**: `SceneStage` `JOY_RING` 은 머리 위 반원 10조각. `joyful` 은 사람(`who`)마다 하나만, 둘이면 `JOY_RANK` 순(하트 > 별 > 꽃). 별 빛은 `ui.css` `.scene-joy.j-star` 한 겹 2px

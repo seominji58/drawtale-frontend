@@ -1181,7 +1181,7 @@ const personSex = (k: PersonId): "m" | "f" | null =>
   /-f$/.test(k) || k === "mom" || k === "aunt" || k === "grandma" || k === "nurse" ? "f" : /-m$/.test(k) || k === "dad" || k === "grandpa" ? "m" : null;
 
 /** 대본 자리 → 가로 자리. 주인공은 왼쪽 가운데라 인물은 오른쪽 */
-const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0.66 };
+const SLOT_X: Record<string, number> = { "right-middle": 0.78, "right-bottom": 0.66, "left-middle": 0.24 };
 
 /** 쪽마다 계획. place 는 장소 카드 id (말로 정한 장소면 부르지 않는다).
  *  인물: 대본이 그 쪽에 적은 인물(scene.characters)이 먼저다 — 글에 나오는 사람이 화면에 나온다.
@@ -1477,9 +1477,12 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     const listed = p.scene?.characters ?? [];
     const called = Array.isArray(p.scene?.characters) ? calledIn(p.text, heroName).filter((n) => {
       const k = kindOfName(n);
+      // 호칭만(「아저씨가 방긋 웃었어요」)이면 대본에 사람이 있을 때 그 사람이다 (11/12 전체 검사: 숲 지킴이 옆에 아저씨가 또 섰다)
+      if (listed.length && /^(?:아저씨|아주머니|아줌마|선생님|언니|오빠|형|누나|이모|고모|삼촌|사장님|기사님|선장님|박사님|어른|직원)$/.test(n.split(" ").pop()!)) return false;
       return k && !listed.some((c) => c.name === n || c.name.includes(n) || n.includes(c.name) || kindOfName(c.name) === k);
     }) : [];
-    const scripted = [...listed, ...called.map((name) => ({ name, slot: "right-middle" }))]
+    // 글로 세운 사람은 대본 인물(오른쪽)과 겹치지 않게 왼쪽 칸 (11/12 전체 검사: 문을 열어 준 엄마가 친구와 겹쳤다)
+    const scripted = [...listed, ...called.map((name) => ({ name, slot: listed.length ? "left-middle" : "right-middle" }))]
       .map((c) => ({ c, kind: kindOfName(c.name) }))
       .filter((v): v is { c: { name: string; slot: string }; kind: PersonId } => !!v.kind);
     for (const v of scripted) if (!seenKinds.some((q) => q.name === v.c.name)) seenKinds.push({ name: v.c.name, kind: v.kind });
@@ -1548,7 +1551,10 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
         return undefined;
       };
       for (const { c, kind } of scripted) {
-        const enter = prevNames.includes(c.name) || already(c.name) || (!!seenHere(c.name) && !COMES.test(p.text)) ? undefined : "right" as const;
+        // 왼쪽 칸 사람은 왼쪽에서 들어온다 (글로 세운 사람, 11/12)
+        // 글로 세운 사람(문을 열어 준 엄마 …)은 그 자리에 이미 있던 사람: 걸어 들어오지 않는다
+        const enter = called.includes(c.name) || prevNames.includes(c.name) || already(c.name) || (!!seenHere(c.name) && !COMES.test(p.text)) ? undefined
+          : (xs.get(c.name) ?? 1) < 0.5 ? "left" as const : "right" as const;
         props.push({ id: kind, name: c.name, x: xs.get(c.name), enter, ...(enter ? { enterAt: entryAt(c.name) } : {}) });
       }
     }
@@ -1670,7 +1676,8 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
       // 「친구 모래성이 무너져」: 남의 것이 무너진 말이면 앞에서 이어 온 주인공 것은 그대로 (11/11 이어짐 검사)
       const othersOne = !!old && t.at !== undefined && /(?:친구|동생|형|누나|언니|오빠|다른)(?:의)?\s$/.test(p.text.slice(Math.max(0, t.at - 6), t.at));
       const goneAfter = t.pose === "hand" || t.pose === "head" || (!asPlace && !othersOne && GONE_AFTER.test(after));
-      things.push(t.pose ? t : { ...t, keep });
+      // 손에 든 것도 앞 쪽에 놓였던 것이면 같은 열쇠: 손에 들 수 없는 그림(춤추는 쪽 …)이라 땅에 놓이면 앞 쪽 그 자리에 (11/12 전체 검사 524번)
+      things.push(t.pose ? (old ? { ...t, keep } : t) : { ...t, keep });
       kept = kept.filter((k) => k !== old);
       if (!t.pose && !goneAfter) kept.push({ ...t, keep });
     }
