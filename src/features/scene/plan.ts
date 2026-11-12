@@ -317,6 +317,8 @@ function thingPose(text: string, at: number, end: number, spot: Spot, indoor = f
   if (lead2 && pose !== "hand") return {};
   if (!pose) return {};
   if (spot === "air" && (pose === "water" || pose === "blown")) return {};   // 행성 · 새는 원래 떠 있고 날아다닌다
+  // 「화살표를 따라 날아갔어요」는 따라가는 쪽이 나는 것이라 그 물건은 그대로 (11/12 날개형 점검: 화살표가 바람에 날아가 사라졌다)
+  if ((pose === "blown" || pose === "water" || pose === "fall") && /^\s*(?:따라|향해|쫓아|보며|보고)/.test(rest)) return {};
   if (pose === "head" && !/모자|왕관|나뭇잎|화관/.test(text.slice(at, end))) return {};
   // 주어: 소품 앞에서 마지막으로 「…이/가/은/는」 붙은 말. 「내 손에 쥐여 주었어요」면 주인공
   const before = text.slice(from, at);

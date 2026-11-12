@@ -554,7 +554,9 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     ?? (PEOPLE[id] ? { src: `../props/${id}.webp`, x: 0.78, foot: PEOPLE[id].foot ?? 0.93, h: PEOPLE[id].h } : undefined);
   // 옆에 서는 것들(인물 · 표지판)의 자리: 주인공과 서로를 피해, 칸 안에서. 원하는 쪽이 꽉 차면 반대쪽으로
   // 글이 말하는 배경 물건 앞도 비워 둔다 (위 saidSpans): 인물 · 소품이 그 앞에 서지 않는다
-  const placed: [number, number][] = [[hero.to - heroHalf, hero.to + heroHalf], ...avoidSpans];
+  // 옆으로 긴 몸(뱀 · 개 …)은 움직이는 동안 몸 끝이 그림 자리(box)보다 조금 더 나가 표지판 · 사람과 닿았다 (11/12 사람 아닌 형태 검사 74쪽): 자리를 1할 넓게 잡는다
+  const bodyPad = fit === "width" ? 1.12 : 1;
+  const placed: [number, number][] = [[hero.to - heroHalf * bodyPad, hero.to + heroHalf * bodyPad], ...avoidSpans];
   const free = (a: number, b: number) => placed.every(([l, r]) => b <= l || a >= r);
   // 사람 자리 (주인공 + 인물): 큰 소품이 배경 물건과 겹치느니 이 뒤에 선다 (아래 thingSpots)
   const figureSpans = new Set<[number, number]>([placed[0]]);
@@ -666,7 +668,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     if (!base0) return null;
     const wRatio = p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45;
     const ahead = hero.goal === p.id && hero.move !== "none" && travel !== 0
-      ? hero.to + travel * (heroHalf + (base0.h * wRatio / aspect) / 2 + 0.015) : undefined;
+      ? hero.to + travel * (heroHalf * bodyPad + (base0.h * wRatio / aspect) / 2 + 0.015) : undefined;
     // 앞 쪽에도 같은 배경에 있던 사람(걸어 들어오지 않는 사람)은 그 자리에서: 대본이 쪽마다 자리(slot)를 달리 적어 제자리 쪽인데
     // 다람쥐가 오른쪽 · 왼쪽 · 오른쪽으로 옮겨 다녔다 (11/10 소품 이어짐 점검)
     const pk = prevKey(plan.key), who = p.name ?? p.id;
@@ -729,7 +731,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
   const bgKinds = new Set(layout.objects.map((o) => kindOf(o.src)));
   // 공중 소품(나비 · 새 · 행성 …)은 사람 머리 위 높이라 땅의 사람 · 물건과는 겹치지 않는다 — 공중 소품끼리만 피한다.
   // 전에는 땅과 같은 줄에서 자리를 다퉈 괜히 빠졌고, 머리 높이(0.45)라 사람 머리와 겹칠 수 있었다 (11/4 자리 검사)
-  const airPlaced: [number, number][] = [];
+  // 떠 있는 주인공(나는 새 · 헤엄치는 물고기)은 공중 소품(반딧불이 · 나비 · 갈매기)이 피할 자리다 (11/12 사람 아닌 형태 검사: 반딧불이가 새 머리에 겹쳤다)
+  const airPlaced: [number, number][] = liftNow > 0 ? [[hero.to - heroHalf, hero.to + heroHalf]] : [];
   // 대본이 말한 자리 (pose): 물에 떠내려감 · 바람에 날아감 · 나무에 걸림 · 머리에 씀 · 손에 듦. 놓을 수 없으면 아래 보통 자리로
   // 주인공 머리 · 손 자리는 서 있는 사람 그림 기준 — 옆으로 긴 몸(4족형) · 띄운 몸(물고기)은 머리 · 손이 다른 데라 보통 자리로 (11/5)
   const upright = fit === "height" && size === 1 && !liftNow;

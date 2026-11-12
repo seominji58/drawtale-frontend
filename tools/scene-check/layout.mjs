@@ -43,7 +43,8 @@ function issuesOf(s) {
     for (const b of s.bg) {
       const o = inter(f, b) / Math.max(1e-6, Math.min(area(b), area(f)));
       // 공중 인물(새 · 박쥐)은 날고 있어 배경 앞이 맞다
-      if (o > 0.25 && f.y1 < b.y1 + 0.02 && f.name !== "bird" && f.name !== "bat") out.push(["인물이 배경 물건과 겹침", `${f.name} ↔ ${b.name} ${Math.round(o * 100)}%`]);
+      // 날고 있는 주인공(발끝이 땅 위 높이)은 나무 · 건물 앞을 지나간다 (사람 아닌 형태 검사, 11/12)
+      if (o > 0.25 && f.y1 < b.y1 + 0.02 && f.name !== "bird" && f.name !== "bat" && !(f.name === "주인공" && f.y1 < 0.86)) out.push(["인물이 배경 물건과 겹침", `${f.name} ↔ ${b.name} ${Math.round(o * 100)}%`]);
     }
   }
   // 땅에 서는 사람이 땅 줄보다 위에 (뒤에 세워 작게 · 높게 → 떠 보임, 11/10 사용자 「친구가 공중에 떠 있다」). 새 · 박쥐 · 우주는 뺀다
@@ -53,7 +54,8 @@ function issuesOf(s) {
     const o = inter(figs[i], figs[j]) / Math.max(1e-6, Math.min(area(figs[i]), area(figs[j])));
     if (o > 0.2) out.push(["인물끼리 겹침", `${figs[i].name} ↔ ${figs[j].name} ${Math.round(o * 100)}%`]);
   }
-  const heroH = s.hero ? s.hero.y1 - s.hero.y0 : 0.5;
+  // REFH=0.52: 사람 아닌 형태(작은 새 · 낮고 긴 뱀)는 소품 크기를 아이 키(사람 주인공 키)와 비교한다 (소품 키는 아이 1.1m 기준)
+  const heroH = process.env.REFH ? Number(process.env.REFH) : s.hero ? s.hero.y1 - s.hero.y0 : 0.5;
   // 글이 말하는 배경 물건이 주인공 · 인물에 절반 넘게 가림 (주인공 상자는 그림 칸이라 넉넉하니 가운데 60% 폭만 본다)
   const body = (f) => { const w = f.x1 - f.x0; return { ...f, x0: f.x0 + w * 0.2, x1: f.x1 - w * 0.2 }; };
   for (const b of s.bg) {
@@ -108,7 +110,8 @@ function issuesOf(s) {
       const o = inter(t, u) / Math.max(1e-6, Math.min(area(t), area(u)));
       // 사람 손에 든 것이 사람 뒤에 그리는 넓은 풍경(텐트 · 난간 · 표지판 …) 앞에 오는 것은 겹침이 아니다 (「랜턴을 든 엄마」 앞 텐트, 11/12 난간 · 표지판 앞 손전등)
       const wideBack = (HELD.has(t.pose) || HELD.has(u.pose)) && [t.name, u.name].some((n) => ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "railing", "arrow", "sign", "sign-green", "lamp"].includes(n));
-      if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose)) && !wideBack) out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
+      // 난간은 사람 뒤에 가로지르는 풍경이라 그 앞의 다리 · 버섯 · 배와 겹쳐도 된다 (11/12)
+      if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose)) && !wideBack && t.name !== "railing" && u.name !== "railing") out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
     }
     const h = t.y1 - t.y0;
     // 대문 · 텐트 · 우주선 · 로켓은 실제로 아이보다 크다 (11/9 소품 키를 실제 크기 기준으로), 1.25 배까지
