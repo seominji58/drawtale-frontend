@@ -360,7 +360,7 @@ export default function S13Settings() {
         {([["guardian", "보호자 목소리", myVoice, "/voice",
             "보호자님이 1~3분 글을 읽어 녹음하면, 이야기 나레이션을 그 목소리로 읽어 드립니다. 등록 전에 동의 내용을 안내합니다"],
            ["child", "아이 목소리", kidVoice, "/child-voice",
-            "보호자님 동의 아래 아이가 30초~3분 짧은 글을 읽어 녹음하면, 이야기 나레이션을 아이 목소리로 읽어 줍니다 (시연용)"]] as const)
+            "보호자님 동의 아래 아이가 짧은 글을 읽어 녹음하면, 이야기 나레이션을 아이 목소리로 읽어 줍니다 (시연용)"]] as const)
           .map(([kind, label, v, path, intro]) => (
           <Row key={kind} name={label}
             desc={mode !== "member" ? "로그인한 보호자만 쓸 수 있습니다"

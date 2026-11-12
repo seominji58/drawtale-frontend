@@ -64,10 +64,28 @@ const READING_CHILD = [
   "“오늘 정말 재미있었어!” 잘 자, 강아지야.",
 ];
 
+/** 받는 곳이 자체 음성 서버(qwen)일 때 읽는 글 — 약 10초 (2026-11-12, drawtale-tts REPORT 3 · 4장).
+ *  이 모델은 목소리를 학습하지 않고 만들 때마다 녹음을 앞에 붙여 읽어서, 녹음이 길수록 느리다(28초 녹음이 11초보다 40~50% 느림, 닮음은 같음).
+ *  30초가 넘으면 앞 30초만 잘라 썼고, 읽은 글을 안 보내 덜 닮았다. 짧게 읽고 읽은 글(ref_text)을 함께 보낸다 */
+const READING_SHORT = [
+  "옛날 옛날, 작은 언덕 위에 빨간 지붕 집이 있었어요.",
+  "어느 맑은 아침, 아이는 창밖을 보며 말했어요. “오늘은 어디로 가 볼까?”",
+];
+const READING_SHORT_CHILD = [
+  "안녕! 나는 이야기를 좋아해요.",
+  "작은 강아지가 공원에서 뛰어놀았어요.",
+  "나비가 팔랑팔랑 날아왔어요.",
+];
+/** 짧게 읽을 때: 5초부터 · 25초가 되면 저절로 멈춤 (서버는 3초 ~ 30초만 받는다) */
+const SHORT_MIN_SECONDS = 5;
+const SHORT_MAX_SECONDS = 25;
+
 type Step = "consent" | "record" | "review" | "sending" | "done";
 
 const FAIL: Record<string, string> = {
   CONSENT_REQUIRED: "필수 항목에 모두 동의해야 등록할 수 있습니다.",
+  REF_TOO_SHORT: "녹음이 너무 짧습니다. 안내 글을 끝까지 읽어 주세요.",
+  REF_TOO_LONG: "녹음이 너무 깁니다. 안내 글만 읽어 주세요.",
   VOICE_UNAVAILABLE: "지금은 목소리를 등록할 수 없습니다. 잠시 뒤 다시 해 주세요.",
   VOICE_FAILED: "목소리를 만들지 못했습니다. 조용한 곳에서 다시 녹음해 주세요.",
   INVALID_AUDIO: "녹음 파일을 읽지 못했습니다. 다시 녹음해 주세요.",
@@ -98,8 +116,6 @@ const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec %
 
 export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
   const child = kind === "child";
-  const minSec = child ? CHILD_MIN_SECONDS : MIN_SECONDS;
-  const reading = child ? READING_CHILD : READING;
   const nav = useNavigate();
   const mode = useAuth((a) => a.mode);
   const setSetting = useSettings((s) => s.set);
@@ -125,6 +141,11 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
   const [provider, setProvider] = useState<"elevenlabs" | "qwen">("elevenlabs");
   useEffect(() => { getMyVoice(kind).then((v) => setProvider(v.provider)).catch(() => undefined); }, [kind]);
   const to = RECIPIENT[provider];
+  const short = provider === "qwen";
+  const minSec = short ? SHORT_MIN_SECONDS : child ? CHILD_MIN_SECONDS : MIN_SECONDS;
+  const maxSec = short ? SHORT_MAX_SECONDS : MAX_SECONDS;
+  const reading = short ? (child ? READING_SHORT_CHILD : READING_SHORT) : child ? READING_CHILD : READING;
+  const minLabel = short ? `${SHORT_MIN_SECONDS}초` : child ? "30초" : "1분";
 
   // 로그인한 보호자만 (「어른과 함께」). 아이는 계정이 없다
   if (mode !== "member") return <Navigate to="/settings" replace />;
@@ -146,7 +167,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
     timer.current = window.setInterval(() => {
       const s = (Date.now() - startedAt.current) / 1000;
       setSec(s);
-      if (s >= MAX_SECONDS) void end();
+      if (s >= maxSec) void end();
     }, 250);
   };
 
@@ -177,7 +198,8 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
     setError(null);
     try {
       const wav = await toWav(take);
-      await registerMyVoice(wav, { collect, transfer, ownVoice, version: (child ? CHILD_CONSENT_VERSION : CONSENT_VERSION) + (provider === "qwen" ? MODAL_SUFFIX : "") }, kind);
+      await registerMyVoice(wav, { collect, transfer, ownVoice, version: (child ? CHILD_CONSENT_VERSION : CONSENT_VERSION) + (provider === "qwen" ? MODAL_SUFFIX : "") }, kind,
+        short ? reading.join(" ") : undefined);
       setTake(null);   // 보낸 녹음은 이 화면에서도 버린다
       // 나레이터는 바로 바꾸지 않는다 — 들어 보고 「이 목소리로 읽어 주기」를 고를 때만 (11/10 사용자 「등록하면 바로 적용돼 답답」)
       setStep("done");
@@ -236,7 +258,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
         {step === "consent" && child && <>
           <div className="item head"><span className="grow"><span className="name">아이 목소리 등록 동의 (보호자)</span></span></div>
           <Clause title="무엇을 하나요">
-            아이가 30초~3분 동안 짧은 글을 읽은 녹음으로 목소리를 만들고, 이 계정에서 만드는 이야기의 나레이션을 아이 목소리로 읽어 줍니다.
+            아이가 {short ? "10초쯤" : "30초~3분 동안"} 짧은 글을 읽은 녹음으로 목소리를 만들고, 이 계정에서 만드는 이야기의 나레이션을 아이 목소리로 읽어 줍니다.
             아이가 자기 목소리로 이야기를 들을 수 있습니다. 등장인물 대사는 지금처럼 정해진 목소리로 읽습니다. 시연용 기능이라 목소리를 만드는 방식은 바뀔 수 있습니다.
           </Clause>
           <Clause title="받는 정보">
@@ -258,7 +280,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
         {step === "consent" && !child && <>
           <div className="item head"><span className="grow"><span className="name">보호자 목소리 등록 동의</span></span></div>
           <Clause title="무엇을 하나요">
-            보호자님이 1~3분 동안 글을 읽은 녹음으로 목소리를 만들고, 이 계정에서 만드는 이야기의 나레이션을 그 목소리로 읽어 드립니다.
+            보호자님이 {short ? "10초쯤" : "1~3분 동안"} 글을 읽은 녹음으로 목소리를 만들고, 이 계정에서 만드는 이야기의 나레이션을 그 목소리로 읽어 드립니다.
             등장인물 대사(캐릭터 목소리)는 지금처럼 정해진 목소리로 읽습니다.
           </Clause>
           <Clause title="받는 정보">
@@ -297,7 +319,9 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
           </span></div>
           {step === "record" && (
             <Clause title="녹음 안내">
-              {child
+              {short
+                ? `아래 글을 한 번만 또박또박 읽어 주세요 (${SHORT_MAX_SECONDS}초가 되면 저절로 멈춥니다). 다 읽으면 「다 읽었어요」를 눌러요.${child ? " 보호자님이 한 줄씩 짚어 주셔도 좋아요." : ""}`
+                : child
                 ? "30초 이상 읽어 주세요 (3분이 되면 저절로 멈춥니다). 글을 다 읽고도 30초가 안 되면 처음부터 한 번 더 읽어요. 보호자님이 한 줄씩 짚어 주셔도 좋아요."
                 : "1분 이상 읽어 주세요 (3분이 되면 저절로 멈춥니다). 글을 다 읽고도 1분이 안 되면 처음부터 한 번 더 읽어 주세요."}
               {" "}주위 소리 · 음악이 없을수록 목소리가 잘 만들어집니다.
@@ -306,7 +330,7 @@ export default function S13Voice({ kind = "guardian" }: { kind?: VoiceKind }) {
           {step !== "record" && (
             <div className="item">
               <span className="grow"><span className="desc" style={{ marginTop: 0 }}>
-                {takeSec < minSec ? `${child ? "30초" : "1분"}보다 짧습니다. 다시 녹음해 주세요.` : "들어 보고 괜찮으면 등록해 주세요."}
+                {takeSec < minSec ? `${minLabel}보다 짧습니다. 다시 녹음해 주세요.` : "들어 보고 괜찮으면 등록해 주세요."}
               </span></span>
               <button className="btn link" onClick={listen} disabled={step === "sending"}>들어 보기</button>
             </div>

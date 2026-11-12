@@ -425,7 +425,8 @@ export async function getMyVoice(kind: VoiceKind = "guardian"): Promise<Guardian
   return { registered: r.registered, available: r.available, consentedAt: r.consented_at, provider: r.provider === "qwen" ? "qwen" : "elevenlabs" };
 }
 
-export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: VoiceKind = "guardian"): Promise<GuardianVoice> {
+/** refText: 녹음에서 읽은 글 그대로 (자체 음성 서버일 때만 보낸다 — 더 닮고, 녹음을 자르지 않는다) */
+export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: VoiceKind = "guardian", refText?: string): Promise<GuardianVoice> {
   if (useMock) {
     await sleep(1200);
     const at = new Date().toISOString();
@@ -438,6 +439,7 @@ export async function registerMyVoice(wav: Blob, consent: VoiceConsent, kind: Vo
   form.append("agree_transfer", String(consent.transfer));
   form.append(kind === "child" ? "guardian_consent" : "own_voice", String(consent.ownVoice));
   form.append("consent_version", consent.version);
+  if (refText) form.append("ref_text", refText);
   const r = await call<{ registered: boolean; available: boolean; consented_at: string | null; provider?: string }>(
     VOICE_PATH[kind], { method: "POST", headers: authHeader(), body: form });
   return { registered: r.registered, available: r.available, consentedAt: r.consented_at, provider: r.provider === "qwen" ? "qwen" : "elevenlabs" };
