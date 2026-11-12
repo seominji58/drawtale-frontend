@@ -1512,7 +1512,7 @@ const TO_WINDOW = new Set(["props/shootingstar.webp", "props/planet.webp", "prop
 /** 맨 뒤 풍경 배경 물건 (소품이 앞에 서도 된다) */
 const BACKDROP = /(?:^|\/)(?:building|houses|house)\.webp$/;
 /** 빈자리가 없으면 빼는 큰 붙박이 소품 */
-const STRUCT = /(?:lamp|parkgate|booth|pavilion|junglegym|monkeybars|fountain|slide|bed)\.webp$/;
+const STRUCT = /(?:lamp|parkgate|booth|pavilion|junglegym|monkeybars|fountain|slide|bed|shelf|sofa|bus)\.webp$/;   // 책장 · 소파 · 버스도 (11/12 책장이 화면 밖으로 나갔다)
 // 학교 배경 철봉(bars)이 있으면 구름다리를 또 세우지 않는다 (11/11)
 const SAME_KIND: Record<string, string> = { flowerbed: "flowers", sandcastle: "castle", rock: "rocks", arrow: "sign", bench: "chair", toybox: "box", drum: "drums", pebble: "rocks", monkeybars: "bars" };
 /** 바람 쪽에 날아가는 잎 [높이 %, 늦게 시작(초), 색] */

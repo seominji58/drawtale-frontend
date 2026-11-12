@@ -805,7 +805,7 @@ const ONLY_AT: Record<string, (loc: string, indoor: boolean) => boolean> = {
   // 침대는 방 안에만 (보건실 · 우주선 침실 포함)
   "home-bedroom/bed.webp": (_l, indoor) => indoor,
   ...Object.fromEntries(["monkeybars", "tunnel", "booth", "parkgate"].map((n) => [`props/${n}.webp`,
-    (l: string, indoor: boolean) => !indoor && !l.startsWith("sea-underwater") && (n === "booth" ? l !== "space" : !l.startsWith("space"))])),   // 안내소는 행성 · 우주선 안내소(「행성 안내소가 보였어요」)도, 큰 붙박이라 자리가 없으면 빠진다
+    (l: string, indoor: boolean) => !indoor && !l.startsWith("sea-underwater") && !l.startsWith("space")])),   // 나무 안내소는 외계 행성에 어색하고 우주선 소품 자리를 뺏었다 (11/12 다시 넣어 봤다가 714번이 또 겹쳐 되돌림)
 };
 /** 몸에 걸친 물건 (11/11 사용자 「발자국이라면서 신발 있고」): 「장갑을 끼고 · 가방을 메고 · 헬멧 끈을 채우고 · 담요를 두르고」는 그 사람이 지닌 것이라
  *  땅에 따로 세우지 않는다. 신발은 THINGS 정규식에서 거른다 */

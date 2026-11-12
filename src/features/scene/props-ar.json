@@ -1,12 +1,15 @@
 {
+ "cave-entrance/rocks.webp": 1.591,
  "cave/rocks.webp": 2.334,
  "forest-flowers/flowers.webp": 1.193,
  "forest-stream/rocks.webp": 0.843,
+ "forest-trail/log.webp": 2.526,
  "forest/mushroom.webp": 1.321,
  "home-bedroom/bed.webp": 1.717,
  "home-bedroom/toybox.webp": 0.995,
  "home-kitchen/table.webp": 1.831,
  "home-living/sofa.webp": 1.665,
+ "playground-path/flowerbed.webp": 1.63,
  "playground/slide.webp": 1.13,
  "playground/swing.webp": 1.32,
  "props/acorns.webp": 1.273,
@@ -152,8 +155,15 @@
  "props/turtle.webp": 1.747,
  "props/umbrella.webp": 1.086,
  "props/wateringcan.webp": 1.531,
+ "school-classroom/desks.webp": 1.597,
  "school-hallway/lockers.webp": 1.234,
+ "school-library/shelf.webp": 2.167,
+ "sea-pier/boat.webp": 2.526,
  "sea-pier/lighthouse.webp": 0.353,
+ "sea/parasol.webp": 0.949,
  "space-ship/seat.webp": 1.021,
- "town-park/bench.webp": 1.689
+ "town-busstop/bus.webp": 1.626,
+ "town-park/bench.webp": 1.689,
+ "town-park/fountain.webp": 1.169,
+ "town/lamp.webp": 0.18
 }
