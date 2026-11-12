@@ -26,6 +26,8 @@
  "props/balloons.webp": 0.577,
  "props/bandage.webp": 0.992,
  "props/basket.webp": 1.148,
+ "props/basket-empty.webp": 2.554,
+ "props/basket-over.webp": 2.554,
  "props/bat.webp": 1.772,
  "props/bell.webp": 0.466,
  "props/bird.webp": 1.156,

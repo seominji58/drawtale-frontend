@@ -64,6 +64,8 @@ const W1 = (w: string) => new RegExp(`(?:^|[^가-힣])${w}(?:을|를|이|가|은
  *  작은 소품들이랑 같은 사이즈인 것들이 있다」). 의자 · 울타리 · 대문 · 우체통 · 깃발 · 텐트 · 표지판 · 배 · 우주선 · 로켓이 0.14~0.36 이라
  *  손에 드는 물건과 비슷했다. 아주 큰 것은 화면에 들어오게 줄여 잡는다(텐트 · 우주선 · 로켓 0.55~0.6, 대문은 0.55 면 마을 집보다 커 0.45).
  *  자리가 없으면 SceneStage 가 0.75 · 0.55 배로 줄여 놓는다 */
+const OVER_BASKET = /바구니(?:가|를|는|도)? (?:[가-힣]+,? ){0,2}(?:엎어|엎질|뒤집|쏟아|넘어져|넘어졌|엎었)|(?:엎어진|엎질러진|뒤집힌|쏟아진|넘어진) (?:[가-힣]+ )?바구니/;
+const EMPTY_BASKET = /(?:빈|텅 빈) 바구니|바구니(?:가|는|도)? (?:[가-힣]+,? ){0,2}(?:비어|텅|비었)/;
 const THINGS: [RegExp, string, number, Spot][] = [
   [/손전등/, "props/flashlight.webp", 0.1, "ground"],
   [/랜턴|등불/, "props/lantern.webp", 0.17, "ground"],
@@ -190,6 +192,9 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/행성/, "props/planet.webp", 0.14, "air"],
   [W1("지구"), "props/earth.webp", 0.14, "air"],
   [/종이 울|종을 |종소리|종이 땡/, "props/bell.webp", 0.1, "ground"],   // 「종이」 · 「하루 종일」 빼고
+  // 엎어진 · 빈 바구니는 사과 바구니 그림이 아니다 (11/12 사용자 「바구니가 엎어져 있었어요」에 사과가 가득 든 바구니). 사과를 지운 바구니 · 거꾸로
+  [OVER_BASKET, "props/basket-over.webp", 0.07, "ground"],
+  [EMPTY_BASKET, "props/basket-empty.webp", 0.07, "ground"],
   [/바구니/, "props/basket.webp", 0.1, "ground"],
   [W1("지도"), "props/map.webp", 0.07, "ground"],
   [/물고기/, "props/fish.webp", 0.08, "air"],
@@ -736,7 +741,12 @@ export function mineMotion(text: string, name: string, weather: Weather | null):
 function sentenceMotion(text: string, at: number): ThingMotion | undefined {
   const ends = [".", "!", "?", "”"].map((c) => text.indexOf(c, at)).filter((i) => i >= 0);
   const after = text.slice(at, ends.length ? Math.min(...ends) + 1 : text.length);
-  for (const [m, re] of MINE_MOVES) if (re.test(after)) return m;
+  for (const [m, re] of MINE_MOVES) {
+    if (!re.test(after)) continue;
+    // 「도토리가 데굴데굴 흩어져 있었어요」는 굴러가는 것이 아니라 흩어져 놓인 모습 (11/12 사용자 「도토리가 굴러가는 형식이 이상함」)
+    if (m === "roll" && /(?:흩어져|놓여|쌓여|모여|널려|떨어져|쏟아져) 있/.test(after) && !/굴러|굴렸|굴리/.test(after)) continue;
+    return m;
+  }
   return undefined;
 }
 
@@ -846,6 +856,8 @@ export function thingsFor(text: string, mine: { name: string; png: string; heigh
       if (src === "props/flag.webp" && /꽂/.test(sen)) continue;
       // 「종이배」는 큰 배 그림이 아니다
       if (src === "props/boat.webp" && /종이 ?배/.test(m[0])) continue;
+      if (src === "props/basket.webp" && (OVER_BASKET.test(sen) || EMPTY_BASKET.test(sen))) continue;
+      if (src === "props/basket-empty.webp" && OVER_BASKET.test(sen)) continue;
       // 「구름 이불 · 나뭇잎 이불 · 잎 이불」은 천 이불이 아니다 (11/11 전수 점검: 우주 · 숲에 담요가 깔렸다)
       if (src === "props/blanket.webp" && /(?:구름|나뭇잎|잎|꽃잎|눈|별빛|햇살|낙엽|이끼|풀) ?$/.test(said.slice(Math.max(0, m.index - 4), m.index))) continue;
       // 몸에 걸친 물건 (모자는 「머리에 쓰고」면 머리 자리로 가니 「친구 모자 끝」처럼 남이 쓴 것만)
@@ -1723,7 +1735,7 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     // 들고 있던 물건(랜턴 · 손전등 · 우산 · 바구니 · 풍선)은 그 사람이 같은 곳에 있는 동안 계속 든다: 2쪽에 켠 랜턴이 3쪽에 없었다 (11/12)
     const prevHeld = out.length && out[out.length - 1].location === loc ? out[out.length - 1].things.filter((t) => t.pose === "hand" && t.holder && HANDHELD.has(t.src)) : [];
     for (const t of dream ? [] : prevHeld) {
-      if (things.some((x) => x.src === t.src)) continue;
+      if (things.some((x) => x.src === t.src || (t.src === "props/basket.webp" && x.src.startsWith("props/basket-")))) continue;
       const here = t.holder === "hero" || props.some((q) => (q.name ?? q.id) === t.holder);
       // 내려놓음 · 줌 · 끔은 그 물건을 말한 문장에서만 (「도토리를 놓아 두었어요」에 할머니 랜턴이 사라졌다)
       const word = HELD_WORD[t.src];
