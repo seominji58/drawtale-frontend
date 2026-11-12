@@ -119,7 +119,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/박쥐/, "props/bat.webp", 0.14, "air"],
   [/토끼/, "props/rabbit.webp", 0.16, "ground"],
   [/다람쥐/, "props/squirrel.webp", 0.11, "ground"],
-  // 고양이 · 강아지 그림은 대본 인물로만 쓰였다 — 글에만 나오는 것도 (11/12 전수 점검). 「강아지 집 · 고양이 인형」은 아래 NOT_REAL · 자리 말로 걸러짐
+  // 고양이 · 강아지 그림은 대본 인물로만 쓰였다. 글에만 나오는 것도 (11/12 전수 점검). 「강아지 집 · 고양이 인형」은 아래 NOT_REAL · 자리 말로 걸러짐
   [/고양이/, "props/cat.webp", 0.14, "ground"],
   [/강아지(?! ?집)/, "props/dog.webp", 0.16, "ground"],
   // 그림이 없던 동물 (11/12 전수 점검, tools/art/gen_scene_props8.py)

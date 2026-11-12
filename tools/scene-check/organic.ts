@@ -179,7 +179,7 @@ cases.forEach((c: any, ci: number) => {
       if (t.pose === "hand" || t.pose === "head" || t.pose === "mouth" || t.pose === "back" || t.pose === "window") continue;
       if (!rendered[key].includes(nameOf(t.src))) add("화면에서 빠진 물건", key, nameOf(t.src), sentenceAt(text, t.at ?? 0));
     }
-    // 6) 정체 · 비유: 「선물이었어요」 · 「작은 별이었어요」 — 그 물건이 따로 서면 안 된다
+    // 6) 정체 · 비유: 「선물이었어요」 · 「작은 별이었어요」: 그 물건이 따로 서면 안 된다
     for (const t of things) {
       if (t.at === undefined) continue;
       const w = /[가-힣]+/.exec(said.slice(t.at))?.[0] ?? "";
