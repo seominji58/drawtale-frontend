@@ -502,14 +502,19 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     : inside(besideSaid(inside(planTo), plan.hero.move === "none" ? 0 : plan.hero.to - plan.hero.from));
   // 걸어가는 쪽에 설 사람들 자리를 남기고 멈춘다: 끝까지 가면 그쪽에서 들어오는 친구가 설 데가 없어 뒤에 떠 있거나 할머니를 가렸다
   // (11/10 사용자 「6쪽에 친구 크기나 위치가 공중에 떠 있다」). 사람 폭은 키의 4~5할(PEOPLE.w), 사이 틈 0.015
-  const walkDir = plan.hero.move === "none" ? 0 : Math.sign(plan.hero.to - plan.hero.from);
+  // 제자리 쪽도 옆으로 긴 몸이면 표지판이 설 오른쪽 자리를 남긴다 (11/12 사슬형 15쪽: 서 있는 뱀 몸 끝에 표지판이 붙었다)
+  const signHere = fit === "width" && plan.props.some((q) => q.id === "sign");
+  const walkDir = plan.hero.move === "none" ? (signHere ? 1 : 0) : Math.sign(plan.hero.to - plan.hero.from);
   if (walkDir && seatX === undefined) {
-    const ahead = plan.props.filter((q) => isPerson(q.id) && (q.enter ? (q.enter === "right") === walkDir > 0 : (q.x ?? 0.78) * walkDir > heroTo * walkDir));
-    const need = ahead.reduce((sum, q) => sum + ((layout.props[q.id]?.h ?? PEOPLE[q.id]?.h ?? 0.5) * (PEOPLE[q.id]?.w ?? 0.45)) / aspect + 0.015, 0);
+    // 다가가는 표지판(카드 · 글)도 앞에 설 자리를 남긴다: 몸이 긴 뱀 · 개가 화면 3분의 2까지 가면 표지판이 설 자리가 없어 몸 끝에 닿았다 (11/12 사람 아닌 형태 검사 73쪽)
+    const ahead = plan.props.filter((q) => (isPerson(q.id) || (q.id === "sign" && (plan.hero.goal === "sign" || plan.hero.move === "none"))) && (q.enter ? (q.enter === "right") === walkDir > 0 : (q.x ?? 0.78) * walkDir > heroTo * walkDir));
+    const need = ahead.reduce((sum, q) => sum + ((layout.props[q.id]?.h ?? PEOPLE[q.id]?.h ?? 0.5) * (q.id === "sign" ? SIGN_W : PEOPLE[q.id]?.w ?? 0.45)) / aspect + 0.015, 0);
     if (need > 0) {
-      const room = walkDir > 0 ? 1 - 0.01 - need - heroHalf : 0.01 + need + heroHalf;
+      const padHalf = heroHalf * (fit === "width" ? 1.12 : 1);
+      const room = walkDir > 0 ? 1 - 0.01 - need - padHalf : 0.01 + need + padHalf;
       const fromX = inside(plan.hero.from);
-      if (walkDir > 0 ? heroTo > room : heroTo < room) heroTo = inside(walkDir > 0 ? Math.max(fromX + 0.12, room) : Math.min(fromX - 0.12, room));
+      // 제자리 쪽은 출발점이 없으니 그냥 자리만 당긴다
+      if (walkDir > 0 ? heroTo > room : heroTo < room) heroTo = inside(plan.hero.move === "none" ? room : walkDir > 0 ? Math.max(fromX + 0.12, room) : Math.min(fromX - 0.12, room));
     }
   }
   if (plan.key) HERO_AT.set(plan.key, heroTo);
@@ -666,7 +671,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     // 글이 색을 말한 표지판(plan.ts signSrc)은 그 그림으로
     const base0 = sign0 && p.src ? { ...sign0, src: `../${p.src}` } : prop(p.id);
     if (!base0) return null;
-    const wRatio = p.id === "sign" ? 0.6 : PEOPLE[p.id]?.w ?? 0.45;
+    const wRatio = p.id === "sign" ? SIGN_W : PEOPLE[p.id]?.w ?? 0.45;
     const ahead = hero.goal === p.id && hero.move !== "none" && travel !== 0
       ? hero.to + travel * (heroHalf * bodyPad + (base0.h * wRatio / aspect) / 2 + 0.015) : undefined;
     // 앞 쪽에도 같은 배경에 있던 사람(걸어 들어오지 않는 사람)은 그 자리에서: 대본이 쪽마다 자리(slot)를 달리 적어 제자리 쪽인데
@@ -1512,6 +1517,8 @@ const TO_WINDOW = new Set(["props/shootingstar.webp", "props/planet.webp", "prop
 /** 이름이 달라도 같은 물건 — 바다 배경에 모래성(castle) · 바위(rock)가 있는데 쪽 글의 「모래성」 · 「바위」로 하나 더 섰다 (11/9 배치 검사) */
 // 화살표 그림은 표지판, 벤치는 의자, 장난감 상자는 상자, 북은 북들 (저장 이야기 점검 11/10 — 배경에 있는데 또 놓였다)
 // 돌 하나(pebble)도 돌 무더기와 같은 종류: 동굴 · 시냇가처럼 배경에 돌이 있으면 또 놓지 않는다 (11/10)
+/** 표지판 그림 폭 ÷ 키 (props-ar.json sign 0.739). 0.6 으로 잡아 실제보다 좁게 셈해 주인공 · 사람과 닿았다 (11/12) */
+const SIGN_W = 0.74;
 /** 맨 뒤 풍경 배경 물건 (소품이 앞에 서도 된다) */
 const BACKDROP = /(?:^|\/)(?:building|houses|house)\.webp$/;
 /** 빈자리가 없으면 빼는 큰 붙박이 소품 */
