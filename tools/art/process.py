@@ -94,7 +94,11 @@ def card(place, objs, d) -> None:
     plate = Image.open(PLATE_SRC[place]).convert("RGBA").resize((1536, 1024))
     side, top = 798, 61
     sq = plate.crop(((1536 - side) // 2, top, (1536 + side) // 2, top + side))
+    # 카드에는 나무를 넣지 않는다: 집 · 놀이터 · 학교 · 마을 카드에 같은 나무가 찍혀 있었다 (2026-11-12 사용자). 남은 물건은 가운데로
+    base = sq; sq = Image.new("RGBA", base.size, (0, 0, 0, 0))
     for oid, x, a, y, h in objs:
+        if oid.endswith("tree"):
+            continue
         im = Image.open((d / f"{oid}.webp").resolve()).convert("RGBA")
         th = round(h * 1024 * 0.8); tw = round(im.width * th / im.height)
         if tw > side * 0.6:   # 넓은 건물이 카드 밖으로 나가지 않게
@@ -103,7 +107,10 @@ def card(place, objs, d) -> None:
         cx = (0.5 + (x - 0.5) * 0.62) * side
         py = y * 1024 - top
         sq.alpha_composite(im, (round(cx - tw / 2), round(py) if a == "top" else round(py - th)))
-    sq.resize((512, 512), Image.LANCZOS).save(FRONT / "icons" / "place" / f"{place}.webp", "WEBP", quality=82, method=6)
+    x0, _, x1, _ = sq.getbbox(); dx = round(side / 2 - (x0 + x1) / 2) if any(o[0].endswith("tree") for o in objs) else 0
+    moved = Image.new("RGBA", sq.size, (0, 0, 0, 0)); moved.alpha_composite(sq, (max(0, dx), 0), (max(0, -dx), 0, sq.width, sq.height))
+    base.alpha_composite(moved)
+    base.resize((512, 512), Image.LANCZOS).save(FRONT / "icons" / "place" / f"{place}.webp", "WEBP", quality=82, method=6)
 
 
 def main() -> None:
