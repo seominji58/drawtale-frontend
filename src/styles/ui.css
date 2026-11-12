@@ -1215,6 +1215,8 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .scene.night .scene-cover { filter: brightness(.5) saturate(.6); }
 /* 「넘어졌어요」 — 살짝 기울어 주저앉은 자세 */
 .scene-hero.fallen { transform: translateX(-50%) translateY(5%) rotate(-9deg); transform-origin: 50% 100%; }
+/* 옆으로 긴 몸(사슬 · 4족 · 날개 · 지느러미, 폭 맞춤)은 9도 기울이면 한쪽 끝이 땅 아래로 잘렸다 (11/12 사람 아닌 형태 검사): 발끝 축으로 조금만 */
+.scene-hero.fallen.fallen-wide { transform: translateX(-50%) rotate(-3deg); transform-origin: 50% var(--foot, 100%); }
 /* 멈춘 그림으로 옮겨 갈 때 · 인물이 걸어 들어올 때 — 걸음마다 살짝 들썩 */
 .scene-hero.stepping, .scene-person.walking-in { animation: scene-step .32s ease-in-out 8 alternate; }
 /* 빙글 돌기 (11/10): 좌우로 뒤집었다 돌아오기를 세 번 — 2D 그림이 도는 것처럼. --flip 은 지금 보는 방향(뒤집혀 있으면 -1) */

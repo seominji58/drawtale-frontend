@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/12 넘어진 자세**: 폭 맞춤 형태(사슬 · 4족 · 날개 · 지느러미)는 `fallen-wide`(발끝 축 3도). 검사 페이지는 `?lift=&size=`(서버 형태 정의 hero.float · size)로 앱과 같게 그린다
 - **11/12 사람 아닌 형태 검사**: `node tools/scene-check/out/organic.mjs forms-long.json`(형태별 검사 포함), 장면 검사는 `EXTRA="sprite=out/real/bird_side.webp&frames=48&box=…&fit=width&facing=1" node tools/scene-check/layout.mjs 512 16 forms-winged.json`. 작은 동물 대본 인물은 동물 그림(`ANIMAL_SRC`, 생김새 `CREATURE_DESC`)
 - **11/12 물건 한도**: 한 쪽 물건 3개(`MAX_THINGS`)를 넘으면 큰 물건(키 0.28 이상)을 먼저 남긴다. 없다는 말은 그 물건 바로 뒤에서만 본다
 - **11/12 미리 받기**: `S09Story` 는 지금 쪽 · 다음 쪽 장면 그림을 먼저 혼자 받고 나머지를 세 줄로. 재기는 `tools/scene-check/prefetch.mjs [kbps] [rtt] [이야기 …]`

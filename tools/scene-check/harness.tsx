@@ -41,6 +41,8 @@ const FACING = Number(q.get("facing") ?? 0) as -1 | 0 | 1;
 const SPRITE = q.get("sprite") ? { url: q.get("sprite")!, frames: Number(q.get("frames") ?? 1),
   box: (q.get("box") ?? "0,0,1,1").split(",").map(Number) as [number, number, number, number] } : null;
 const FIT = (q.get("fit") ?? "height") as "height" | "width";
+// ?lift=0.4&size=0.6: 형태 정의(서버 /forms 의 hero.float · size)대로 띄우고 줄인다, 앱 S09Story 와 같게 (11/12 사람 아닌 형태 검사)
+const LIFT = Number(q.get("lift") ?? 0), SIZE = Number(q.get("size") ?? 1);
 // ?label=1: 칸 위에 쪽 글도 적는다 (사람이 눈으로 볼 때)
 const LABEL = q.get("label") === "1";
 // ?narr=0.4: 나레이션이 쪽 글의 그 자리(0~1)까지 읽은 재생 모습 (소품이 대사에 맞춰 나타나는지 · 주기, 11/10)
@@ -82,7 +84,14 @@ function measure(el: HTMLElement) {
   const vis = (e: Element) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 1 && r.height > 1 && cs.opacity !== "0" && cs.visibility !== "hidden"; };
   const pick = (sel: string) => [...el.querySelectorAll(sel)].filter(vis);
   return {
-    hero: pick(".scene-hero").map((e) => box(e))[0] ?? null,
+    // 그림띠(canvas)는 칸 전체라 몸 자리(box)만 잰다. 좌우로 뒤집혔으면(transform a < 0) 거울로
+    hero: pick(".scene-hero").map((e) => {
+      const b = box(e);
+      if (!SPRITE || e.tagName !== "CANVAS") return b;
+      const [bx0, by0, bx1, by1] = SPRITE.box, w = b.x1 - b.x0, h = b.y1 - b.y0;
+      const flip = new DOMMatrix(getComputedStyle(e).transform).a < 0;
+      return { x0: b.x0 + (flip ? 1 - bx1 : bx0) * w, x1: b.x0 + (flip ? 1 - bx0 : bx1) * w, y0: b.y0 + by0 * h, y1: b.y0 + by1 * h };
+    })[0] ?? null,
     people: pick(".scene-person, .scene-person-walk").map((e) => ({ name: name(e.querySelector("img") ?? e), ...box(e) })),
     things: pick(".scene-thing").map((e) => ({ name: name(e), pose: e.getAttribute("data-pose"), spot: e.getAttribute("data-spot"), behind: e.getAttribute("data-behind") === "1", cls: e.className, ...box(e) })),
     bg: pick(".scene-obj.scene-bg").map((e) => ({ name: name(e), ...box(e) })),
@@ -112,7 +121,7 @@ function App() {
       {cases.flatMap((c, ci) => plansOf(c).map((plan, pi, plans) => (
         <div key={`${ci}-${pi}`} data-page={`${FROM + ci}:${pi + 1}`} data-text={pageText(c, plans, pi)} data-loc={plan.location} data-seat={plan.hero.seat ?? ""}
              style={{ width: W, height: H, position: "relative", overflow: "hidden", background: "#fff" }}>
-          <SceneStage form={c.form} plan={plan} prevEnv={pi > 0 ? envAfter(plans[pi - 1], pageText(c, plans, pi - 1), plan) : null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY || NARR !== undefined ? (flipped ? "play" : "start") : "end"} narration={NARR} pageAction={PLAY} text={pageText(c, plans, pi)} />
+          <SceneStage form={c.form} lift={LIFT} size={SIZE} prevFly={pi > 0 ? plans[pi - 1].hero.fly : null} plan={plan} prevEnv={pi > 0 ? envAfter(plans[pi - 1], pageText(c, plans, pi - 1), plan) : null} still={STILL} sprite={SPRITE} fit={FIT} facing={FACING} mode={PLAY || NARR !== undefined ? (flipped ? "play" : "start") : "end"} narration={NARR} pageAction={PLAY} text={pageText(c, plans, pi)} />
           <span style={{ position: "absolute", left: 4, top: 2, zIndex: 9, font: "12px sans-serif", background: "#ffffffcc" }}>{FROM + ci}:{pi + 1} {LABEL ? pageText(c, plans, pi) : plan.location}</span>
         </div>
       )))}

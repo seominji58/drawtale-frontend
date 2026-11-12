@@ -722,7 +722,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       heroStyle = { ...heroStyle, left: `${(heroX + ((l + r) / 2 - 0.5) * cellW) * 100}%` };
     }
     heroStyle = { ...heroStyle, transform: hero.fallen
-      ? "translateX(-50%) translateY(5%) rotate(-9deg) scaleX(-1)" : "translateX(-50%) scaleX(-1)" };
+      ? (fit === "width" ? "translateX(-50%) rotate(-3deg) scaleX(-1)" : "translateX(-50%) translateY(5%) rotate(-9deg) scaleX(-1)") : "translateX(-50%) scaleX(-1)" };
   }
   // 쪽 글에 나온 물건 · 내 소품: 주인공 옆 땅에 (인물 자리를 먼저 잡은 뒤 남는 곳). 쪽 안 움직임 없이 처음부터 놓여 있다
   // 배경 그림에 이미 같은 물건이 있으면 또 놓지 않는다 (pt_docs 18 — 동굴에서 「돌」이 나와도 동굴엔 바위가 있다)
@@ -1396,10 +1396,10 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
       {thingSpots.filter((t) => !behindPeople(t)).map(renderThing)}
       {spr
         // 캔버스는 렌더 칸 크기 그대로 — 384 로 줄여 그린 뒤 화면에서 2~3배로 키워 선이 뭉개지고 계단처럼 보였다 (11/9 사용자 「렌더링이 깨지고 울퉁불퉁」)
-        ? <canvas ref={canvas} width={spr.cell} height={spr.cell} data-hero-x={heroX.toFixed(3)} className={`scene-hero ${hero.fallen ? "fallen" : ""} ${heroMove}`}
+        ? <canvas ref={canvas} width={spr.cell} height={spr.cell} data-hero-x={heroX.toFixed(3)} className={`scene-hero ${hero.fallen ? (fit === "width" ? "fallen fallen-wide" : "fallen") : ""} ${heroMove}`}
                   style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ...gestureVars, transition: heroTransition, opacity: heroGone ? 0 : 1 }} />
         : still
-          ? <img className={`scene-hero ${hero.fallen ? "fallen" : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""} ${heroMove}`}
+          ? <img className={`scene-hero ${hero.fallen ? (fit === "width" ? "fallen fallen-wide" : "fallen") : ""} ${hero.move !== "none" && phase === 1 && play ? "stepping" : ""} ${heroMove}`}
                  src={still} alt="" style={{ ...heroStyle, ["--flip" as string]: flipped ? -1 : 1, ...gestureVars, transition: heroTransition, opacity: heroGone ? 0 : 1 }}
                  onLoad={(e) => setStillAr(e.currentTarget.naturalWidth / Math.max(1, e.currentTarget.naturalHeight))} />
           : null}
