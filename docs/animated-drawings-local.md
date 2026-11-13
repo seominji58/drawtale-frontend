@@ -9,7 +9,7 @@
 
 | 단계 | 상태 |
 |---|---|
-| 11/13 지느러미형 · 여러 다리형 점검 | **끝**: 20편씩(백엔드 `storage/card_stories` jsonl, 운영 미반영). 유기 점검 20 → 5, 화면 배치 0. `plan.ts` 달팽이 ≠ 팽이 · 손 없는 주인공이 받은 물건은 곁 땅. 묶음 `out/forms-finned.json` · `forms-radial.json` · `forms-fr.json` |
+| 11/13 지느러미형 · 여러 다리형 점검 | **끝**: 20편씩, 운영 반영(백엔드 씨앗 + 마이그레이션 `d5e6f7a8b9c0`). 유기 점검 20 → 5, 화면 배치 0. `plan.ts` 달팽이 ≠ 팽이 · 손 없는 주인공이 받은 물건은 곁 땅. 묶음 `out/forms-finned.json` · `forms-radial.json` · `forms-fr.json` |
 | 11/12 건네준 · 든 물건 · 안 보인다는 배경 | **끝**: 손에 듦 792개 모두 손(전 바닥 80 · 없음 8), 장면 검사 문제 쪽 99 → 65(사람 아닌 형태 날개 37 · 사슬 39 · 4족 5, 검사는 `REFH=0.52`). `plan.ts` `thingMotion` 「바위 틈까지 · 돌 위를」은 굴러간 곳 · 계단은 움직임 없음, `SceneStage` 로켓 계단은 로켓 옆에 붙임(`flip`). 받는 사람 주인공은 제자리 쪽에서 가만히 서서 듦(`plan.ts` `heroHolds`), 걷는 쪽은 든 채 같이 옮겨 감(`SceneStage` `hand` · `withHero`), 손에 든 물건은 배경 같은 종류가 있어도 그림, `hands.json` 잠수부 · 외계인. 「로켓이 보이지 않았어요」는 다시 보일 때까지 감춤(`hideBg`), 「굴러가는 달 돌」 굴림. 검사 `out/_givecheck.mjs` |
 | 11/12 소품 크기 · 대본에만 있던 소품 | **끝**: `SceneStage` `hiddenBg`(큰 붙박이 자리의 글에 없는 배경 물건 감춤) · 자세 `top`(식탁 · 책상 위), `plan.ts` `ON_TOP` · 소리말 우는 문장 뒤 문장까지 · 「손에는 … 있었어요」, 큰 붙박이 크기, 새 그림 11장 |
 | 11/12 사람 아닌 형태 전수 점검 | **진행**: 날개 · 사슬 · 4족 841편, 걸린 쪽 388 → 149. `plan.ts` 날기 주어(`heroLead` · 어찌말) · 작은 동물 대본 인물(`ANIMAL_SRC` · `CREATURE_DESC`) · `locations.ts` 등대 곁 부두. 형태별 장면 검사 `EXTRA=… layout.mjs` 돌리는 중 |
