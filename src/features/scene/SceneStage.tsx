@@ -970,8 +970,11 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     (v.t.spot === "air" || v.t.spot === "wall" ? airPlaced : placed).push(span);
     if (pin.h < 0.15) smallSpans.add(span);
   }
+  // 소품으로 놓인 로켓 · 우주선 자리 (그 옆에 계단을 붙인다)
+  let rocketThing: { x: number; h: number; foot: number; half: number } | null = null;
   const remember = <T extends { x: number; h: number; footY?: number }>(t: ThingPlan, at: T): T => {
     if (t.keep && !PINS.has(t.keep)) PINS.set(t.keep, { x: at.x, h: at.h, footY: at.footY });
+    if (/\/(?:rocket|spaceship)\.webp$/.test(t.src)) rocketThing = { x: at.x, h: at.h, foot: at.footY ?? 0.95, half: halfOf(t, at.h) };
     return at;
   };
   const lead = form && form !== "biped" ? (headSide !== 0 ? headSide : hero.face) : 0;
@@ -981,7 +984,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     : layout.window ? [layout.window.x - (layout.window.h * 0.6) / aspect, layout.window.x + (layout.window.h * 0.6) / aspect] : undefined;
   const thingSpots = posedSpots.filter((v) => !v.at).map((v) => v.t).map((t, k) => {
     const pin = pinOf(t);
-    if (pin) return { ...t, h: pin.h, x: pin.x, footY: pin.footY };
+    if (pin) return remember(t, { ...t, h: pin.h, x: pin.x, footY: pin.footY });
     // 물고기는 물 위에서 헤엄친다 — 「공중」 소품이라 개울 숲에서 하늘(달 옆)에 떠 있었다 (11/10). 물 높이를 아는 장소만, 바닷속은 그대로
     if (kindOf(t.src) === "fish" && FISH_LINE[plan.location] !== undefined) {
       const h = Math.min(t.h, 0.07), half = (h * t.ar / aspect) / 2;
@@ -997,6 +1000,22 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     if (kindOf(t.src) === "railing") {
       const half = halfOf(t, t.h);
       return remember(t, { ...t, x: Math.min(1 - half - 0.01, Math.max(half + 0.01, hero.to)), footY: H.foot - 0.03 });
+    }
+    // 「로켓 계단을 오르는」 계단은 로켓 옆에 붙여 (11/12 754번 8쪽: 로켓과 떨어진 오른쪽에 따로 섰다). 로켓은 배경 그림이나 앞서 놓인 소품
+    if (kindOf(t.src) === "stairs" && t.at !== undefined && /로켓|우주선/.test((text ?? "").slice(Math.max(0, t.at - 12), t.at + 14))) {
+      const bgRocket = layout.objects.find((o) => /rocket|spaceship/.test(o.src) && o.foot !== undefined && !plan.hideBg?.includes(o.src.split("/").pop()!.replace(/\.webp$/, "")));
+      const rk = bgRocket
+        ? { x: bgRocket.x, h: bgRocket.h, foot: bgRocket.foot!, half: (bgRocket.h * arOf(bgRocket.src.startsWith("../") ? bgRocket.src.slice(3) : `${plan.location}/${bgRocket.src}`, 1) / aspect) / 2 }
+        : rocketThing as { x: number; h: number; foot: number; half: number } | null;
+      if (rk) {
+        const h = Math.min(t.h, rk.h * 0.45), half = halfOf(t, h);
+        // 화면 가운데 쪽 옆에, 로켓 몸에 조금 걸치게 (문으로 오르는 계단)
+        const side = rk.x < 0.5 ? 1 : -1;
+        const x = Math.min(1 - half - 0.01, Math.max(half + 0.01, rk.x + side * (rk.half * 0.4 + half)));
+        placed.push([x - half, x + half]);
+        // 계단 그림은 오른쪽이 높다: 로켓 오른쪽에 붙으면 뒤집어 높은 쪽이 로켓에 닿게
+        return remember(t, { ...t, h, x, footY: rk.foot, motion: undefined, flip: side > 0 });
+      }
     }
     const air = t.spot === "air";
     // 벽에 거는 것(시계 · 그림)은 높이 걸리니 공중 소품과 자리를 나눈다: 땅 소품 자리로 셈해 창밖 지구가 벽시계 위에 겹쳤다 (11/11)
@@ -1115,7 +1134,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
              style={{ ...spotStyle(t.spot === "wall" ? { src: t.src, x: t.x, top: 0.16, h: t.h }
                : { src: t.src, x: t.x, foot: "footY" in t && t.footY !== undefined ? t.footY : t.spot === "air" ? 0.3 : 0.95, h: t.h }),
                // 공은 주인공 반대쪽으로 굴러간다 (주인공과 부딪치지 않게)
-               ["--roll" as string]: t.x < hero.to ? -1 : 1, ...appear(t) }} />
+               ["--roll" as string]: t.x < hero.to ? -1 : 1, ...("flip" in t && t.flip ? { transform: "translateX(-50%) scaleX(-1)" } : {}), ...appear(t) }} />
   );
   // 소품은 대사에 맞춰 (11/10 사용자 「소품 애니메이션을 대사에 맞춰서」): 이 쪽에 처음 나오는 것은 나레이션이 그 말에 오면 나타나고,
   // 주는 것은 주는 사람 손에 있다가 주는 말에서 받는 사람 손으로 옮겨 간다. 끝 모습 · 소리 없음이면 처음부터 다 된 모습
