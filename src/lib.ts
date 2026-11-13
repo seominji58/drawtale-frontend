@@ -1,24 +1,128 @@
 /** 화면 어디서나 쓰는 작은 도구들 */
+import { useSettings } from "@/store/settings";
+import GUIDE_VOICE from "@/features/voice/guide.json";
+
+/** S-09 「읽어주기 빠르기」에서 고르는 값. 보통(1)이 기본. 아이 화면이라 쉬운 말로 */
+export const SPEECH_RATES = [["천천히", 0.8], ["보통", 1], ["빠르게", 1.15]] as const;
+
+/** 지금 읽어주기 빠르기 (S-09 에서 고름, 설정에 남는다). 음성 파일은 `playbackRate`, 브라우저 음성은 `rate` 에 곱한다 */
+export const speechRate = () => useSettings.getState().speechRate || 1;
+
+/** 만들어 둔 음성 파일(안내 · 이야기)을 브라우저가 늘리는 배율. 0.8배로 늘리면 소리가 깨져서(11/3 사용자) 0.9배까지만.
+ *  (ElevenLabs 에 처음부터 느리게 읽히려 했으나 eleven_v4_turbo 는 voice_settings.speed 를 무시했다 — 길이가 같았다) */
+export const fileRate = (r = speechRate()) => (r < 1 ? Math.max(r, 0.9) : r);
+
+/** 화면 안내 · 카드 이름처럼 정해진 문장은 이야기 나레이터 목소리로 미리 만들어 둔 파일을 튼다
+ *  (2026-11-03, 95문장 — 문장 → `public/voice/guide/` 파일). 아이가 적거나 말한 문장처럼 목록에 없는 것만 브라우저 TTS */
+let clip: HTMLAudioElement | null = null;
+
+/** 소리 크기 (위 줄 소리 버튼, 설정에 남는다). 파일은 `volume`, 브라우저 음성은 utterance.volume */
+export const volume = () => { const v = useSettings.getState().volume; return typeof v === "number" ? Math.min(1, Math.max(0, v)) : 1; };
+/** 화면들이 직접 만든 음성(이야기 쪽 음성 등). 소리 크기를 바꾸거나 소리를 끄면 바로 따라간다 */
+const live = new Set<HTMLAudioElement>();
+export function trackAudio(a: HTMLAudioElement): HTMLAudioElement {
+  a.volume = volume();
+  live.add(a);
+  const drop = () => live.delete(a);
+  a.addEventListener("ended", drop); a.addEventListener("pause", drop);
+  a.addEventListener("play", () => live.add(a));
+  return a;
+}
+/** 소리 크기를 바꾼 즉시 지금 나는 소리에도 */
+export function applyVolume() {
+  const v = volume();
+  if (clip) clip.volume = v;
+  for (const a of live) a.volume = v;
+}
+/** 소리 끄기로 멈춰 둔 것 — 다시 켜면 그 자리부터 이어서 (11/3 사용자 「처음부터 말고 이어서」). 쪽을 넘기거나 화면을 떠나면(stopSpeak) 버린다 */
+const held = new Set<HTMLAudioElement>();
+let ttsHeld = false;
+/** 소리 끄기를 누르면 지금 나는 소리를 멈춘다 (끝내지 않고 멈춤 — resumeAll 로 이어서) */
+export function silenceAll() {
+  for (const a of [...live, ...(clip ? [clip] : [])]) { if (!a.paused) { a.pause(); held.add(a); } }
+  if ("speechSynthesis" in window && window.speechSynthesis.speaking) { window.speechSynthesis.pause(); ttsHeld = true; }
+}
+/** 소리를 다시 켜면 멈춘 자리부터. 이어 틀 것이 없으면(다 읽은 뒤) 조용하다 — 처음부터는 「다시 듣기」 */
+export function resumeAll() {
+  const v = volume();
+  for (const a of held) { a.volume = v; void a.play().catch(() => {}); }
+  held.clear();
+  if (ttsHeld && "speechSynthesis" in window) window.speechSynthesis.resume();
+  ttsHeld = false;
+}
 
 /** C-02 다시 듣기. 음성 파일이 없을 때는 브라우저 TTS 로 대신 읽는다. */
-export function speak(text: string, mute: boolean) {
-  if (mute || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
+export function speak(text: string, mute: boolean, onEnd?: () => void) {
+  if (mute) return;
+  stopSpeak();
+  const file = (GUIDE_VOICE as Record<string, string>)[text.trim()];
+  if (!file) return tts(text, onEnd);
+  const a = new Audio(`${import.meta.env.BASE_URL}voice/guide/${file}`);
+  a.playbackRate = fileRate();
+  a.volume = volume();
+  clip = a;
+  a.onended = () => { if (clip === a) { clip = null; onEnd?.(); } };
+  // 파일을 못 받거나 재생이 막히면 브라우저 TTS 로
+  a.play().catch(() => { if (clip === a) { clip = null; tts(text, onEnd); } });
+}
+
+function tts(text: string, onEnd?: () => void) {
+  if (!("speechSynthesis" in window)) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "ko-KR";
-  u.rate = 0.95;
+  u.rate = 0.95 * speechRate();
+  u.volume = volume();
+  if (onEnd) u.onend = onEnd;
   window.speechSynthesis.speak(u);
 }
 
+/** 백엔드는 이야기를 `text` 한 덩어리로 준다 (계약 2-6).
+ *  S-09 가 한 문장씩 읽어 주고 S-10 이 순서를 맞추도록 문장 단위로 나눈다.
+ *  캐릭터 목소리 판은 대사를 “ ” 안에 넣는다 — 따옴표 안의 마침표에서는 끊지 않는다
+ *  (나는 친구에게 “미안해.” 하고 말했어요. → 한 문장) */
+export function sentences(text: string): string[] {
+  return text.match(/(?:“[^”]*”?|[^.!?。“])+[.!?。]*/g)?.map((t) => t.trim()).filter(Boolean) ?? [];
+}
+
 export function stopSpeak() {
+  held.clear(); ttsHeld = false;
+  if (clip) { clip.onended = null; clip.pause(); clip = null; }
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
-/** S-03 클라이언트 리사이즈. 긴 변 1600px, JPEG 0.85 */
+/** 지금 나는 소리를 모두 멈춘다: 안내 음성 · 브라우저 음성(stopSpeak)과 trackAudio 로 튼 소리 전부 (11/10 사용자 「빠르게 페이지 넘길 때
+ *  소리 겹치는 문제」). 책 화면이 쪽을 넘길 때 지금 쪽 소리 하나만 멈추면, 다른 경로로 남은 소리가 다음 쪽과 겹칠 수 있었다 */
+export function stopAllAudio() {
+  stopSpeak();
+  for (const a of [...live]) a.pause();
+}
+
+/** S-03 「돌리기」 — 시계 방향으로 90도 × quarter 만큼 돌린 새 그림 (2026-11-04, pt_docs 19 7-1).
+ *  아이는 종이를 돌려 가며 그리고 사진도 돌아가 찍힌다. 사람 관절 모델은 똑바로 선 그림으로 배워서 누운 사진은
+ *  거절하거나 엉뚱하게 찍는다. 휴대폰 사진의 방향 정보(EXIF)는 createImageBitmap 이 먼저 반영한다 — 보이는 그대로 돌린다 */
+export async function rotateFile(file: File, quarter: number, quality = 0.9): Promise<File> {
+  const q = ((quarter % 4) + 4) % 4;
+  if (q === 0) return file;
+  const bitmap = await createImageBitmap(file);
+  const c = document.createElement("canvas");
+  c.width = q % 2 ? bitmap.height : bitmap.width;
+  c.height = q % 2 ? bitmap.width : bitmap.height;
+  const g = c.getContext("2d")!;
+  g.translate(c.width / 2, c.height / 2);
+  g.rotate((q * Math.PI) / 2);
+  g.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+  const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", quality));
+  if (!blob) return file;
+  return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+}
+
+/** S-03 클라이언트 리사이즈. 긴 변 1600px, JPEG 0.85.
+ *  백엔드는 PNG·JPG 만 받으므로(계약 1-4 INVALID_IMAGE) 그 밖의 형식은 크기와 상관없이 JPEG 로 바꾼다 */
 export async function shrink(file: File, max = 1600, quality = 0.85): Promise<File> {
   const bitmap = await createImageBitmap(file);
   const ratio = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-  if (ratio === 1 && file.size < 2_000_000) return file;
+  const accepted = file.type === "image/jpeg" || file.type === "image/png";
+  if (ratio === 1 && file.size < 2_000_000 && accepted) return file;
   const c = document.createElement("canvas");
   c.width = Math.round(bitmap.width * ratio);
   c.height = Math.round(bitmap.height * ratio);
@@ -30,10 +134,28 @@ export async function shrink(file: File, max = 1600, quality = 0.85): Promise<Fi
 
 /** 설계서 E-01 오류 문구표 */
 export const ERROR_TEXT: Record<string, { title: string; hint: string; primary: string }> = {
-  NO_CHARACTER:        { title: "그림에서 친구를 못 찾았어요", hint: "사람을 한 명만 크게 그려 볼까요?", primary: "다시 찍기" },
+  NO_CHARACTER:        { title: "그림에서 친구를 못 찾았어요", hint: "지금은 두 발로 선 친구만 움직일 수 있어요", primary: "다시 찍기" },
   MULTIPLE_CHARACTERS: { title: "친구가 여러 명이에요", hint: "한 명만 나오게 찍어 볼까요?", primary: "다시 찍기" },
-  LOW_CONFIDENCE:      { title: "그림이 조금 흐릿해요", hint: "더 밝은 곳에서 찍어 볼까요?", primary: "다시 찍기" },
+  // AI 는 흐린 사진보다 낙서·도형처럼 사람 모양이 아닌 그림에서 이 code 를 낸다 (너무 흐리면 NO_CHARACTER)
+  // 누운 사진도 이 code 가 난다 — 다시 찍기 화면(S-03)에 같은 그림과 「돌리기」가 있다 (11/4)
+  LOW_CONFIDENCE:      { title: "그림이 잘 안 보여요", hint: "그림이 누워 있으면 돌려 주세요. 밝은 곳에서 크게 찍으면 더 좋아요", primary: "다시 찍기" },
   UNSUPPORTED_IMAGE:   { title: "이 그림은 열 수 없어요", hint: "다른 그림을 골라 볼까요?", primary: "앨범에서 고르기" },
   ENGINE_TIMEOUT:      { title: "시간이 오래 걸리고 있어요", hint: "잠시 뒤에 다시 해 볼까요?", primary: "다시 하기" },
-  ENGINE_ERROR:        { title: "잠깐 문제가 생겼어요", hint: "처음부터 다시 해 볼까요?", primary: "처음으로" },
+  // 주 버튼은 그 단계를 다시, 옆 버튼은 처음으로 — 둘 다 「처음으로」면 고를 것이 없다 (11/3 사용자)
+  ENGINE_ERROR:        { title: "잠깐 문제가 생겼어요", hint: "한 번 더 해 볼까요?", primary: "다시 시도하기" },
+  // pt_docs 05 E-01 표. 검열에 걸린 말을 아이 탓으로 들리지 않게 쓴다 (처음 결정은 open-decisions 0-5)
+  CONTENT_BLOCKED:     { title: "이 이야기는 만들 수 없어요", hint: "다른 카드를 골라 볼까요?", primary: "다시 고르기" },
+  // 요청이 많거나 오늘 한도를 다 썼을 때. 아이 탓이 아니라 쉬어 가는 것으로 말한다
+  BUSY:                { title: "지금은 잠깐 쉬어 갈게요", hint: "조금 뒤에 다시 해 볼까요?", primary: "다시 시도하기" },
+  // 다시 만들게 하면 같은 이야기를 두 번 만들고 BUSY 에 걸린다 — 책장에서 기다린다
+  STORY_LATER:         { title: "이야기를 아직 만들고 있어요", hint: "다 되면 내 책장에 꽂아 둘게요", primary: "내 책장 보기" },
+};
+
+/** 사진 올리기가 꺼져 있을 때(F-SET-06 기본, 화면에 그린 그림) 「찍기」 문구를 바꿔 쓴다 */
+export const DRAW_TEXT: Record<string, { hint: string; primary: string }> = {
+  NO_CHARACTER:        { hint: "지금은 두 발로 선 친구만 움직일 수 있어요", primary: "다시 그리기" },
+  MULTIPLE_CHARACTERS: { hint: "한 명만 그려 볼까요?", primary: "다시 그리기" },
+  LOW_CONFIDENCE:      { hint: "사람을 크게 그려 볼까요?", primary: "다시 그리기" },
+  // 앨범에서 고르기(S-03-05)는 사진 올리기를 켰을 때만 있다
+  UNSUPPORTED_IMAGE:   { hint: "다시 그려 볼까요?", primary: "다시 그리기" },
 };

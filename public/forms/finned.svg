@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- 「헤엄치는 친구」 형태 카드 (S-03, 11/5) — 어떤 동물인지 말하지 않는 옆모습 안내선. 몸통 · 꼬리지느러미만 -->
+  <g fill="#F2DDBF" stroke="#8B6B4E" stroke-width="5" stroke-dasharray="11 8" stroke-linejoin="round">
+    <path d="M76 120 L28 76 L36 120 L28 164 Z"/>
+    <ellipse cx="170" cy="120" rx="104" ry="62"/>
+  </g>
+</svg>

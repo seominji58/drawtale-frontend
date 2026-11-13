@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
@@ -6,52 +6,98 @@ import Waiting from "@/components/Waiting";
 import { Friend } from "@/components/illust";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
-import { analyzeCharacter, ENGINE } from "@/api";
-import { isOk } from "@/types/character";
+import { analyzeCharacter, ApiError, ENGINE } from "@/api";
+import type { Character, JobStatus } from "@/types/character";
+import { countAnalysis } from "@/store/retry";
 
-const STAGES = ["uploaded", "segmenting", "estimating_pose", "building_skeleton"];
+/** 백엔드 job 상태(계약 1-3)를 대기 점 세 개로 보여준다 */
+const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, failed: 0 };
+/** 분석 대기 (pt_docs 05 S-04 「30초를 넘기면 E-01 ENGINE_TIMEOUT」). 30초가 넘으면 「조금 더 걸려요」로 알리고 계속 기다린다 —
+ *  서버를 새로 켠 직후(배포)에는 첫 분석이 1분 가까이 걸려, 30초에 끊으면 다 된 분석을 버리고 그림을 다시 올려야 했다 (11/9 사용자).
+ *  LIMIT_MS 를 넘기면 그때 E-01 (그림은 그대로 두고 「다시 시도하기」) */
+const SLOW_MS = 30_000;
+const LIMIT_MS = 120_000;
+
+interface Run {
+  file: File;
+  form: string;
+  started: number;
+  ctrl: AbortController;
+  promise: Promise<Character>;
+  listen: (s: JobStatus) => void;
+}
+
+/** 지금 진행 중인 분석. 같은 그림이면 다시 올리지 않고 이것을 이어 받는다.
+ *  개발 모드의 StrictMode 는 effect 를 두 번 돌리는데, 예전에는 두 번째가 그림을 또 올려서
+ *  서버에 분석이 두 개 겹쳐 느려지고 30초 한도를 넘겼다 (2026-10-29 실제 앱 시험) */
+let running: Run | null = null;
+
+function startAnalysis(file: File, keepOriginal: boolean, form: string): Run {
+  if (running && running.file === file && running.form === form) return running;
+  running?.ctrl.abort();
+  const ctrl = new AbortController();
+  const run = { file, form, started: performance.now(), ctrl, listen: () => {} } as unknown as Run;
+  run.promise = analyzeCharacter(file, (s) => run.listen(s), ctrl.signal, keepOriginal, form);
+  const clear = () => { if (running === run) running = null; };
+  run.promise.then(clear, clear);
+  running = run;
+  return run;
+}
+
+/** 그만하기 · 시간 초과: 서버 응답을 더 기다리지 않는다 */
+function cancelAnalysis() {
+  running?.ctrl.abort();
+  running = null;
+}
 
 export default function S04Analyzing() {
   const nav = useNavigate();
-  const { file, setAnalysis, setError } = useSession();
+  const { file, form, setCharacter, setError } = useSession();
   const diagnostics = useSettings((s) => s.diagnostics);
   const [step, setStep] = useState(0);
   const [diag, setDiag] = useState("");
   const [showStop, setShowStop] = useState(false);
-  const abort = useRef<AbortController | null>(null);
+  const [slow, setSlow] = useState(false);
 
   useEffect(() => {
     if (!file) { nav("/upload", { replace: true }); return; }
+    const run = startAnalysis(file, useSettings.getState().keepOriginal, form);
+    let live = true;   // 이 화면이 아직 붙어 있는지 — 떨어진 화면은 결과로 이동하지 않는다
     const t = setTimeout(() => setShowStop(true), 3000);
-    const timeout = setTimeout(() => { setError("ENGINE_TIMEOUT"); nav("/error"); }, 30000);
-    // effect 안에서 새로 만든다. ref 에 담아 두면 StrictMode 의 두 번째 실행이
-    // 첫 실행 cleanup 에서 이미 끊긴 signal 을 물려받아 분석이 시작되지 않는다
-    const ctrl = new AbortController();
-    abort.current = ctrl;
+    const s = setTimeout(() => setSlow(true), Math.max(0, SLOW_MS - (performance.now() - run.started)));
+    const timeout = setTimeout(() => {
+      cancelAnalysis();
+      countAnalysis("ENGINE_TIMEOUT"); setError("ENGINE_TIMEOUT"); nav("/error");
+    }, Math.max(0, LIMIT_MS - (performance.now() - run.started)));
 
-    analyzeCharacter(file, (p) => {
-      setStep(STAGES.indexOf(p.stage) + 1);
-      setDiag(`${p.stage} · ${Math.round(p.progress * 100)}% · ${ENGINE}`);
-    }, ctrl.signal)
-      .then((res) => {
-        if (!isOk(res)) { setError(res.error.code); nav("/error"); return; }
-        setAnalysis(res);
-        nav("/confirm", { replace: true });
+    run.listen = (s) => {
+      if (!live) return;
+      setStep(STEP[s]);
+      setDiag(`${s} · ${Math.round(performance.now() - run.started)}ms · ${ENGINE}`);
+    };
+    run.promise
+      .then((c) => {
+        if (!live) return;
+        countAnalysis(null);
+        setCharacter(c);
+        // 관절을 못 찾아 기본 뼈대를 놓았으면 바로 관절 고치기로 — 그대로 움직이면 몸이 엉뚱하게 휜다 (pt_docs 19 7장 ②)
+        nav(c.jointsFound === false ? "/joints" : "/confirm", { replace: true });
       })
       .catch((e) => {
-        if ((e as Error).name === "AbortError") return;
-        setError("ENGINE_ERROR"); nav("/error");
+        if (!live || (e as Error).name === "AbortError") return;
+        const code = e instanceof ApiError ? e.code : "ENGINE_ERROR";
+        countAnalysis(code); setError(code); nav("/error");
       });
 
-    return () => { clearTimeout(t); clearTimeout(timeout); ctrl.abort(); };
-  }, [file, nav, setAnalysis, setError]);
+    return () => { live = false; clearTimeout(t); clearTimeout(s); clearTimeout(timeout); };
+  }, [file, form, nav, setCharacter, setError]);
 
-  const stop = () => { abort.current?.abort(); nav("/upload"); };
+  const stop = () => { cancelAnalysis(); nav("/upload"); };
 
   return (
-    <Screen back={stop} speech="친구를 만들고 있어요" segment={2}
+    <Screen back={stop} speech="친구를 만들고 있어요" segment={2} adultKey={false}
       acts={showStop ? <BigButton onClick={stop}>그만하기</BigButton> : undefined}>
-      <Waiting message="친구를 만들고 있어요" steps={4} current={step}
+      <Waiting message={slow ? "조금 더 걸리고 있어요. 그림은 그대로 있으니 기다려 주세요" : "친구를 만들고 있어요"} steps={3} current={step}
                diagnostics={diagnostics ? diag : null} art={<Friend wave />} />
     </Screen>
   );

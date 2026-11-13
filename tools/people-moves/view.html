@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>등장인물 동작 보기</title>
+<!-- 등장인물 동작 그림띠 모아 보기 (2026-11-09). 개발 서버에서 /tools/people-moves/view.html -->
+<style>
+  body { margin: 0; padding: 16px; background: #c8e6c9; font: 14px sans-serif; color: #3a2e26; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p { margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 470px), 1fr)); gap: 12px; }
+  .card { background: #ffffffaa; border-radius: 8px; padding: 6px 8px; overflow: hidden; }
+  .row { display: flex; gap: 8px; align-items: flex-end; }
+  .cell { text-align: center; font-size: 12px; flex: none; }
+  .still { height: 180px; }
+  .strip { height: 180px; overflow: hidden; }
+  .strip img { height: 100%; display: block; max-width: none; }
+  @keyframes run { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+  @keyframes run-in { from { transform: translateX(0); } to { transform: translateX(var(--a)); } }
+  @keyframes run-loop { from { transform: translateX(var(--a)); } to { transform: translateX(-100%); } }
+</style>
+</head>
+<body>
+<h1>등장인물 동작 (걷기 · 인사)</h1>
+<p>왼쪽부터 멈춘 그림 · 걷기 · 인사. 인사는 손을 든 뒤 계속 흔든다(새로고침하면 처음부터). 만세는 몸통이 불룩해져 뺐고, 기쁜 쪽에서도 인사가 나온다.</p>
+<div class="grid" id="g"></div>
+<script type="module">
+  const M = await (await fetch("/src/features/scene/people-moves.json", { cache: "no-store" })).json();
+  const g = document.getElementById("g");
+  for (const [id, moves] of Object.entries(M)) {
+    const card = document.createElement("div"); card.className = "card";
+    let html = `<b>${id}</b><div class="row"><div class="cell"><img class="still" src="/scenes/props/${id}.webp"><br>그림</div>`;
+    for (const [name, m] of Object.entries(moves)) {
+      // 인사는 손 들기(loop_from 장까지) 한 번 → 흔들기 되풀이, 화면(SceneStage)과 같다. 다시 보려면 새로고침
+      const k = m.loop_from, anim = k == null ? `run ${m.sec}s steps(${m.frames}) infinite`
+        : `run-in ${m.sec * k / m.frames}s steps(${k}) forwards, run-loop ${m.sec * (m.frames - k) / m.frames}s steps(${m.frames - k}) ${m.sec * k / m.frames}s infinite;--a:${-100 * k / m.frames}%`;
+      html += `<div class="cell"><div class="strip" style="width:${180 * m.ar}px"><img src="/scenes/people-moves/${id}.${name}.webp?v=${m.sec}-${m.frames}"
+        style="width:${m.frames * 100}%;animation:${anim}"></div>${name === "walk" ? "걷기" : "인사"}</div>`;
+    }
+    card.innerHTML = html + "</div>"; g.appendChild(card);
+  }
+</script>
+</body>
+</html>

@@ -1,44 +1,286 @@
-import { useEffect } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Screen from "@/components/Screen";
 import BigButton from "@/components/BigButton";
-import { useLibrary } from "@/store/library";
+import LockedFeature from "@/components/LockedFeature";
+import { TITLE_MAX, useLibrary } from "@/store/library";
+import { findStory, refreshStory } from "@/api";
+import { shelve } from "@/features/story/shelve";
 import { useSession } from "@/store/session";
-import { useAuth } from "@/store/auth";
+import { useGuardianMode } from "@/store/settings";
+import type { Story } from "@/types/story";
+
+/** 책 천 · 책등 색. 네 단계 크레파스 색을 차분하게 (시안 「책장 3 다듬기」) */
+const CLOTH: [string, string][] = [["#8DB5E3", "#5E8FC9"], ["#9CCBAE", "#6FA884"], ["#EFA898", "#D27A68"], ["#F2CF7E", "#D9A94A"]];
+/** 색종이 인덱스 탭 색 (시안 G) */
+const TAB = ["#F2C14E", "#9CCBAE", "#EFA898", "#8DB5E3"];
+
+/** 이야기마다 늘 같은 모양이 나오게 id 로 정하는 작은 수 */
+function seed(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+/** 한 책의 생김새. 크기에 뜻이 있다 (2026-10-28 사용자 「추천 1번」):
+ *  긴 이야기(여러 쪽 그림책, `book` 있음)는 크고 두꺼운 책, 짧은 이야기(네 문장)는 작고 얇은 책.
+ *  같은 종류 안에서는 이야기 id 로 높이를 ±2% 만 다르게 하고 살짝 기울여 늘 같은 모양이 나오게 한다.
+ *  색종이 탭도 긴 이야기는 2~3장, 짧은 이야기는 1~2장 */
+function look(st: Story, i: number) {
+  const h = seed(st.storyId);
+  const long = !!st.book;
+  const [cloth, spine] = CLOTH[i % CLOTH.length];
+  const tabs = Array.from({ length: (long ? 2 : 1) + (h % 2) }, (_, k) => ({
+    top: 18 + ((h >> (k * 3)) % 14) + k * 24,        // 위에서 % — 겹치지 않게 아래로 벌린다
+    w: 24 + ((h >> (k * 2 + 1)) % 9),
+    color: TAB[(h + k) % TAB.length],
+    rot: (((h >> (k + 4)) % 5) - 2) * 0.8,
+  }));
+  const jitter = (((h >> 5) % 5) - 2) / 100;           // -0.02 ~ 0.02
+  return {
+    long,
+    style: {
+      "--cloth": cloth, "--spine": spine,
+      "--ws": long ? "1" : "0.88",                     // 폭
+      "--hs": String((long ? 1 : 0.86) + jitter),      // 높이
+      "--thick": long ? "15px" : "7px",                // 오른쪽 종이 결 = 두께
+      "--tilt": `${(((h >> 9) % 5) - 2) * 0.6}deg`,    // -1.2 ~ 1.2도
+    } as CSSProperties,
+    tabs,
+  };
+}
+
+/** 표지 그림: 아이 그림, 없으면 고른 장소 그림 */
+function CoverArt({ st }: { st: Story }) {
+  if (st.cover) return <img src={st.cover} alt="" />;
+  if (!st.picks?.place) return null;
+  return <img className="fallback" src={`${import.meta.env.BASE_URL}icons/place/${st.picks.place}.webp`} alt=""
+    onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />;
+}
+
+/** 책 앞표지 (선반의 책과 펼쳐지는 책이 같은 모양을 쓴다) */
+function Cover({ st, children }: { st: Story; children?: ReactNode }) {
+  return (
+    <span className="book-cover">
+      <span className="book-title">{st.title}</span>
+      <span className="book-window"><CoverArt st={st} /></span>
+      <span className="book-date">{st.createdAt}</span>
+      {children}
+    </span>
+  );
+}
+
+/** 책을 펼치고 들어가는 시간(ms): 떠오르기 420 → 표지 넘기기 440 → 첫 장으로 다가가기 500(끝 200ms 동안 종이색으로 덮임).
+ *  팀 규칙 「전환 200~300ms」보다 길어 아이가 누른 데 답하는 한 번의 움직임으로만 쓰고, 움직임 줄이기면 건너뛴다 */
+const OPEN_MS = 1380;
+/** 첫 장으로 다가갈 때 더 키우는 배율 */
+const ZOOM = 3;
+
+/** 한 선반에 꽂을 권 수. 넓은 화면 4, 태블릿 세로 3, 폰 2 */
+function usePerShelf() {
+  const pick = () => (window.innerWidth >= 1100 ? 4 : window.innerWidth >= 700 ? 3 : 2);
+  const [n, setN] = useState(pick);
+  useEffect(() => {
+    const on = () => setN(pick());
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return n;
+}
 
 export default function S12Stories() {
   const nav = useNavigate();
-  const { stories, load } = useLibrary();
+  // 책장에서 기기 · 브라우저 뒤로 가기는 처음 화면으로 — 기록에 남은 만들기 흐름(그림 올리기 · 카드 고르기)으로
+  // 돌아가던 것 (11/9 사용자 「다 만들고 뒤로 가면 맨 처음 그림 올리는 화면이 나온다」). 앱 뒤로 버튼도 처음 화면
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const back = () => nav("/", { replace: true });
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
+  }, [nav]);
+  const { stories, load, rename, add, pending, removePending } = useLibrary();
   const setStory = useSession((s) => s.setStory);
-  const mode = useAuth((s) => s.mode);
+  const guardian = useGuardianMode();
+  // 제목 바꾸기 (보호자 모드, 11/3 사용자 「책장에서 제목 변경 가능하게」). 켜면 책을 눌렀을 때 펼치지 않고 제목 칸이 뜬다
+  const [renaming, setRenaming] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
+  useEffect(() => { if (!guardian) { setRenaming(false); setEditing(null); } }, [guardian]);
+  const saveTitle = () => {
+    const t = editing?.title.trim().slice(0, TITLE_MAX);
+    if (editing && t) rename(editing.id, t);
+    setEditing(null);
+  };
+  const per = usePerShelf();
+  // 펼치는 중인 책: 선반에서의 자리 · 생김새를 들고 화면 가운데로 떠오른 뒤 표지를 넘긴다 (2026-10-28 사용자)
+  const [opening, setOpening] = useState<{ st: Story; rect: DOMRect; style: CSSProperties; long: boolean } | null>(null);
+  const timer = useRef<number>();
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const open = (st: Story, el: HTMLElement, style: CSSProperties, long: boolean) => {
+    if (opening) return;   // 펼치는 동안 다른 책을 눌러도 무시
+    setStory(st);
+    // 저장해 둔 음성 · 영상 주소는 기한이 지났을 수 있다 — 서버에서 새 주소를 받아 바꿔 끼운다
+    void refreshStory(st).then((fresh) => { if (useSession.getState().story?.storyId === st.storyId) setStory(fresh); });
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { nav("/story"); return; }
+    setOpening({ st, rect: el.getBoundingClientRect(), style, long });
+    timer.current = window.setTimeout(() => {
+      // S-09 가 종이색에서 스며 나오게 (styles/ui.css body[data-enter="book"]) — 잠깐 뒤 지운다
+      document.body.dataset.enter = "book";
+      window.setTimeout(() => { delete document.body.dataset.enter; }, 600);
+      nav("/story");
+    }, OPEN_MS);
+  };
+
+  // 떠오른 책이 놓일 자리: 화면 가운데, 화면 높이의 62% 크기
+  const fly = opening && (() => {
+    const { rect } = opening;
+    const sc = Math.min((window.innerHeight * 0.62) / rect.height, (window.innerWidth * 0.42) / rect.width);
+    // 펼치면 표지가 왼쪽으로 넘어가 두 쪽이 되므로, 책의 왼쪽 끝(책등)이 화면 가운데에 오게 한다
+    const dx = window.innerWidth / 2 + (rect.width * sc) / 2 - (rect.left + rect.width / 2);
+    const dy = window.innerHeight / 2 - (rect.top + rect.height / 2);
+    return {
+      ...opening.style,
+      left: rect.left, top: rect.top, width: rect.width, height: rect.height,
+      "--dx": `${dx}px`, "--dy": `${dy}px`, "--sc": String(sc),
+      // 다가가기: 첫 장(이 책 자리 = 펼친 오른쪽 쪽) 가운데를 화면 가운데로 옮기며 ZOOM 배 더 키운다
+      "--dx2": `${window.innerWidth / 2 - (rect.left + rect.width / 2)}px`,
+      "--sc2": String(sc * ZOOM),
+    } as CSSProperties;
+  })();
 
   useEffect(() => { load(); }, [load]);
+  // 만들다 화면이 놓친 이야기(시간 초과 · 탭 닫힘, 2026-11-04): 서버에서 끝났으면 꽂고, 실패했으면 잊는다.
+  // 아직 만드는 중이면 이 화면에 있는 동안 10초마다 다시 본다
+  const ids = pending.map((p) => p.storyId).join(",");
+  useEffect(() => {
+    if (!ids) return;
+    let live = true;
+    const check = async () => {
+      for (const p of useLibrary.getState().pending) {
+        const r = await findStory(p.storyId, p.jobId);
+        if (!live) return;
+        if (r.state === "done") shelve(r.story, { picks: p.picks, guardian: p.guardian, form: p.form }, r.story.stillUrl ?? null, add);
+        if (r.state !== "waiting") removePending(p.storyId);
+      }
+    };
+    void check();
+    const t = window.setInterval(() => void check(), 10_000);
+    return () => { live = false; clearInterval(t); };
+  }, [ids, add, removePending]);
+  const allShelves = Array.from({ length: Math.ceil(stories.length / per) }, (_, r) => stories.slice(r * per, r * per + per));
+  // 책장 쪽 넘기기 (11/10 사용자 「책이 많이 쌓이면 끝없이 내리는 방식이 별로 — 1쪽 · 2쪽으로」): 화면에 들어가는 선반 수만큼 한 쪽.
+  // 선반 하나의 높이를 재서 몇 줄 들어가는지 정한다 (처음엔 2줄)
+  const shelfBox = useRef<HTMLDivElement>(null);
+  const [rowsFit, setRowsFit] = useState(2);
+  useLayoutEffect(() => {
+    const el = shelfBox.current;
+    if (!el) return;
+    const fit = () => {
+      const row = el.querySelector<HTMLElement>(".shelf-row");
+      if (!row) return;
+      const gap = parseFloat(getComputedStyle(el).rowGap) || 34;
+      const pad = parseFloat(getComputedStyle(el).paddingTop) + parseFloat(getComputedStyle(el).paddingBottom);
+      setRowsFit(Math.max(1, Math.floor((el.clientHeight - pad + gap) / (row.offsetHeight + gap))));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stories.length, per]);
+  const pages = Math.max(1, Math.ceil(allShelves.length / rowsFit));
+  const [shelfPage, setShelfPage] = useState(0);
+  const pageNow = Math.min(shelfPage, pages - 1);
+  const shelves = allShelves.slice(pageNow * rowsFit, pageNow * rowsFit + rowsFit);
+  const firstRow = pageNow * rowsFit;
 
   return (
-    <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}>
-      {mode === "guest" && (
-        <div className="box warn">앱을 닫으면 이야기가 사라져요</div>
-      )}
+    <Screen back="/" speech={null} title="내 이야기" autoSpeak={false}
+      // 내 소품 — 그린 물건이 이야기에 나온다 (open-decisions 0-13). 보호자 모드에서만.
+      // 글자 링크는 눈에 안 띄어(11/3 사용자) 아래 줄 버튼으로. 이 화면의 주된 행동은 책 고르기라 강조색은 쓰지 않는다
+      // 보호자 모드가 꺼져 있어도 있는 줄은 알게 — 누르면 보호자 비밀번호 (pt_docs 20 3-2 ⑤)
+      acts={!guardian ? <LockedFeature label="내 소품 그리기 · 책 제목 바꾸기" />
+        : renaming ? <BigButton go onClick={() => setRenaming(false)}>다 바꿨어요</BigButton>
+        : <>
+            <BigButton onClick={() => nav("/props")}>내 소품 그리기</BigButton>
+            {stories.length > 0 && <BigButton onClick={() => setRenaming(true)}>제목 바꾸기</BigButton>}
+          </>}>
+      {renaming && <p className="hint shelf-hint">제목을 바꿀 책을 눌러 주세요</p>}
+      {pending.length > 0 && !renaming && <p className="hint shelf-hint">만들고 있는 이야기가 있어요. 다 되면 여기에 꽂혀요</p>}
 
       {stories.length > 0 ? (
-        <div className="list scroll">
-          {stories.map((s) => (
-            <button key={s.storyId} className="item"
-              onClick={() => { setStory(s); nav("/story"); }}>
-              <span className="thumb" />
-              <span className="grow">
-                <span className="name">{s.title}</span>
-                <span className="desc">{s.createdAt}에 만들었어요</span>
-              </span>
-            </button>
+        <div className={`shelf ${pages > 1 ? "paged" : ""}`} ref={shelfBox}>
+          {/* 나무 선반에 세운 하드커버 그림책 (시안 「책장 3 다듬기」 + G 색종이 탭, 2026-10-28 사용자).
+              표지 그림 창에는 아이 그림(없으면 고른 장소 그림) */}
+          {shelves.map((row, r) => (
+            <div key={r} className="shelf-row">
+              <div className="shelf-books">
+                {row.map((st, j) => {
+                  const { style, tabs, long } = look(st, (firstRow + r) * per + j);
+                  return (
+                    <button key={st.storyId} className={`book ${long ? "long" : "short"} ${opening?.st.storyId === st.storyId ? "lifted" : ""} ${renaming ? "pick" : ""}`} style={style}
+                      aria-label={renaming ? `${st.title} 제목 바꾸기` : `${st.title}, ${long ? "긴 이야기" : "짧은 이야기"}, ${st.createdAt}`}
+                      onClick={(e) => renaming ? setEditing({ id: st.storyId, title: st.title }) : open(st, e.currentTarget, style, long)}>
+                      <span className="book-pages" aria-hidden />
+                      {tabs.map((t, k) => (
+                        <span key={k} className="book-tab" aria-hidden
+                          style={{ top: `${t.top}%`, width: t.w, background: t.color, transform: `rotate(${t.rot}deg)` }} />
+                      ))}
+                      <Cover st={st} />
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="shelf-plank" aria-hidden />
+            </div>
           ))}
         </div>
-      ) : (
+      ) : null}
+      {stories.length > 0 && pages > 1 && (
+        <nav className="shelf-pager" aria-label="책장 쪽">
+          <button className="round" disabled={pageNow === 0} aria-label="앞 쪽 책장" onClick={() => setShelfPage(pageNow - 1)}>‹</button>
+          <span className="shelf-dots">
+            {Array.from({ length: pages }, (_, k) => (
+              <button key={k} className={k === pageNow ? "on" : ""} aria-label={`${k + 1}쪽`} aria-current={k === pageNow ? "page" : undefined}
+                onClick={() => setShelfPage(k)}>{k + 1}</button>
+            ))}
+          </span>
+          <button className="round" disabled={pageNow >= pages - 1} aria-label="다음 쪽 책장" onClick={() => setShelfPage(pageNow + 1)}>›</button>
+        </nav>
+      )}
+      {stories.length > 0 ? null : (
         <div className="stage empty" style={{ flexDirection: "column", gap: 20, padding: 32 }}>
           <p className="question">아직 이야기가 없어요</p>
           <p className="hint">상상한 이야기를 만들어 보세요</p>
-          <div style={{ width: 280 }}>
+          <div style={{ width: "min(100%, calc(var(--t-button) * 7.4))" }}>{/* 글자 크기를 따라 — 280 고정이면 큰 화면(TV)에서 두 줄로 꺾였다 */}
             <BigButton go onClick={() => nav("/guide")}>이야기 만들기</BigButton>
+          </div>
+        </div>
+      )}
+      {editing && (
+        <div className="rename-layer" data-audience="adult" onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
+          <form className="paper-card rename-card" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
+            <label className="rename-label" htmlFor="rename-input">이야기 제목</label>
+            <input id="rename-input" className="title-input" value={editing.title} maxLength={TITLE_MAX} autoFocus
+              onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+            <div className="rename-acts">
+              <BigButton onClick={() => setEditing(null)}>그대로 두기</BigButton>
+              <BigButton go disabled={!editing.title.trim()} onClick={saveTitle}>바꾸기</BigButton>
+            </div>
+          </form>
+        </div>
+      )}
+      {/* 펼쳐지는 책: 선반의 책 자리에서 떠올라 가운데로 오며 커지고, 표지가 책등을 축으로 넘어가 첫 장(제목 · 그림)이 보인다 */}
+      {opening && fly && (
+        <div className="book-open-layer" aria-hidden>
+          <div className={`book-fly ${opening.long ? "long" : "short"}`} style={fly}>
+            <span className="book-first">
+              <span className="book-first-art"><CoverArt st={opening.st} /></span>
+              <span className="book-first-title">{opening.st.title}</span>
+            </span>
+            <Cover st={opening.st} />
+            {/* 표지가 반쯤(90도) 넘어간 뒤 이어서 펼쳐지는 표지 안쪽(면지). 한 장으로 180도 돌리면 표지 글자가 거울처럼 비친다 */}
+            <span className="book-left" />
           </div>
         </div>
       )}
