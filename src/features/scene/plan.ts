@@ -145,7 +145,7 @@ const THINGS: [RegExp, string, number, Spot][] = [
   [/킥보드/, "props/scooter.webp", 0.22, "ground"],
   [/왕관/, "props/crown.webp", 0.06, "ground"],
   [/비행기/, "props/toyplane.webp", 0.07, "ground"],
-  [/팽이/, "props/top.webp", 0.05, "ground"],   // 날개형 이야기 대본 인물 (11/12, gen_scene_props9.py)
+  [/(?<!달)팽이/, "props/top.webp", 0.05, "ground"],   // 달팽이는 팽이가 아니다 (11/13 지느러미형 점검). 날개형 이야기 대본 인물 (11/12, gen_scene_props9.py)
   [/달팽이/, "props/snail.webp", 0.06, "ground"],
   // pt_docs 18 「장면 소품 보강」 (11/4) — A. 숨는 곳 그림을 옆에 놓인 물건으로도 (가림막보다 작게)
   [/담요|이불|침낭/, "props/blanket.webp", 0.12, "ground"],
@@ -1843,6 +1843,10 @@ function planPagesWith(pages: BookPage[], picks: Picks, sheet: Record<string, st
     const seat = move === "none" ? seatOf(p.text) : undefined;
     // 주인공이 받거나 들고 있는 물건이 있는 제자리 쪽은 가만히 서서 든다: 손을 흔들거나 뛰는 동안은 손 자리를 못 써 받은 물건이 바닥에 놓였다
     // (11/12 사용자 「물건을 건네준다는 표현 때 물건이 대상한테 안 주고 바닥에 주는데」)
+    // 손 없는 주인공(사슬 · 날개 · 지느러미 · 촉수)이 받거나 든 것은 곁 땅에 (화면도 손 자리를 못 써 땅에 놓는다, 11/13 「친구가 구슬을 내 앞에 내밀었어요」)
+    if (form && form !== "biped" && form !== "quadruped") {
+      for (const [k, t] of things.entries()) if (t.holder === "hero" && t.pose === "hand") things[k] = { ...t, pose: undefined };
+    }
     const heroHolds = move === "none" && things.some((t) => t.holder === "hero" && t.pose === "hand");
     if (loc !== lostLoc) { lostBg = new Set(); lostLoc = loc; }
     const plainText = p.text.replace(/“[^”]*”/g, " ");

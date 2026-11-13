@@ -12,6 +12,7 @@
 
 ## 지금 상태 (2026-10-08)
 
+- **11/13 지느러미 · 여러 다리형 검사**: 묶음 `tools/scene-check/out/forms-fr.json`(백엔드 `storage/card_stories/form-finned.jsonl` · `form-radial.jsonl` 에서). 화면 검사는 `REFH=0.52 EXTRA="sprite=out/real/fish.webp&frames=48&box=0.3613,0.4102,0.7949,0.6621&fit=width&facing=1&lift=0.14&size=0.5" node tools/scene-check/layout.mjs 20 10 forms-finned.json`, 여러 다리형은 `EXTRA="still=/scenes/props/octopus.webp&fit=height&facing=0&lift=0.15&size=0.8"`. 손 없는 주인공(사슬 · 날개 · 지느러미 · 촉수)이 받은 물건은 계획에서 곁 땅
 - **11/13 붙는 물건**: 계단 말 앞뒤에 로켓 · 우주선이 있으면 `SceneStage` 가 로켓(배경 그림 · 소품 `rocketThing`) 옆에 붙이고 높은 쪽이 로켓에 닿게 뒤집는다(소품 `flip`). 계단은 움직임을 받지 않는다
 - **11/12 손에 듦**: 주인공 손 자세(`hand`)는 제자리(calm, `heroHolds`)와 걷는 쪽(`withHero` 로 같이 옮겨 감)에서 그린다. 손에 든 · 주고받는 물건은 배경 같은 종류 거르기(`bgKinds`)에서 빠진다. 「○○이 보이지 않았어요」 배경 물건은 쪽 계획 `hideBg`. 검사 `node tools/scene-check/out/_givecheck.mjs`(먼저 `_gives.mjs`)
 - **11/12 큰 붙박이 · 윗면**: `STRUCT` 는 빈자리가 없으면 배경 물건을 무시하고 서고, 그 자리의 글에 없는 배경 물건은 `hiddenBg` 로 감춘다. 식탁 · 책상 위 · 접시의 작은 물건은 자세 `top`(`plan.ts` `ON_TOP`)
