@@ -741,6 +741,10 @@ function thingMotion(t: ThingPlan, text: string, weather: Weather | null): Thing
     const before = text.slice(Math.max(0, t.at - 14), t.at);
     if (/(?:굴러가는|굴러오는|데굴데굴|떼굴떼굴|구르는)\s*(?:[가-힣]+\s)?$/.test(before)) return "roll";
     if (/(?:떠다니는|둥실둥실|날아다니는|떠가는)\s*(?:[가-힣]+\s)?$/.test(before)) return "float";
+    // 「손전등은 바위 틈까지 데굴데굴 굴러가 있었어요」의 바위는 굴러간 곳이지 굴러가는 것이 아니다 (11/12 동굴 바위가 하나 더 굴러 나왔다)
+    const word = text.slice(t.at).match(/^[가-힣]+(?:\s(?:틈|사이|밑|아래|옆|위|앞|뒤|속|안|쪽)[가-힣]*)?/)?.[0] ?? "";
+    // 「고리 돌 위를 데굴데굴 구른 게」도 (구른 것은 주인공)
+    if (/(?:까지|으로|에서|에게|에|로)$/.test(word) || /\s(?:틈|사이|밑|아래|옆|위|앞|뒤|속|안|쪽)/.test(word)) return undefined;
     const m = sentenceMotion(text, t.at);
     if (m) return m;
   }

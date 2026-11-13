@@ -96,7 +96,7 @@ function measure(el: HTMLElement) {
       return { x0: b.x0 + (flip ? 1 - bx1 : bx0) * w, x1: b.x0 + (flip ? 1 - bx0 : bx1) * w, y0: b.y0 + by0 * h, y1: b.y0 + by1 * h };
     })[0] ?? null,
     people: pick(".scene-person, .scene-person-walk").map((e) => ({ name: name(e.querySelector("img") ?? e), ...box(e) })),
-    things: pick(".scene-thing").map((e) => ({ name: name(e), pose: e.getAttribute("data-pose"), spot: e.getAttribute("data-spot"), behind: e.getAttribute("data-behind") === "1", cls: e.className, ...box(e) })),
+    things: pick(".scene-thing").map((e) => ({ name: name(e), pose: e.getAttribute("data-pose"), motion: e.getAttribute("data-motion"), spot: e.getAttribute("data-spot"), behind: e.getAttribute("data-behind") === "1", cls: e.className, ...box(e) })),
     bg: pick(".scene-obj.scene-bg").map((e) => ({ name: name(e), ...box(e) })),
     cover: pick(".scene-cover").map((e) => ({ name: name(e), ...box(e) })),
   };

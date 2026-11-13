@@ -100,7 +100,9 @@ function issuesOf(s) {
       if (o > 0.2) out.push(["소품이 인물을 가림", `${t.name} ↔ ${f.name} ${Math.round(o * 100)}%`]);
     }
     for (const b of s.bg) {
-      if (kin(t.name, b.name)) out.push(["배경에 이미 있는 물건을 또 놓음", `${t.name} (배경 ${b.name})`]);
+      // 손에 든 · 주고받는 물건은 배경에 같은 종류가 있어도 따로 그린다 (11/12 「장난감 상자를 안고」 · 「박쥐가 돌을 건넸어요」)
+      // 굴러가는 물건도 배경 바위와 따로 움직이는 것이라 세운다 (754번 「데굴데굴 굴러가는 달 돌」)
+      if (kin(t.name, b.name) && t.pose !== "hand" && !t.give && t.motion !== "roll") out.push(["배경에 이미 있는 물건을 또 놓음", `${t.name} (배경 ${b.name})`]);
       // 학교 건물 · 마을 집은 맨 뒤 풍경 (SceneStage BACKDROP)
       else if (!held && t.spot !== "air" && t.spot !== "wall" && t.name !== "nest" && !["building", "houses", "house"].includes(b.name)) {
         const o = inter(t, b) / Math.max(1e-6, area(t));
@@ -113,7 +115,9 @@ function issuesOf(s) {
       // 사람 손에 든 것이 사람 뒤에 그리는 넓은 풍경(텐트 · 난간 · 표지판 …) 앞에 오는 것은 겹침이 아니다 (「랜턴을 든 엄마」 앞 텐트, 11/12 난간 · 표지판 앞 손전등)
       const wideBack = (HELD.has(t.pose) || HELD.has(u.pose)) && [t.name, u.name].some((n) => ["tent", "spaceship", "rocket", "boat", "bridge", "dune", "railing", "arrow", "sign", "sign-green", "lamp", "mailbox", "desk", "table"].includes(n));
       // 난간은 사람 뒤에 가로지르는 풍경이라 그 앞의 다리 · 버섯 · 배와 겹쳐도 된다 (11/12)
-      if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose)) && !wideBack && t.name !== "railing" && u.name !== "railing") out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
+      // 손에 든 것은 사람 손에 그려 땅 소품 앞에 온다 (11/12 걷거나 앉은 주인공 손 랜턴 뒤 바위, 받은 손전등 뒤 안내소)
+      const inHand = t.pose === "hand" || u.pose === "hand";
+      if (o > 0.3 && !(HELD.has(t.pose) && HELD.has(u.pose)) && !wideBack && !inHand && t.name !== "railing" && u.name !== "railing") out.push(["소품끼리 겹침", `${t.name} ↔ ${u.name} ${Math.round(o * 100)}%`]);
     }
     const h = t.y1 - t.y0;
     // 대문 · 텐트 · 우주선 · 로켓은 실제로 아이보다 크다 (11/9 소품 키를 실제 크기 기준으로), 1.25 배까지
@@ -128,8 +132,11 @@ const b = await webkit.launch();
 const page = await b.newPage({ viewport: { width: 1450, height: 1000 } });
 const all = [];
 for (let i = 0; i < TOTAL; i += STEP) {
-  await page.goto(url(i, Math.min(STEP, TOTAL - i)));
-  await page.waitForFunction(() => window.__audit, null, { timeout: 60000 });
+  // 가끔 한 묶음이 막힌다 (11/13 256편 묶음, 따로 열면 5초), 한 번 더 연다
+  for (let tries = 0; ; tries++) {
+    await page.goto(url(i, Math.min(STEP, TOTAL - i)));
+    try { await page.waitForFunction(() => window.__audit, null, { timeout: 60000 }); break; } catch (e) { if (tries) throw e; }
+  }
   const a = await page.evaluate(() => window.__audit);
   for (const s of a) all.push({ ...s, issues: issuesOf(s) });
   process.stdout.write(`${Math.min(i + STEP, TOTAL)}/${TOTAL} `);

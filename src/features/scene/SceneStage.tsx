@@ -1108,7 +1108,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     || (t.x !== undefined && t.spot !== "air" && t.spot !== "wall" && underPerson(t as { x: number; h: number; ar: number; keep?: string }))
     || overPerson(t);
   const renderThing = (t: (typeof thingSpots)[number], k: number) => (
-        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"} data-behind={behindPeople(t) ? "1" : undefined} data-pose={t.pose === "top" && t.footY !== undefined ? "top" : undefined}
+        <img key={`thing-${k}-${t.src.slice(0, 40)}`} data-spot={t.spot ?? "ground"} data-behind={behindPeople(t) ? "1" : undefined} data-pose={t.pose === "top" && t.footY !== undefined ? "top" : undefined} data-motion={t.motion}
              className={`scene-obj scene-thing ${t.pose === "fall" && play ? "m-drop" : ""} ${t.motion && (!ONCE.has(t.motion) || play) ? `m-${t.motion}` : ""} ${inBlink(t) ? "m-blink" : ""}`}
              alt={t.name ? `내가 그린 ${t.name}` : ""}
              src={thingSrc(t.src)}
