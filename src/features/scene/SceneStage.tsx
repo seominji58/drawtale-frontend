@@ -956,6 +956,8 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     const half = (o.h * arOf(key, 1) / aspect) / 2;
     return [o.x - half, o.x + half];
   });
+  // 하늘에 걸린 배경 물건(행성 · 달 …, 윗변 기준) 자리: 공중 소품은 이것을 피한다 (11/12 사용자 「지구가 배경 행성과 겹쳐」)
+  const skySpans: [number, number][] = layout.objects.filter((o) => o.top !== undefined).map(spanOf);
   // 둥지는 배경 나무 가지 사이에 — 「높은 나뭇가지에 새 둥지」가 늘 땅에 놓였다 (11/10). 나무가 없으면 보통 자리
   const trees = layout.objects.filter((o) => /pine|tree/.test(o.src) && o.foot !== undefined);
   // 이어 가는 물건(keep)은 처음 놓인 자리 · 크기 그대로: 그 자리를 먼저 잡아 다른 소품이 피한다
@@ -1028,7 +1030,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     // 그래도 없으면 배경 물건을 무시하고 서되(사람 · 소품 · 글이 말한 배경 물건은 계속 피함), 그 자리와 겹치는 글에 없는 배경 물건은 이 쪽에서 감춘다
     // (아래 hiddenBg, 11/12 소품 크기 점검: 놀이터 배경에 그네 · 미끄럼틀 · 나무가 있어 「정글짐 · 구름다리」가 96쪽 중 8 · 0쪽만 나왔다)
     const tryList: [boolean, number, boolean?, boolean?][] = struct ? [[true, 1], [true, 0.8], [true, 1, true], [true, 0.8, true], [false, 1], [false, 0.8]]
-      : air ? [[false, 1]]
+      : air ? [[true, 1], [true, 0.75], [false, 1]]
       // 이어 갈 물건(keep)은 여러 쪽에 그대로 남으니 배경 물건과 겹치지 않는 자리를 작게라도 먼저 (11/10 이어짐 검사: 파라솔 앞 깃발이 6쪽 내내)
       // 그래도 없으면 사람 뒤에 (사람이 그 물건을 조금 가리는 편이 배경 물건과 기둥끼리 겹치는 것보다 낫다, 11/10 깃발 · 파라솔)
       : t.h >= 0.28 ? (t.keep ? [[true, 1], [true, 0.75], [true, 0.55], [true, 1, true], [true, 0.75, true], [true, 1, true, true], [true, 0.75, true, true], [false, 1], [false, 0.75], [false, 0.55]]
@@ -1037,7 +1039,7 @@ export default function SceneStage({ heroName = null, plan, prevEnv, sprite: spr
     for (const [avoidBg, scale, overSmall, overPeople] of tryList) {
       const open = (a: number, b: number) => list.every((sp) => b <= sp[0] || a >= sp[1] || (overSmall && smallSpans.has(sp)) || (overPeople && figureSpans.has(sp)))
         && (t.spot !== "wall" || !winSpan || b <= winSpan[0] || a >= winSpan[1])
-        && (!avoidBg || bgSpans.every(([l, r]) => b <= l || a >= r))
+        && (!avoidBg || (air ? skySpans : bgSpans).every(([l, r]) => b <= l || a >= r))
         // 배경을 무시하고 서는 큰 붙박이도 글이 말한 배경 물건(「미끄럼틀 옆」)은 피한다
         && (avoidBg || !struct || saidSpans.every(([l, r]) => b <= l || a >= r));
       const h = t.h * scale, half = (h * t.ar / aspect) / 2;
