@@ -15,6 +15,7 @@ import { SPEECH_RATES } from "@/lib";
 import { useGuardian } from "@/store/guardian";
 import { resetCoach } from "@/components/Coach";
 import { LockIcon } from "@/components/Screen";
+import ChildLinks from "@/components/ChildLinks";
 import type { GuardianVoice } from "@/api";
 
 function Row({ name, desc, children }: { name: string; desc: string; children: ReactNode }) {
@@ -50,12 +51,12 @@ function Head({ id, name, desc, children }: { id: string; name: string; desc?: s
 /** 바로가기 칩. 설정이 길어 폰 · 태블릿 · 컴퓨터 어디서든 원하는 묶음으로 바로 간다 (10/28 사용자 「스크롤 방식 고민」) */
 /** 아이 칸(잠금 없음)이 먼저, 보호자 칸(비밀번호)이 뒤 (pt_docs 20 3-2, 2026-11-06) */
 const SECTIONS: [string, string][] = [
-  ["story", "이야기"], ["sound", "소리"], ["guardian", "보호자"], ["account", "계정"], ["info", "기록"], ["mine", "만든 이야기"],
+  ["story", "이야기"], ["sound", "소리"], ["guardian", "보호자"], ["family", "연결"], ["account", "계정"], ["info", "기록"], ["mine", "만든 이야기"],
 ];
 /** 보호자 칸을 열기 전에도 무엇이 있는지는 보인다 (숨기지 않고 잠그기) */
 const GUARDIAN_ITEMS = [
   "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기 · 보호자 · 아이 목소리 등록",
-  "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
+  "아이 · 선생님 연결 (학교에서 만든 이야기를 집에서도 보기)", "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
 ];
 
 export default function S13Settings() {
@@ -199,7 +200,7 @@ export default function S13Settings() {
     <Screen back={close} speech={null} title="설정" audience="adult" autoSpeak={false}
       acts={<BigButton onClick={close}>닫기</BigButton>}>
       <nav className="set-nav" aria-label="설정 묶음 바로가기">
-        {SECTIONS.filter(([id]) => unlocked ? id !== "mine" || stories.length > 0 : !["account", "info", "mine"].includes(id)).map(([id, label]) => (
+        {SECTIONS.filter(([id]) => unlocked ? id !== "mine" || stories.length > 0 : !["account", "info", "mine", "family"].includes(id)).map(([id, label]) => (
           <button key={id} className={current === id ? "on" : ""} aria-current={current === id} onClick={() => jump(id)}>{label}</button>
         ))}
       </nav>
@@ -379,6 +380,10 @@ export default function S13Settings() {
           </Row>
         ))}
         {sampleError && <p className="hint" role="status" style={{ padding: "0 20px" }}>{sampleError}</p>}
+        {/* 아이 · 선생님 연결 (보호자 · 교사 계정 3단계, 2026-11-17): 학교에서 만든 이야기를 집에서도 본다 */}
+        <Head id="family" name="아이 · 선생님 연결"
+          desc={mode === "member" ? "그림 · 이야기는 아이의 것이고, 아이와 연결된 보호자 · 선생님이 함께 봅니다" : "로그인한 보호자 · 선생님만 쓸 수 있습니다"} />
+        {mode === "member" && <ChildLinks />}
         <Head id="info" name="기록" />
         <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
           <input type="checkbox" checked={s.keepOriginal}
@@ -427,7 +432,7 @@ export default function S13Settings() {
             : "제목 고치기와 지우기는 로그인한 보호자만 할 수 있습니다"} />}
         {/* 한꺼번에 지우기 (11/10 사용자 「일일이 지워야 한다」) */}
         {unlocked && mode === "member" && stories.length > 1 && (
-          <Row name={`이야기 모두 지우기 (${stories.length}편)`} desc="이 기기 책장의 이야기를 한꺼번에 지웁니다. 되돌릴 수 없습니다">
+          <Row name={`이야기 모두 지우기 (${stories.length}편)`} desc="책장의 이야기를 한꺼번에 지웁니다. 다른 기기 책장에서도 사라지고 되돌릴 수 없습니다">
             <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "allStories" })}>모두 지우기</button>
           </Row>
         )}

@@ -9,6 +9,7 @@ import { useSettings } from "@/store/settings";
 import { analyzeCharacter, ApiError, ENGINE } from "@/api";
 import type { Character, JobStatus } from "@/types/character";
 import { countAnalysis } from "@/store/retry";
+import { useChildren } from "@/store/children";
 
 /** 백엔드 job 상태(계약 1-3)를 대기 점 세 개로 보여준다 */
 const STEP: Record<JobStatus, number> = { pending: 1, running: 2, succeeded: 3, failed: 0 };
@@ -37,7 +38,12 @@ function startAnalysis(file: File, keepOriginal: boolean, form: string): Run {
   running?.ctrl.abort();
   const ctrl = new AbortController();
   const run = { file, form, started: performance.now(), ctrl, listen: () => {} } as unknown as Run;
-  run.promise = analyzeCharacter(file, (s) => run.listen(s), ctrl.signal, keepOriginal, form);
+  // 어느 아이의 그림인지 (보호자 · 교사 계정 3단계): 「지금 아이」 — 아직 목록을 안 받았으면 먼저 받는다. 없으면 서버가 계정의 기본 아이로
+  run.promise = (async () => {
+    const kids = useChildren.getState();
+    if (!kids.list.length) await kids.load();
+    return analyzeCharacter(file, (s) => run.listen(s), ctrl.signal, keepOriginal, form, useChildren.getState().active()?.id ?? null);
+  })();
   const clear = () => { if (running === run) running = null; };
   run.promise.then(clear, clear);
   running = run;

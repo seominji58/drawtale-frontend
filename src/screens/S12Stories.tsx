@@ -99,7 +99,7 @@ export default function S12Stories() {
     window.addEventListener("popstate", back);
     return () => window.removeEventListener("popstate", back);
   }, [nav]);
-  const { stories, load, rename, add, pending, removePending } = useLibrary();
+  const { stories, load, sync, rename, add, pending, removePending } = useLibrary();
   const setStory = useSession((s) => s.setStory);
   const guardian = useGuardianMode();
   // 제목 바꾸기 (보호자 모드, 11/3 사용자 「책장에서 제목 변경 가능하게」). 켜면 책을 눌렀을 때 펼치지 않고 제목 칸이 뜬다
@@ -149,7 +149,8 @@ export default function S12Stories() {
     } as CSSProperties;
   })();
 
-  useEffect(() => { load(); }, [load]);
+  // 기기 저장본을 먼저 보이고, 서버의 아이별 목록으로 맞춘다 (다른 기기 · 학교에서 만든 것도, 2026-11-17)
+  useEffect(() => { load(); void sync(); }, [load, sync]);
   // 만들다 화면이 놓친 이야기(시간 초과 · 탭 닫힘, 2026-11-04): 서버에서 끝났으면 꽂고, 실패했으면 잊는다.
   // 아직 만드는 중이면 이 화면에 있는 동안 10초마다 다시 본다
   const ids = pending.map((p) => p.storyId).join(",");

@@ -254,12 +254,16 @@ export async function analyzeCharacter(
   keepOriginal = false,
   /** 「누구를 그렸어요?」에서 고른 형태 (계약 2-1 `form`). 사람이면 보내지 않는다 — 예전 서버도 그대로 */
   shape = "biped",
+  /** 지금 아이 (store/children). 없으면 서버가 계정의 기본 아이로 */
+  childId: string | null = null,
 ): Promise<Character> {
   if (useMock) return mockAnalyze(file, onStatus, signal);
 
   const form = new FormData();
   form.append("image", file);
   form.append("keep_original", String(keepOriginal));
+  // 어느 아이의 그림인지 (계약 2-18, 3단계). 고른 아이가 없으면 서버가 계정의 기본 아이로 · 교사 연결이면 학교에서 만든 것으로
+  if (childId) form.append("child_id", childId);
   if (shape !== "biped") form.append("form", shape);
   const { character_id, job_id } = await call<{ character_id: string; job_id: string }>(
     "/characters", { method: "POST", body: form, signal });
@@ -580,6 +584,62 @@ export async function findStory(storyId: string, jobId: string): Promise<{ state
 
 /** 책 제목 바꾸기 (계약 2-15, 2026-11-04) — S-11 「다 했어요」 · S-12 책장 · S-13. 전에는 기기에만 있었다.
  *  기기 책장은 먼저 바꿔 두고(useLibrary.rename) 서버에는 뒤에서 보낸다. 실패하면 다음에 책장에서 열 때 다시 보낸다(refreshStory) */
+/** 내가 연결된 아이 (계약 GET /children, 보호자 · 교사 계정 2단계 2026-11-17). 그림을 올린 적 없으면 빈 목록 */
+export interface ChildSummary { id: string; nickname: string | null; relation: "guardian" | "teacher"; member_id?: string | null }
+export async function listChildren(): Promise<ChildSummary[]> {
+  if (useMock) return [];
+  return call<ChildSummary[]>("/children");
+}
+
+/** 아이별 다 만든 이야기, 새것부터 (계약 GET /children/{id}/stories). 책장(S-12)이 기기 저장소 대신 이것을 본다 —
+ *  학교 태블릿에서 만든 이야기가 집 폰 책장에 뜨지 않았다 (설계 검토 「보호자-교사-계정」 11장) */
+export async function listChildStories(childId: string): Promise<Story[]> {
+  if (useMock) return [];
+  return (await call<ServerStory[]>(`/children/${childId}/stories`)).map(toStory);
+}
+
+/** 선생님 연결 코드 만들기 (보호자만, 계약 2-18). 6자리, 7일 뒤 만료, 한 번 쓰면 끝 */
+export async function createInvitation(childId: string): Promise<{ code: string; expiresAt: string }> {
+  const r = await call<{ code: string; expires_at: string }>(`/children/${childId}/invitations`, { method: "POST" });
+  return { code: r.code, expiresAt: r.expires_at };
+}
+
+/** 선생님이 받은 코드 넣기. 잘못 · 만료 · 이미 쓴 코드는 INVITE_INVALID, 이미 연결이면 ALREADY_LINKED */
+export async function acceptInvitation(code: string): Promise<ChildSummary> {
+  return call<ChildSummary>(`/invitations/${encodeURIComponent(code.trim())}/accept`, { method: "POST" });
+}
+
+/** 이 아이와 연결된 어른 (보호자만). 이름을 두지 않아 「보호자」 · 「선생님」으로만 보인다 */
+export interface ChildMemberInfo { id: string; relation: "guardian" | "teacher"; shareHome: boolean; isMe: boolean; since: string }
+export async function listMembers(childId: string): Promise<ChildMemberInfo[]> {
+  const r = await call<{ id: string; relation: "guardian" | "teacher"; share_home: boolean; is_me: boolean; since: string }[]>(
+    `/children/${childId}/members`);
+  return r.map((m) => ({ id: m.id, relation: m.relation, shareHome: m.share_home, isMe: m.is_me, since: m.since }));
+}
+
+/** 선생님에게 집에서 만든 이야기도 보여 줄지 (보호자만) */
+export async function setShareHome(childId: string, memberId: string, shareHome: boolean): Promise<void> {
+  await call(`/children/${childId}/members/${memberId}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ share_home: shareHome }) });
+}
+
+/** 연결 끊기 (보호자는 선생님 연결을, 선생님은 자기 연결을). 자료는 아이에게 남는다 */
+export async function removeMember(childId: string, memberId: string): Promise<void> {
+  const r = await fetch(`${BASE}/children/${childId}/members/${memberId}`, { method: "DELETE", headers: authHeader() });
+  if (!r.ok && r.status !== 404) throw new ApiError("ENGINE_ERROR", `HTTP_${r.status}`);
+}
+
+/** 이야기 지우기 (계약 DELETE /stories/{id}). 만드는 중이면 서버가 거절(409)한다 — 그때는 false */
+export async function deleteStory(storyId: string): Promise<boolean> {
+  if (useMock) return true;
+  try {
+    const r = await fetch(`${BASE}/stories/${storyId}`, { method: "DELETE", headers: authHeader() });
+    return r.ok || r.status === 404;
+  } catch {
+    return false;
+  }
+}
+
 export async function saveStoryTitle(storyId: string, title: string): Promise<boolean> {
   if (useMock) return true;
   try {
