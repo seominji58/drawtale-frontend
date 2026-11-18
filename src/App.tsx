@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import OfflineBar from "@/components/OfflineBar";
 import GuardianGate from "@/components/GuardianGate";
 import GuardianIntro from "@/components/GuardianIntro";
+import JoinDialog from "@/components/JoinDialog";
+import SJoin from "@/screens/SJoin";
 import AgeGate from "@/components/AgeGate";
 import { useGuardian } from "@/store/guardian";
 import { useAuth } from "@/store/auth";
@@ -73,6 +75,7 @@ export default function App() {
   return (
     <>
       <OfflineBar />
+      {mode === "member" && <JoinDialog />}
       {mode === "member" && <GuardianIntro />}
       {mode === "member" && <GuardianGate />}
       {/* 예전 계정의 본인인증(나이 확인), 다른 창보다 위에 (2026-11-09) */}
@@ -82,6 +85,8 @@ export default function App() {
         <Route path="/login" element={<S15Login />} />
         <Route path="/signup" element={<S16Signup />} />
         <Route path="/auth/:provider/callback" element={<S15Callback />} />
+        {/* 선생님이 보낸 보호자 연결 링크 — 로그인 전에도 열린다 (2026-11-18) */}
+        <Route path="/join/:code" element={<SJoin />} />
         {/* 약관은 로그인하지 않아도 볼 수 있어야 한다 */}
         <Route path="/terms" element={<SLegal kind="terms" />} />
         <Route path="/privacy" element={<SLegal kind="privacy" />} />

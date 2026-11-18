@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { getGuardianStatus, markOnboarded } from "@/api";
-import type { GuardianStatus } from "@/api";
+import type { GuardianStatus, UseMode } from "@/api";
 
 /** 보호자 비밀번호로 여는 것들 (pt_docs 20 3장 「기능 드러내기」, 2026-11-06).
  *
@@ -43,6 +43,8 @@ interface GuardianState {
   /** 예전 계정이 본인인증(나이 확인)을 마쳤다 (components/AgeGate) */
   ageChecked: () => void;
   openIntro: () => void;
+  /** 가입 직후 「어떻게 쓰실 건가요?」를 고름 (서버 저장은 부르는 쪽, 2026-11-18) */
+  useModeChosen: (mode: UseMode) => void;
   closeIntro: () => void;
   /** 「비밀번호를 잊었어요」 — 다시 로그인하러 가기 전에 */
   startReset: () => void;
@@ -91,10 +93,11 @@ export const useGuardian = create<GuardianState>((set, get) => ({
   lock: () => set({ unlocked: false }),
   pinCreated: () => {
     try { localStorage.removeItem(RESET_KEY); } catch { /* 없어도 된다 */ }
-    set((s) => ({ status: { onboarded: s.status?.onboarded ?? false, pinSet: true, ageVerified: s.status?.ageVerified ?? true } }));
+    set((s) => ({ status: { ...s.status, onboarded: s.status?.onboarded ?? false, pinSet: true, ageVerified: s.status?.ageVerified ?? true } }));
   },
   ageChecked: () => set((s) => (s.status ? { status: { ...s.status, ageVerified: true } } : {})),
   openIntro: () => set({ intro: true }),
+  useModeChosen: (useMode) => set((s) => (s.status ? { status: { ...s.status, useMode } } : {})),
   closeIntro: () => {
     try { localStorage.setItem(INTRO_KEY, "1"); } catch { /* 저장 못 해도 서버가 기억한다 */ }
     set((s) => ({ intro: false, status: s.status ? { ...s.status, onboarded: true } : s.status }));

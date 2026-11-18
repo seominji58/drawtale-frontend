@@ -1357,6 +1357,21 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
 .intro-card { width: min(560px, 100%); }
 .intro-step { font-size: 14px; color: var(--muted, #7a6e64); }
 .intro-lines { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 10px; font-size: 17px; line-height: 1.5; }
+/* 처음 시작하기 · 아이 연결 (보호자 · 선생님 설계 4 · 5장, 2026-11-18) */
+.intro-choices { display: flex; flex-direction: column; gap: 12px; margin: 6px 0; }
+.intro-choice { text-align: left; padding: 14px 18px; border: 2px solid var(--line); border-radius: 14px; background: var(--cloud);
+  font: inherit; font-size: 15px; color: var(--ink-soft, #5b4f45); cursor: pointer; line-height: 1.45; }
+.intro-choice b { display: block; font-size: 18px; color: var(--ink); margin-bottom: 2px; }
+.intro-choice b span { font-weight: 500; font-size: 15px; color: var(--ink-soft, #5b4f45); }
+.intro-choice:hover, .intro-choice:focus-visible { background: var(--butter); }
+.intro-choice:disabled { opacity: .6; cursor: default; }
+.intro-note { margin: 4px 0; font-size: 15px; color: var(--ink-soft, #5b4f45); line-height: 1.5; }
+.intro-number { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; background: var(--butter); padding: 0 6px; border-radius: 6px; }
+.intro-check { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; font-size: 15px; line-height: 1.45; }
+.intro-check input { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+.intro-row { display: flex; gap: 10px; align-items: center; }
+.set-list .item.head.sub { position: static; background: transparent; }
+.set-list .item.head.sub .name { font-size: 15px; }
 
 /* 보이되 잠그기 — 아이 화면의 보호자 기능 (pt_docs 20 3-2 ⑤). 누르면 보호자 비밀번호 창 */
 .locked-feature { display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px; min-height: 60px;
@@ -1464,3 +1479,14 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   .hero-sub { font-size: 38px; }
   .hero-tips li { font-size: 34px; }
 }
+
+/* 오늘은 누구예요? (S-01, 아이가 둘 이상일 때, 2026-11-18) — 터치 타깃 88px, 고른 아이는 형광펜 바탕 + 굵은 테두리 */
+.who-today { margin: 4px 0 14px; }
+.who-today-q { font-family: var(--font-hand, inherit); font-size: 22px; margin: 0 0 8px; }
+.who-today-kids { display: flex; gap: 14px; flex-wrap: wrap; }
+.who-kid { min-width: 88px; min-height: 88px; padding: 8px 10px; border: 2px solid var(--line); border-radius: 18px; background: var(--cloud);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; font: inherit; }
+.who-kid.on { background: var(--butter); border-width: 4px; }
+.who-kid-icon { font-size: 38px; line-height: 1; }
+.who-kid-name { font-size: 15px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-where { font-size: .95em; }

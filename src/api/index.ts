@@ -81,6 +81,8 @@ interface ServerStory {
   still_body?: { mouth: number[]; head: number[]; back: number[] } | null;
   hero_form?: string | null;
   hero_facing?: "left" | "right" | null;
+  /** 어디서 만들었나 school · home (책장 🏫 · 🏠, 2026-11-18) */
+  context?: string | null;
   /** 아이 · 보호자가 정한 책 제목 (계약 2-15). 없으면 null */
   title?: string | null;
   sprite_url?: string | null; sprite_frames?: number | null; sprite_box?: [number, number, number, number] | null; action_motion?: string;
@@ -225,6 +227,7 @@ function toStory(s: ServerStory): Story {
     // 서버가 아는 형태 · 머리 쪽 (계약 — 이야기 응답 hero_form · hero_facing). 예전 서버면 화면이 붙여 둔 것을 쓴다
     ...(s.hero_form ? { form: s.hero_form } : {}),
     heroFacing: s.hero_facing ?? null,
+    context: s.context === "school" ? "school" : "home",
     spriteUrl: s.sprite_url ?? null,
     sprite: s.sprite_url && s.sprite_frames ? { frames: s.sprite_frames, box: s.sprite_box ?? [0, 0, 1, 1] } : null,
     actionMotion: s.action_motion ?? "wave",
@@ -469,7 +472,9 @@ export async function deleteMyVoice(kind: VoiceKind = "guardian"): Promise<void>
 // 숫자 4자리. 서버가 계정에 해시로 두고, 연달아 다섯 번 틀리면 5분 동안 받지 않는다.
 
 /** ageVerified: 보호자 나이 확인(본인인증)을 했는지 (계약 2-17, 2026-11-09). false 면 예전에 가입한 계정 → 화면보다 먼저 묻는다 */
-export interface GuardianStatus { pinSet: boolean; onboarded: boolean; ageVerified: boolean }
+/** useMode: 가입 직후 「어떻게 쓰실 건가요?」 home(보호자) · school(교사) · both(둘 다). 묻기 전이면 null (2026-11-18) */
+export type UseMode = "home" | "school" | "both";
+export interface GuardianStatus { pinSet: boolean; onboarded: boolean; ageVerified: boolean; useMode?: UseMode | null }
 
 /** 비밀번호 확인 · 만들기 결과. 틀리면 남은 횟수, 막혔으면 남은 초 */
 export type PinResult =
@@ -482,10 +487,11 @@ const MOCK_PIN = "storyblanks.mock.pin";
 const MOCK_ONBOARDED = "storyblanks.mock.onboarded";
 
 export async function getGuardianStatus(): Promise<GuardianStatus> {
-  if (useMock) return { pinSet: !!localStorage.getItem(MOCK_PIN), onboarded: !!localStorage.getItem(MOCK_ONBOARDED), ageVerified: !localStorage.getItem(MOCK_AGE_NEEDED) };
-  const r = await call<{ guardian_pin_set?: boolean; onboarded?: boolean; age_verified?: boolean }>("/auth/me");
+  if (useMock) return { pinSet: !!localStorage.getItem(MOCK_PIN), onboarded: !!localStorage.getItem(MOCK_ONBOARDED), ageVerified: !localStorage.getItem(MOCK_AGE_NEEDED),
+    useMode: (localStorage.getItem("storyblanks.mock.useMode") as UseMode | null) ?? null };
+  const r = await call<{ guardian_pin_set?: boolean; onboarded?: boolean; age_verified?: boolean; use_mode?: UseMode | null }>("/auth/me");
   // 예전 서버는 age_verified 를 주지 않는다 → 묻지 않는다
-  return { pinSet: !!r.guardian_pin_set, onboarded: !!r.onboarded, ageVerified: r.age_verified ?? true };
+  return { pinSet: !!r.guardian_pin_set, onboarded: !!r.onboarded, ageVerified: r.age_verified ?? true, useMode: r.use_mode ?? null };
 }
 
 /** 목 엔진에서 「예전 계정(본인인증 안 함)」 화면을 보려면 localStorage 에 이 키를 둔다 */
@@ -585,7 +591,56 @@ export async function findStory(storyId: string, jobId: string): Promise<{ state
 /** 책 제목 바꾸기 (계약 2-15, 2026-11-04) — S-11 「다 했어요」 · S-12 책장 · S-13. 전에는 기기에만 있었다.
  *  기기 책장은 먼저 바꿔 두고(useLibrary.rename) 서버에는 뒤에서 보낸다. 실패하면 다음에 책장에서 열 때 다시 보낸다(refreshStory) */
 /** 내가 연결된 아이 (계약 GET /children, 보호자 · 교사 계정 2단계 2026-11-17). 그림을 올린 적 없으면 빈 목록 */
-export interface ChildSummary { id: string; nickname: string | null; relation: "guardian" | "teacher"; member_id?: string | null }
+/** 아이 카드 (계약 GET /children). number: 아이 번호(보호자에게만), guardian_status: 보호자 연결 상태(선생님에게만) */
+export interface ChildSummary {
+  id: string; nickname: string | null; relation: "guardian" | "teacher"; member_id?: string | null;
+  icon?: string | null; number?: string | null; guardian_status?: "linked" | "invited" | "none" | null;
+  school_stories?: number; home_stories?: number;
+}
+
+/** 어떻게 쓰나 저장 (계약 PUT /me/use-mode) */
+export async function setUseMode(mode: UseMode): Promise<void> {
+  if (useMock) { localStorage.setItem("storyblanks.mock.useMode", mode); return; }
+  await call("/me/use-mode", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ use_mode: mode }) });
+}
+
+/** 아이 추가 (계약 POST /children). 선생님은 학교 확인 두 가지가 모두 참이어야 한다 (아니면 SCHOOL_CHECK_REQUIRED) */
+export async function createChild(opts: { asTeacher?: boolean; nickname?: string; icon?: string; schoolSelected?: boolean; writtenConsent?: boolean }): Promise<ChildSummary> {
+  return call<ChildSummary>("/children", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+    as_relation: opts.asTeacher ? "teacher" : "guardian", nickname: opts.nickname || null, icon: opts.icon || null,
+    school_selected: !!opts.schoolSelected, written_consent: !!opts.writtenConsent }) });
+}
+
+/** 아이 별명 · 표시 바꾸기 */
+export async function updateChild(childId: string, patch: { nickname?: string; icon?: string }): Promise<ChildSummary> {
+  return call<ChildSummary>(`/children/${childId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
+}
+
+/** 아이 번호 새로 바꾸기 (보호자만) */
+export async function renewChildNumber(childId: string): Promise<string> {
+  return (await call<{ number: string }>(`/children/${childId}/number`, { method: "POST" })).number;
+}
+
+/** 선생님이 아이 번호로 붙기 (학교 확인 두 가지 함께). NUMBER_INVALID · ALREADY_LINKED · SCHOOL_CHECK_REQUIRED */
+export async function attachChild(number: string): Promise<ChildSummary> {
+  return call<ChildSummary>("/children/attach", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ number, school_selected: true, written_consent: true }) });
+}
+
+/** 선생님 → 보호자 연결 링크 (30일 · 한 번). 화면이 주소를 만든다 */
+export async function createGuardianLink(childId: string): Promise<{ url: string; expiresAt: string }> {
+  const r = await call<{ code: string; expires_at: string }>(`/children/${childId}/guardian-link`, { method: "POST" });
+  return { url: `${window.location.origin}${import.meta.env.BASE_URL}join/${r.code}`, expiresAt: r.expires_at };
+}
+
+/** 링크 내용 (로그인 뒤). 쓴 · 만료된 링크는 INVITE_INVALID */
+export async function invitationInfo(code: string): Promise<{ relation: string; childNickname: string | null; childIcon: string | null }> {
+  const r = await call<{ relation: string; child_nickname: string | null; child_icon: string | null }>(`/invitations/${encodeURIComponent(code)}`);
+  return { relation: r.relation, childNickname: r.child_nickname, childIcon: r.child_icon };
+}
+
+/** 아이 번호를 화면에 보이는 모양으로 (#K7M2-Q9KX) */
+export const prettyNumber = (n?: string | null) => (n ? `#${n.slice(0, 4)}-${n.slice(4)}` : "");
 export async function listChildren(): Promise<ChildSummary[]> {
   if (useMock) return [];
   return call<ChildSummary[]>("/children");
@@ -605,8 +660,9 @@ export async function createInvitation(childId: string): Promise<{ code: string;
 }
 
 /** 선생님이 받은 코드 넣기. 잘못 · 만료 · 이미 쓴 코드는 INVITE_INVALID, 이미 연결이면 ALREADY_LINKED */
-export async function acceptInvitation(code: string): Promise<ChildSummary> {
-  return call<ChildSummary>(`/invitations/${encodeURIComponent(code.trim())}/accept`, { method: "POST" });
+export async function acceptInvitation(code: string, mergeInto?: string): Promise<ChildSummary> {
+  return call<ChildSummary>(`/invitations/${encodeURIComponent(code.trim())}/accept`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ merge_into: mergeInto ?? null }) });
 }
 
 /** 이 아이와 연결된 어른 (보호자만). 이름을 두지 않아 「보호자」 · 「선생님」으로만 보인다 */

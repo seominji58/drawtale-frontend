@@ -65,7 +65,8 @@ function Cover({ st, children }: { st: Story; children?: ReactNode }) {
     <span className="book-cover">
       <span className="book-title">{st.title}</span>
       <span className="book-window"><CoverArt st={st} /></span>
-      <span className="book-date">{st.createdAt}</span>
+      {/* 어디서 만들었나 (2026-11-18): 학교에서 만든 책에만 🏫 — 집 책은 기본이라 표시하지 않는다 (아이 책장이 어지럽지 않게) */}
+      <span className="book-date">{st.context === "school" && <span className="book-where" title="학교에서 만든 이야기">🏫 </span>}{st.createdAt}</span>
       {children}
     </span>
   );

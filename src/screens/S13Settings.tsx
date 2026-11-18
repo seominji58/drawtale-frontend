@@ -51,12 +51,13 @@ function Head({ id, name, desc, children }: { id: string; name: string; desc?: s
 /** 바로가기 칩. 설정이 길어 폰 · 태블릿 · 컴퓨터 어디서든 원하는 묶음으로 바로 간다 (10/28 사용자 「스크롤 방식 고민」) */
 /** 아이 칸(잠금 없음)이 먼저, 보호자 칸(비밀번호)이 뒤 (pt_docs 20 3-2, 2026-11-06) */
 const SECTIONS: [string, string][] = [
-  ["story", "이야기"], ["sound", "소리"], ["guardian", "보호자"], ["family", "연결"], ["account", "계정"], ["info", "기록"], ["mine", "만든 이야기"],
+  ["story", "이야기"], ["sound", "소리"], ["family", "아이"], ["guardian", "보호자"], ["account", "계정"], ["info", "기록"], ["mine", "만든 이야기"],
 ];
 /** 보호자 칸을 열기 전에도 무엇이 있는지는 보인다 (숨기지 않고 잠그기) */
 const GUARDIAN_ITEMS = [
+  "아이 · 연결 (우리 아이 · 학교 아이들, 아이 번호, 선생님 연결 · 보호자 링크)",
   "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기 · 보호자 · 아이 목소리 등록",
-  "아이 · 선생님 연결 (학교에서 만든 이야기를 집에서도 보기)", "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
+  "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
 ];
 
 export default function S13Settings() {
@@ -327,6 +328,10 @@ export default function S13Settings() {
         {/* 「어른과 함께」 묶음 (pt_docs 03 F-SET-06, 01 NFR-15). 위험이 따르는 기능은 로그인한 보호자만 켠다.
             설계는 「로그인 후 아이 프로필 설정」에 두는 것이고, 아이 프로필(F-ACC-07)이 아직 없어 그때까지 여기 둔다.
             로그인하지 않았으면 설정값과 상관없이 꺼진 것으로 본다 (store/settings.ts useWithAdult) */}
+        {/* 아이 · 연결: 어른 칸 맨 위 (설계 「보호자-교사-계정」 5장, 2026-11-18). 그림 · 이야기는 아이의 것 */}
+        <Head id="family" name="아이 · 연결"
+          desc={mode === "member" ? undefined : "로그인한 보호자 · 선생님만 쓸 수 있습니다"} />
+        {mode === "member" && <ChildLinks />}
         <Head id="guardian" name="보호자 기능"
           desc="위험이 따를 수 있는 기능입니다. 켜면 아이 화면에서 바로 쓰고, 꺼 두면 아이 화면에 🔒 로 보입니다(누르면 보호자 비밀번호). 아이 곁에서 함께 써 주세요">
           <button className="btn link" onClick={lock}>보호자 칸 잠그기</button>
@@ -380,10 +385,6 @@ export default function S13Settings() {
           </Row>
         ))}
         {sampleError && <p className="hint" role="status" style={{ padding: "0 20px" }}>{sampleError}</p>}
-        {/* 아이 · 선생님 연결 (보호자 · 교사 계정 3단계, 2026-11-17): 학교에서 만든 이야기를 집에서도 본다 */}
-        <Head id="family" name="아이 · 선생님 연결"
-          desc={mode === "member" ? "그림 · 이야기는 아이의 것이고, 아이와 연결된 보호자 · 선생님이 함께 봅니다" : "로그인한 보호자 · 선생님만 쓸 수 있습니다"} />
-        {mode === "member" && <ChildLinks />}
         <Head id="info" name="기록" />
         <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
           <input type="checkbox" checked={s.keepOriginal}

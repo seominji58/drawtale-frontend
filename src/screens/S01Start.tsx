@@ -7,10 +7,17 @@ import { useLibrary } from "@/store/library";
 import { useSession } from "@/store/session";
 import { useSettings } from "@/store/settings";
 import { speak } from "@/lib";
+import { useChildren } from "@/store/children";
 
 export default function S01Start() {
   const nav = useNavigate();
-  const { stories, load } = useLibrary();
+  const { stories, load, sync } = useLibrary();
+  // 오늘은 누구예요? (보호자 · 선생님 설계 4-5, 2026-11-18): 아이가 둘 이상일 때만. 글자를 못 읽어도 동물 표시로 찾는다
+  const kids = useChildren((s) => s.list);
+  const activeKid = useChildren((s) => s.active());
+  const loadKids = useChildren((s) => s.load);
+  const pickKid = useChildren((s) => s.setActive);
+  useEffect(() => { void loadKids(); }, [loadKids]);
   const resetAll = useSession((s) => s.resetAll);
   const muteAll = useSettings((v) => v.muteAll);
 
@@ -36,6 +43,20 @@ export default function S01Start() {
         <div className="home-side">
           <p className="home-brand">한칸이야기</p>
           <h1 className="home-title">내 그림이<br />주인공이 돼요</h1>
+          {kids.length > 1 && (
+            <div className="who-today" role="group" aria-label="오늘은 누구예요?">
+              <p className="who-today-q">오늘은 누구예요?</p>
+              <div className="who-today-kids">
+                {kids.map((k) => (
+                  <button key={k.id} className={`who-kid${activeKid?.id === k.id ? " on" : ""}`} aria-pressed={activeKid?.id === k.id}
+                    onClick={() => { pickKid(k.id); void sync(); speak(k.nickname ?? "", muteAll); }}>
+                    <span className="who-kid-icon" aria-hidden>{k.icon ?? "🙂"}</span>
+                    <span className="who-kid-name">{k.nickname ?? ""}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="home-acts">
             <BigButton go onClick={start}>이야기 만들기</BigButton>
             <BigButton disabled={stories.length === 0} onClick={() => nav("/stories")}>
