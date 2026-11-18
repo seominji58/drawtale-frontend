@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ApiError, attachChild, createChild, createGuardianLink, listMembers, prettyNumber, removeMember, renewChildNumber,
-  setShareHome, updateChild, type ChildMemberInfo, type ChildSummary, type UseMode,
+  setShareHome, setUseMode, updateChild, type ChildMemberInfo, type ChildSummary, type UseMode,
 } from "@/api";
 import { useChildren } from "@/store/children";
 import { useGuardian } from "@/store/guardian";
@@ -34,6 +34,7 @@ const FAIL: Record<string, string> = {
 };
 const failOf = (e: unknown, fallback: string) => FAIL[e instanceof ApiError ? e.serverCode ?? "" : ""] ?? fallback;
 const nameOf = (k: ChildSummary) => k.nickname ?? (k.relation === "guardian" ? "우리 아이" : "이름 없음");
+const MODE_LABEL: Record<UseMode, string> = { home: "🏠 집에서 (보호자)", school: "🏫 학교 · 기관에서 (교사)", both: "둘 다 (장소에 상관없이)" };
 const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); return true; } catch { return false; } };
 
 export default function ChildLinks() {
@@ -49,12 +50,23 @@ export default function ChildLinks() {
   const showSchool = useMode === "school" || useMode === "both" || school.length > 0;
   const now = active();
   const refresh = async () => { await load(); void sync(); };
+  const changeMode = async (m: UseMode) => {
+    try { await setUseMode(m); useGuardian.getState().useModeChosen(m); setMsg(`쓰는 곳을 「${MODE_LABEL[m]}」(으)로 바꿨습니다. 이미 연결된 아이는 그대로입니다.`); }
+    catch { setMsg("바꾸지 못했습니다. 다시 해 주세요."); }
+  };
 
   return (
     <>
       <div className="item note"><span className="desc">
         그림 · 이야기는 아이의 것이에요. <b>보호자는 언제나 다 볼 수 있고</b>, 선생님은 학교에서 만든 것만 봐요 (집 공유를 켜면 집 것도).
       </span></div>
+      <Row name="쓰는 곳" desc="처음에 고른 답입니다. 바꾸면 아래 칸이 달라지고, 이미 연결된 아이 · 이야기는 그대로 남습니다">
+        <select className="title-input" style={{ maxWidth: 220 }} value={useMode ?? ""} aria-label="쓰는 곳"
+          onChange={(e) => void changeMode(e.target.value as UseMode)}>
+          {!useMode && <option value="" disabled>고르기</option>}
+          {(Object.keys(MODE_LABEL) as UseMode[]).map((m) => <option key={m} value={m}>{MODE_LABEL[m]}</option>)}
+        </select>
+      </Row>
       {list.length > 1 && now && (
         <Row name="지금 아이" desc="이 기기에서 만드는 그림 · 이야기가 이 아이에게 저장되고, 책장에도 이 아이의 이야기가 보입니다">
           <select className="title-input" style={{ maxWidth: 220 }} value={now.id} aria-label="지금 아이"
