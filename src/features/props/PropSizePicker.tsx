@@ -1,0 +1,33 @@
+import { TAP } from "@/components/DrawTools";
+import { PROP_SIZES, propHeight } from "@/features/props/props";
+import type { PropSize } from "@/features/props/props";
+
+/** 소품 크기 고르기 — 작게 · 보통 · 크게. 위에는 장면 칸 안에서 실제로 보일 크기를 미리 보여 준다 */
+export default function PropSizePicker({ png, size, onSize }: {
+  png: string; size: PropSize; onSize: (s: PropSize) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0, width: "100%", height: "100%", minHeight: 0 }}>
+      {/* 장면 칸 미리 보기 (4:3) — 소품이 장면에서 차지할 크기. 남는 높이에 맞춰 줄어든다 — 폭 기준이면 가로 화면(아이패드)에서
+          미리 보기가 칸보다 높아져 크기 버튼 · 아래 버튼과 겹쳐 잘렸다 (11/9 테스트 6번) */}
+      <div aria-hidden="true" style={{
+        aspectRatio: "4 / 3", flex: "1 1 0", minHeight: 0, maxWidth: "100%", alignSelf: "center",
+        borderRadius: 16, background: "var(--milk)",
+        display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "6%", paddingBottom: "7%", boxSizing: "border-box", overflow: "hidden",
+      }}>
+        {/* 장면 주인공 키(0.52)로 옆에 세워 크기를 가늠하게 (11/9 소품 키를 실제 크기 기준으로 바꾸며, 작게는 인형 · 컵만 하다) */}
+        <img src={`${import.meta.env.BASE_URL}illust/hero-stand.webp`} alt="" style={{ height: "52%", opacity: 0.55 }} />
+        <img src={png} alt="" style={{ height: `${propHeight(size) * 100}%`, maxWidth: "50%", objectFit: "contain" }} />
+      </div>
+      <div role="radiogroup" aria-label="소품 크기" style={{ flex: "none", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        {PROP_SIZES.map((x) => (
+          <button key={x.id} type="button" className="btn" role="radio" aria-checked={size === x.id}
+            onClick={() => onSize(x.id)}
+            style={{ minHeight: TAP * 0.7, padding: 0, ...(size === x.id ? { background: "var(--butter)" } : {}) }}>
+            {size === x.id ? "✓ " : ""}{x.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

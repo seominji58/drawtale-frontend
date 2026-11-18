@@ -1,0 +1,631 @@
+{
+ "adult": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.525,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7286,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "astronaut-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5429,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7357,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482,
+   "loop_from": 9
+  }
+ },
+ "astronaut-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5857,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.8107,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482,
+   "loop_from": 9
+  }
+ },
+ "aunt": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5321,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7821,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "busdriver": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5321,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7429,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483,
+   "loop_from": 9
+  }
+ },
+ "caveguide-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5107,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.725,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "caveguide-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5179,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7393,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "cook-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.4643,
+   "pad_top": 0.0522,
+   "pad_bottom": 0.0495
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6643,
+   "pad_top": 0.0523,
+   "pad_bottom": 0.0496,
+   "loop_from": 9
+  }
+ },
+ "cook-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5036,
+   "pad_top": 0.0523,
+   "pad_bottom": 0.0496
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6964,
+   "pad_top": 0.0523,
+   "pad_bottom": 0.0496,
+   "loop_from": 9
+  }
+ },
+ "dad": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.525,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6929,
+   "pad_top": 0.0504,
+   "pad_bottom": 0.0476,
+   "loop_from": 9
+  }
+ },
+ "diver-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.4929,
+   "pad_top": 0.052,
+   "pad_bottom": 0.0491
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6893,
+   "pad_top": 0.0519,
+   "pad_bottom": 0.049,
+   "loop_from": 9
+  }
+ },
+ "diver-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5107,
+   "pad_top": 0.0517,
+   "pad_bottom": 0.0489
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7036,
+   "pad_top": 0.0517,
+   "pad_bottom": 0.0489,
+   "loop_from": 9
+  }
+ },
+ "diverkid-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6643,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "diverkid-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.4893,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6321,
+   "pad_top": 0.0526,
+   "pad_bottom": 0.0499,
+   "loop_from": 9
+  }
+ },
+ "friend": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5143,
+   "pad_top": 0.05,
+   "pad_bottom": 0.05
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6821,
+   "pad_top": 0.0526,
+   "pad_bottom": 0.0499,
+   "loop_from": 9
+  }
+ },
+ "friend2": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.4607,
+   "pad_top": 0.0526,
+   "pad_bottom": 0.0499
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6143,
+   "pad_top": 0.05,
+   "pad_bottom": 0.05,
+   "loop_from": 9
+  }
+ },
+ "grandma": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.4679,
+   "pad_top": 0.0516,
+   "pad_bottom": 0.0487
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6429,
+   "pad_top": 0.0516,
+   "pad_bottom": 0.0487,
+   "loop_from": 9
+  }
+ },
+ "grandpa": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5429,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7643,
+   "pad_top": 0.0504,
+   "pad_bottom": 0.0476,
+   "loop_from": 9
+  }
+ },
+ "keeper-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5214,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7107,
+   "pad_top": 0.0503,
+   "pad_bottom": 0.0475,
+   "loop_from": 9
+  }
+ },
+ "keeper-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.525,
+   "pad_top": 0.0516,
+   "pad_bottom": 0.0487
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7214,
+   "pad_top": 0.0514,
+   "pad_bottom": 0.0486,
+   "loop_from": 9
+  }
+ },
+ "lifeguard-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5143,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7036,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479,
+   "loop_from": 9
+  }
+ },
+ "lifeguard-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5071,
+   "pad_top": 0.0504,
+   "pad_bottom": 0.0476
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7036,
+   "pad_top": 0.0503,
+   "pad_bottom": 0.0475,
+   "loop_from": 9
+  }
+ },
+ "mail-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5214,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7036,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479,
+   "loop_from": 9
+  }
+ },
+ "mail-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5179,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7214,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483,
+   "loop_from": 9
+  }
+ },
+ "mom": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.4893,
+   "pad_top": 0.0506,
+   "pad_bottom": 0.0478
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7214,
+   "pad_top": 0.0507,
+   "pad_bottom": 0.0479,
+   "loop_from": 9
+  }
+ },
+ "nurse": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5107,
+   "pad_top": 0.05,
+   "pad_bottom": 0.05
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.6821,
+   "pad_top": 0.0501,
+   "pad_bottom": 0.0474,
+   "loop_from": 9
+  }
+ },
+ "police-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5071,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7357,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484,
+   "loop_from": 9
+  }
+ },
+ "police-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5214,
+   "pad_top": 0.0506,
+   "pad_bottom": 0.0478
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.75,
+   "pad_top": 0.0506,
+   "pad_bottom": 0.0478,
+   "loop_from": 9
+  }
+ },
+ "ranger-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.4786,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.675,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482,
+   "loop_from": 9
+  }
+ },
+ "ranger-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5179,
+   "pad_top": 0.0511,
+   "pad_bottom": 0.0483
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7429,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484,
+   "loop_from": 9
+  }
+ },
+ "shopkeeper-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5143,
+   "pad_top": 0.0526,
+   "pad_bottom": 0.0499
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.725,
+   "pad_top": 0.0522,
+   "pad_bottom": 0.0495,
+   "loop_from": 9
+  }
+ },
+ "shopkeeper-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5357,
+   "pad_top": 0.05,
+   "pad_bottom": 0.05
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7607,
+   "pad_top": 0.05,
+   "pad_bottom": 0.05,
+   "loop_from": 9
+  }
+ },
+ "spacekid-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.55,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7071,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "spacekid-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5679,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.8179,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "spacepolice-f": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5464,
+   "pad_top": 0.051,
+   "pad_bottom": 0.0482
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7286,
+   "pad_top": 0.0508,
+   "pad_bottom": 0.048,
+   "loop_from": 9
+  }
+ },
+ "spacepolice-m": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5821,
+   "pad_top": 0.0513,
+   "pad_bottom": 0.0484
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.775,
+   "pad_top": 0.0506,
+   "pad_bottom": 0.0478,
+   "loop_from": 9
+  }
+ },
+ "teacher": {
+  "walk": {
+   "frames": 48,
+   "sec": 2.0,
+   "ar": 0.5286,
+   "pad_top": 0.0503,
+   "pad_bottom": 0.0475
+  },
+  "wave": {
+   "frames": 39,
+   "sec": 1.95,
+   "ar": 0.7036,
+   "pad_top": 0.0504,
+   "pad_bottom": 0.0476,
+   "loop_from": 9
+  }
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "place": "cave-entrance",
+ "size": [
+  1536,
+  1024
+ ],
+ "plate": "plate.webp",
+ "ground": 0.56,
+ "hero": {
+  "x": 0.52,
+  "foot": 0.93,
+  "h": 0.52
+ },
+ "objects": [
+  {
+   "src": "rocks.webp",
+   "x": 0.2,
+   "foot": 0.72,
+   "h": 0.14,
+   "layer": "back"
+  },
+  {
+   "src": "lantern.webp",
+   "x": 0.84,
+   "foot": 0.72,
+   "h": 0.14,
+   "layer": "back"
+  }
+ ],
+ "props": {
+  "friend": {
+   "src": "../props/friend.webp",
+   "x": 0.75,
+   "foot": 0.93,
+   "h": 0.46
+  },
+  "adult": {
+   "src": "../props/adult.webp",
+   "x": 0.27,
+   "foot": 0.93,
+   "h": 0.58
+  },
+  "box": {
+   "src": "../props/box.webp",
+   "x": 0.52,
+   "foot": 0.96,
+   "h": 0.36,
+   "layer": "front"
+  },
+  "bush": {
+   "src": "../props/bush.webp",
+   "x": 0.52,
+   "foot": 0.96,
+   "h": 0.38,
+   "layer": "front"
+  },
+  "sign": {
+   "src": "../props/sign.webp",
+   "x": 0.87,
+   "foot": 0.92,
+   "h": 0.4
+  },
+  "sun": {
+   "src": "../props/sun.webp",
+   "x": 0.85,
+   "top": 0.04,
+   "h": 0.24
+  }
+ }
+}

@@ -6,35 +6,38 @@ body {
   font-size: var(--t-body);
   color: var(--ink);
   background-color: var(--milk);
-  background-image: radial-gradient(rgba(170, 185, 220, 0.25) 2px, transparent 2px);
-  background-size: 28px 28px;
+  /* 바탕 질감 7 「수채 번짐」 (2026-10-28 사용자 결정, 예전은 옅은 점무늬): 귀퉁이에 네 색이 번진 종이.
+     화면에 붙여 두어(fixed) 스크롤해도 귀퉁이에 남는다 */
+  background-image: url("./paper-wash.svg");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  /* 글자를 누르면 깜빡이는 커서 · 글자 고르기가 뜨던 것 (11/3 사용자 「입력 깜빡이는 것들 없애줘」) — 아이 화면은 누르는 앱이라
+     글자를 고를 일이 없다. 적는 칸(input · textarea)과 약관 본문만 아래에서 다시 켠다 */
+  -webkit-user-select: none;
+  user-select: none;
+  caret-color: transparent;
+  -webkit-touch-callout: none;
+  /* 한글을 낱말 단위로 줄바꿈 (11/2 휴대폰 폭 점검 — 「좋을까/요?」처럼 낱말 중간에서 끊기던 것). 긴 낱말은 넘치지 않게 끊는다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
-/* 바탕에 떠 있는 몽글한 덩어리 둘. 화면에서 유일한 장식이다 */
-body::before, body::after {
-  content: ""; position: fixed; z-index: -1; border-radius: 50%;
-  filter: blur(60px); pointer-events: none;
-}
-body::before {
-  width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax;
-  background: radial-gradient(circle, rgba(124, 178, 240, .30), transparent 68%);
-}
-body::after {
-  width: 40vmax; height: 40vmax; right: -12vmax; bottom: -14vmax;
-  background: radial-gradient(circle, rgba(244, 160, 180, .26), transparent 68%);
-}
+/* 어른 화면은 고딕 (tokens.css 의 [data-audience="adult"]) */
+[data-audience="adult"] { font-family: var(--font-text); }
 
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 img { max-width: 100%; display: block; }
-:focus-visible { outline: 3px solid var(--grape); outline-offset: 4px; }
+:focus-visible { outline: 3px dashed var(--grape); outline-offset: 4px; }
 
 h1, h2, .question, .said, .rail-title, .wait .msg, .btn, .choice span, .slot b {
   font-family: var(--font-round);
-  font-weight: 400;
-  letter-spacing: .01em;
+  font-weight: 700;
+  /* 개구는 한글 글자 사이가 넓게 나온다 — 좁혀야 낱말로 읽힌다 */
+  letter-spacing: -.1em;
 }
 
 @keyframes nudge {
@@ -48,4 +51,12 @@ h1, h2, .question, .said, .rail-title, .wait .msg, .btn, .choice span, .slot b {
   0% { transform: scale(1); }
   45% { transform: scale(1.08); }
   100% { transform: scale(1.03); }
+}
+
+/* 적는 칸 · 약관은 커서 · 고르기 그대로 (위 body 에서 끈 것을 다시) */
+input, textarea, [contenteditable="true"], .legal-page-inner {
+  -webkit-user-select: text;
+  user-select: text;
+  caret-color: auto;
+  -webkit-touch-callout: default;
 }

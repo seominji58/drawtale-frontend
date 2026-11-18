@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <!-- 「여기에 없어요」 (S-03 2단계, 11/4) — 아직 준비 안 된 모양을 그린 아이의 출구 -->
+  <circle cx="120" cy="120" r="88" fill="#F2DDBF" stroke="#8B6B4E" stroke-width="5" stroke-dasharray="11 8"/>
+  <path d="M92 96 C92 72 108 60 122 60 C140 60 152 72 152 90 C152 112 124 114 124 140" fill="none" stroke="#8B6B4E" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="124" cy="172" r="9" fill="#8B6B4E"/>
+</svg>

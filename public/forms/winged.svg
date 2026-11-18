@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- 「날개로 나는 친구」 형태 카드 (S-03, 11/5) — 어떤 동물인지 말하지 않는 옆모습 안내선. 머리 · 몸통 · 등 위로 솟은 날개만 -->
+  <!-- 11/9 좌우로 뒤집음 — 다른 형태(4족 · 뱀 · 물고기)처럼 얼굴이 오른쪽. 새만 왼쪽이라 아이들이 반대로 그렸다 -->
+  <g transform="translate(320 0) scale(-1 1)" fill="#F2DDBF" stroke="#8B6B4E" stroke-width="5" stroke-dasharray="11 8" stroke-linejoin="round">
+    <path d="M150 112 C176 60 230 30 282 40 C268 66 250 92 214 118 Z"/>
+    <ellipse cx="160" cy="146" rx="78" ry="48"/>
+    <circle cx="84" cy="104" r="34"/>
+  </g>
+</svg>

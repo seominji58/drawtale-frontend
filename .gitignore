@@ -3,3 +3,9 @@ dist/
 .env
 *.log
 *.tsbuildinfo
+tools/device-check/shots/
+tools/scene-check/out/
+
+# 등장인물 그림띠 도구가 돌 때마다 쓰는 결과 (tools/people-moves)
+tools/people-moves/regen.json
+tools/people-moves/check.json

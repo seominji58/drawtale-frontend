@@ -46,13 +46,18 @@ Meta 모델이 실제로 성공·실패하는 조건을 보여주는 기능이�
 
 | 단계 | 토큰 | 값 |
 |---|---|---|
-| 장소 | `--c-place` | `#7FB2F0` |
-| 문제 | `--c-problem` | `#F4909F` |
-| 행동 | `--c-action` | `#74CDAE` |
-| 결과 | `--c-result` | `#F5C46B` |
+| 장소 | `--c-place` | `#4F8FD6` |
+| 문제 | `--c-problem` | `#E26D5A` |
+| 행동 | `--c-action` | `#4FA77A` |
+| 결과 | `--c-result` | `#E8B23C` |
 
-바탕은 `--milk #E6EEFB`, 무대는 `--cloud #FFFFFF`, 주된 행동은 `--grape #7386F5`,
-고른 것은 `--butter #FFEA99`다.
+**2026-10-28 화면 방향을 「그림책 종이」로 바꿨다 (디자인 방향 A, 사용자 결정).**
+바탕은 크림색 종이 `--milk #F8F3EA` (귀퉁이에 네 색이 번진 수채 질감 `styles/paper-wash.svg`, 10/28 사용자 결정), 무대 · 카드는 흰 도화지 `--cloud #FFFDF8`, 글 · 테두리는 진한 갈색 `--ink #3A2E26`,
+주된 행동은 크레파스 주황빨강 `--grape #D65A3B`(변수 이름은 예전 그대로), 고른 것은 형광펜 노랑 `--butter #FFE39A`다.
+테두리는 갈색 3px 선, 모서리는 조금씩 다르게, 그림자는 어긋난 종이 그림자만. 제목 · 버튼은 손글씨 「개구」(Gaegu 700, 글자 사이 -0.1em),
+아이 화면 본문은 「고운돋움」, 어른 화면은 Pretendard. 시안: https://claude.ai/artifact/33DwE22K8py2a91zkFXycq
+**아이콘 · 배경을 새로 만들 때 이 색과 크레파스 느낌에 맞춘다.** 지금 장소 · 문제 아이콘(수채 느낌)은 그대로 쓰되, 다음에 만들 때 맞춘다.
+(예전 값: 장소 #7FB2F0 · 문제 #F4909F · 행동 #74CDAE · 결과 #F5C46B, 바탕 #E6EEFB, 주된 행동 #7386F5)
 
 ---
 
@@ -178,12 +183,16 @@ schoolyard / small town / cave interior).
 
 `{분위기}`는 장면 번호에 대응한다. 이야기 흐름이 배경으로도 읽히게 하는 장치다.
 
-| 장면 | 단계 | 모션 | `{분위기}` |
+| 장면 | 단계 | 캐릭터 | `{분위기}` |
 |---|---|---|---|
-| 0 | 장소 도착 | `walk` | bright clear daylight, calm and open |
-| 1 | 문제 발생 | `look` | overcast and dimmer, cooler light, still gentle |
-| 2 | 행동 | `wave` | light beginning to return, warmer than before |
-| 3 | 결과 | `jump` | warm golden late-afternoon light |
+| 0 | 장소 도착 | 대기 자세 (`idle`) | bright clear daylight, calm and open |
+| 1 | 문제 발생 | **좌절 자세** | overcast and dimmer, cooler light, still gentle |
+| 2 | 행동 | **움직임 — 여기만 서버 MP4** | light beginning to return, warmer than before |
+| 3 | 결과 | 기뻐함 (`jump` 반복) | warm golden late-afternoon light |
+
+**움직이는 장면은 2번 하나다.** 나머지 셋은 배경 그림 + 아이 그림 + 문장을 겹쳐 보여 준다
+(pt_docs 03 5.4). 기본 동작은 여섯 가지뿐이라 `look` 같은 동작은 없다 —
+걷기 · 뛰기 · 점프 · 대기 · 손 흔들기 · 좌절.
 
 **1번(문제) 분위기를 무섭게 만들지 않는다.** 어두워지는 정도가 아니라 흐려지는
 정도다. `still gentle`을 프롬프트에서 빼지 말 것.
