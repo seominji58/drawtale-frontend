@@ -34,7 +34,7 @@ const FAIL: Record<string, string> = {
 };
 const failOf = (e: unknown, fallback: string) => FAIL[e instanceof ApiError ? e.serverCode ?? "" : ""] ?? fallback;
 const nameOf = (k: ChildSummary) => k.nickname ?? (k.relation === "guardian" ? "우리 아이" : "이름 없음");
-const MODE_LABEL: Record<UseMode, string> = { home: "🏠 집에서 (보호자)", school: "🏫 학교 · 기관에서 (교사)", both: "둘 다 (장소에 상관없이)" };
+const MODE_LABEL: Record<UseMode, string> = { home: "🏠 집 (보호자)", school: "🏫 학교 (교사)", both: "둘 다" };
 const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); return true; } catch { return false; } };
 
 export default function ChildLinks() {
@@ -49,6 +49,9 @@ export default function ChildLinks() {
   const showHome = useMode !== "school" || mine.length > 0;
   const showSchool = useMode === "school" || useMode === "both" || school.length > 0;
   const now = active();
+  // 집 · 학교 둘 다 쓰는 어른(선생님이면서 보호자)은 한 번에 한 쪽만 본다 (11/18 사용자)
+  const [side, setSide] = useState<"home" | "school">(useMode === "school" ? "school" : "home");
+  const both = showHome && showSchool;
   const refresh = async () => { await load(); void sync(); };
   const changeMode = async (m: UseMode) => {
     try { await setUseMode(m); useGuardian.getState().useModeChosen(m); setMsg(`쓰는 곳을 「${MODE_LABEL[m]}」(으)로 바꿨습니다. 이미 연결된 아이는 그대로입니다.`); }
@@ -57,31 +60,38 @@ export default function ChildLinks() {
 
   return (
     <>
-      <div className="item note"><span className="desc">
-        그림 · 이야기는 아이의 것이에요. <b>보호자는 언제나 다 볼 수 있고</b>, 선생님은 학교에서 만든 것만 봐요 (집 공유를 켜면 집 것도).
-      </span></div>
-      <Row name="쓰는 곳" desc="처음에 고른 답입니다. 바꾸면 아래 칸이 달라지고, 이미 연결된 아이 · 이야기는 그대로 남습니다">
-        <select className="title-input" style={{ maxWidth: 220 }} value={useMode ?? ""} aria-label="쓰는 곳"
-          onChange={(e) => void changeMode(e.target.value as UseMode)}>
-          {!useMode && <option value="" disabled>고르기</option>}
-          {(Object.keys(MODE_LABEL) as UseMode[]).map((m) => <option key={m} value={m}>{MODE_LABEL[m]}</option>)}
-        </select>
-      </Row>
+      {both && (
+        <div className="kid-tabs" role="tablist" aria-label="우리 아이 · 학교 아이들">
+          <button role="tab" aria-selected={side === "home"} className={side === "home" ? "on" : ""} onClick={() => setSide("home")}>🏠 우리 아이 {mine.length}</button>
+          <button role="tab" aria-selected={side === "school"} className={side === "school" ? "on" : ""} onClick={() => setSide("school")}>🏫 학교 아이들 {school.length}</button>
+        </div>
+      )}
       {list.length > 1 && now && (
-        <Row name="지금 아이" desc="이 기기에서 만드는 그림 · 이야기가 이 아이에게 저장되고, 책장에도 이 아이의 이야기가 보입니다">
+        <Row name="지금 아이" desc="이 기기에서 만드는 그림 · 이야기가 이 아이에게 저장됩니다">
           <select className="title-input" style={{ maxWidth: 220 }} value={now.id} aria-label="지금 아이"
             onChange={(e) => { setActive(e.target.value); void sync(); }}>
             {list.map((k) => <option key={k.id} value={k.id}>{k.icon} {nameOf(k)}{k.relation === "teacher" ? " (학교)" : ""}</option>)}
           </select>
         </Row>
       )}
-      {showHome && <>
-        <div className="item head sub"><span className="grow"><span className="name">🏠 우리 아이</span></span></div>
+      {showHome && (!both || side === "home") && <>
+        {!both && <div className="item head sub"><span className="grow"><span className="name">🏠 우리 아이</span></span></div>}
         {mine.map((k) => <HomeKid key={k.id} kid={k} onChange={refresh} setMsg={setMsg} />)}
         <AddHomeKid onAdded={async (k) => { await refresh(); if (!now) setActive(k.id); }} setMsg={setMsg} />
       </>}
-      {showSchool && <SchoolKids kids={school} onChange={refresh} setMsg={setMsg} onAdded={(k) => { if (!now) setActive(k.id); }} />}
+      {showSchool && (!both || side === "school") && <SchoolKids head={!both} kids={school} onChange={refresh} setMsg={setMsg} onAdded={(k) => { if (!now) setActive(k.id); }} />}
       {msg && <p className="hint" role="status" style={{ padding: "0 20px" }}>{msg}</p>}
+      <div className="item head sub"><span className="grow"><span className="name">쓰는 곳</span></span></div>
+      <Row name="어디에서 쓰나요" desc="바꿔도 연결된 아이 · 이야기는 그대로 남습니다">
+        <select className="title-input" style={{ maxWidth: 200 }} value={useMode ?? ""} aria-label="쓰는 곳"
+          onChange={(e) => void changeMode(e.target.value as UseMode)}>
+          {!useMode && <option value="" disabled>고르기</option>}
+          {(Object.keys(MODE_LABEL) as UseMode[]).map((m) => <option key={m} value={m}>{MODE_LABEL[m]}</option>)}
+        </select>
+      </Row>
+      <div className="item note"><span className="desc">
+        그림 · 이야기는 아이의 것이에요. <b>보호자는 언제나 다 볼 수 있고</b>, 선생님은 학교에서 만든 것만 봐요 (집 공유를 켜면 집 것도).
+      </span></div>
     </>
   );
 }
@@ -158,8 +168,8 @@ function AddHomeKid({ onAdded, setMsg }: { onAdded: (k: ChildSummary) => Promise
 
 const STATUS_TEXT: Record<string, string> = { linked: "보호자 연결됨", invited: "링크 보냄", none: "보호자 아직" };
 
-function SchoolKids({ kids, onChange, setMsg, onAdded }: {
-  kids: ChildSummary[]; onChange: () => Promise<void>; setMsg: (m: string | null) => void; onAdded: (k: ChildSummary) => void;
+function SchoolKids({ head, kids, onChange, setMsg, onAdded }: {
+  head: boolean; kids: ChildSummary[]; onChange: () => Promise<void>; setMsg: (m: string | null) => void; onAdded: (k: ChildSummary) => void;
 }) {
   const [selected, setSelected] = useState(false);
   const [consent, setConsent] = useState(false);
@@ -200,7 +210,7 @@ function SchoolKids({ kids, onChange, setMsg, onAdded }: {
 
   return (
     <>
-      <div className="item head sub"><span className="grow"><span className="name">🏫 학교 아이들</span></span></div>
+      {head && <div className="item head sub"><span className="grow"><span className="name">🏫 학교 아이들</span></span></div>}
       <div className="item"><span className="grow">
         <span className="name">학교에서 쓰기 전 확인</span>
         <label className="intro-check"><input type="checkbox" checked={selected} onChange={(e) => setSelected(e.target.checked)} />

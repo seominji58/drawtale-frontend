@@ -795,6 +795,11 @@ body[data-enter="book"] .screen { animation: enter-from-book 320ms ease-out both
   font-size: 15px; font-weight: 700;
 }
 .set-nav button.on { background: var(--ink); border-color: var(--ink); color: #FFFDF8; }
+.set-nav .set-lock { background: transparent; border-style: dashed; font-weight: 600; }
+/* 아이 · 연결 안의 🏠 · 🏫 나누기 */
+.kid-tabs { display: flex; gap: 8px; padding: 10px 20px 4px; flex-wrap: wrap; }
+.kid-tabs button { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--edge); background: var(--cloud); font-size: 15px; font-weight: 700; color: var(--ink-soft); }
+.kid-tabs button.on { background: var(--butter); border-color: var(--ink); color: var(--ink); }
 @media (max-width: 767px) { .set-nav { justify-content: flex-start; } }
 /* 휴대폰 폭: 고르는 단추(짧게 · 길게 등)가 있는 줄은 단추를 설명 아래로 — 제목이 세로로 한 글자씩 쌓이던 것 (11/2) */
 @media (max-width: 560px) {

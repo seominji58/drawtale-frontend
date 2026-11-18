@@ -30,13 +30,10 @@ function Row({ name, desc, children }: { name: string; desc: string; children: R
   );
 }
 
-/** 묶음 머리. 위 바로가기 칩이 이 id 로 찾아간다 */
-function Head({ id, name, desc, children }: { id: string; name: string; desc?: string; children?: ReactNode }) {
-  // 머리는 위에 붙어 있으므로(sticky) 이름만 둔다. 긴 설명은 그 아래 보통 줄로 — 붙어 있는 동안 목록을 가리지 않게
+/** 탭 안의 작은 묶음 머리 */
+function Head({ name, desc, children }: { name: string; desc?: string; children?: ReactNode }) {
   return (
     <>
-      {/* 위치는 이 표식으로 잰다. 위에 붙는(sticky) 머리는 offsetTop 이 붙은 자리로 나와 쓸 수 없다 */}
-      <div className="set-anchor" id={`set-${id}`} data-section={id} aria-hidden />
       <div className="item head">
         <span className="grow"><span className="name">{name}</span></span>
         {children}
@@ -48,17 +45,24 @@ function Head({ id, name, desc, children }: { id: string; name: string; desc?: s
 
 /** 이야기 제목 길이 (책장 책등에 들어가는 만큼) */
 
-/** 바로가기 칩. 설정이 길어 폰 · 태블릿 · 컴퓨터 어디서든 원하는 묶음으로 바로 간다 (10/28 사용자 「스크롤 방식 고민」) */
-/** 아이 칸(잠금 없음)이 먼저, 보호자 칸(비밀번호)이 뒤 (pt_docs 20 3-2, 2026-11-06) */
-const SECTIONS: [string, string][] = [
-  ["story", "이야기"], ["sound", "소리"], ["family", "아이"], ["guardian", "보호자"], ["account", "계정"], ["info", "기록"], ["mine", "만든 이야기"],
+/** 설정 탭 (11/18 사용자 「스크롤 나열 느낌이라 불편, 기능별로 정리」). 한 번에 한 묶음만 보인다.
+ *  아이 탭(잠금 없음)이 먼저, 어른 탭(보호자 비밀번호)이 뒤 (pt_docs 20 3-2) */
+type Tab = "story" | "family" | "guardian" | "mine" | "account";
+const TABS: [Tab, string][] = [
+  ["story", "이야기 · 소리"], ["family", "아이 · 연결"], ["guardian", "보호자 기능"], ["mine", "만든 이야기"], ["account", "계정 · 기록"],
 ];
-/** 보호자 칸을 열기 전에도 무엇이 있는지는 보인다 (숨기지 않고 잠그기) */
-const GUARDIAN_ITEMS = [
-  "아이 · 연결 (우리 아이 · 학교 아이들, 아이 번호, 선생님 연결 · 보호자 링크)",
-  "보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기 · 보호자 · 아이 목소리 등록",
-  "원본 그림 보관 · 진단 모드", "만든 이야기 제목 고치기 · 지우기", "로그인 · 로그아웃 · 계정 탈퇴 · 비밀번호 바꾸기",
-];
+/** 잠긴 탭을 열기 전에도 무엇이 있는지는 보인다 (숨기지 않고 잠그기) */
+const LOCKED_ITEMS: Record<Exclude<Tab, "story">, string[]> = {
+  family: ["쓰는 곳 (집 · 학교 · 둘 다)", "우리 아이: 이름, 아이 번호, 연결된 선생님 · 집 이야기 공유", "학교 아이들: 아이 추가, 보호자 링크, 번호로 붙이기"],
+  guardian: ["보호자 모드 켜기 · 끄기", "사진으로 그림 올리기 · 말로 이야기 보태기", "보호자 · 아이 목소리 등록"],
+  mine: ["만든 이야기 제목 고치기 · 지우기"],
+  account: ["로그인 · 로그아웃 · 계정 탈퇴", "보호자 비밀번호 바꾸기 · 소개 다시 보기", "원본 그림 보관 · 진단 모드"],
+};
+const TAB_KEY = "storyblanks.settingsTab";
+const savedTab = (): Tab => {
+  try { const t = sessionStorage.getItem(TAB_KEY); if (TABS.some(([id]) => id === t)) return t as Tab; } catch { /* 없어도 된다 */ }
+  return "story";
+};
 
 export default function S13Settings() {
   const nav = useNavigate();
@@ -81,7 +85,15 @@ export default function S13Settings() {
     setEditing(null);
   };
   const listRef = useRef<HTMLDivElement>(null);
-  const [current, setCurrent] = useState("account");
+  // 목소리 녹음 화면에 갔다 와도 보던 탭으로 돌아온다
+  const [tab, setTabState] = useState<Tab>(savedTab);
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try { sessionStorage.setItem(TAB_KEY, t); } catch { /* 없어도 된다 */ }
+    listRef.current?.scrollTo({ top: 0 });
+    // 폰에서 탭 줄이 옆으로 넘칠 때 고른 탭이 보이게
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(".set-nav button.on")?.scrollIntoView({ inline: "nearest", block: "nearest" }));
+  };
   // 보호자 목소리 상태 (로그인했을 때만 서버에 묻는다). null 이면 아직 모름
   const [myVoice, setMyVoice] = useState<GuardianVoice | null>(null);
   // 아이 목소리 상태 (2026-11-09 시연용)
@@ -150,60 +162,16 @@ export default function S13Settings() {
     finally { setWorking(false); }
   };
 
-  // 지금 보고 있는 묶음을 칩에 표시한다: 목록 맨 위를 지난 마지막 머리.
-  // 머리가 위에 붙어 있어(sticky) IntersectionObserver 로는 늘 「보이는」 것으로 나와 스크롤 위치로 센다.
-  // 칩을 눌러 가는 동안은 누른 칩만 켜 둔다 — 지나가는 묶음 칩이 차례로 깜빡였다 (11/3 사용자 「카테고리 버튼이 이상하게」)
-  const jumping = useRef<number>(0);
-  const spacer = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const root = listRef.current;
-    if (!root) return;
-    const onScroll = () => {
-      if (jumping.current) return;
-      const heads = [...root.querySelectorAll<HTMLElement>("[data-section]")];
-      const top = root.scrollTop + 12;
-      const passed = heads.filter((h) => h.offsetTop <= top);
-      const now = passed[passed.length - 1] ?? heads[0];
-      if (now) setCurrent(now.dataset.section!);
-    };
-    // 마지막 묶음도 맨 위까지 올라오게 끝에 빈 칸을 둔다 — 없으면 끝 근처 묶음(기록 · 안내)은 위로 못 와서
-    // 그 칩을 눌러도 · 휠로 내려도 다른 칩이 켜졌다
-    const fit = () => {
-      const sp = spacer.current, heads = root.querySelectorAll<HTMLElement>("[data-section]");
-      const last = heads[heads.length - 1];
-      if (!sp || !last) return;
-      sp.style.height = "0px";
-      const tail = root.scrollHeight - last.offsetTop;
-      sp.style.height = `${Math.max(0, root.clientHeight - tail)}px`;
-      onScroll();
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(root);
-    root.addEventListener("scroll", onScroll, { passive: true });
-    return () => { ro.disconnect(); root.removeEventListener("scroll", onScroll); };
-  }, [stories.length]);
-
-  const jump = (id: string) => {
-    const root = listRef.current, el = document.getElementById(`set-${id}`);
-    if (!root || !el) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setCurrent(id);
-    // 다 갈 때까지 스크롤 표시를 멈춘다 (scrollend 가 없는 브라우저는 잠깐 뒤)
-    window.clearTimeout(jumping.current);
-    jumping.current = window.setTimeout(() => { jumping.current = 0; }, reduce ? 50 : 900);
-    const done = () => { window.clearTimeout(jumping.current); jumping.current = 0; root.removeEventListener("scrollend", done); };
-    root.addEventListener("scrollend", done);
-    root.scrollTo({ top: el.offsetTop, behavior: reduce ? "auto" : "smooth" });
-  };
-
   return (
     <Screen back={close} speech={null} title="설정" audience="adult" autoSpeak={false}
       acts={<BigButton onClick={close}>닫기</BigButton>}>
-      <nav className="set-nav" aria-label="설정 묶음 바로가기">
-        {SECTIONS.filter(([id]) => unlocked ? id !== "mine" || stories.length > 0 : !["account", "info", "mine", "family"].includes(id)).map(([id, label]) => (
-          <button key={id} className={current === id ? "on" : ""} aria-current={current === id} onClick={() => jump(id)}>{label}</button>
+      <nav className="set-nav" role="tablist" aria-label="설정 묶음">
+        {TABS.map(([id, label]) => (
+          <button key={id} role="tab" className={tab === id ? "on" : ""} aria-selected={tab === id} onClick={() => setTab(id)}>
+            {id !== "story" && !unlocked && <span aria-hidden>🔒 </span>}{label}
+          </button>
         ))}
+        {unlocked && <button className="set-lock" onClick={lock}>잠그기</button>}
       </nav>
       {/* 터치 · 휠 · 트랙패드 · 스크롤 막대 · 키보드(눌러서 고른 뒤 화살표 · Page Down) 모두로 내린다 */}
       {ask?.kind === "voice" && (
@@ -248,8 +216,9 @@ export default function S13Settings() {
           </span>
         </Row>}
 
-        {/* ── 아이 칸: 잠금 없음. 아이가 바꿔도 되는 것만 (pt_docs 20 3-2) ── */}
-        <Head id="story" name="이야기" />
+        {/* ── 아이 탭: 잠금 없음. 아이가 바꿔도 되는 것만 (pt_docs 20 3-2) ── */}
+        {tab === "story" && <>
+        <Head name="이야기" />
         {/* 긴 이야기 (open-decisions 0-6, 사용자 2026-10-12). 쪽 수는 서버 설정(STORY_PAGES, 지금 8쪽) */}
         <Row name="이야기 길이"
           desc={s.storyLength === "long"
@@ -263,7 +232,7 @@ export default function S13Settings() {
           </span>
         </Row>
 
-        <Head id="sound" name="소리" />
+        <Head name="소리" />
         <Row name="소리 전체 끄기" desc="모든 음성과 효과음을 끕니다. 교실에서 쓸 때 켜세요">
           <input type="checkbox" checked={s.muteAll}
             onChange={(e) => s.set("muteAll", e.target.checked)}
@@ -322,20 +291,29 @@ export default function S13Settings() {
           desc="이야기 문장과 읽어 주는 음성, 움직이는 영상은 AI 가 만듭니다. 아이가 고른 네 칸과 말한 내용을 바탕으로 만들며, 아이 그림은 외부로 보내지 않습니다">
           <span className="hint">알림</span>
         </Row>
+        </>}
 
         {/* ── 보호자 칸: 보호자 비밀번호로 연다. 열기 전에도 무엇이 있는지는 보인다 ── */}
-        {unlocked ? <>
+        {tab !== "story" && !unlocked && (
+          <div className="item set-locked">
+            <span className="desc">보호자 비밀번호를 넣으면 열립니다. 한 번 열면 설정을 닫을 때까지 열려 있습니다.</span>
+            <ul>{LOCKED_ITEMS[tab].map((t) => <li key={t}>{t}</li>)}</ul>
+            <button className="locked-feature" onClick={openGuardian}>
+              <LockIcon />{pinStatus?.pinSet === false ? "보호자 비밀번호 만들기" : "보호자 비밀번호 넣기"}
+            </button>
+          </div>
+        )}
+        {unlocked && tab === "family" && <>
         {/* 「어른과 함께」 묶음 (pt_docs 03 F-SET-06, 01 NFR-15). 위험이 따르는 기능은 로그인한 보호자만 켠다.
             설계는 「로그인 후 아이 프로필 설정」에 두는 것이고, 아이 프로필(F-ACC-07)이 아직 없어 그때까지 여기 둔다.
             로그인하지 않았으면 설정값과 상관없이 꺼진 것으로 본다 (store/settings.ts useWithAdult) */}
         {/* 아이 · 연결: 어른 칸 맨 위 (설계 「보호자-교사-계정」 5장, 2026-11-18). 그림 · 이야기는 아이의 것 */}
-        <Head id="family" name="아이 · 연결"
-          desc={mode === "member" ? undefined : "로그인한 보호자 · 선생님만 쓸 수 있습니다"} />
-        {mode === "member" && <ChildLinks />}
-        <Head id="guardian" name="보호자 기능"
-          desc="위험이 따를 수 있는 기능입니다. 켜면 아이 화면에서 바로 쓰고, 꺼 두면 아이 화면에 🔒 로 보입니다(누르면 보호자 비밀번호). 아이 곁에서 함께 써 주세요">
-          <button className="btn link" onClick={lock}>보호자 칸 잠그기</button>
-        </Head>
+        {mode === "member" ? <ChildLinks /> : <div className="item note"><span className="desc">로그인한 보호자 · 선생님만 쓸 수 있습니다</span></div>}
+        </>}
+        {unlocked && tab === "guardian" && <>
+        <div className="item note"><span className="desc">
+          위험이 따를 수 있는 기능입니다. 켜면 아이 화면에서 바로 쓰고, 꺼 두면 아이 화면에 🔒 로 보입니다(누르면 보호자 비밀번호). 아이 곁에서 함께 써 주세요
+        </span></div>
         {/* 보호자 모드 켜기 · 끄기 (2026-11-03 사용자). 끄면 아래 기능 · 내 소품이 모두 꺼진 것으로 본다(켜 둔 값은 남는다).
             켜면 S-05 에서 관절이 정상이어도 보호자가 판단해 고칠 수 있다 */}
         <Row name="보호자 모드"
@@ -385,19 +363,9 @@ export default function S13Settings() {
           </Row>
         ))}
         {sampleError && <p className="hint" role="status" style={{ padding: "0 20px" }}>{sampleError}</p>}
-        <Head id="info" name="기록" />
-        <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
-          <input type="checkbox" checked={s.keepOriginal}
-            onChange={(e) => s.set("keepOriginal", e.target.checked)}
-            className="tog" />
-        </Row>
-        <Row name="진단 모드" desc="화면에 단계명과 소요 시간, 사용된 엔진 이름을 표시합니다">
-          <input type="checkbox" checked={s.diagnostics}
-            onChange={(e) => s.set("diagnostics", e.target.checked)}
-            className="tog" />
-        </Row>
-
-        <Head id="account" name="계정" />
+        </>}
+        {unlocked && tab === "account" && <>
+        <Head name="계정" />
         <Row name="보호자 비밀번호" desc="보호자 칸과 아이 화면의 🔒 기능을 여는 숫자 4자리입니다. 잊으면 비밀번호 창의 「비밀번호를 잊었어요」로 다시 로그인해 새로 정합니다">
           <button className="btn link" onClick={change}>바꾸기</button>
         </Row>
@@ -415,29 +383,32 @@ export default function S13Settings() {
           </Row>
         )}
 
-        </> : <>
-        <div className="set-anchor" id="set-guardian" data-section="guardian" aria-hidden />
-        <div className="item head"><span className="grow"><span className="name">보호자 칸</span></span></div>
-        <div className="item set-locked">
-          <span className="desc">보호자 비밀번호를 넣으면 열립니다. 한 번 열면 설정을 닫을 때까지 열려 있습니다.</span>
-          <ul>{GUARDIAN_ITEMS.map((t) => <li key={t}>{t}</li>)}</ul>
-          <button className="locked-feature" onClick={openGuardian}>
-            <LockIcon />{pinStatus?.pinSet === false ? "보호자 비밀번호 만들기" : "보호자 비밀번호 넣기"}
-          </button>
-        </div>
+        <Head name="기록" />
+        <Row name="원본 그림 보관" desc="끄면 그 그림을 다 쓰고 나갈 때(처음으로 · 새 그림 · 탭 닫기) 서버에서 지웁니다. 늦어도 하루 뒤에는 지웁니다. 관절과 만든 이야기는 남습니다">
+          <input type="checkbox" checked={s.keepOriginal}
+            onChange={(e) => s.set("keepOriginal", e.target.checked)}
+            className="tog" />
+        </Row>
+        <Row name="진단 모드" desc="화면에 단계명과 소요 시간, 사용된 엔진 이름을 표시합니다">
+          <input type="checkbox" checked={s.diagnostics}
+            onChange={(e) => s.set("diagnostics", e.target.checked)}
+            className="tog" />
+        </Row>
         </>}
         {/* 제목 고치기 · 지우기는 로그인한 보호자만 (2026-11-02 사용자 「보호자 모드에서」, 「삭제도 보호자랑 같이」).
             아이가 혼자 지우지 않게. 로그인한 계정의 이야기만 보인다 */}
-        {unlocked && stories.length > 0 && <Head id="mine" name="만든 이야기"
-          desc={mode === "member" ? "제목을 고치거나 지울 수 있습니다. 지우면 되돌릴 수 없습니다"
-            : "제목 고치기와 지우기는 로그인한 보호자만 할 수 있습니다"} />}
+        {unlocked && tab === "mine" && <div className="item note"><span className="desc">
+          {stories.length === 0 ? "아직 만든 이야기가 없습니다"
+            : mode === "member" ? "제목을 고치거나 지울 수 있습니다. 지우면 되돌릴 수 없습니다"
+            : "제목 고치기와 지우기는 로그인한 보호자만 할 수 있습니다"}
+        </span></div>}
         {/* 한꺼번에 지우기 (11/10 사용자 「일일이 지워야 한다」) */}
-        {unlocked && mode === "member" && stories.length > 1 && (
+        {unlocked && tab === "mine" && mode === "member" && stories.length > 1 && (
           <Row name={`이야기 모두 지우기 (${stories.length}편)`} desc="책장의 이야기를 한꺼번에 지웁니다. 다른 기기 책장에서도 사라지고 되돌릴 수 없습니다">
             <button className="btn link" style={{ color: "var(--berry)" }} onClick={() => setAsk({ kind: "allStories" })}>모두 지우기</button>
           </Row>
         )}
-        {unlocked && stories.map((st) => (
+        {unlocked && tab === "mine" && stories.map((st) => (
           editing?.id === st.storyId
             ? <form key={st.storyId} className="item" onSubmit={(e) => { e.preventDefault(); saveTitle(); }}>
                 <input className="title-input" value={editing.title} maxLength={TITLE_MAX} autoFocus
@@ -457,8 +428,6 @@ export default function S13Settings() {
                 )}
               </Row>
         ))}
-        {/* 마지막 묶음도 맨 위까지 올라오게 하는 빈 칸 (높이는 위 fit) */}
-        <div ref={spacer} aria-hidden />
       </div>
     </Screen>
   );
